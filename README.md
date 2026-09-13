@@ -36,12 +36,22 @@ CREATE USER 'dash'@'localhost' IDENTIFIED BY '또_다른_비밀번호';
 GRANT SELECT ON defense_dashboard.* TO 'dash'@'localhost';
 ```
 
-잘 됐는지는 이 두 줄로 본다.
+**확인은 셋만 본다.**
 
 ```sql
-SELECT user, host FROM mysql.user;          -- defense 와 dash 가 보이면 된다
-SHOW GRANTS FOR 'dash'@'localhost';         -- SELECT 만 있으면 된다
+-- 계정 셋이 있는지
+SELECT user, host FROM mysql.user WHERE user IN ('root', 'defense', 'dash');
+
+-- 권한이 제대로 갈렸는지
+SHOW GRANTS FOR 'defense'@'localhost';   -- ALL PRIVILEGES ON `defense_dashboard`.* 가 보이면 된다
+SHOW GRANTS FOR 'dash'@'localhost';      -- SELECT ON `defense_dashboard`.* 가 보이면 된다
 ```
+
+| 계정 | 있어야 할 권한 |
+|---|---|
+| `root` | 전부 — 설치할 때 생긴 것. **우리는 안 쓴다** |
+| `defense` | `defense_dashboard` 에 **ALL PRIVILEGES** |
+| `dash` | `defense_dashboard` 에 **SELECT** 만 |
 
 - **`root` 는 여기서 끝이다.** 코드 어디에도 안 들어간다
 - **계정을 둘로 나눈 이유**는 보안이 아니라 **실수 방지**다. 대시보드가 `root` 로 붙어 있으면
