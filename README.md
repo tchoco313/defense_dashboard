@@ -20,7 +20,37 @@ pip install -r requirements.txt   # 필요한 패키지를 한 번에 깐다
 cp config_example.py config.py    # 접속정보 틀을 복사한다 (윈도우: copy)
 ```
 
-그다음 `config.py` 를 열어 자기 MySQL 비밀번호와 인증키를 적는다.
+그다음 **MySQL 을 한 번만 준비한다.** Workbench 를 열고 — *비밀번호가 기억 안 나도 저장돼 있으면 그냥 열린다* —
+아래를 통째로 붙여넣어 실행한다. **비밀번호 두 개는 자기가 지금 정하면 된다.**
+
+```sql
+CREATE DATABASE defense_dashboard
+  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 데이터를 넣고 고치는 계정
+CREATE USER 'defense'@'localhost' IDENTIFIED BY '자기가_정한_비밀번호';
+GRANT ALL PRIVILEGES ON defense_dashboard.* TO 'defense'@'localhost';
+
+-- 조회만 하는 계정 (대시보드용)
+CREATE USER 'dash'@'localhost' IDENTIFIED BY '또_다른_비밀번호';
+GRANT SELECT ON defense_dashboard.* TO 'dash'@'localhost';
+```
+
+잘 됐는지는 이 두 줄로 본다.
+
+```sql
+SELECT user, host FROM mysql.user;          -- defense 와 dash 가 보이면 된다
+SHOW GRANTS FOR 'dash'@'localhost';         -- SELECT 만 있으면 된다
+```
+
+- **`root` 는 여기서 끝이다.** 코드 어디에도 안 들어간다
+- **계정을 둘로 나눈 이유**는 보안이 아니라 **실수 방지**다. 대시보드가 `root` 로 붙어 있으면
+  코드 한 줄에 데이터가 날아갈 수 있다. 조회 전용이면 애초에 불가능하다
+- **`utf8mb4` 를 빼면 한글이 `???` 로 들어간다.** 넣을 땐 오류가 안 나고 조회할 때 알게 된다
+- `GRANT ... ON defense_dashboard.*` 의 **`defense_dashboard.` 가 핵심이다.** 이 방 안에서만 권한이 있고
+  수업 때 쓰던 다른 DB 는 못 건드린다
+
+마지막으로 `config.py` 를 열어 **방금 정한 비밀번호 두 개**와 인증키를 적는다.
 **`config.py` 는 깃에 안 올라간다.** 코드에서는 `from config import DB_PASSWORD` 처럼 불러 쓴다.
 
 ---
