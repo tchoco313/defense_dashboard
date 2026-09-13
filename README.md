@@ -114,3 +114,6 @@ python3 src/preprocess.py     # 정제해서 data/clean/ 에 4개 파일로 만�
 
 **전처리에서 조심할 것 네 가지**는 `src/preprocess.py` 주석에 ★ 로 표시해 두었다.
 그중 둘은 오류가 안 나고 조용히 틀리는 것이라 꼭 읽어라.
+
+
+안태호
