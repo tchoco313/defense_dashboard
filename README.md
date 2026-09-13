@@ -17,10 +17,11 @@ K-디지털트레이닝 국방·첨단산업 AI 솔루션 ML 엔지니어 양성
 git clone https://github.com/tchoco313/defense_dashboard.git          # 저장소를 내 컴퓨터로 복사한다
 cd defense_dashboard
 pip install -r requirements.txt   # 필요한 패키지를 한 번에 깐다
-cp .env.example .env              # 접속정보 틀을 복사한다 (윈도우: copy)
+cp config_example.py config.py    # 접속정보 틀을 복사한다 (윈도우: copy)
 ```
 
-그다음 `.env` 를 열어 자기 MySQL 비밀번호를 적는다. **`.env` 는 깃에 안 올라간다.**
+그다음 `config.py` 를 열어 자기 MySQL 비밀번호와 인증키를 적는다.
+**`config.py` 는 깃에 안 올라간다.** 코드에서는 `from config import DB_PASSWORD` 처럼 불러 쓴다.
 
 ---
 
@@ -49,7 +50,7 @@ EDA 보고서가 곧 이 노트북이고 그래프가 제출물이다. 지우면
 파일 주인을 정해서 충돌 자체를 안 만든다.
 
 **4. 데이터와 비밀번호는 올리지 않는다.**
-`.gitignore` 가 막고 있다. 이 파일을 함부로 고치지 말 것.
+`.gitignore` 가 `data/` 와 `config.py` 를 막고 있다. 이 파일을 함부로 고치지 말 것.
 
 ---
 
