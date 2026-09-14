@@ -20,48 +20,67 @@ pip install -r requirements.txt   # 필요한 패키지를 한 번에 깐다
 cp config_example.py config.py    # 접속정보 틀을 복사한다 (윈도우: copy)
 ```
 
-그다음 **MySQL 을 한 번만 준비한다.** Workbench 를 열고 — *비밀번호가 기억 안 나도 저장돼 있으면 그냥 열린다* —
-아래를 통째로 붙여넣어 실행한다. **비밀번호 두 개는 자기가 지금 정하면 된다.**
+그다음 `config.py` 를 열어 **비밀번호 두 개**를 적는다. 조장이 단톡으로 알려 준다.
+호스트·포트는 이미 채워져 있으니 **건드리지 마라.**
+
+**MySQL 을 깔 필요가 없다.** DB 는 학원 PC 한 대(`192.168.100.221`)에 모여 있고, 다섯 명이
+거기에 붙어 쓴다. 각자 자기 컴퓨터에 DB 를 만들면 데이터가 다섯 벌로 갈라져서
+"내 화면에선 되는데" 가 생긴다.
+
+붙는지 확인은 이 한 줄이면 된다.
+
+```bash
+python3 src/check_db_access.py     # 인터넷 → 서버 포트 → 실제 로그인 순서로 본다
+```
+
+`[O]` 가 셋 다 뜨면 끝이다.
+
+| 계정 | 무엇에 쓰나 | 권한 |
+|---|---|---|
+| `defense` | 수집·전처리 스크립트가 데이터를 **넣을 때** | `defense_dashboard` 에 ALL |
+| `dash` | Streamlit 대시보드가 **읽을 때** | `defense_dashboard` 에 SELECT 만 |
+
+- **계정을 둘로 나눈 이유**는 보안이 아니라 **실수 방지**다. 대시보드가 전권 계정으로 붙어 있으면
+  코드 한 줄에 남의 데이터까지 날아갈 수 있다. 조회 전용이면 애초에 불가능하다
+- **`root` 는 우리 코드 어디에도 안 들어간다**
+- **`config.py` 는 깃에 안 올라간다.** 코드에서는 `from config import DB_PASSWORD` 처럼 불러 쓴다
+
+### ★ 학원 랜 안에서만 붙는다
+
+집이나 핸드폰 핫스팟에서는 **연결이 안 된다** (`TimeoutError`). 고장이 아니라 원래 그렇다 —
+학원 PC 는 학원 네트워크 안쪽에만 열려 있다. 실제로 재 봤다.
+
+| 어디서 | 결과 |
+|---|---|
+| 학원 와이파이 | 붙는다. 질의 왕복 **6 ms** |
+| 핫스팟·집 | `TimeoutError` |
+
+그래서 **DB 를 만지는 작업은 학원에서 한다.** 집에서는 코드·문서·노트북만 손보면 된다.
+클라우드 DB(Aiven)도 써 봤지만 왕복이 **300 ms** 로 50 배 느려서 접었다.
+
+### 서버는 이렇게 만들었다 *(조장이 이미 했다 — 조원은 안 해도 된다)*
+
+발표 때 설명할 수 있게 남겨 둔다. 학원 PC 의 MySQL Workbench 에서 한 번 실행한 것이다.
 
 ```sql
 CREATE DATABASE defense_dashboard
   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- 데이터를 넣고 고치는 계정
-CREATE USER 'defense'@'localhost' IDENTIFIED BY '자기가_정한_비밀번호';
-GRANT ALL PRIVILEGES ON defense_dashboard.* TO 'defense'@'localhost';
+CREATE USER 'defense'@'%' IDENTIFIED BY '비밀번호';
+GRANT ALL PRIVILEGES ON defense_dashboard.* TO 'defense'@'%';
 
 -- 조회만 하는 계정 (대시보드용)
-CREATE USER 'dash'@'localhost' IDENTIFIED BY '또_다른_비밀번호';
-GRANT SELECT ON defense_dashboard.* TO 'dash'@'localhost';
+CREATE USER 'dash'@'%' IDENTIFIED BY '또_다른_비밀번호';
+GRANT SELECT ON defense_dashboard.* TO 'dash'@'%';
 ```
 
-**확인은 셋만 본다.**
-
-```sql
--- 계정 셋이 있는지
-SELECT user, host FROM mysql.user WHERE user IN ('root', 'defense', 'dash');
-
--- 권한이 제대로 갈렸는지
-SHOW GRANTS FOR 'defense'@'localhost';   -- ALL PRIVILEGES ON `defense_dashboard`.* 가 보이면 된다
-SHOW GRANTS FOR 'dash'@'localhost';      -- SELECT ON `defense_dashboard`.* 가 보이면 된다
-```
-
-| 계정 | 있어야 할 권한 |
-|---|---|
-| `root` | 전부 — 설치할 때 생긴 것. **우리는 안 쓴다** |
-| `defense` | `defense_dashboard` 에 **ALL PRIVILEGES** |
-| `dash` | `defense_dashboard` 에 **SELECT** 만 |
-
-- **`root` 는 여기서 끝이다.** 코드 어디에도 안 들어간다
-- **계정을 둘로 나눈 이유**는 보안이 아니라 **실수 방지**다. 대시보드가 `root` 로 붙어 있으면
-  코드 한 줄에 데이터가 날아갈 수 있다. 조회 전용이면 애초에 불가능하다
+- **`'비밀번호'` 를 그대로 두면 안 된다.** 진짜 비밀번호로 바꿔서 실행한다 (한 번 그대로 붙여넣어서 막혔다)
+- **`@'%'` 가 `@'localhost'` 와 다른 점**이 핵심이다. `localhost` 는 그 PC 안에서 들어올 때만
+  통한다. 우리는 다른 컴퓨터에서 붙으므로 `%`(어디서든) 여야 한다
 - **`utf8mb4` 를 빼면 한글이 `???` 로 들어간다.** 넣을 땐 오류가 안 나고 조회할 때 알게 된다
-- `GRANT ... ON defense_dashboard.*` 의 **`defense_dashboard.` 가 핵심이다.** 이 방 안에서만 권한이 있고
-  수업 때 쓰던 다른 DB 는 못 건드린다
-
-마지막으로 `config.py` 를 열어 **방금 정한 비밀번호 두 개**와 인증키를 적는다.
-**`config.py` 는 깃에 안 올라간다.** 코드에서는 `from config import DB_PASSWORD` 처럼 불러 쓴다.
+- 서버 쪽에서 추가로 해 둔 것 둘 — `bind-address` 를 `0.0.0.0` 으로 (자기 자신만 듣던 걸 밖에도 열기),
+  윈도우 방화벽에서 3306 인바운드 허용
 
 ---
 

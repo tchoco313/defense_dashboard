@@ -5,17 +5,20 @@
    쓰는 법 (수업에서 만든 모듈 파일과 똑같다):
        from config import DB_PASSWORD, NEIS_KEY
 
-   ★ 2026-09-14 부터 로컬 MySQL 이 아니라 Aiven 클라우드 DB 를 쓴다.
-     각자 MySQL 을 설치할 필요가 없다. 아래 비밀번호만 채우면 바로 붙는다.
+   ★ 2026-09-14 부터 DB 는 학원 PC 한 대에 모아 둔다.
+     각자 MySQL 을 설치할 필요가 없다. 아래 비밀번호 두 개만 채우면 바로 붙는다.
      비밀번호는 조장이 단톡으로 따로 알려 준다 — 깃에 올리지 마라.
+
+   ★ 학원 랜 안에서만 붙는다. 집이나 핫스팟에서는 연결이 안 된다 (시간초과).
+     고장이 아니다. 작업은 학원에서 하고, 집에서는 코드만 손보면 된다.
 """
 
-# ── Aiven MySQL (팀 공용) ──────────────────────────────────
+# ── 팀 공용 MySQL (학원 PC) ────────────────────────────────
 # 호스트·포트·DB이름은 다섯 명이 같다. 바꾸지 마라.
-DB_HOST = "mysql-380db8bb-dashboard1.c.aivencloud.com"
-DB_PORT = 19631
-DB_NAME = "defense_dashboard"      # 없으면 Aiven 콘솔 Databases 에서 먼저 만든다
-DB_SSL  = True                     # Aiven 은 SSL 이 필수다. 끄면 접속이 거부된다
+DB_HOST = "192.168.100.221"   # 학원 PC (DESKTOP-MRPP9MH). 학원 랜 전용
+DB_PORT = 3306
+DB_NAME = "defense_dashboard"
+DB_SSL  = False               # 같은 랜 안이라 SSL 을 쓰지 않는다
 
 # 데이터를 넣고 고치는 계정 — 수집·전처리 담당만 쓴다
 DB_USER = "defense"

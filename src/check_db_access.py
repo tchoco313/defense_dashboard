@@ -1,21 +1,26 @@
 # -*- coding: utf-8 -*-
-"""학원 네트워크에서 외부 DB 에 붙을 수 있는지 확인한다.
+"""팀 DB 에 붙을 수 있는지 세 단계로 확인한다.
 
-    python3 src/check_db_access.py <호스트> <포트>
-
-예)  python3 src/check_db_access.py mysql-abc123.k.aivencloud.com 21234
+    python3 src/check_db_access.py              # config.py 에 적힌 서버로
+    python3 src/check_db_access.py <호스트> <포트>   # 다른 서버를 시험할 때
 
 ★ 왜 필요한가.
-   학원·회사 네트워크는 바깥으로 나가는 포트를 막아 두는 경우가 많다.
-   막혀 있으면 클라우드 DB 를 쓸 수 없고, 그걸 9/17 에 알면 늦는다.
+   "안 돼요" 에는 원인이 세 가지나 있다 — 네트워크, 서버, 계정.
+   어디서 막혔는지 모르면 엉뚱한 데를 고치게 된다. 이 스크립트가 그걸 갈라 준다.
 
 ★ 결과를 어떻게 읽나.
-   ① 만 되고 ② 가 막히면  → 인터넷은 되는데 그 포트만 막힌 것. 다른 포트를 시도하거나 로컬로.
-   ① 부터 막히면           → 네트워크 자체 문제. 와이파이를 다시 붙어 보라.
-   ② 까지 되고 ③ 이 실패   → 방화벽은 통과. 계정·비밀번호·SSL 설정 문제다.
+   ① 부터 막히면        → 인터넷 자체가 안 된다. 와이파이부터 확인.
+   ① 만 되고 ② 가 막히면 → 서버에 못 닿는다. 우리 DB 는 **학원 랜 안에서만** 열린다.
+                           집·핫스팟이면 정상이다. 학원 와이파이인지 먼저 봐라.
+                           학원인데도 막히면 서버 PC 가 꺼졌거나 절전으로 들어간 것이다.
+   ② 까지 되고 ③ 이 실패 → 네트워크는 통과. config.py 의 계정·비밀번호 문제다.
 """
+import os
 import socket
 import sys
+
+# config.py 는 저장소 맨 위에 있다. src/ 에서 실행해도 찾도록 경로를 더한다
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 TIMEOUT = 6
 
@@ -32,61 +37,59 @@ def tcp(host, port, label):
 
 
 def main():
+    try:
+        import config
+    except Exception:
+        print("   [X] config.py 가 없습니다.  cp config_example.py config.py 부터 하세요.")
+        return
+
+    # 인자를 주면 그걸 쓰고, 없으면 config.py 에 적힌 팀 서버를 본다
+    if len(sys.argv) >= 3:
+        host, port = sys.argv[1], sys.argv[2]
+    else:
+        host, port = config.DB_HOST, config.DB_PORT
+
     print("=" * 62)
     print("① 인터넷 자체 (대조군)")
-    net = tcp("www.google.com", 443, "HTTPS")
-    if not net:
+    if not tcp("www.google.com", 443, "HTTPS"):
         print("\n   → 인터넷이 안 됩니다. 여기서 멈추세요. 와이파이부터 확인.")
         return
 
-    if len(sys.argv) < 3:
-        print("\n" + "=" * 62)
-        print("② 대상 호스트를 안 줬습니다.")
-        print("   Aiven 등에서 인스턴스를 먼저 만들고, 거기 적힌 Host 와 Port 로:")
-        print("     python3 src/check_db_access.py <호스트> <포트>")
-        print("\n   ※ Aiven 은 3306 이 아니라 2만번대 임의 포트를 줍니다.")
-        print("      학원이 3306 만 막아 뒀다면 오히려 뚫릴 수 있습니다.")
-        return
-
-    host, port = sys.argv[1], sys.argv[2]
-
     print("\n" + "=" * 62)
-    print("② 외부 DB 포트")
-    if not tcp(host, port, "대상 DB"):
-        print("\n   → 이 포트가 막혀 있습니다. 클라우드 DB 는 학원에서 못 씁니다.")
-        print("      선택지: 다른 포트를 주는 서비스 / 학원 컴퓨터 한 대를 서버로 / 각자 로컬")
+    print("② 팀 DB 서버 포트")
+    if not tcp(host, port, "팀 DB"):
+        print("\n   → 서버에 못 닿습니다. 학원 랜 안에서만 열려 있습니다.")
+        print("      · 집·핫스팟이면 정상입니다. 학원에서 다시 해 보세요")
+        print("      · 학원인데 막히면 서버 PC 가 꺼졌거나 절전입니다 — 조장에게 알리세요")
         return
 
     print("\n" + "=" * 62)
-    print("③ 실제 로그인 (선택 — 계정을 이미 만들었을 때만)")
+    print("③ 실제 로그인")
     try:
         import pymysql
     except ImportError:
-        print("   [-] pymysql 이 없습니다.  pip install pymysql")
+        print("   [-] pymysql 이 없습니다.  pip install -r requirements.txt")
         return
 
-    try:
-        from config import DB_USER, DB_PASSWORD, DB_NAME
-    except Exception:
-        print("   [-] config.py 에 클라우드 계정을 아직 안 적었습니다. ② 까지 통과면 충분합니다.")
-        return
-
+    # DB_SSL 은 config.py 가 정한다. 같은 랜 안이면 False 다
+    ssl_opt = {"ssl": {}} if getattr(config, "DB_SSL", False) else None
     try:
         conn = pymysql.connect(
             host=host, port=int(port),
-            user=DB_USER, password=DB_PASSWORD, database=DB_NAME,
+            user=config.DB_USER, password=config.DB_PASSWORD, database=config.DB_NAME,
             charset="utf8mb4",
-            ssl={"ssl": {}},          # Aiven 등은 SSL 이 필수다
+            ssl=ssl_opt,
             connect_timeout=TIMEOUT,
         )
         with conn.cursor() as cur:
-            cur.execute("SELECT VERSION()")
-            print("   [O] 로그인 성공 — MySQL", cur.fetchone()[0])
+            cur.execute("SELECT VERSION(), @@hostname")
+            ver, name = cur.fetchone()
+            print("   [O] %s 로 로그인 성공 — MySQL %s @ %s" % (config.DB_USER, ver, name))
         conn.close()
-        print("\n   → 클라우드 DB 구조로 가도 됩니다.")
+        print("\n   → 다 통과했습니다. 그대로 작업하면 됩니다.")
     except Exception as exc:
         print("   [X] 로그인 실패 —", type(exc).__name__, str(exc)[:120])
-        print("      방화벽은 통과했으니 계정·비밀번호·SSL 문제입니다.")
+        print("      서버까지는 닿았으니 config.py 의 계정·비밀번호 문제입니다.")
 
 
 if __name__ == "__main__":
