@@ -20,8 +20,22 @@ pip install -r requirements.txt   # 필요한 패키지를 한 번에 깐다
 cp config_example.py config.py    # 접속정보 틀을 복사한다 (윈도우: copy)
 ```
 
-그다음 `config.py` 를 열어 **비밀번호 두 개**를 적는다. 조장이 단톡으로 알려 준다.
+그다음 `config.py` 를 열어 **세 줄**을 자기 것으로 고친다. 비밀번호는 조장이 단톡으로 알려 준다.
 호스트·포트는 이미 채워져 있으니 **건드리지 마라.**
+
+```python
+DB_USER = "defense1"                   # 자기 번호로
+DB_PASSWORD = "여기에_내_비밀번호"        # 내 것
+DASH_PASSWORD = "여기에_dash_비밀번호"    # 공용. 다섯 명이 같다
+```
+
+| 번호 | 사람 | 번호 | 사람 |
+|---|---|---|---|
+| `defense1` | 안태호 | `defense4` | 이동현 |
+| `defense2` | 강지수 | `defense5` | 조수아 |
+| `defense3` | 김훈희 | | |
+
+**남의 번호로 붙지 마라.** 서버 로그에 누가 무엇을 했는지 남는 게 계정을 나눈 이유다.
 
 **MySQL 을 깔 필요가 없다.** DB 는 학원 PC 한 대(`192.168.100.221`)에 모여 있고, 다섯 명이
 거기에 붙어 쓴다. 각자 자기 컴퓨터에 DB 를 만들면 데이터가 다섯 벌로 갈라져서
@@ -37,13 +51,28 @@ python3 src/check_db_access.py     # 인터넷 → 서버 포트 → 실제 로�
 
 | 계정 | 무엇에 쓰나 | 권한 |
 |---|---|---|
-| `defense` | 수집·전처리 스크립트가 데이터를 **넣을 때** | `defense_dashboard` 에 ALL |
-| `dash` | Streamlit 대시보드가 **읽을 때** | `defense_dashboard` 에 SELECT 만 |
+| `defense1`~`defense5` | **내가** 데이터를 넣고 고칠 때 (수집·전처리 스크립트) | `defense_dashboard` 에 ALL |
+| `dash` | **Streamlit 대시보드**가 읽을 때 (공용) | `defense_dashboard` 에 SELECT 만 |
 
-- **계정을 둘로 나눈 이유**는 보안이 아니라 **실수 방지**다. 대시보드가 전권 계정으로 붙어 있으면
-  코드 한 줄에 남의 데이터까지 날아갈 수 있다. 조회 전용이면 애초에 불가능하다
+- **쓰기 계정을 사람별로 나눈 이유**는 **누가 무엇을 했는지 남기기 위해서**다.
+  다섯이 같은 계정을 쓰면 테이블이 이상해졌을 때 되짚을 방법이 없다
+- **`dash` 를 따로 둔 이유**는 보안이 아니라 **실수 방지**다. 대시보드가 쓰기 계정으로 붙어 있으면
+  코드 한 줄에 팀 전체 데이터가 날아갈 수 있다. 조회 전용이면 애초에 불가능하다
+  → **대시보드 파일에서는 `DASH_USER` 를 부른다.** 파일 맨 위 `import` 줄이 그 파일의 권한을 정한다
 - **`root` 는 우리 코드 어디에도 안 들어간다**
 - **`config.py` 는 깃에 안 올라간다.** 코드에서는 `from config import DB_PASSWORD` 처럼 불러 쓴다
+
+### 다섯 다 쓰기 권한이라 — 규칙 하나가 필요하다
+
+권한으로는 서로를 못 막는다. **정본 테이블은 적재 담당만 만들고 고친다.**
+혼자 시험해 볼 테이블은 **자기 번호를 앞에 붙인다.**
+
+```
+contract_domestic          <- 정본. 적재 담당만 건드린다
+tmp3_contract_test         <- 김훈희(3번)가 혼자 쓰는 것. 남이 안 건드린다
+```
+
+이름만 지키면 남의 것을 덮어쓸 일이 없다. **`DROP TABLE` 을 치기 전에 이름 앞자리를 한 번 보라.**
 
 ### ★ 학원 랜 안에서만 붙는다
 
@@ -66,13 +95,21 @@ python3 src/check_db_access.py     # 인터넷 → 서버 포트 → 실제 로�
 CREATE DATABASE defense_dashboard
   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- 데이터를 넣고 고치는 계정
-CREATE USER 'defense'@'%' IDENTIFIED BY '비밀번호';
-GRANT ALL PRIVILEGES ON defense_dashboard.* TO 'defense'@'%';
+-- 데이터를 넣고 고치는 계정 — 사람마다 하나씩 다섯 개
+CREATE USER 'defense1'@'%' IDENTIFIED BY '1번_비밀번호';
+GRANT ALL PRIVILEGES ON defense_dashboard.* TO 'defense1'@'%';
+--  ... defense2 ~ defense5 도 같은 두 줄을 번호만 바꿔 반복한다
 
--- 조회만 하는 계정 (대시보드용)
+-- 조회만 하는 계정 (대시보드용) — 이건 하나를 다 같이 쓴다
 CREATE USER 'dash'@'%' IDENTIFIED BY '또_다른_비밀번호';
 GRANT SELECT ON defense_dashboard.* TO 'dash'@'%';
+```
+
+확인은 이 두 줄로 한다.
+
+```sql
+SELECT user, host FROM mysql.user WHERE user LIKE 'defense%' OR user = 'dash';
+SHOW GRANTS FOR 'defense1'@'%';
 ```
 
 - **`'비밀번호'` 를 그대로 두면 안 된다.** 진짜 비밀번호로 바꿔서 실행한다 (한 번 그대로 붙여넣어서 막혔다)
