@@ -36,3 +36,7 @@ desktop.ini
 # ── 결과물 (필요하면 이 줄을 지운다) ──────────────────────────
 outputs/*.png
 outputs/*.html
+
+# 백업본에도 비밀번호가 남는다
+*.bak
+config.py.*
