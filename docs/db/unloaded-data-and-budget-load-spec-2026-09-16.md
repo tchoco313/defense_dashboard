@@ -46,7 +46,7 @@
 | 5 | `02_dapa/dapa_overseas_bid_item_sample_기준20260916` | 181 | 테이블 없음 | 적재(표본 라벨). 지표 금지, 사례용 |
 | 6 | `02_dapa/dapa_fsc_catalog_기준20251231` | 756 | `ref_fsc` 0행 | **적재.** 지금 FSC 코드에 이름이 없다 |
 | 7 | `99_progress/dapa_plan_api_progress_기준20260915` | 45 | 테이블 없음 | 선택. `raw_customs_progress` 와 같은 꼴로 |
-| 8 | `06_예산_연구개발/` CSV 5 (+README) | 60 | 테이블·meta 없음 | §3 명세대로. **드라이브에 12개 더 올려야 함** |
+| 8 | `06_budget_rnd/` CSV 16 · PDF 2 | 1,981 + 2,470 + 49 | 테이블·meta 없음 | §3 명세대로 적재. 드라이브 업로드는 9/16 완료 |
 | 9 | `03_krit/` hwpx·pdf 8 | — | 표 미추출 | 26-2차 예비RFP(20건)·25-1차·24-1차·23-4차 표 추출 → `raw_krit_task`. 이게 없어 `v_review_list.b1_status` 가 전부 `미적재` |
 | 10 | (드라이브에 없음) KOSTI HSK 통제품목 | 0 | `raw_hsk_control` 0행 | `load_db.py` 에 `kosti_hsk_control`(기대 2,161) 스펙만 있고 원본이 어디에도 없다 |
 
@@ -101,7 +101,7 @@ K-2전차 165 · 230mm급다련장 104 · 소형전술차량 95 · 차륜형장�
 - 형 변환·억원 환산·개편 대응은 `clean_budget_program` 에서만.
 - 예산은 **핵심 데이터가 아니다**(1만 건 요건과 무관). `meta_dataset.tier='보조'`.
 
-### 3-2. 드라이브 업로드 (완료 2026-09-16, `06_예산_연구개발/`)
+### 3-2. 드라이브 업로드 (완료 2026-09-16, `06_budget_rnd/`)
 
 | 파일(로컬 `share_budget_2026-09-15/`) | 행 | 인코딩 | 드라이브 이름 |
 |---|---:|---|---|
@@ -109,10 +109,10 @@ K-2전차 165 · 230mm급다련장 104 · 소형전술차량 95 · 차륜형장�
 | `02_raw_dapa/dapa_core_tech_rnd_budget.csv` · `dapa_basic_research_budget.csv` | 13 · 13 | utf-8-sig | `dapa_core_tech_rnd_budget_기준20241231.csv` · `dapa_basic_research_budget_기준20241231.csv` |
 | `02_raw_dapa/krit_core_tech_project_list.csv` · `add_tech_transfer_patents.csv` | 1,194 · 1,190 | utf-8-sig | `krit_core_tech_project_기준20241231.csv` · `add_tech_transfer_patent_기준20241231.csv` |
 | `04_source_pdf/dapa_statistical_yearbook_2025.pdf` · `_2022.pdf` | — | — | `dapa_statistical_yearbook_2025.pdf` · `dapa_statistical_yearbook_2022.pdf` |
-| 기존 5개(연보 전사 4 · `key_rnd_series`) | 60 | utf-8 | 아직 `06_예산_연구개발/` 에 있음. 가공물이라 `3_데이터전처리` 로 옮기는 건 미결 |
+| 기존 연보 전사 4개 | 49 | utf-8 | `06_budget_rnd/` 유지. 근거 PDF 와 같은 폴더에 둔다(`03_krit` 의 원문+표 추출 CSV 와 같은 방식) |
 
 ★ 함정: 열린재정 파일은 마지막 줄에 개행이 없어 `wc -l` 이 파일마다 1행 적게 센다(1,973). pandas 기준 1,981 이 맞다.
-★ `_manifest.csv` 에 예산 폴더 19행(기존 5 + 신규 12 + PDF 2) 추가됨. 드라이브 파일 크기가 로컬 바이트와 전부 일치함을 확인. `_combined_2020_2027.csv`·`_key_series.csv` 는 가공물이라 올리지 않았다.
+★ `_manifest.csv` 에 `06_budget_rnd` 18행(기존 연보 4 + 신규 12 + PDF 2). 요약표 `key_rnd_series_2020_2027.csv` 는 열린재정 8파일에서 파생된 가공물이라 `3_데이터전처리/` 로 옮겼고 매니페스트에서 뺐다(폴더 설명은 그쪽 README). 드라이브 파일 크기가 로컬 바이트와 전부 일치함을 확인. `_combined_2020_2027.csv`·`_key_series.csv` 는 가공물이라 올리지 않았다.
 
 ### 3-3. 테이블
 
@@ -223,11 +223,11 @@ GROUP BY fiscal_year, amount_basis;
 | 대표 지표 | `국방기술개발` 단위사업 합계 2020 10,053억 → 2027 30,741억 (정부안 기준, 이번 세션 재계산) |
 | 검증 | 기초연구 2023 = 511.7억(열린재정 = `raw_dapa_basic_research_budget`) · 미래도전 2026 = 3,494억(보도자료) · 2026 일반회계 합 201,744억 ≈ 방위력개선비 19조 9,653억(차이 = 정책지원·행정지원 사업) |
 
-### 3-5. `meta_dataset` 등록 12행 (요지)
+### 3-5. `meta_dataset` 등록 11행 (요지)
 
 `dataset_key` = `openfiscal_program_budget`(8파일 1행) · `dapa_core_tech_rnd_budget` · `dapa_basic_research_budget` ·
 `krit_core_tech_project` · `add_tech_transfer_patent` · `yearbook_defense_rnd` · `yearbook_procurement` ·
-`yearbook_localization_budget` · `yearbook_localization_rate` · `yearbook_pdf_2025` · `yearbook_pdf_2022` · `key_rnd_series`(가공물, target NULL).
+`yearbook_localization_budget` · `yearbook_localization_rate` · `yearbook_pdf_2025` · `yearbook_pdf_2022`. 11행이다 — 요약표는 `3_데이터전처리/` 의 가공물이라 원본 등록 대상이 아니다.
 공통: `tier='보조'`, `access_method` = 웹 다운로드 / PDF 전사, `note` 에 「배경자료, 1만 건 요건 무관」. 연보 전사 4행은 `parser='사람 전사(EXTRACTION_NOTES.md)'`.
 
 ### 3-6. 적재 순서와 담당 제안
