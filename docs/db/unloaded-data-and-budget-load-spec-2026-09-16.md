@@ -101,18 +101,18 @@ K-2전차 165 · 230mm급다련장 104 · 소형전술차량 95 · 차륜형장�
 - 형 변환·억원 환산·개편 대응은 `clean_budget_program` 에서만.
 - 예산은 **핵심 데이터가 아니다**(1만 건 요건과 무관). `meta_dataset.tier='보조'`.
 
-### 3-2. 드라이브에 먼저 올릴 것 (안태호, `06_예산_연구개발/`)
+### 3-2. 드라이브 업로드 (완료 2026-09-16, `06_예산_연구개발/`)
 
 | 파일(로컬 `share_budget_2026-09-15/`) | 행 | 인코딩 | 드라이브 이름 |
 |---|---:|---|---|
-| `01_raw_openfiscal/dapa_program_budget_2020.csv` ~ `_2027.csv` (8) | 223·233·248·241·251·260·257·268 = **1,981** | utf-8-sig | `openfiscal_dapa_program_budget_<연도>_기준<연도>0101.csv` |
+| `01_raw_openfiscal/dapa_program_budget_2020.csv` ~ `_2027.csv` (8) | 223·233·248·241·251·260·257·268 = **1,981** | utf-8-sig | `openfiscal_dapa_program_budget_<연도>_기준<연도>1231.csv` |
 | `02_raw_dapa/dapa_core_tech_rnd_budget.csv` · `dapa_basic_research_budget.csv` | 13 · 13 | utf-8-sig | `dapa_core_tech_rnd_budget_기준20241231.csv` · `dapa_basic_research_budget_기준20241231.csv` |
-| `02_raw_dapa/krit_core_tech_project_list.csv` · `add_tech_transfer_patents.csv` | 1,194 · 1,190 | utf-8-sig | `krit_core_tech_project_기준<확인>.csv` · `add_tech_transfer_patent_기준20241231.csv` |
-| `04_source_pdf/dapa_statistical_yearbook_2025.pdf` (+2022) | — | — | 그대로 |
-| 이미 올라간 5개 | 60 | utf-8 | 연보 전사 4개는 명세대로 `3_데이터전처리` 로 이동, `key_rnd_series` 는 가공물(열린재정 요약) → 같이 이동 |
+| `02_raw_dapa/krit_core_tech_project_list.csv` · `add_tech_transfer_patents.csv` | 1,194 · 1,190 | utf-8-sig | `krit_core_tech_project_기준20241231.csv` · `add_tech_transfer_patent_기준20241231.csv` |
+| `04_source_pdf/dapa_statistical_yearbook_2025.pdf` · `_2022.pdf` | — | — | `dapa_statistical_yearbook_2025.pdf` · `dapa_statistical_yearbook_2022.pdf` |
+| 기존 5개(연보 전사 4 · `key_rnd_series`) | 60 | utf-8 | 아직 `06_예산_연구개발/` 에 있음. 가공물이라 `3_데이터전처리` 로 옮기는 건 미결 |
 
 ★ 함정: 열린재정 파일은 마지막 줄에 개행이 없어 `wc -l` 이 파일마다 1행 적게 센다(1,973). pandas 기준 1,981 이 맞다.
-★ `_manifest.csv` 에 12행 추가. `_combined_2020_2027.csv`·`_key_series.csv` 는 가공물이라 원본 폴더에 두지 않는다.
+★ `_manifest.csv` 에 예산 폴더 19행(기존 5 + 신규 12 + PDF 2) 추가됨. 드라이브 파일 크기가 로컬 바이트와 전부 일치함을 확인. `_combined_2020_2027.csv`·`_key_series.csv` 는 가공물이라 올리지 않았다.
 
 ### 3-3. 테이블
 
@@ -232,7 +232,7 @@ GROUP BY fiscal_year, amount_basis;
 
 ### 3-6. 적재 순서와 담당 제안
 
-1. 안태호: 드라이브 12개 업로드 + `_manifest.csv` 갱신 (§3-2)
+1. ~~드라이브 12개 업로드 + `_manifest.csv` 갱신~~ (9/16 완료, §3-2)
 2. 김훈희: `load_db.py` 에 스펙 6개 추가(`special="openfiscal"` 로 8파일 concat) → `--raw` → `meta_load_log` 에 파일별 건수
 3. 김훈희: `ref_yearbook_stat` 은 스크립트보다 노트북에서 4개 CSV 를 melt 해 INSERT (전사물 검수 겸함)
 4. 담당 미정: `clean_budget_program` 노트북 (§3-4) → 뷰 확인 → 화면 ④ 배경
