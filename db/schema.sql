@@ -1,5 +1,5 @@
 -- =============================================================================
--- defense_dashboard 스키마 DDL  (작성 2026-09-15, 리뷰 반영 2026-09-15, 교수 피드백 반영 2026-09-15 A7 국외조달 5테이블, 2026-09-16 정량 지표 ref_hs_indicator·raw_hsk_control·뷰 3, 2026-09-16 HS6 선정 규칙 raw_hs_code_master·raw_hs_unit_name·뷰 4·evidence 2열·ref_hs_rule_flag·v_hs_whitelist_rule, 설계 문서: docs/db/schema-design.md)
+-- defense_dashboard 스키마 DDL  (작성 2026-09-15, 리뷰 반영 2026-09-15, 교수 피드백 반영 2026-09-15 A7 국외조달 5테이블, 2026-09-16 정량 지표 ref_hs_indicator·raw_hsk_control·뷰 3, 2026-09-16 HS6 선정 규칙 raw_hs_code_master·raw_hs_unit_name·뷰 4·evidence 2열·ref_hs_rule_flag·v_hs_whitelist_rule, 2026-09-16 FSG 참조표 ref_fsg·v_b2_fsg_summary, 설계 문서: docs/db/schema-design.md)
 --
 -- 대상: MariaDB 10.4+ / MySQL 8.0.16+ 양쪽에서 실행되는 문법만 사용
 --       (팀 서버 실측 VERSION()=8.4.11, 로컬 검증 MariaDB 12.2)
@@ -43,7 +43,7 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- 재실행 가능하도록 역순 DROP (뷰 → clean/fact → meta → raw → ref)
-DROP VIEW IF EXISTS v_hs_whitelist_rule, v_hs6_candidate_vs_whitelist, v_hs6_candidate_rule, v_hsk_control_by_hs6, v_hs10_use_tag_all,
+DROP VIEW IF EXISTS v_b2_fsg_summary, v_hs_whitelist_rule, v_hs6_candidate_vs_whitelist, v_hs6_candidate_rule, v_hsk_control_by_hs6, v_hs10_use_tag_all,
   v_civil_mix_rule, v_defense_relevance_b2, v_hs10_use_share,
   v_overseas_plan_yearly, v_contract_monthly, v_review_list, v_hhi_hs6_year, v_import_share_hs6_year, v_import_hs6_year;
 DROP TABLE IF EXISTS clean_dapa_overseas_plan, clean_company_name_link, clean_company, clean_krit_task, clean_dapa_localized_item, clean_dapa_contract;
@@ -54,7 +54,7 @@ DROP TABLE IF EXISTS raw_hs_unit_name, raw_hs_code_master, raw_hsk_control, raw_
   raw_customs_progress, raw_kosis_production_index, raw_kosis_utilization,
   raw_dapa_defense_company, raw_dapa_bid_result, raw_dapa_bid_notice, raw_krit_task,
   raw_dapa_localized_item, raw_dapa_contract, raw_customs_trade;
-DROP TABLE IF EXISTS ref_hs_rule_flag, ref_hs_indicator, ref_fsc, ref_sido_map, ref_category_map, ref_country, ref_hs_whitelist;
+DROP TABLE IF EXISTS ref_hs_rule_flag, ref_hs_indicator, ref_fsg, ref_fsc, ref_sido_map, ref_category_map, ref_country, ref_hs_whitelist;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -143,6 +143,20 @@ CREATE TABLE ref_fsc (
   PRIMARY KEY (fsc4),
   KEY ix_fsc2 (fsc2)
 ) ENGINE=InnoDB COMMENT='FSC 군급분류 라벨';
+
+-- FSG(군급 2자리) 라벨. 시드는 db/seed_ref.sql(load_db.py --ref) / 증분은 db/alter_2026-09-16_fsg.sql. 2026-09-16 신설.
+--   원본 data/reference/fsg_master.csv 80행 = 팀원 공유 DLA 표 77행 + 95·96·99 보완(GSA PSC Manual 2025-04). 4자리 라벨 ref_fsc는 여전히 출처 없음.
+CREATE TABLE ref_fsg (
+  fsg_code             CHAR(2)      NOT NULL COMMENT 'FSG 2자리 = FSC 앞 2자리',
+  name_en              VARCHAR(200) NOT NULL,
+  name_ko              VARCHAR(100) NOT NULL COMMENT '팀원 번역(원 파일 fsg_name_ko)',
+  status               CHAR(1)      NOT NULL DEFAULT 'A' COMMENT '원 파일 status(전부 A)',
+  is_historical        TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '21·33 = 파일 유지 목적 Historical FSG(신규 품목 추가 불가)',
+  is_electronic_group  TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '58·59 = 1 (ref_fsc.is_electronic_group과 같은 기준, 핵심 ② 기본 필터)',
+  note_ko              VARCHAR(300) NULL,
+  source_url           VARCHAR(300) NULL COMMENT '원 파일: DLA ZSMT_FSG.txt / 보완 3행: GSA PSC Manual 2025-04 xlsx',
+  PRIMARY KEY (fsg_code)
+) ENGINE=InnoDB COMMENT='FSG 군급 2자리 라벨 80행 (data/reference/fsg_master.csv). 4자리 라벨 ref_fsc는 출처 없음';
 
 -- 품목군별 정량 지표 (2026-09-16). 한 행 = HS6 × 지표 × 기간. "팀판단" 라벨을 대체하는 수치의 원본 저장소.
 --   axis='civil_mix'          : 민수 혼합 — mil_hs10_share(군용 전용 HS10 수입 비중, 하한선) · aero_hs10_share(항공기용, 민항 포함) ·
@@ -1114,6 +1128,21 @@ FROM ref_category_map m
 LEFT JOIN raw_dapa_localized_item b ON b.fsc = m.source_key
 WHERE m.map_type = 'fsc4' AND m.hs6 IS NOT NULL
 GROUP BY m.hs6;
+
+-- B2 국산화개발품목 × FSG 집계 (핵심 ② ⓐ·ⓑ 라벨용). raw 기준(clean_ 미적재).
+--    행 수 = 사업×부품 행(완전 중복 8,940 포함), 고유 부품 수 = 부품관리번호 DISTINCT. fsg_code가 ref_fsg에 없으면(공란 등) name_ko NULL.
+CREATE OR REPLACE VIEW v_b2_fsg_summary AS
+SELECT LEFT(b.fsc, 2)                     AS fsg_code,
+       f.name_ko                           AS fsg_name_ko,
+       f.name_en                           AS fsg_name_en,
+       COALESCE(f.is_electronic_group, 0)  AS is_electronic_group,
+       COUNT(b.row_id)                     AS b2_row_count,
+       COUNT(DISTINCT b.part_mgmt_no)      AS b2_part_count,
+       COUNT(DISTINCT b.project_name)      AS b2_project_count,
+       COUNT(DISTINCT b.fsc)               AS fsc4_count
+FROM raw_dapa_localized_item b
+LEFT JOIN ref_fsg f ON f.fsg_code = LEFT(b.fsc, 2)
+GROUP BY LEFT(b.fsc, 2), f.name_ko, f.name_en, f.is_electronic_group;
 
 -- 민수 혼합 라벨 도출 규칙 (팀 규칙 2026-09-16, docs/reference/hs-whitelist-definition.md §7). ref_hs_whitelist.civil_mix 3열은 이 뷰의 스냅샷.
 --   1) mil_hs10_share 있음 → <1% 높음 / 1~20% 중간 / ≥20% 낮음

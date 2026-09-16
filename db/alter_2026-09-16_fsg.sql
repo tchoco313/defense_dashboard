@@ -1,47 +1,34 @@
 -- =============================================================================
--- 수작업 참조표 시드 (작성 2026-09-15). scripts/load_db.py --ref 가 실행한다(문장 구분은 ";\n").
---   ref_sido_map     : 대표업체주소 첫 토큰 → 시도. 행정표준코드 앞 2자리(강원 51·전북 52 는 특별자치도 전환 후 코드,
---                      구 코드 42·45 는 쓰지 않는다).
---   ref_category_map : ref_hs_whitelist.related_fsc(; 구분)를 풀어 FSC4 → hs6 '후보'로 넣는다.
---                      '확정' 전환은 팀 확인 후 UPDATE (docs/db/schema-design.md §7-2).
---   ref_fsg          : FSG 2자리 라벨 80행(data/reference/fsg_master.csv, 2026-09-16). 증분 적용본은 db/alter_2026-09-16_fsg.sql.
--- 재실행 가능: 이미 있으면 건너뛴다(INSERT IGNORE / NOT EXISTS).
+-- FSG(Federal Supply Group, 군급 2자리) 참조표 ref_fsg 신설 + B2 FSG 집계 뷰 (작성 2026-09-16, 팀 서버 적용 2026-09-16 완료(3회 실행, 멱등))
+--
+-- 근거: 팀원 공유 new_data/DLA_FSG_공식분류표.csv(77행) → data/reference/fsg_master.csv(80행). 계획 2026-09-16 "국내 부분 데이터 판정"
+-- 목적: FSC 4자리 라벨(ref_fsc)은 출처가 없어 0행이었다. FSG 2자리 라벨을 두어 핵심 ② 국산화 완료 섹션의
+--       "사업 × FSC군 히트맵"·"FSC별 막대"에 국문 군급명을 붙인다. 계약정보·조달계획·입찰 CSV에는 FSC가 없으므로 이 표와 엮이지 않는다.
+-- 95·96·99: 원 파일에 없으나 B2·국방표준종합·사전의향서 데이터에 등장 → GSA PSC Manual 2025-04(product group)로 확인해 보완.
+--       DLA 원문(ZSMT_FSG.txt)은 국내에서 403(Akamai)이라 미대조 — note_ko·docs/data-sources.md에 기록.
+-- 실행: DBHub는 readonly라 불가. docs/runbook/commands.md 방식:
+--       mariadb.exe -h <서버IP> -u <계정> --protocol=TCP --skip-ssl-verify-server-cert --default-character-set=utf8mb4 --show-warnings --table defense_dashboard < db/alter_2026-09-16_fsg.sql
+-- 재실행: 가능. CREATE TABLE IF NOT EXISTS, 시드는 ON DUPLICATE KEY UPDATE, 뷰는 OR REPLACE, 열 사전은 ON DUPLICATE KEY.
+-- 순서: §1 ref_fsg → §2 시드 80행 → §3 v_b2_fsg_summary → §4 meta_column_dict · 4-2 meta_dataset → §5 검증
 -- =============================================================================
 
-INSERT IGNORE INTO ref_sido_map (token, sido_code, sido_name) VALUES
-  ('서울','11','서울특별시'), ('서울특별시','11','서울특별시'), ('서울시','11','서울특별시'),
-  ('부산','26','부산광역시'), ('부산광역시','26','부산광역시'), ('부산시','26','부산광역시'),
-  ('대구','27','대구광역시'), ('대구광역시','27','대구광역시'), ('대구시','27','대구광역시'),
-  ('인천','28','인천광역시'), ('인천광역시','28','인천광역시'), ('인천시','28','인천광역시'),
-  ('광주','29','광주광역시'), ('광주광역시','29','광주광역시'), ('광주시','29','광주광역시'),
-  ('대전','30','대전광역시'), ('대전광역시','30','대전광역시'), ('대전시','30','대전광역시'),
-  ('울산','31','울산광역시'), ('울산광역시','31','울산광역시'), ('울산시','31','울산광역시'),
-  ('세종','36','세종특별자치시'), ('세종특별자치시','36','세종특별자치시'), ('세종시','36','세종특별자치시'),
-  ('경기','41','경기도'), ('경기도','41','경기도'),
-  ('강원','51','강원특별자치도'), ('강원도','51','강원특별자치도'), ('강원특별자치도','51','강원특별자치도'),
-  ('충북','43','충청북도'), ('충청북도','43','충청북도'),
-  ('충남','44','충청남도'), ('충청남도','44','충청남도'),
-  ('전북','52','전북특별자치도'), ('전라북도','52','전북특별자치도'), ('전북특별자치도','52','전북특별자치도'),
-  ('전남','46','전라남도'), ('전라남도','46','전라남도'),
-  ('경북','47','경상북도'), ('경상북도','47','경상북도'),
-  ('경남','48','경상남도'), ('경상남도','48','경상남도'),
-  ('제주','50','제주특별자치도'), ('제주도','50','제주특별자치도'), ('제주특별자치도','50','제주특별자치도');
+USE defense_dashboard;
+SET NAMES utf8mb4;
 
-INSERT INTO ref_category_map (map_type, source_key, category, hs6, link_status, link_basis, decided_by, decided_at)
-SELECT 'fsc4',
-       TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(w.related_fsc, ';', n.n), ';', -1)) AS fsc4,
-       w.category, w.hs6, '후보',
-       'ref_hs_whitelist.related_fsc 후보(docs/reference/hs-whitelist-definition.md). 팀 확인 전 — 확정 시 link_status·decided_by 갱신',
-       'load_db.py seed', CURDATE()
-FROM ref_hs_whitelist w
-JOIN (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4) n
-  ON n.n <= 1 + LENGTH(w.related_fsc) - LENGTH(REPLACE(w.related_fsc, ';', ''))
-WHERE w.related_fsc IS NOT NULL AND w.related_fsc <> ''
-  AND NOT EXISTS (SELECT 1 FROM ref_category_map m
-                  WHERE m.map_type = 'fsc4' AND m.hs6 = w.hs6
-                    AND m.source_key = TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(w.related_fsc, ';', n.n), ';', -1)));
+-- §1 ref_fsg (정의는 db/schema.sql과 동일하게 유지)
+CREATE TABLE IF NOT EXISTS ref_fsg (
+  fsg_code             CHAR(2)      NOT NULL COMMENT 'FSG 2자리 = FSC 앞 2자리',
+  name_en              VARCHAR(200) NOT NULL,
+  name_ko              VARCHAR(100) NOT NULL COMMENT '팀원 번역(원 파일 fsg_name_ko)',
+  status               CHAR(1)      NOT NULL DEFAULT 'A' COMMENT '원 파일 status(전부 A)',
+  is_historical        TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '21·33 = 파일 유지 목적 Historical FSG(신규 품목 추가 불가)',
+  is_electronic_group  TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '58·59 = 1 (ref_fsc.is_electronic_group과 같은 기준, 핵심 ② 기본 필터)',
+  note_ko              VARCHAR(300) NULL,
+  source_url           VARCHAR(300) NULL COMMENT '원 파일: DLA ZSMT_FSG.txt / 보완 3행: GSA PSC Manual 2025-04 xlsx',
+  PRIMARY KEY (fsg_code)
+) ENGINE=InnoDB COMMENT='FSG 군급 2자리 라벨 80행 (data/reference/fsg_master.csv). 4자리 라벨 ref_fsc는 출처 없음';
 
--- ref_fsg 시드 (fsg_master.csv 80행과 동일. 재실행 시 덮어씀)
+-- §2 시드 (data/reference/fsg_master.csv 80행과 동일. 재실행 시 덮어씀)
 INSERT INTO ref_fsg (fsg_code, name_en, name_ko, status, is_historical, is_electronic_group, note_ko, source_url) VALUES
   ('10', 'Weapons', '무기', 'A', 0, 0, NULL, 'https://www.dla.mil/Portals/104/Documents/InformationOperations/LogisticsInformationServices/CatalogTools%20Tables/New/ZSMT_FSG.txt'),
   ('11', 'Nuclear Ordnance', '핵 병기', 'A', 0, 0, NULL, 'https://www.dla.mil/Portals/104/Documents/InformationOperations/LogisticsInformationServices/CatalogTools%20Tables/New/ZSMT_FSG.txt'),
@@ -126,3 +113,47 @@ INSERT INTO ref_fsg (fsg_code, name_en, name_ko, status, is_historical, is_elect
 ON DUPLICATE KEY UPDATE name_en = VALUES(name_en), name_ko = VALUES(name_ko), status = VALUES(status),
   is_historical = VALUES(is_historical), is_electronic_group = VALUES(is_electronic_group),
   note_ko = VALUES(note_ko), source_url = VALUES(source_url);
+
+-- §3 B2 국산화개발품목 × FSG 집계 (핵심 ② ⓐ·ⓑ 라벨용). raw 기준(clean_ 미적재).
+--    행 수 = 사업×부품 행(완전 중복 8,940 포함), 고유 부품 수 = 부품관리번호 DISTINCT. fsg_code가 ref_fsg에 없으면(공란 등) name_ko NULL.
+CREATE OR REPLACE VIEW v_b2_fsg_summary AS
+SELECT LEFT(b.fsc, 2)                     AS fsg_code,
+       f.name_ko                           AS fsg_name_ko,
+       f.name_en                           AS fsg_name_en,
+       COALESCE(f.is_electronic_group, 0)  AS is_electronic_group,
+       COUNT(b.row_id)                     AS b2_row_count,
+       COUNT(DISTINCT b.part_mgmt_no)      AS b2_part_count,
+       COUNT(DISTINCT b.project_name)      AS b2_project_count,
+       COUNT(DISTINCT b.fsc)               AS fsc4_count
+FROM raw_dapa_localized_item b
+LEFT JOIN ref_fsg f ON f.fsg_code = LEFT(b.fsc, 2)
+GROUP BY LEFT(b.fsc, 2), f.name_ko, f.name_en, f.is_electronic_group;
+
+-- §4 열 사전
+INSERT INTO meta_column_dict (table_name, ordinal, column_name, original_name, dtype, description) VALUES
+  ('ref_fsg', 1, 'fsg_code', 'fsg_code', 'CHAR(2)', 'FSG 2자리 = FSC 앞 2자리'),
+  ('ref_fsg', 2, 'name_en', 'fsg_name_en', 'VARCHAR(200)', '영문 군급명(DLA)'),
+  ('ref_fsg', 3, 'name_ko', 'fsg_name_ko', 'VARCHAR(100)', '국문 군급명(팀원 번역)'),
+  ('ref_fsg', 4, 'status', 'status', 'CHAR(1)', '원 파일 status(전부 A)'),
+  ('ref_fsg', 5, 'is_historical', 'is_historical', 'TINYINT(1)', '21·33 Historical FSG'),
+  ('ref_fsg', 6, 'is_electronic_group', '(파생)', 'TINYINT(1)', '58·59 = 1. 핵심 ② 기본 필터'),
+  ('ref_fsg', 7, 'note_ko', 'note_ko', 'VARCHAR(300)', '보완 3행(95·96·99) 출처·미대조 사유'),
+  ('ref_fsg', 8, 'source_url', 'source_url', 'VARCHAR(300)', 'DLA ZSMT_FSG.txt / GSA PSC Manual 2025-04')
+ON DUPLICATE KEY UPDATE original_name = VALUES(original_name), dtype = VALUES(dtype), description = VALUES(description);
+
+-- §4-2 확보 기록 (db/meta_dataset.csv fsg_master 행과 동일. --ref는 비어 있지 않은 meta_dataset을 건너뛰므로 여기서 넣는다)
+INSERT INTO meta_dataset (dataset_key, tier, provider, dataset_id, title, url, access_method, acquired_on, period_start, period_end, is_partial_period,
+  published_on, updated_on, query_condition, raw_path, file_bytes, sha256, encoding, parser, raw_row_count, portal_row_count, target_table, note) VALUES
+  ('fsg_master', '참조', 'DLA(미국 국방병참국) / 팀원 정리', NULL, 'DLA FSG(Federal Supply Group) 공식분류표 (군급 2자리)',
+   'https://www.dla.mil/Portals/104/Documents/InformationOperations/LogisticsInformationServices/CatalogTools%20Tables/New/ZSMT_FSG.txt',
+   '팀원 공유(new_data/) + 수작업 보완', '2026-09-16', NULL, NULL, 0, NULL, NULL, NULL, 'data/reference/fsg_master.csv', 17457,
+   '806340417b4a69917cf87f5b840b99925132caeda68977cf885b8972754949e1', 'utf-8', 'Python csv (scripts/load_db.py --ref: db/seed_ref.sql)', 80, NULL, 'ref_fsg',
+   '팀원 공유 원본 new_data/DLA_FSG_공식분류표.csv 77행(16,477 bytes, SHA-256 cc752af27c895199d10854baac7122ceb46782c091c5a4fc24e013ed275be9e8, 팀원 다운로드일 미확인) + 95·96·99 3행 보완(GSA PSC Manual 2025-04 xlsx product group으로 확인). DLA 원문 URL은 국내에서 403(Akamai)이라 미대조. 계약정보·조달계획·입찰 CSV에는 FSC가 없어 이 표와 엮이지 않음(B2·국방표준종합·사전의향서만 FSC 보유)')
+ON DUPLICATE KEY UPDATE file_bytes = VALUES(file_bytes), sha256 = VALUES(sha256), raw_row_count = VALUES(raw_row_count), note = VALUES(note);
+
+-- §5 검증 (기대: ref_fsg 80 · historical 2 · electronic 2 / v_b2_fsg_summary 상위 53 16,300 · 25 3,545 · 59 2,942 · 58 379 / 미대응 fsg_code는 공란·NULL만)
+SELECT COUNT(*) AS ref_fsg_rows, SUM(is_historical) AS historical, SUM(is_electronic_group) AS electronic FROM ref_fsg;
+SELECT fsg_code, fsg_name_ko, b2_row_count, b2_part_count FROM v_b2_fsg_summary ORDER BY b2_row_count DESC LIMIT 8;
+SELECT fsg_code, b2_row_count FROM v_b2_fsg_summary WHERE fsg_name_ko IS NULL;
+SELECT COUNT(*) AS meta_column_dict_rows FROM meta_column_dict;
+SELECT dataset_key, raw_row_count, target_table FROM meta_dataset WHERE dataset_key = 'fsg_master';

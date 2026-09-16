@@ -57,6 +57,7 @@ cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" ... defense_dashboard < 
 |---|---|---|
 | `db/alter_2026-09-15_civil_mix.sql` | `ref_hs_whitelist.civil_mix` 추가(팀 판단 라벨) | 2026-09-16 적용, 같은 날 아래로 대체 |
 | `db/alter_2026-09-16_indicator.sql` | `ref_hs_indicator`·`raw_hsk_control`·뷰 3개(`v_hs10_use_share`·`v_defense_relevance_b2`·`v_civil_mix_rule`)·`civil_mix` 3열 + 지표 채우기 + `civil_mix` 규칙값 UPDATE | 2026-09-16 적용(2회 실행 확인) |
+| `db/alter_2026-09-16_fsg.sql` | FSG 2자리 참조표 `ref_fsg`(80행 정적 시드) + `v_b2_fsg_summary` + 열 사전 8행 + `meta_dataset` `fsg_master` | **2026-09-16 적용**(팀 서버 3회 실행, 멱등. 기대: `ref_fsg` 80 · historical 2 · electronic 2 / `v_b2_fsg_summary` 53 16,300 · 59 2,942 · 58 379 / 미대응 `0`·NULL 18행 / `meta_column_dict` 289) |
 | `db/alter_2026-09-16_hs_rule.sql` | HS6 선정 규칙: `raw_hs_code_master`·`raw_hs_unit_name`·`ref_hs_rule_flag`(R1~R4 스냅샷)·뷰 5개(`v_hs10_use_tag_all`·`v_hsk_control_by_hs6`·`v_hs6_candidate_rule`·`v_hs6_candidate_vs_whitelist`·`v_hs_whitelist_rule`)·`ref_hs_whitelist` `evidence_basis`·`evidence_note` + 열 사전. §5는 정적 UPDATE(rule 16)·강등(5)·INSERT(신규 3) — 적재 전 실행 가능. §5-4 `ref_hs_rule_flag` 스냅샷은 원본 3개 적재 후 **다시 한 번 실행**해야 1,003행이 채워짐(미적재면 0행) | **2026-09-16 적용**(팀 서버 2회 — 1차 ALTER·뷰·§5 정적값, 원본 3개 적재 후 2차에서 §5-4 스냅샷 1,003행. MySQL 8.4에서 `group_concat_max_len` 오류 1260 → 스크립트가 세션 한도를 올림) |
 
 ```powershell

@@ -280,3 +280,11 @@ ref_hs_rule_flag,26,evidence_note,evidence_note,VARCHAR(300),
 ref_hs_rule_flag,27,in_whitelist,in_whitelist,TINYINT(1),
 ref_hs_rule_flag,28,computed_at,computed_at,DATETIME,
 ref_hs_rule_flag,29,source_note,source_note,VARCHAR(300),
+ref_fsg,1,fsg_code,fsg_code,CHAR(2),FSG 2자리 = FSC 앞 2자리
+ref_fsg,2,name_en,fsg_name_en,VARCHAR(200),영문 군급명(DLA)
+ref_fsg,3,name_ko,fsg_name_ko,VARCHAR(100),국문 군급명(팀원 번역)
+ref_fsg,4,status,status,CHAR(1),원 파일 status(전부 A)
+ref_fsg,5,is_historical,is_historical,TINYINT(1),21·33 Historical FSG
+ref_fsg,6,is_electronic_group,(파생),TINYINT(1),58·59 = 1. 핵심 ② 기본 필터
+ref_fsg,7,note_ko,note_ko,VARCHAR(300),보완 3행(95·96·99) 출처·미대조 사유
+ref_fsg,8,source_url,source_url,VARCHAR(300),DLA ZSMT_FSG.txt / GSA PSC Manual 2025-04

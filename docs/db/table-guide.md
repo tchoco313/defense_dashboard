@@ -45,7 +45,8 @@
 | `ref_country` | 국가코드 → 한글명·좌표 | Google DSPL + 수기 | 238 | 적재 완료 | `stat_cd` PK · `name_ko` · `lat`/`lon`(ZZ 기타국은 NULL) |
 | `ref_category_map` | FSC·품목군 → HS6 **품목군 수준** 대응표. 직접 매핑 아님 | `related_fsc` 분해 시드 | 17 | 전부 `후보` — 팀이 `확정`으로 바꿔야 B2 건수가 채워짐 | `map_type`(fsc4/contract_group/krit_task) · `source_key` · `hs6` · `link_status` |
 | `ref_sido_map` | 주소 첫 토큰 → 17개 시도 코드 | 수작업 시드 | 45 | 적재 완료 | `token` PK · `sido_code` · `sido_name` |
-| `ref_fsc` | FSC 군급분류 4자리 라벨(선택) | 없음 | 0 | 비어 있음(라벨 출처 없으면 생략) | `fsc4` · `name_ko` · `is_electronic_group` |
+| `ref_fsg` | (2026-09-16) FSG 군급 **2자리** 라벨. 핵심 ② 국산화 완료 섹션의 "사업 × FSC군 히트맵"·FSC별 막대 라벨용. 계약정보·조달계획·입찰 CSV에는 FSC가 없어 이 표와 엮이지 않음 | `data/reference/fsg_master.csv`(팀원 공유 DLA 표 77행 + 95·96·99 보완) | 80 | 적재 완료(`db/alter_2026-09-16_fsg.sql`) | `fsg_code` PK · `name_ko`/`name_en` · `is_historical`(21·33) · `is_electronic_group`(58·59) · `note_ko`(보완 3행 출처·미대조) |
+| `ref_fsc` | FSC 군급분류 4자리 라벨(선택) | 없음 | 0 | 비어 있음 — 2자리 라벨은 `ref_fsg`, 4자리 출처는 여전히 없음 | `fsc4` · `name_ko` · `is_electronic_group` |
 
 ### 3-2. `raw_` 원본 보존 (전 열 문자열, `row_id` 대리키, `source_file`·`source_row_no`·`loaded_at` 공통)
 
@@ -109,6 +110,7 @@
 | `v_contract_monthly` | 계약번호별 최초 체결월 기준 월별 건수·최종 금액(물품/용역·5분류) | 조달 금액 ≠ 방산 매출. `clean_dapa_contract` 채우기 전엔 0행 |
 | `v_overseas_plan_yearly` | 연도×집행유형 건수·예산 합·전자 후보 건수 | 예산은 계획(집행 예정액). 관세청 수입액과 합산·비교 금지 |
 | `v_hs10_use_share` | (2026-09-16) HS6 아래 HS10을 용도(군용전용/항공기용/자동차용/기타)로 태그해 2021~2025 수입액 비중 | 군용전용 비중은 하한선, 항공기용은 민항 포함 |
+| `v_b2_fsg_summary` | (2026-09-16) B2 국산화개발품목을 FSG 2자리로 집계 — 행 수·고유 부품 수·사업 수·FSC4 수 + `ref_fsg` 국문명 | raw 기준(완전 중복 8,940 포함). 상위 53 16,300 · 25 3,545 · 59 2,942 · 47 2,462 … 58 379. 군급분류 공란·`0` 18행은 `fsg_name_ko` NULL |
 | `v_defense_relevance_b2` | (2026-09-16) HS6별 B2 국산화개발품목 고유 부품 수·행 수(FSC 후보 대응 경유) | `v_review_list`와 달리 후보 포함. HS6 간 합산 금지 |
 | `v_civil_mix_rule` | (2026-09-16) 지표에 문턱값 규칙을 적용해 `civil_mix` 라벨·근거·요약 도출 | `ref_hs_whitelist.civil_mix` 3열은 이 뷰의 스냅샷. 지표 없으면 NULL(판단불가) |
 | `v_hs10_use_tag_all` | (2026-09-16) 관세청 HSK **전체**에 용도 태그(군용전용/항공기용/무인기/레이더/항행/자동차용/기타) | `v_hs10_use_share`가 수집된 197개에만 붙이던 태그를 마스터 12,469개로 넓힌 것. `raw_hs_code_master` 적재 전 0행 |
@@ -197,4 +199,4 @@ erDiagram
 | 진입 규칙 확정(어느 R가 화이트리스트를 결정하는지) | 팀(시각화 단계, 주피터) | `ref_hs_rule_flag`를 pandas로 읽어 조합을 정한 뒤 `rule_version` 올려 재스냅샷 → `ref_hs_whitelist` 갱신 |
 | `raw_krit_task` 추가 차수 | KRIT 공고 추출(사용자) | 26-2차 예비 RFP 20건 등 |
 | `meta_dataset.dataset_id` NULL 5행(A7) | 조장 | data.go.kr ID·다운로드일 확인 후 UPDATE |
-| `ref_fsc` | 선택 | FSC 라벨 출처가 생기면 |
+| `ref_fsc` | 선택 | FSC 4자리 라벨 출처가 생기면(2자리는 `ref_fsg`로 해소, 2026-09-16) |
