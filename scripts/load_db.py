@@ -7,7 +7,7 @@ clean_ 계층은 다루지 않는다(정제 규칙은 사용자 노트북 영역
 사용:
   python scripts/load_db.py --dry-run                 # 파일 파싱·헤더 대조·건수만 (DB 접속 없음)
   python scripts/load_db.py --ref                     # ref_hs_whitelist·ref_country·meta_column_dict·meta_dataset + db/seed_ref.sql
-  python scripts/load_db.py --raw                     # raw_ 15개 전부 (파일 없는 테이블은 SKIP)
+  python scripts/load_db.py --raw                     # raw_ 18개 전부 (파일 없는 테이블은 SKIP)
   python scripts/load_db.py --raw --tables raw_dapa_contract raw_krit_task
   python scripts/load_db.py --fact                    # dim_hs10·fact_customs_monthly 채우기 (schema.sql §4)
   python scripts/load_db.py --verify                  # 건수 대조표만 출력
@@ -46,10 +46,10 @@ SCRIPT_TAG = "scripts/load_db.py"
 # ---------------------------------------------------------------------------
 RAW_TABLES: dict[str, dict] = {
     "raw_customs_trade": dict(
-        files="data/raw/customs/customs_all_*.csv", encoding="utf-8", expected=268_909,
+        files="data/raw/customs/customs_all_*.csv", encoding="utf-8", expected=294_420,   # 2026-09-16: 21개 268,909 + 신규 3개(852910·901410·901490) 25,511
         dataset_key="customs_all", tier="핵심"),
     "raw_customs_progress": dict(
-        files="data/raw/customs/progress_all.csv", encoding="utf-8", expected=231,
+        files="data/raw/customs/progress_all.csv", encoding="utf-8", expected=264,   # 231 + 33
         dataset_key="customs_progress", int_cols={"row_count"}, tier="메타"),
     "raw_dapa_contract": dict(
         files="data/raw/dapa/dapa_domestic_contract_20251231.csv", encoding="cp949", expected=43_112,
@@ -90,15 +90,23 @@ RAW_TABLES: dict[str, dict] = {
     "raw_dapa_contract_exec_by_service": dict(
         files="data/raw/dapa/dapa_contract_exec_by_service_20241231.csv", encoding="cp949", expected=40,
         dataset_key="dapa_contract_exec_by_service", tier="보조"),
-    # 무역안보관리원 HSK 연계표(data.go.kr 15034135). 미확보 — 사용자가 내려받아 아래 경로에 두고 db/meta_dataset.csv 에
-    # dataset_key=kosti_hsk_control 행을 추가한 뒤 --raw --tables raw_hsk_control. expected 2161 은 포털 표시 건수(파싱 후 확정).
-    # encoding 은 잠정(포털 CSV는 cp949 인 경우가 많다 — 내려받은 뒤 확인). 원본 헤더(잠정: 품목번호·품명(국문)·품명(영문)·통제번호)가 다르면 db/column_dict.csv raw_hsk_control 행의 original_name 을 맞춘다.
+    # 무역안보관리원 HSK 연계표(data.go.kr 15034135). 2026-09-16 내려받아 확인: utf-8-sig, 2,161행(포털 표시와 일치), 헤더 품목번호·품명(국문)·품명(영문)·통제번호.
+    # 통제번호는 쉼표 목록(최대 1,218자) → raw_hsk_control.control_no TEXT (db/alter_2026-09-16_hs_rule.sql §2-0).
     "raw_hsk_control": dict(
-        files="data/raw/kosti/hsk_control_15034135.csv", encoding="utf-8", expected=2_161,
+        files="data/raw/kosti/hsk_control_15034135.csv", encoding="utf-8-sig", expected=2_161,
         dataset_key="kosti_hsk_control", tier="보조"),
+    # 관세청 HS부호 마스터(data.go.kr 15049722, XLSX 1시트 20열) · HS부호 단위별 품목명(15130660, XLSX 5시트) — HS6 선정 규칙(schema.sql §6 v_hs6_candidate_rule)의 원본.
+    # 2026-09-16 내려받아 헤더 확인(12,469행 = 포털 표시와 일치 / 5시트 합 17,072행 일치). .xlsx 는 pandas read_excel(openpyxl)로 읽는다.
+    # 마스터는 frame_generic(첫 시트, 열 순서 column_dict 대조), 단위별 품목명은 special='hs_unit'(시트마다 첫 열 이름이 달라 5시트를 세로로 합침).
+    "raw_hs_code_master": dict(
+        files="data/raw/customs/hs_code_master_15049722.xlsx", encoding=None, expected=12_469,
+        dataset_key="customs_hs_code_master", tier="참조"),
+    "raw_hs_unit_name": dict(
+        files="data/raw/customs/hs_unit_name_15130660.xlsx", encoding=None, expected=17_072,
+        dataset_key="customs_hs_unit_name", special="hs_unit", tier="참조"),
 }
 
-REF_EXPECTED = {"ref_hs_whitelist": 21, "ref_country": 238, "meta_column_dict": 226}
+REF_EXPECTED = {"ref_hs_whitelist": 24, "ref_country": 238, "meta_column_dict": 281}
 
 
 # ---------------------------------------------------------------------------
@@ -142,6 +150,9 @@ def norm_header(h: str) -> str:
 
 
 def read_csv_str(path: Path, encoding: str, **kw) -> pd.DataFrame:
+    """CSV 는 pandas read_csv(전 열 문자열). .xlsx 는 read_excel(openpyxl, 첫 시트) 후 NaN 을 빈 문자열로 — 두 경로 모두 빈 셀은 nz()에서 NULL."""
+    if path.suffix.lower() in (".xlsx", ".xlsm"):
+        return pd.read_excel(path, dtype=str, sheet_name=0, engine="openpyxl", **kw).fillna("")
     return pd.read_csv(path, dtype=str, keep_default_na=False, na_filter=False, encoding=encoding, **kw)
 
 
@@ -274,7 +285,28 @@ def frame_kosis_wide2(path: Path, spec: dict, dict_cols) -> tuple[list[str], lis
     return cols, rows
 
 
-FRAMERS = {None: frame_generic, "krit": frame_krit, "kosis_wide1": frame_kosis_wide1, "kosis_wide2": frame_kosis_wide2}
+def frame_hs_unit(path: Path, spec: dict, dict_cols) -> tuple[list[str], list[tuple]]:
+    """관세청 HS부호 단위별 품목명(15130660): 시트 HS2단위·HS4단위·HS6단위(5단위포함)·HS8단위(7, 9단위포함)·HS10단위,
+    각 시트 열 = <HSn단위>, 한글품목명, 영문품목명. 5시트를 세로로 합치고 hs_unit 에 시트 단위(02/04/06/08/10)를 넣는다."""
+    book = pd.read_excel(path, dtype=str, sheet_name=None, engine="openpyxl")
+    cols = ["hs_code", "hs_unit", "name_ko", "name_en", "source_file", "source_row_no"]
+    rows = []
+    for sheet, df in book.items():
+        df = df.fillna("")
+        header = [norm_header(c) for c in df.columns]
+        if len(header) != 3 or not header[0].startswith("HS") or header[1:] != ["한글품목명", "영문품목명"]:
+            raise ValueError(f"HS 단위별 품목명 시트 '{sheet}' 헤더 예상 밖: {header}")
+        unit = header[0][2:].split("단위")[0]           # 'HS6단위' → '6'
+        if not unit.isdigit():
+            raise ValueError(f"시트 '{sheet}' 첫 열에서 단위를 못 읽음: {header[0]}")
+        unit = unit.zfill(2)
+        for i, rec in enumerate(df.itertuples(index=False, name=None), start=1):
+            rows.append((nz(rec[0]), unit, nz(rec[1]), nz(rec[2]), path.name, i))
+    return cols, rows
+
+
+FRAMERS = {None: frame_generic, "krit": frame_krit, "kosis_wide1": frame_kosis_wide1, "kosis_wide2": frame_kosis_wide2,
+           "hs_unit": frame_hs_unit}
 
 
 def resolve_files(spec: dict) -> list[Path]:
@@ -391,7 +423,7 @@ def do_raw(conn, tables: list[str]) -> bool:
                 cols, rows = FRAMERS[spec.get("special")](p, spec, cd.get(t, []))
                 n = insert_rows(cur, t, cols, rows)
                 log_stage(cur, spec["dataset_key"], t, "원본 전체", p.name, n, None,
-                          f"{SCRIPT_TAG} --raw ({p.name}, pandas read_csv dtype=str)", user)
+                          f"{SCRIPT_TAG} --raw ({p.name}, pandas {'read_excel' if p.suffix.lower() == '.xlsx' else 'read_csv'} dtype=str)", user)
                 conn.commit()
                 total += n
                 print(f"    {p.name}: {n:,}행")
@@ -466,18 +498,18 @@ def do_fact(conn) -> bool:
     log_stage(cur, "customs_all", "fact_customs_monthly", "선택 연도 원본", "2025", n2025,
               "2025년 외 연도 제외", "SELECT COUNT(*) FROM fact_customs_monthly WHERE year=2025", user)
     conn.commit()
-    print(f"- dim_hs10 {n_dim:,}행 · fact_customs_monthly {n_fact:,}행 (기대 268,696: {'일치' if n_fact==268_696 else '불일치'})"
-          f" · 2025 {n2025:,}행 (기대 23,844: {'일치' if n2025==23_844 else '불일치'}) · 경고 {len(warns)} · {time.time()-t0:.1f}s")
+    print(f"- dim_hs10 {n_dim:,}행 · fact_customs_monthly {n_fact:,}행 (기대 294,174: {'일치' if n_fact==294_174 else '불일치'})"
+          f" · 2025 {n2025:,}행 (기대 26,211: {'일치' if n2025==26_211 else '불일치'}) · 경고 {len(warns)} · {time.time()-t0:.1f}s")
     for w in warns[:10]:
         print("    ", w)
-    return n_fact == 268_696
+    return n_fact == 294_174
 
 
 def do_verify(conn):
     cur = conn.cursor()
     print(f"{'테이블':36} {'건수':>10} {'기대':>10}  판정")
     for t, exp in list(REF_EXPECTED.items()) + [(t, s["expected"]) for t, s in RAW_TABLES.items()] + \
-            [("dim_hs10", None), ("fact_customs_monthly", 268_696), ("meta_dataset", None), ("meta_load_log", None),
+            [("dim_hs10", None), ("fact_customs_monthly", 294_174), ("meta_dataset", None), ("meta_load_log", None),
              ("ref_category_map", None), ("ref_sido_map", None)]:
         n = table_count(cur, t)
         v = "-" if exp is None else ("일치" if n == exp else f"불일치({n-exp:+})")

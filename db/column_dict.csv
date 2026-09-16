@@ -167,9 +167,11 @@ ref_hs_whitelist,9,system_family,system_family,VARCHAR(30),무기체계 계열(2
 ref_hs_whitelist,10,defense_use_ko,defense_use_ko,VARCHAR(300),국방 용도 1문장(팀 판단)
 ref_hs_whitelist,11,related_fsc,related_fsc,VARCHAR(30),B2 대응 FSC4 후보(; 구분)
 ref_hs_whitelist,12,evidence,evidence,VARCHAR(50),근거 키 A6;B2-FSC;KRIT;A7;팀판단
-ref_hs_whitelist,13,civil_mix,civil_mix,ENUM('높음',민수 혼합 정도 — v_civil_mix_rule 규칙 도출값(2026-09-16). 정량 지표 없으면 NULL. docs/reference/hs-whitelist-definition.md §7,'낮음'),민수 혼합 정도(팀 판단, 2026-09-15 추가) — docs/reference/hs-whitelist-definition.md §1
+ref_hs_whitelist,13,civil_mix,civil_mix,"ENUM('높음','중간','낮음')",민수 혼합 정도 — v_civil_mix_rule 규칙 도출값(2026-09-16). 정량 지표 없으면 NULL. docs/reference/hs-whitelist-definition.md §7
 ref_hs_whitelist,14,civil_mix_basis,civil_mix_basis,"ENUM('hs10','hsk','판단불가')",civil_mix를 정한 지표 종류(2026-09-16)
 ref_hs_whitelist,15,civil_mix_note,civil_mix_note,VARCHAR(200),근거 수치 요약. 원값은 ref_hs_indicator
+ref_hs_whitelist,16,evidence_basis,evidence_basis,"ENUM('rule','팀판단')",evidence를 정한 방식(2026-09-16): rule=공식 자료 규칙 도출 / 팀판단=09-15 기획 단계
+ref_hs_whitelist,17,evidence_note,evidence_note,VARCHAR(300),규칙 근거 수치 요약. 원값은 v_hs6_candidate_rule
 raw_dapa_overseas_plan,1,plan_month,집행예정월,VARCHAR(10),YYYY-MM-01
 raw_dapa_overseas_plan,2,decision_no,판단번호,VARCHAR(20),
 raw_dapa_overseas_plan,3,rep_item_name,대표품명,VARCHAR(500),전자 관련 후보 분류 대상
@@ -223,5 +225,58 @@ raw_dapa_contract_exec_by_service,2,service_branch,군구분,VARCHAR(10),육군/
 raw_dapa_contract_exec_by_service,3,contract_amount_100m_krw,계약금액(억원),VARCHAR(20),
 raw_hsk_control,1,hsk10,품목번호,VARCHAR(12),HSK 10자리
 raw_hsk_control,2,name_ko,품명(국문),VARCHAR(300),
-raw_hsk_control,3,name_en,품명(영문),VARCHAR(300),
-raw_hsk_control,4,control_no,통제번호,VARCHAR(30),전략물자 통제 리스트 번호
+raw_hsk_control,3,name_en,품명(영문),VARCHAR(400),최대 368자
+raw_hsk_control,4,control_no,통제번호,TEXT,전략물자 통제번호 쉼표 목록(별표2 이중용도, ML 없음)
+raw_hs_code_master,1,hs_code,HS부호,VARCHAR(12),7~10자리
+raw_hs_code_master,2,apply_start,적용시작일자,VARCHAR(20),
+raw_hs_code_master,3,apply_end,적용종료일자,VARCHAR(20),
+raw_hs_code_master,4,name_ko,한글품목명,VARCHAR(500),
+raw_hs_code_master,5,name_en,영문품목명,VARCHAR(600),
+raw_hs_code_master,6,hs_desc,HS부호내용,VARCHAR(500),전부 빈값
+raw_hs_code_master,7,ksic_trade_nm,한국표준무역분류명,VARCHAR(50),
+raw_hs_code_master,8,qty_unit_max,수량단위최대단가,VARCHAR(10),
+raw_hs_code_master,9,wt_unit_max,중량단위최대단가,VARCHAR(10),
+raw_hs_code_master,10,qty_unit_cd,수량단위코드,VARCHAR(10),
+raw_hs_code_master,11,wt_unit_cd,중량단위코드,VARCHAR(10),
+raw_hs_code_master,12,exp_nature_cd,수출성질코드,VARCHAR(10),
+raw_hs_code_master,13,imp_nature_cd,수입성질코드,VARCHAR(10),
+raw_hs_code_master,14,spec_item_nm,품목규격명,VARCHAR(50),
+raw_hs_code_master,15,spec_required,필수규격명,VARCHAR(200),
+raw_hs_code_master,16,spec_reference,참고규격명,VARCHAR(100),
+raw_hs_code_master,17,spec_desc,규격설명,TEXT,
+raw_hs_code_master,18,spec_detail,규격사항내용,TEXT,
+raw_hs_code_master,19,nature_class_cd,성질통합분류코드,VARCHAR(10),
+raw_hs_code_master,20,nature_class_nm,성질통합분류코드명,VARCHAR(100),
+raw_hs_unit_name,1,hs_code,(시트 첫 열 HS2단위/HS4단위/HS6단위/HS8단위/HS10단위),VARCHAR(12),5시트 세로 결합
+raw_hs_unit_name,2,hs_unit,(시트 이름),CHAR(2),02/04/06/08/10
+raw_hs_unit_name,3,name_ko,한글품목명,VARCHAR(700),최대 603자
+raw_hs_unit_name,4,name_en,영문품목명,VARCHAR(800),최대 745자
+ref_hs_rule_flag,1,hs6,hs6,CHAR(6),PK1
+ref_hs_rule_flag,2,rule_version,rule_version,VARCHAR(20),PK2, 규칙 정의 버전
+ref_hs_rule_flag,3,hs2,hs2,CHAR(2),
+ref_hs_rule_flag,4,hs6_name_ko,hs6_name_ko,VARCHAR(700),관세청 HS6 공식 명칭
+ref_hs_rule_flag,5,r1_mil,r1_mil,TINYINT(1),R1 군용전용 세분류
+ref_hs_rule_flag,6,r2_aero_nav,r2_aero_nav,TINYINT(1),R2 항공·항행·레이더·무인기
+ref_hs_rule_flag,7,r3_du,r3_du,TINYINT(1),R3 이중용도 3·5·6·7부
+ref_hs_rule_flag,8,r3_ml,r3_ml,TINYINT(1),R3 군용물자 ML(현재 자료 0건)
+ref_hs_rule_flag,9,r4_b2,r4_b2,TINYINT(1),R4 B2 FSC 후보 대응
+ref_hs_rule_flag,10,mil_cnt,mil_cnt,SMALLINT,
+ref_hs_rule_flag,11,aero_cnt,aero_cnt,SMALLINT,
+ref_hs_rule_flag,12,uav_cnt,uav_cnt,SMALLINT,
+ref_hs_rule_flag,13,radar_cnt,radar_cnt,SMALLINT,
+ref_hs_rule_flag,14,nav_cnt,nav_cnt,SMALLINT,
+ref_hs_rule_flag,15,hs10_total,hs10_total,SMALLINT,현행+이력
+ref_hs_rule_flag,16,hs10_master,hs10_master,SMALLINT,현행 2026
+ref_hs_rule_flag,17,control_hsk10_count,control_hsk10_count,SMALLINT,
+ref_hs_rule_flag,18,du_elec_hsk10_count,du_elec_hsk10_count,SMALLINT,
+ref_hs_rule_flag,19,ml_hsk10_count,ml_hsk10_count,SMALLINT,
+ref_hs_rule_flag,20,control_ratio_pct,control_ratio_pct,DECIMAL(5,1),
+ref_hs_rule_flag,21,control_no_list,control_no_list,TEXT,
+ref_hs_rule_flag,22,b2_part_count,b2_part_count,INT,NULL=대응 없음
+ref_hs_rule_flag,23,is_candidate_provisional,is_candidate_provisional,TINYINT(1),잠정 진입식 R1 OR R2 OR (R3_du AND R4)
+ref_hs_rule_flag,24,priority_rule,priority_rule,TINYINT,
+ref_hs_rule_flag,25,evidence_rule,evidence_rule,VARCHAR(120),
+ref_hs_rule_flag,26,evidence_note,evidence_note,VARCHAR(300),
+ref_hs_rule_flag,27,in_whitelist,in_whitelist,TINYINT(1),
+ref_hs_rule_flag,28,computed_at,computed_at,DATETIME,
+ref_hs_rule_flag,29,source_note,source_note,VARCHAR(300),

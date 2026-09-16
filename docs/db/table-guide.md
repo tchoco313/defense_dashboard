@@ -8,12 +8,12 @@
 
 | 접두사 | 뜻 | 테이블 수 | 누가 채우나 | 손대도 되나 |
 |---|---|---|---|---|
-| `ref_` | 참조표. HS 화이트리스트·국가코드·품목군 대응표 같은 기준값 | 5 | 팀(수작업)·`load_db.py` | 팀 합의 후 UPDATE만 |
-| `raw_` | **원본 CSV 그대로**. 전 열 문자열, 중복도 그대로, 행마다 어느 파일 몇 번째 줄인지 기록 | 15 | `load_db.py` | **수정 금지** (다시 넣을 땐 `reset_data.sql`) |
+| `ref_` | 참조표. HS 화이트리스트·국가코드·품목군 대응표·규칙 판정 스냅샷 같은 기준값 | 7 | 팀(수작업)·`load_db.py` | 팀 합의 후 UPDATE만 |
+| `raw_` | **원본 CSV 그대로**. 전 열 문자열, 중복도 그대로, 행마다 어느 파일 몇 번째 줄인지 기록 | 18 | `load_db.py` | **수정 금지** (다시 넣을 땐 `reset_data.sql`) |
 | `meta_` | 기록. 출처·해시·건수, 단계별 건수, 열 사전 | 3 | `load_db.py` + 노트북 | 기록 추가만 |
 | `dim_` `fact_` | 관세청 자료를 숫자·연월로 정리한 정형 테이블 | 2 | `load_db.py --fact` | 재생성만 |
 | `clean_` | **정제 결과**. 형 변환·차수 정리·5분류·국산화 상태 같은 판단 속성 | 6 | **정제 노트북(팀원)** | 노트북으로 다시 채움 |
-| `v_` | 화면용 뷰. Streamlit이 읽는 집계 | 6 | DDL(자동) | 뷰 정의는 `schema.sql`에서 |
+| `v_` | 화면용 뷰 + 규칙 도출 뷰. Streamlit이 읽는 집계, 라벨·화이트리스트 근거 도출 | 14 | DDL(자동) | 뷰 정의는 `schema.sql`에서 |
 
 흐름: `CSV → raw_(원본 보존) → clean_(노트북 정제) → v_(화면)`. 관세청 자료만 규칙이 확정돼 `raw_ → fact_ → v_`까지 이미 이어져 있다.
 
@@ -39,8 +39,9 @@
 
 | 테이블 | 역할 | 출처 | 행 | 상태 | 핵심 열 |
 |---|---|---|---|---|---|
-| `ref_hs_whitelist` | 분석 대상 HS6 21개. 사이드바 필터·집계의 기준 | `data/reference/hs_whitelist.csv` | 21 | 적재 완료. `b2_scope`는 팀 확정 대기 | `hs6` PK · `category`(반도체/전자부품/소재장비) · `priority` · `axis`(import/export/both) · `system_family` · `related_fsc` · `civil_mix`(높음/중간/낮음/NULL) · `civil_mix_basis`(hs10/hsk/판단불가) · `civil_mix_note` |
+| `ref_hs_whitelist` | 분석 대상 HS6 24개(2026-09-16 규칙 도출: rule 19 · 팀판단 5, 신규 852910·901410·901490은 관세청 미수집). 사이드바 필터·집계의 기준 | `data/reference/hs_whitelist.csv` | 24 | 적재 완료. `b2_scope`는 팀 확정 대기 | `hs6` PK · `category`(반도체/전자부품/소재장비) · `priority` · `axis`(import/export/both) · `system_family` · `related_fsc` · `civil_mix`(높음/중간/낮음/NULL) · `civil_mix_basis`(hs10/hsk/판단불가) · `civil_mix_note` |
 | `ref_hs_indicator` | (2026-09-16) 품목군별 **정량 지표** — "민수 혼합"·"국방 관련성" 라벨의 수치 근거. 한 행 = HS6 × 지표 × 기간 | 뷰에서 계산(`db/alter_2026-09-16_indicator.sql`) | 39 | 적재 완료 | `hs6` · `axis` · `indicator`(mil_hs10_share / aero_hs10_share / auto_hs10_share / b2_part_count / b2_row_count …) · `value_num` · `numerator`/`denominator` · `period_start/end` · `link_status` · `note`(한계) |
+| `ref_hs_rule_flag` | (2026-09-16) HS6별 선정 규칙 **R1~R4 판정·근거 수치 스냅샷** — 84·85·88·90류 HS6 1,003개 전부(화이트리스트 밖 포함). 팀 회의 결정: 규칙은 전부 저장하고 어느 규칙이 진입을 결정하는지는 시각화 단계에서 주피터로 정한다 | `alter_2026-09-16_hs_rule.sql` §5-4 (`v_hs6_candidate_rule` 물질화) | 1,003(팀 서버 2026-09-16 적용) | `r1_mil`·`r2_aero_nav`·`r3_du`·`r3_ml`(현재 항상 0)·`r4_b2` · 근거 수치 · `is_candidate_provisional` · `in_whitelist` · `rule_version` |
 | `ref_country` | 국가코드 → 한글명·좌표 | Google DSPL + 수기 | 238 | 적재 완료 | `stat_cd` PK · `name_ko` · `lat`/`lon`(ZZ 기타국은 NULL) |
 | `ref_category_map` | FSC·품목군 → HS6 **품목군 수준** 대응표. 직접 매핑 아님 | `related_fsc` 분해 시드 | 17 | 전부 `후보` — 팀이 `확정`으로 바꿔야 B2 건수가 채워짐 | `map_type`(fsc4/contract_group/krit_task) · `source_key` · `hs6` · `link_status` |
 | `ref_sido_map` | 주소 첫 토큰 → 17개 시도 코드 | 수작업 시드 | 45 | 적재 완료 | `token` PK · `sido_code` · `sido_name` |
@@ -65,6 +66,9 @@
 | `raw_dapa_overseas_bid_result` | 국외조달 입찰결과 2025-01~09 부분연도(유찰률) | `dapa_overseas_bid_result_20250915.csv` | 2,494 | 보조 | `decision_no` · `bid_result`(낙찰/유찰) · `opening_datetime` · `budget_amount_usd` |
 | `raw_dapa_domestic_plan` | 국내조달 조달계획 2024~2025 (국내 vs 국외 규모 비교용) | `dapa_domestic_plan_20251231.csv` | 35,859 | 보조 | `plan_month` · `exec_type` · `budget_amount` |
 | `raw_dapa_contract_exec_by_service` | 군별 계약집행 현황 2015~2024 (KPI) | `dapa_contract_exec_by_service_20241231.csv` | 40 | KPI | `year` · `service_branch` · `contract_amount_100m_krw` |
+| `raw_hsk_control` | (2026-09-16) 무역안보관리원 전략물자 **HSK 연계표** — 통제번호 ↔ HSK10 | `data/raw/kosti/hsk_control_15034135.csv` | 2,161(적재 완료 09-16) | HS6 선정 규칙 R3(이중용도 별표2만, ML 없음). `civil_mix` 3번 규칙은 판별력 없어 보류 | `hsk10` · `control_no`(쉼표 목록) |
+| `raw_hs_code_master` | (2026-09-16) 관세청 **HS부호 마스터** — HSK 10자리 전체(포털 12,469행) | `data/raw/customs/hs_code_master_15049722.xlsx` | 12,469(적재 완료 09-16) | HS6 선정 규칙 R1·R2 원본(2026 현행, 과거 세분류는 `dim_hs10`과 UNION) | `hs_code` · `name_ko`(용도 세분류 이름) |
+| `raw_hs_unit_name` | (2026-09-16) 관세청 HS부호 **단위별 품목명** — 2·4·6·8·10단위 명칭(포털 17,072행) | `data/raw/customs/hs_unit_name_15130660.xlsx` | 17,072(적재 완료 09-16) | 규칙 후보 HS6 공식 명칭(5시트 세로 결합) | `hs_code` · `hs_unit` · `name_ko` |
 
 담당자명·대표자명·연락처는 개인정보다. 국내 계약·입찰 파일은 raw에 원문이 있으니 `clean_`·화면으로 올리지 말고, A7 5개는 적재 때 이미 NULL로 비웠다.
 
@@ -107,6 +111,11 @@
 | `v_hs10_use_share` | (2026-09-16) HS6 아래 HS10을 용도(군용전용/항공기용/자동차용/기타)로 태그해 2021~2025 수입액 비중 | 군용전용 비중은 하한선, 항공기용은 민항 포함 |
 | `v_defense_relevance_b2` | (2026-09-16) HS6별 B2 국산화개발품목 고유 부품 수·행 수(FSC 후보 대응 경유) | `v_review_list`와 달리 후보 포함. HS6 간 합산 금지 |
 | `v_civil_mix_rule` | (2026-09-16) 지표에 문턱값 규칙을 적용해 `civil_mix` 라벨·근거·요약 도출 | `ref_hs_whitelist.civil_mix` 3열은 이 뷰의 스냅샷. 지표 없으면 NULL(판단불가) |
+| `v_hs10_use_tag_all` | (2026-09-16) 관세청 HSK **전체**에 용도 태그(군용전용/항공기용/무인기/레이더/항행/자동차용/기타) | `v_hs10_use_share`가 수집된 197개에만 붙이던 태그를 마스터 12,469개로 넓힌 것. `raw_hs_code_master` 적재 전 0행 |
+| `v_hsk_control_by_hs6` | (2026-09-16) HS6별 전략물자 통제 HSK 수 — ML / 이중용도 3·5·6·7부 / 통제번호 목록 | `raw_hsk_control` 적재 전 0행. 통제번호 형식(ML 접두, `3A001`)은 적재 후 확인 |
+| `v_hs6_candidate_rule` | (2026-09-16) 84·85·88·90류 HS6마다 규칙 판정(진입 = R1 군용전용 OR R2 항공·항행·레이더·무인기 OR (R3 이중용도 3·5·6·7부 AND R4 B2)) → `is_candidate`·`priority_rule`·`evidence_rule`·`evidence_note` | "어떤 HS6를 수집할지"의 근거. `ref_hs_whitelist` evidence 3열은 이 뷰의 스냅샷(적재·대조 후 UPDATE). 규칙·법령 근거는 `docs/reference/hs-whitelist-definition.md` §8 |
+| `v_hs6_candidate_vs_whitelist` | (2026-09-16) 규칙 후보 ↔ 현재 21개 대조: `유지(근거 교체)` / `강등·제외 검토(규칙 미해당)` / `신규 후보(미수집)` | 마스터 적재 전에는 24개 전부 '규칙 미해당'으로 보이니 적재 후에만 읽는다. 로컬 대조(09-16, 24개 반영 후): 유지 19 / 미해당 5(847180·848620·851762·854142·854159) / 신규 39 |
+| `v_hs_whitelist_rule` | (2026-09-16) `ref_hs_whitelist` 24행 × `ref_hs_rule_flag` 최신 버전 — 화면·노트북이 화이트리스트의 R1~R4 플래그·근거 수치를 한 번에 읽는 뷰 | 원본 없는 DB에서도 동작(스냅샷 테이블 조인) |
 
 ## 4. 꼭 지킬 규칙 5개
 
@@ -184,8 +193,8 @@ erDiagram
 | `clean_` 6개 | 정제 노트북(팀원) | 계약정보 정제가 1순위 — 이게 있어야 화면 ②·⑤·`v_contract_monthly` |
 | `ref_category_map` 후보 17행 → `확정` | 팀 결정 | 확정돼야 `v_review_list`의 B2 건수 |
 | `ref_hs_whitelist.b2_scope` | 팀 결정 | 항공·함정·유도(841191·880730·901420)를 `B2 범위 밖`으로 — `schema.sql` 말미 UPDATE 예시 |
-| `ref_hs_whitelist.civil_mix` NULL 14개 | 데이터(HSK 연계표) | 무역안보관리원 HSK 연계표(`15034135`)를 `raw_hsk_control`에 적재하면 `hsk_control_*` 지표로 `civil_mix_basis='hsk'` 경로가 열린다. 문턱값은 적재 후 분포를 보고 팀이 결정 |
-| `raw_hsk_control` | 사용자 다운로드 | `data/raw/kosti/hsk_control_15034135.csv` + `meta_dataset.csv` `kosti_hsk_control` 행 → `load_db.py --raw --tables raw_hsk_control` |
+| `ref_hs_whitelist.civil_mix` NULL 14개 | — | HSK 연계표를 확인한 결과(2026-09-16) 84·85·88·90류 HS6 486개를 덮는 "해당 가능성" 목록이라 민수 혼합 판별력이 없다 → `hsk` 경로는 보류, 14개는 NULL(판단불가) 유지 |
+| 진입 규칙 확정(어느 R가 화이트리스트를 결정하는지) | 팀(시각화 단계, 주피터) | `ref_hs_rule_flag`를 pandas로 읽어 조합을 정한 뒤 `rule_version` 올려 재스냅샷 → `ref_hs_whitelist` 갱신 |
 | `raw_krit_task` 추가 차수 | KRIT 공고 추출(사용자) | 26-2차 예비 RFP 20건 등 |
 | `meta_dataset.dataset_id` NULL 5행(A7) | 조장 | data.go.kr ID·다운로드일 확인 후 UPDATE |
 | `ref_fsc` | 선택 | FSC 라벨 출처가 생기면 |
