@@ -1,0 +1,227 @@
+table_name,ordinal,column_name,original_name,dtype,description
+raw_customs_trade,1,stat_ym,year,VARCHAR(10),연월 `YYYY.MM` 또는 `총계`(연간 총계행)
+raw_customs_trade,2,stat_cd,statCd,VARCHAR(4),국가코드 ISO2. 총계행은 `-`
+raw_customs_trade,3,cnty_name_ko,statCdCntnKor1,VARCHAR(100),국가명(관세청 표기)
+raw_customs_trade,4,hs_cd,hsCd,VARCHAR(10),HS10 세부코드. 총계행은 `-`
+raw_customs_trade,5,item_name_ko,statKor,VARCHAR(300),HS10 품명
+raw_customs_trade,6,exp_wgt,expWgt,VARCHAR(20),수출중량(kg)
+raw_customs_trade,7,exp_dlr,expDlr,VARCHAR(20),"수출금액(USD, FOB)"
+raw_customs_trade,8,imp_wgt,impWgt,VARCHAR(20),수입중량(kg)
+raw_customs_trade,9,imp_dlr,impDlr,VARCHAR(20),"수입금액(USD, CIF)"
+raw_customs_trade,10,bal_payments,balPayments,VARCHAR(20),무역수지(USD)
+raw_customs_trade,11,req_hs,req_hs,CHAR(6),요청 HS6(화이트리스트)
+raw_customs_trade,12,req_cnty,req_cnty,VARCHAR(4),요청 국가코드. 전체 국가 수집은 `ALL`
+raw_customs_trade,13,req_year,req_year,CHAR(4),요청 연도
+raw_customs_trade,14,fetched_at,fetched_at,VARCHAR(20),수집일
+raw_customs_trade,15,is_total,is_total,CHAR(1),연간 총계행 여부(1/0)
+raw_dapa_contract,1,contract_no,계약번호,VARCHAR(20),계약번호(숫자 10자리·`2024SFD0002` 두 형식 혼재)
+raw_dapa_contract,2,contract_seq,계약차수,VARCHAR(4),계약차수(`0`·`00` 표기 혼재 — clean에서 정규화)
+raw_dapa_contract,3,contract_name,계약명,VARCHAR(500),계약 제목(부품명 아님)
+raw_dapa_contract,4,biz_type_name,업무구분명,VARCHAR(20),물품/용역
+raw_dapa_contract,5,contract_form_name,계약체결형태명,VARCHAR(50),총액계약 등
+raw_dapa_contract,6,contract_method_name,계약체결방법명,VARCHAR(50),일반경쟁·수의 등
+raw_dapa_contract,7,joint_contract_yn,공동계약여부,VARCHAR(20),단독계약/공동계약
+raw_dapa_contract,8,contract_date,계약체결일자,VARCHAR(10),YYYY-MM-DD
+raw_dapa_contract,9,contract_period,계약기간,VARCHAR(30),`YYYY-MM-DD~YYYY-MM-DD`
+raw_dapa_contract,10,contract_amount,계약금액,VARCHAR(20),해당 차수 계약액(원)
+raw_dapa_contract,11,total_contract_amount,총계약금액,VARCHAR(20),전체 계약액(원). 1행 공란
+raw_dapa_contract,12,reserve_price,예정가격,VARCHAR(20),예정가격(원)
+raw_dapa_contract,13,private_contract_reason,수의계약사유,TEXT,수의계약 사유
+raw_dapa_contract,14,contract_org_type_name,계약기관구분명,VARCHAR(50),
+raw_dapa_contract,15,contract_org_name,계약기관명,VARCHAR(100),
+raw_dapa_contract,16,contract_org_dept_name,계약기관담당부서명,VARCHAR(100),
+raw_dapa_contract,17,contract_org_officer_name,계약기관담당자명,VARCHAR(50),화면 미노출
+raw_dapa_contract,18,demand_org_type_name,수요기관구분명,VARCHAR(50),
+raw_dapa_contract,19,demand_org_name,수요기관명,VARCHAR(100),
+raw_dapa_contract,20,demand_org_dept_name,수요기관담당부서명,VARCHAR(100),
+raw_dapa_contract,21,demand_org_officer_name,수요기관담당자명,VARCHAR(50),화면 미노출
+raw_dapa_contract,22,vendor_name,대표업체명,VARCHAR(200),공동계약은 대표사만
+raw_dapa_contract,23,domestic_vendor_yn,국내업체여부,VARCHAR(20),전부 `국내업체` — 국산 제조 근거 아님
+raw_dapa_contract,24,vendor_ceo_name,대표업체대표자명,VARCHAR(50),화면 미노출
+raw_dapa_contract,25,vendor_biz_reg_no,대표업체사업자등록번호,VARCHAR(20),`000-00-00000`
+raw_dapa_contract,26,vendor_address,대표업체주소,VARCHAR(300),계약업체 소재지(생산·납품 위치 아님)
+raw_dapa_contract,27,contract_type,계약유형,VARCHAR(50),물품구매계약서 등
+raw_dapa_contract,28,price_adjust_method,물가변동계약금액조정방법,VARCHAR(100),
+raw_dapa_bid_notice,1,bid_notice_no,입찰공고번호,VARCHAR(20),"7자리, 연도 미포함 → 비유일"
+raw_dapa_bid_notice,2,bid_notice_seq,입찰공고차수,VARCHAR(4),
+raw_dapa_bid_notice,3,ref_notice_no,참조공고번호,VARCHAR(30),연도 포함 실제 키
+raw_dapa_bid_notice,4,ref_notice_seq,참조공고차수,VARCHAR(4),
+raw_dapa_bid_notice,5,g2b_notice_yn,나라장터공고여부,VARCHAR(20),
+raw_dapa_bid_notice,6,bid_notice_name,입찰공고명,VARCHAR(500),
+raw_dapa_bid_notice,7,bid_notice_status_name,입찰공고상태명,VARCHAR(20),긴급/정상/재공고/취소/정정/연기
+raw_dapa_bid_notice,8,bid_notice_date,입찰공고일자,VARCHAR(10),
+raw_dapa_bid_notice,9,biz_type_name,업무구분명,VARCHAR(20),
+raw_dapa_bid_notice,10,joint_contract_yn,공동계약여부,VARCHAR(20),
+raw_dapa_bid_notice,11,joint_supply_method_name,공동수급방식명,VARCHAR(50),
+raw_dapa_bid_notice,12,e_bid_yn,전자입찰여부,VARCHAR(20),
+raw_dapa_bid_notice,13,contract_form_name,계약체결형태명,VARCHAR(50),
+raw_dapa_bid_notice,14,contract_method_name,계약체결방법명,VARCHAR(50),
+raw_dapa_bid_notice,15,award_method_name,낙찰자결정방법명,VARCHAR(50),
+raw_dapa_bid_notice,16,notice_org_name,공고기관명,VARCHAR(100),
+raw_dapa_bid_notice,17,notice_org_code,공고기관코드,VARCHAR(20),
+raw_dapa_bid_notice,18,notice_org_dept_name,공고기관담당자부서명,VARCHAR(100),
+raw_dapa_bid_notice,19,notice_org_officer_name,공고기관담당자명,VARCHAR(50),화면 미노출
+raw_dapa_bid_notice,20,demand_org_name,수요기관명,VARCHAR(100),
+raw_dapa_bid_notice,21,demand_org_code,수요기관코드,VARCHAR(20),
+raw_dapa_bid_notice,22,demand_org_dept_name,수요기관담당자부서명,VARCHAR(100),
+raw_dapa_bid_notice,23,demand_org_officer_name,수요기관담당자명,VARCHAR(50),화면 미노출
+raw_dapa_bid_notice,24,briefing_yn,설명회실시여부,VARCHAR(20),
+raw_dapa_bid_notice,25,briefing_date,설명회실시일자,VARCHAR(10),
+raw_dapa_bid_notice,26,briefing_time,설명회실시시각,VARCHAR(10),
+raw_dapa_bid_notice,27,briefing_place,설명회실시장소,VARCHAR(200),
+raw_dapa_bid_notice,28,qualification_deadline_date,입찰참가자격등록마감일자,VARCHAR(10),
+raw_dapa_bid_notice,29,qualification_deadline_time,입찰참가자격등록마감시각,VARCHAR(10),
+raw_dapa_bid_notice,30,bid_deadline_date,입찰마감일자,VARCHAR(10),
+raw_dapa_bid_notice,31,bid_deadline_time,입찰마감시각,VARCHAR(10),
+raw_dapa_bid_notice,32,opening_date,개찰일자,VARCHAR(10),이상치 `2055-10-28` 1건
+raw_dapa_bid_notice,33,opening_time,개찰시각,VARCHAR(10),
+raw_dapa_bid_notice,34,opening_place,개찰장소,VARCHAR(200),
+raw_dapa_bid_notice,35,budget_amount,예산금액,VARCHAR(20),
+raw_dapa_bid_notice,36,allocated_budget_amount,배정예산금액(설계금액),VARCHAR(20),
+raw_dapa_bid_notice,37,region_limit_yn,지역제한여부,VARCHAR(20),
+raw_dapa_bid_notice,38,eligible_region_name,참가가능지역명,VARCHAR(200),
+raw_dapa_bid_notice,39,license_limit_group1,공종및면허제한그룹1,VARCHAR(300),
+raw_dapa_bid_notice,40,license_limit_group2,공종및면허제한그룹2,VARCHAR(300),
+raw_dapa_bid_notice,41,license_limit_group3,공종및면허제한그룹3,VARCHAR(300),
+raw_dapa_bid_notice,42,license_limit_group4,공종및면허제한그룹4,VARCHAR(300),
+raw_dapa_bid_notice,43,license_limit_group5,공종및면허제한그룹5,VARCHAR(300),
+raw_dapa_bid_notice,44,license_limit_group6,공종및면허제한그룹6,VARCHAR(300),
+raw_dapa_bid_notice,45,license_limit_group7,공종및면허제한그룹7,VARCHAR(300),
+raw_dapa_bid_notice,46,license_limit_group8,공종및면허제한그룹8,VARCHAR(300),
+raw_dapa_bid_notice,47,bid_notice_url,입찰공고URL,VARCHAR(300),
+raw_dapa_bid_result,1,bid_notice_no,입찰공고번호,VARCHAR(20),
+raw_dapa_bid_result,2,bid_notice_seq,입찰공고차수,VARCHAR(4),
+raw_dapa_bid_result,3,bid_notice_name,입찰공고명,VARCHAR(500),
+raw_dapa_bid_result,4,biz_type_name,업무구분명,VARCHAR(20),
+raw_dapa_bid_result,5,contract_form_name,계약체결형태명,VARCHAR(50),
+raw_dapa_bid_result,6,contract_method_name,계약체결방법명,VARCHAR(50),
+raw_dapa_bid_result,7,award_method_name,낙찰자결정방법명,VARCHAR(50),
+raw_dapa_bid_result,8,qualification_review_yn,적격심사여부,VARCHAR(20),
+raw_dapa_bid_result,9,notice_org_name,공고기관명,VARCHAR(100),
+raw_dapa_bid_result,10,notice_org_code,공고기관코드,VARCHAR(20),
+raw_dapa_bid_result,11,demand_org_name,수요기관명,VARCHAR(100),
+raw_dapa_bid_result,12,demand_org_code,수요기관코드,VARCHAR(20),
+raw_dapa_bid_result,13,award_lower_limit_rate,낙찰하한율,VARCHAR(10),%
+raw_dapa_bid_result,14,reserve_price,예정가격,VARCHAR(20),원
+raw_dapa_bid_result,15,base_amount,기초금액,VARCHAR(20),원
+raw_dapa_bid_result,16,estimated_price,추정가격,VARCHAR(20),원
+raw_dapa_bid_result,17,opening_date,개찰일자,VARCHAR(10),
+raw_dapa_bid_result,18,opening_time,개찰시각,VARCHAR(10),
+raw_dapa_bid_result,19,opening_result_name,개찰결과구분명,VARCHAR(20),개찰완료/유찰/순위확정. 열 밀림 의심 2행
+raw_dapa_bid_result,20,final_award_amount,최종낙찰금액,VARCHAR(20),원
+raw_dapa_bid_result,21,final_award_rate,최종낙찰율,VARCHAR(10),%
+raw_dapa_bid_result,22,final_award_date,최종낙찰일자,VARCHAR(10),"빈값 2,129(유찰 포함)"
+raw_dapa_bid_result,23,winner_name,최종낙찰업체명,VARCHAR(200),
+raw_dapa_bid_result,24,winner_ceo_name,최종낙찰업체대표자명,VARCHAR(50),화면 미노출
+raw_dapa_bid_result,25,winner_officer_name,최종낙찰업체담당자명,VARCHAR(50),화면 미노출
+raw_dapa_bid_result,26,winner_biz_reg_no,최종낙찰업체사업자등록번호,VARCHAR(20),
+raw_dapa_bid_result,27,winner_address,최종낙찰업체주소,VARCHAR(300),낙찰업체 소재지(생산·납품 위치 아님)
+raw_dapa_localized_item,1,project_name,사업명,VARCHAR(100),"무기체계 사업명(28개, 지상 기동·화력)"
+raw_dapa_localized_item,2,part_mgmt_no,부품관리번호,VARCHAR(20),"부품 식별자(고유 12,788)"
+raw_dapa_localized_item,3,nsn,재고번호,VARCHAR(20),NSN(공란 12)
+raw_dapa_localized_item,4,fsc,군급분류,VARCHAR(4),FSC 4자리
+raw_dapa_localized_item,5,item_name,품명,VARCHAR(200),
+raw_dapa_localized_item,6,drawing_no,도면번호,VARCHAR(50),화면 미노출
+raw_dapa_localized_item,7,drawing_part_no,도면부품번호,VARCHAR(50),화면 미노출
+raw_dapa_localized_item,8,spec_no,규격번호,VARCHAR(50),화면 미노출
+raw_dapa_localized_item,9,contractor_name,계약업체,VARCHAR(200),계약 상대(국산화 개발 주체 아님). 사업자번호 없음
+raw_dapa_localized_item,10,last_modified_date,최종수정일,VARCHAR(10),"공란 25,191 + 2021년 8,774 → 연도 축 사용 금지"
+raw_dapa_defense_company,1,seq_no,순번,VARCHAR(4),
+raw_dapa_defense_company,2,company_name,업체명,VARCHAR(200),
+raw_dapa_defense_company,3,sector,분야,VARCHAR(20),항공유도·통신전자·기동·함정·탄약·화력·기타·화생방·항공
+raw_dapa_defense_company,4,designated_date,지정일자,VARCHAR(10),
+raw_dapa_defense_company,5,note,비고,VARCHAR(300),사명변경·합병 이력
+raw_krit_task,1,task_seq,순,VARCHAR(4),표 내 순번
+raw_krit_task,2,task_name,국산화 개발대상 과제명,VARCHAR(300),
+raw_krit_task,3,gov_fund_text,정부지원\n연구개발비,VARCHAR(30),원문(`23.67억`)
+raw_krit_task,4,dev_period_text,개발\n기간,VARCHAR(30),원문(`30개월`)
+raw_krit_task,5,note,비고,VARCHAR(300),
+ref_hs_whitelist,1,hs6,hs_code,CHAR(6),HS6
+ref_hs_whitelist,2,hs_level,hs_level,TINYINT,6
+ref_hs_whitelist,3,category,category,VARCHAR(20),반도체/전자부품/소재장비
+ref_hs_whitelist,4,name_ko,name_ko,VARCHAR(100),
+ref_hs_whitelist,5,name_en,name_en,VARCHAR(200),
+ref_hs_whitelist,6,rationale,rationale,TEXT,
+ref_hs_whitelist,7,priority,priority,TINYINT,1~3
+ref_hs_whitelist,8,axis,axis,"ENUM('import','export','both')",
+ref_country,1,stat_cd,statCd,CHAR(2),ISO2
+ref_country,2,name_en,name_en,VARCHAR(100),
+ref_country,3,name_ko,name_ko,VARCHAR(100),
+ref_country,4,lat,lat,"DECIMAL(9,6)",`ZZ` 기타국은 NULL
+ref_country,5,lon,lon,"DECIMAL(9,6)",`ZZ` 기타국은 NULL
+ref_country,6,source,source,VARCHAR(100),
+raw_customs_progress,1,hs,hs,CHAR(6),
+raw_customs_progress,2,cnty,cnty,VARCHAR(4),
+raw_customs_progress,3,year,year,CHAR(4),
+raw_customs_progress,4,row_count,rows,INT,반환 행수
+raw_customs_progress,5,fetched_at,fetched_at,VARCHAR(20),
+raw_kosis_utilization,1,sector_name,분야별,VARCHAR(20),평균·항공유도·화력·탄약·기동·통신전자·함정·화생방·기타
+raw_kosis_utilization,2,year,(연도 열 헤더 2016~2024),CHAR(4),광폭 열 헤더 → 행
+raw_kosis_utilization,3,value_text,(셀 값),VARCHAR(20),평균가동률 %
+raw_kosis_production_index,1,region_name,A 시도별,VARCHAR(30),`00 전국`
+raw_kosis_production_index,2,industry_name,B 산업별,VARCHAR(100),C26/C261/C262/C264
+raw_kosis_production_index,3,stat_ym,(1행 헤더 `M201601 2016.01`),VARCHAR(10),광폭 열 헤더 → 행
+raw_kosis_production_index,4,item_name,(2행 헤더 `T10 생산지수(원지수)`),VARCHAR(50),원지수/계절조정
+raw_kosis_production_index,5,value_text,(셀 값),VARCHAR(20),2020=100
+ref_hs_whitelist,9,system_family,system_family,VARCHAR(30),무기체계 계열(2026-09-15 추가)
+ref_hs_whitelist,10,defense_use_ko,defense_use_ko,VARCHAR(300),국방 용도 1문장(팀 판단)
+ref_hs_whitelist,11,related_fsc,related_fsc,VARCHAR(30),B2 대응 FSC4 후보(; 구분)
+ref_hs_whitelist,12,evidence,evidence,VARCHAR(50),근거 키 A6;B2-FSC;KRIT;A7;팀판단
+ref_hs_whitelist,13,civil_mix,civil_mix,ENUM('높음',민수 혼합 정도 — v_civil_mix_rule 규칙 도출값(2026-09-16). 정량 지표 없으면 NULL. docs/reference/hs-whitelist-definition.md §7,'낮음'),민수 혼합 정도(팀 판단, 2026-09-15 추가) — docs/reference/hs-whitelist-definition.md §1
+ref_hs_whitelist,14,civil_mix_basis,civil_mix_basis,"ENUM('hs10','hsk','판단불가')",civil_mix를 정한 지표 종류(2026-09-16)
+ref_hs_whitelist,15,civil_mix_note,civil_mix_note,VARCHAR(200),근거 수치 요약. 원값은 ref_hs_indicator
+raw_dapa_overseas_plan,1,plan_month,집행예정월,VARCHAR(10),YYYY-MM-01
+raw_dapa_overseas_plan,2,decision_no,판단번호,VARCHAR(20),
+raw_dapa_overseas_plan,3,rep_item_name,대표품명,VARCHAR(500),전자 관련 후보 분류 대상
+raw_dapa_overseas_plan,4,exec_type,집행유형,VARCHAR(30),
+raw_dapa_overseas_plan,5,contract_method,계약방법,VARCHAR(30),
+raw_dapa_overseas_plan,6,exec_agency,집행기관,VARCHAR(100),
+raw_dapa_overseas_plan,7,budget_amount,예산금액,VARCHAR(20),"원, 집행 예정액(계획)"
+raw_dapa_overseas_plan,8,bid_method,입찰방법,VARCHAR(30),
+raw_dapa_overseas_plan,9,progress_status,진행상태,VARCHAR(30),
+raw_dapa_overseas_plan,10,officer_name,담당자명,VARCHAR(50),개인정보 — 적재 시 NULL
+raw_dapa_domestic_plan,1,plan_month,집행예정월,VARCHAR(10),YYYY-MM-01
+raw_dapa_domestic_plan,2,decision_no,판단번호,VARCHAR(20),
+raw_dapa_domestic_plan,3,rep_item_name,대표품명,VARCHAR(500),전자 관련 후보 분류 대상
+raw_dapa_domestic_plan,4,exec_type,집행유형,VARCHAR(30),
+raw_dapa_domestic_plan,5,contract_method,계약방법,VARCHAR(30),
+raw_dapa_domestic_plan,6,exec_agency,집행기관,VARCHAR(100),
+raw_dapa_domestic_plan,7,budget_amount,예산금액,VARCHAR(20),"원, 집행 예정액(계획)"
+raw_dapa_domestic_plan,8,bid_method,입찰방법,VARCHAR(30),
+raw_dapa_domestic_plan,9,progress_status,진행상태,VARCHAR(30),
+raw_dapa_domestic_plan,10,officer_name,담당자명,VARCHAR(50),개인정보 — 적재 시 NULL
+raw_dapa_domestic_plan,11,officer_phone,연락처,VARCHAR(30),개인정보 — 적재 시 NULL
+raw_dapa_overseas_contract,1,contract_no,계약번호,VARCHAR(20),
+raw_dapa_overseas_contract,2,contract_name,계약명,VARCHAR(500),
+raw_dapa_overseas_contract,3,biz_type_name,업무구분명,VARCHAR(20),전부 외자
+raw_dapa_overseas_contract,4,contract_form_name,계약체결형태명,VARCHAR(50),
+raw_dapa_overseas_contract,5,contract_method_name,계약체결방법명,VARCHAR(50),
+raw_dapa_overseas_contract,6,contract_date,계약체결일자,VARCHAR(10),
+raw_dapa_overseas_contract,7,contract_period,계약기간,VARCHAR(30),
+raw_dapa_overseas_contract,8,contract_org_type_name,계약기관구분명,VARCHAR(50),
+raw_dapa_overseas_contract,9,contract_org_name,계약기관명,VARCHAR(100),
+raw_dapa_overseas_contract,10,contract_org_dept_name,계약기관담당부서명,VARCHAR(100),
+raw_dapa_overseas_contract,11,contract_org_officer_name,계약기관담당자명,VARCHAR(50),개인정보 — 적재 시 NULL
+raw_dapa_overseas_contract,12,demand_org_type_name,수요기관구분명,VARCHAR(50),
+raw_dapa_overseas_contract,13,demand_org_name,수요기관명,VARCHAR(100),
+raw_dapa_overseas_contract,14,vendor_name,대표업체명,VARCHAR(200),"외국 업체명, 국가 추정 금지"
+raw_dapa_overseas_bid_result,1,bid_notice_no,공고번호,VARCHAR(20),
+raw_dapa_overseas_bid_result,2,decision_no,판단번호,VARCHAR(20),조달계획과 공유
+raw_dapa_overseas_bid_result,3,item_seq,항목번호,VARCHAR(6),
+raw_dapa_overseas_bid_result,4,bid_item_name,입찰건명,VARCHAR(500),
+raw_dapa_overseas_bid_result,5,ordering_agency,발주기관,VARCHAR(100),
+raw_dapa_overseas_bid_result,6,contract_method,계약방법,VARCHAR(30),
+raw_dapa_overseas_bid_result,7,bid_method,입찰방법,VARCHAR(30),
+raw_dapa_overseas_bid_result,8,award_method,낙찰방법,VARCHAR(30),
+raw_dapa_overseas_bid_result,9,opening_datetime,개찰일시,VARCHAR(20),
+raw_dapa_overseas_bid_result,10,unit_price_type,단가제유형,VARCHAR(30),
+raw_dapa_overseas_bid_result,11,prequalification,사전심사,VARCHAR(30),
+raw_dapa_overseas_bid_result,12,bid_result,입찰결과,VARCHAR(20),유찰/낙찰
+raw_dapa_overseas_bid_result,13,budget_amount_usd,예산금액(달러),VARCHAR(20),
+raw_dapa_contract_exec_by_service,1,year,년도,CHAR(4),
+raw_dapa_contract_exec_by_service,2,service_branch,군구분,VARCHAR(10),육군/해군/공군/국직
+raw_dapa_contract_exec_by_service,3,contract_amount_100m_krw,계약금액(억원),VARCHAR(20),
+raw_hsk_control,1,hsk10,품목번호,VARCHAR(12),HSK 10자리
+raw_hsk_control,2,name_ko,품명(국문),VARCHAR(300),
+raw_hsk_control,3,name_en,품명(영문),VARCHAR(300),
+raw_hsk_control,4,control_no,통제번호,VARCHAR(30),전략물자 통제 리스트 번호
