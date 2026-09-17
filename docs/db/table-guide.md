@@ -8,12 +8,12 @@
 
 | 접두사 | 뜻 | 테이블 수 | 누가 채우나 | 손대도 되나 |
 |---|---|---|---|---|
-| `ref_` | 참조표. HS 화이트리스트·국가코드·품목군 대응표·규칙 판정 스냅샷 같은 기준값 | 7 | 팀(수작업)·`load_db.py` | 팀 합의 후 UPDATE만 |
-| `raw_` | **원본 CSV 그대로**. 전 열 문자열, 중복도 그대로, 행마다 어느 파일 몇 번째 줄인지 기록 | 18 | `load_db.py` | **수정 금지** (다시 넣을 땐 `reset_data.sql`) |
+| `ref_` | 참조표. HS 화이트리스트·국가코드·품목군 대응표·규칙 판정 스냅샷 같은 기준값 | 8 | 팀(수작업)·`load_db.py` | 팀 합의 후 UPDATE만 |
+| `raw_` | **원본 CSV 그대로**. 전 열 문자열, 중복도 그대로, 행마다 어느 파일 몇 번째 줄인지 기록 | 22 | `load_db.py` | **수정 금지** (다시 넣을 땐 `reset_data.sql`) |
 | `meta_` | 기록. 출처·해시·건수, 단계별 건수, 열 사전 | 3 | `load_db.py` + 노트북 | 기록 추가만 |
 | `dim_` `fact_` | 관세청 자료를 숫자·연월로 정리한 정형 테이블 | 2 | `load_db.py --fact` | 재생성만 |
-| `clean_` | **정제 결과**. 형 변환·차수 정리·5분류·국산화 상태 같은 판단 속성 | 6 | **정제 노트북(팀원)** | 노트북으로 다시 채움 |
-| `v_` | 화면용 뷰 + 규칙 도출 뷰. Streamlit이 읽는 집계, 라벨·화이트리스트 근거 도출 | 14 | DDL(자동) | 뷰 정의는 `schema.sql`에서 |
+| `clean_` | **정제 결과**. 형 변환·차수 정리·5분류·국산화 상태 같은 판단 속성 | 8 | **정제 노트북(팀원)** | 노트북으로 다시 채움 |
+| `v_` | 화면용 뷰 + 규칙 도출 뷰. Streamlit이 읽는 집계, 라벨·화이트리스트 근거 도출 | 31 | DDL(자동) | 뷰 정의는 `schema.sql`에서 |
 
 흐름: `CSV → raw_(원본 보존) → clean_(노트북 정제) → v_(화면)`. 관세청 자료만 규칙이 확정돼 `raw_ → fact_ → v_`까지 이미 이어져 있다.
 
@@ -22,7 +22,7 @@
 | 화면 (idea-review §4) | 읽는 뷰·테이블 | 그 원천 | 지금 상태 |
 |---|---|---|---|
 | 배경 ⓪ 국외조달 예산 추이 | `v_overseas_plan_yearly` | `clean_dapa_overseas_plan` ← `raw_dapa_overseas_plan` | **사용 가능(2026-09-17 적재, 3,023행)**. 판단번호 단위라 원본 3,029행 합과 6행(23.6억+2.5억 원) 다름 — 원본 전체 합(18.26조)은 §5 SQL 4. 전자 후보는 `미검수`(잠정) |
-| 핵심 ① 품목군별 수입 집중도 | `v_import_hs6_year` · `v_import_share_hs6_year` · `v_hhi_hs6_year` | `fact_customs_monthly` ← `raw_customs_trade` | **바로 사용 가능** |
+| 핵심 ① 수출입 현황(품목군별, 수입·수출 동등 배치 — 2026-09-17) | 수입: `v_import_hs6_year` · `v_import_share_hs6_year` · `v_hhi_hs6_year` / 수출: `v_import_hs6_year.exp_dlr` · `v_export_share_hs6_year` · `v_hhi_export_hs6_year` | `fact_customs_monthly` ← `raw_customs_trade` | 수입 뷰 **바로 사용 가능**. 수출 뷰 2개는 `db/alter_2026-09-17_export.sql` **2026-09-17 팀 서버 적용 완료** |
 | 핵심 ② 관련 조달·국산화 근거 | `v_contract_monthly` · `clean_krit_task`(B1) · `clean_dapa_localized_item`(B2) | `raw_dapa_contract` · `raw_krit_task` · `raw_dapa_localized_item` | B2는 **적재 완료(2026-09-17, 25,025행)**. 계약정보·B1은 raw만 있음(clean 정제 대기) |
 | 핵심 ② 보강 — FSC별 국외조달 계획(API) | `v_overseas_plan_api_fsc` | `raw_dapa_overseas_plan_api` ← 국외 조달계획 OpenAPI 13,615행 | **사용 가능(2026-09-16 적재)**. B2(국산화 완료, 지상 28개 사업)와 같은 FSC4 축으로 대칭 막대·사용처 표. 건수만 |
 | 핵심 ③ 추가 검토 목록·시나리오 | `v_review_list` | 위 전부 + `ref_category_map` | 무역 열은 동작. B2 열은 `대응 미확정`(대응표 확정 대기 — `docs/report/category-map-decision-2026-09-17.md`), B1 열은 `미적재` |
@@ -30,6 +30,17 @@
 | 보조 ⑤ 국내 지도 | `clean_dapa_contract.sido_code` + `ref_sido_map` | `raw_dapa_contract.vendor_address` | clean 정제 대기 |
 | KPI 카드 | `raw_dapa_contract_exec_by_service`(군별 계약집행) · `raw_dapa_defense_company` | A7 · 방산업체 지정현황 | 사용 가능 |
 | 배경 ④ 예산 흐름(기획안 v8) | `v_budget_rnd_yearly` | `raw_openfiscal_program_budget` ← 열린재정 12파일 | **사용 가능(2026-09-16 적재)**. 국방기술개발 2020 10,053억 → 2027 30,741억(정부안), 국방반도체 2027 565.1억 신설 |
+| `v_contract_private_reason` | (2026-09-17) 계약정보 계약번호당 1행(37,608) → 연도×계약방법×업무구분×수의계약 사유(조문 원문 `reason_text`)×팀 그룹 `reason_group` 건수·최종 차수 총계약금액 | 그룹 9개(소액·소기업 / 경쟁실패 후 수의 / 단일공급·호환성·특허 / 기관 간·위탁 / 우수·혁신·인증제품 / 사회적 배려 / 방위사업법 특례 / 사유 미기재 / 기타)는 팀 그룹핑, 조문은 원문 병기. 관리규정 §23 개발부품 수의 코드는 원본에 없음. "국산화 필요 근거"라 쓰지 않는다 |
+| `v_contract_reason_group_yearly` | (2026-09-17) 위를 연도×그룹으로 접고 그 해 전체 계약 대비 비중 | 카드용. 2024는 11~12월 |
+| `v_bid_result_summary` | (2026-09-17) 국내 경쟁입찰 결과 개찰연도×물품/용역×개찰결과(개찰완료/유찰/순위확정) — (공고번호,차수) 고유 키 수·행 수·낙찰률 평균/최소/최대·낙찰금액 합 | 열 밀림 2행 제외. 중복 199키 403행은 결과별 각 1회. 낙찰금액 ≠ 계약금액. 유찰 키 1,741/7,201 |
+| `v_bid_notice_monthly` | (2026-09-17) 국내 경쟁입찰 공고 공고월×상태(긴급/정상/재공고/취소/정정/연기)×계약방법×업무구분 건수·공고 예산 | 열 밀림 2행 제외 → 10,840. 긴급 5,677·재공고 1,409. 공고 예산은 낙찰·계약액 아님 |
+| `v_bid_notice_result_link` | (2026-09-17) 보고용 2행: 입찰결과→입찰공고 (공고번호+차수) 연결 7,201키 중 1:1 6,569·다중 303·미연결 329 / 낙찰업체→계약정보 사업자번호 3,210 중 3,094 | 공고 실제 키(참조공고번호)가 결과 표에 없어 행 단위 연결은 하지 않는다. 업체 축은 `clean_company` 정제 후 |
+| `v_overseas_bid_chain` | (2026-09-17) 국외 입찰결과 2,494행을 판단번호×항목 1,362 단위로 접고 A7 조달계획과 판단번호 LEFT JOIN — 공고 횟수·최종 결과(한 번이라도 낙찰이면 낙찰)·계획 집행유형·진행상태 | 2025-01~09 부분연도. 낙찰 342·유찰 1,020(그중 (확정)부품 961), 재공고(2회 이상) 1,126, 계획 연결 1,331. 낙찰업체 열 없음. 예산 달러는 A7 원화와 합산 금지 |
+| `v_domestic_plan_yearly` | (2026-09-17) 국내 조달계획 연도×집행유형(TRIM)×계약방법 건수·예산(집행 예정액)·계약완료 수 | `v_overseas_plan_yearly`와 열 이름 맞춤 → ⓪ 국내 vs 국외 비교(2024~2025만). 2024 4,545행 불완전. 지수 표기 11행 근사 |
+| `v_overseas_contract_yearly` | (2026-09-17) 국외 계약정보 연도×계약방법 건수·고유 업체·수요기관 수 | 금액·국가 없음(건수만). 업체명으로 국가 추정 금지 |
+| `v_defense_company_sector` | (2026-09-17) 방산업체 지정현황 분야별 건수·지정연도 범위(공란 3 = 미기재) | 84행. 주소·사업자번호 없음 |
+| 핵심 ② 조달 섹션(2026-09-17 확장) — 수의계약 사유 구성 · 국내 경쟁입찰 유찰률·낙찰률 · 월별 공고(긴급·재공고) | `v_contract_private_reason` · `v_contract_reason_group_yearly` · `v_bid_result_summary` · `v_bid_notice_monthly` | `raw_dapa_contract` · `raw_dapa_bid_result` · `raw_dapa_bid_notice` (raw 직접) | **사용 가능(2026-09-17 적용)**. FSC·HS6 축 아님 — 연도·계약방법·사유·업체 축. "수의계약 사유"는 조달 지연·공급자 락인의 간접 신호이지 국산화 필요 근거가 아님. 계약 단위 37,608(경쟁실패 후 수의 1,847 · 단일공급·호환성·특허 747) |
+| 배경 ⓪ 보강(2026-09-17 확장) — 국내 vs 국외 조달계획 예산(2024~2025) · 국외 계획→입찰 사슬(2025) · 국외 계약 건수 · 방산업체 분야 | `v_domestic_plan_yearly` · `v_overseas_bid_chain` · `v_overseas_contract_yearly` · `v_defense_company_sector` | `raw_dapa_domestic_plan` · `raw_dapa_overseas_plan`+`raw_dapa_overseas_bid_result` · `raw_dapa_overseas_contract` · `raw_dapa_defense_company` | **사용 가능(2026-09-17 적용)**. 국내 조달계획 2024는 4,545행(불완전) 라벨. 국외 입찰 사슬은 2025-01~09 부분연도, 판단번호×항목 1,362 중 낙찰 342·유찰 1,020, 계획 연결 1,331(97.7%) |
 
 시나리오(제한률 슬라이더) 값은 DB에 없다 — 화면에서 계산하고 `is_scenario` 배너를 붙인다.
 
@@ -54,7 +65,7 @@
 
 | 테이블 | 역할 | 원본 파일 | 행 | 등급 | 핵심 열 |
 |---|---|---|---|---|---|
-| `raw_customs_trade` | 관세청 HS10×국가×월 수출입실적. 연간 총계행(`is_total=1`) 213행 포함 | `customs_all_<HS6>.csv` ×21 | 268,909 | 핵심 1 | `stat_ym`(YYYY.MM) · `stat_cd` · `hs_cd`(HS10) · `imp_dlr` · `exp_dlr` · `is_total` |
+| `raw_customs_trade` | 관세청 HS10×국가×월 수출입실적. 연간 총계행(`is_total=1`) 213행 포함 | `customs_all_<HS6>.csv` ×21 | 294,420 (2026-09-17 팀 DB 실측, 24개; 구 21개 수집분 268,909) | 핵심 1 | `stat_ym`(YYYY.MM) · `stat_cd` · `hs_cd`(HS10) · `imp_dlr` · `exp_dlr` · `is_total` |
 | `raw_customs_progress` | 관세청 호출별 반환 행수(재현성 증빙) | `progress_all.csv` | 231 | 메타 | `hs` · `year` · `row_count` |
 | `raw_dapa_contract` | 방사청 국내조달 계약정보. **1만 건 요건**(원본 전체 기준) | `dapa_domestic_contract_20251231.csv` | 43,112 | 핵심 2 | `contract_no`+`contract_seq`(차수, 0/00 혼재) · `contract_name` · `contract_date` · `contract_amount`(차수) · `total_contract_amount`(전체) · `biz_type_name`(물품/용역) |
 | `raw_dapa_localized_item` | 국산화개발품목(B2, 지상체계 한정). 완전 중복 8,940행 포함 | `dapa_localized_items_20260509.csv` | 33,965 | 핵심 2 보강 | `project_name` · `part_mgmt_no` · `fsc` · `item_name` · `contractor_name` |
@@ -92,7 +103,7 @@
 | 테이블 | 역할 | 행 | 핵심 열 |
 |---|---|---|---|
 | `dim_hs10` | HS10 → HS6 · 품명(가장 최근 연월 기준) | 197 | `hs10` PK · `hs6` · `name_ko` |
-| `fact_customs_monthly` | HS10×국가×월 수입·수출액(총계행 제외, 숫자형). 2026년은 `is_partial_year=1` | 268,696 | `hs10`+`stat_cd`+`yyyymm` PK · `hs6` · `year` · `imp_dlr` · `exp_dlr` · `is_partial_year` |
+| `fact_customs_monthly` | HS10×국가×월 수입·수출액(총계행 제외, 숫자형). 2026년은 `is_partial_year=1` | 294,174 (2026-09-17 팀 DB 실측; 구 21개 수집분 268,696) | `hs10`+`stat_cd`+`yyyymm` PK · `hs6` · `year` · `imp_dlr` · `exp_dlr` · `is_partial_year` |
 
 ### 3-5. `clean_` 정제 — 정제 노트북이 채운다 (2026-09-17: B2·A7 2개 적재, 나머지 4개 0행)
 
@@ -121,6 +132,7 @@
 |---|---|---|
 | `v_import_hs6_year` | HS6×연도×국가 수입·수출액 합 | "국가 전체 수입(민수 포함)". `month_count`는 거래 발생 월 수이지 부분연도 판정이 아님 |
 | `v_import_share_hs6_year` | 국가 점유율 `share`·순위 `rnk` | ZZ 기타국 포함 |
+| `v_export_share_hs6_year` · `v_hhi_export_hs6_year` | 수출 기준 점유율·순위, 수출 HHI(`hhi_export`)·상위 1국 | "국가 전체 수출(민수 포함)". 검토 목록 관문에는 쓰지 않음. 2026-09-17 팀 서버 적용. 2025 수출 HHI: 852990 5,038(CN 69.3%) · 854239 1,945 · 854231 1,788 |
 | `v_hhi_hs6_year` | HHI = Σ(점유율×100)², 상위 1국·점유율·국가 수 | "전체 수입 중" HHI (방산 수입 HHI 아님) |
 | `v_review_list` | 화이트리스트 × 연도별 HHI + B1 과제 수 + B2 완료 부품 수 | B1·B2는 `확정` 연결만 센다. NULL = 미확인, 0 = 확인된 없음. `b1_status`·`b2_status`에 사유 |
 | `v_contract_monthly` | 계약번호별 최초 체결월 기준 월별 건수·최종 금액(물품/용역·5분류) | 조달 금액 ≠ 방산 매출. `clean_dapa_contract` 채우기 전엔 0행 |
@@ -182,6 +194,20 @@ FROM ref_hs_indicator ORDER BY hs6, axis, indicator;
 
 -- 8) (2026-09-16) HS10 용도 세분류 비중 재현 (레이더 852610: 항공기용 22.8%)
 SELECT * FROM v_hs10_use_share WHERE use_tag <> '기타' ORDER BY hs6, use_tag;
+
+-- 9) (2026-09-17) 수의계약 사유 그룹별 계약 건수·금액 (경쟁실패 후 수의 1,847 · 단일공급·호환성·특허 747)
+SELECT reason_group, SUM(contract_count) AS contracts, ROUND(SUM(total_contract_amount_krw)/1e8) AS amt_100m_krw
+FROM v_contract_private_reason WHERE contract_method_name='수의계약' GROUP BY reason_group ORDER BY contracts DESC;
+
+-- 10) (2026-09-17) 국내 경쟁입찰 유찰률 (개찰연도×업무구분, 키 기준)
+SELECT opening_year, biz_type_name,
+       SUM(CASE WHEN opening_result_name='유찰' THEN key_count END) AS failed_keys, SUM(key_count) AS all_keys,
+       ROUND(100*SUM(CASE WHEN opening_result_name='유찰' THEN key_count END)/SUM(key_count),1) AS failed_pct
+FROM v_bid_result_summary GROUP BY opening_year, biz_type_name;
+
+-- 11) (2026-09-17) 국외 계획→입찰 사슬 요약 (2025 부분연도): 집행유형별 낙찰/유찰 항목 수
+SELECT plan_exec_type, final_result, COUNT(*) AS units, SUM(notice_count>=2) AS rebid_units
+FROM v_overseas_bid_chain GROUP BY plan_exec_type, final_result ORDER BY units DESC;
 ```
 
 ## 6. 관계도
