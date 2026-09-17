@@ -29,7 +29,8 @@ from pathlib import Path
 import pandas as pd
 import pymysql
 
-sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stdout, "reconfigure"):  # Jupyter 커널(OutStream)에는 없음
+    sys.stdout.reconfigure(encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parents[1]
 COLUMN_DICT = ROOT / "db" / "column_dict.csv"
@@ -104,9 +105,27 @@ RAW_TABLES: dict[str, dict] = {
     "raw_hs_unit_name": dict(
         files="data/raw/customs/hs_unit_name_15130660.xlsx", encoding=None, expected=17_072,
         dataset_key="customs_hs_unit_name", special="hs_unit", tier="참조"),
+    # 2026-09-16 팀 드라이브 채택 3종(db/alter_2026-09-16_api_budget.sql). 원본은 조장이 수집해 드라이브 1조/2_데이터수집_저장에 올린 것을 내려받음.
+    # 국외 조달계획 OpenAPI 품목 단위(15158418, 요구연도별 호출) — 파일판 raw_dapa_overseas_plan(사업 단위·원)과 다른 표. 헤더 24열 utf-8-sig, 13,615행.
+    "raw_dapa_overseas_plan_api": dict(
+        files="data/raw/dapa/dapa_overseas_plan_api_20260916.csv", encoding="utf-8-sig", expected=13_615,
+        dataset_key="dapa_overseas_plan_api", tier="핵심"),
+    # 군급분류집(15119907) cp949 10열 756행(FSG 그룹행 80 + FSC 676) → ref_fsc 시드는 alter §3 INSERT…SELECT.
+    "raw_dapa_fsc_catalog": dict(
+        files="data/raw/dapa/dapa_fsc_catalog_20251231.csv", encoding="cp949", expected=756,
+        dataset_key="dapa_fsc_catalog", tier="참조"),
+    # 열린재정 세부사업 예산편성현황(총액) 방위사업청·일반회계, 회계연도별 12파일(2016~2027) utf-8-sig 14열, 합 2,860행(2020~2027 1,981 + 2016~2019 879). 마지막 줄 개행 없음.
+    "raw_openfiscal_program_budget": dict(
+        files="data/raw/budget/openfiscal_dapa_program_budget_*.csv", encoding="utf-8-sig", expected=2_860,
+        dataset_key="openfiscal_program_budget", tier="보조"),
+    # 2026-09-17 국방표준종합서비스(KDSIS) NSN 목록 팀원 정리본(db/alter_2026-09-17_kdsis_nsn.sql). new_data/ 에 그대로 두고 읽는다(원본 두 파일 .txt+2016.csv 합본).
+    # utf-8-sig 22열 228,027행. CSV의 source_file/source_row_no 열은 origin_file/origin_row_no 로 들어가고, DB의 source_file/source_row_no 는 frame_generic 이 붙인다.
+    "raw_kdsis_nsn": dict(
+        files="new_data/raw_kdsis_nsn.csv", encoding="utf-8-sig", expected=228_027,
+        dataset_key="kdsis_nsn", int_cols={"origin_row_no"}, tier="보조"),
 }
 
-REF_EXPECTED = {"ref_hs_whitelist": 24, "ref_country": 238, "meta_column_dict": 281}
+REF_EXPECTED = {"ref_hs_whitelist": 24, "ref_country": 238, "meta_column_dict": 388}  # 388 = column_dict.csv (2026-09-17 KDSIS 51행 추가 후. 이전 337)
 
 
 # ---------------------------------------------------------------------------

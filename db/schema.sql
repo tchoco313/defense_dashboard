@@ -1,8 +1,9 @@
 -- =============================================================================
--- defense_dashboard 스키마 DDL  (작성 2026-09-15, 리뷰 반영 2026-09-15, 교수 피드백 반영 2026-09-15 A7 국외조달 5테이블, 2026-09-16 정량 지표 ref_hs_indicator·raw_hsk_control·뷰 3, 2026-09-16 HS6 선정 규칙 raw_hs_code_master·raw_hs_unit_name·뷰 4·evidence 2열·ref_hs_rule_flag·v_hs_whitelist_rule, 2026-09-16 FSG 참조표 ref_fsg·v_b2_fsg_summary, 설계 문서: docs/db/schema-design.md)
+-- defense_dashboard 스키마 DDL  (작성 2026-09-15, 리뷰 반영 2026-09-15, 교수 피드백 반영 2026-09-15 A7 국외조달 5테이블, 2026-09-16 정량 지표 ref_hs_indicator·raw_hsk_control·뷰 3, 2026-09-16 HS6 선정 규칙 raw_hs_code_master·raw_hs_unit_name·뷰 4·evidence 2열·ref_hs_rule_flag·v_hs_whitelist_rule, 2026-09-16 FSG 참조표 ref_fsg·v_b2_fsg_summary, 2026-09-16 팀 드라이브 채택 3종 raw_dapa_overseas_plan_api·raw_dapa_fsc_catalog·raw_openfiscal_program_budget·뷰 2(v_overseas_plan_api_fsc·v_budget_rnd_yearly)·ref_fsc 시드(alter_2026-09-16_api_budget.sql), 2026-09-17 KDSIS NSN 보조 조회 raw_kdsis_nsn·clean_kdsis_nsn·clean_kdsis_nsn_ref·뷰 3(alter_2026-09-17_kdsis_nsn.sql), 설계 문서: docs/db/schema-design.md)
 --
 -- 대상: MariaDB 10.4+ / MySQL 8.0.16+ 양쪽에서 실행되는 문법만 사용
 --       (팀 서버 실측 VERSION()=8.4.11, 로컬 검증 MariaDB 12.2)
+-- 팀 서버(MySQL 8.4)에서 뷰를 만들 때는 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci 를 먼저 둔다 (2026-09-17: 뷰 콜레이션 0900_ai_ci 불일치 → db/alter_2026-09-17_view_collation.sql)
 -- 실행: mysql -h <서버IP> -u <계정> -p --default-character-set=utf8mb4 < db/schema.sql
 -- 용도: 최초 구축 · 빈 개발 DB 초기화 전용. 아래 DROP이 수작업 대응표(ref_category_map·ref_sido_map)와
 --       meta_ 기록까지 전부 지우므로 데이터가 들어간 DB에는 재실행하지 않는다.
@@ -39,17 +40,17 @@ SET @q = IF(@loaded_rows > 0,
             'SELECT ''schema.sql guard: DB is empty, continuing'' AS guard');
 PREPARE guard2 FROM @q; EXECUTE guard2; DEALLOCATE PREPARE guard2;
 
-SET NAMES utf8mb4;
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- 재실행 가능하도록 역순 DROP (뷰 → clean/fact → meta → raw → ref)
-DROP VIEW IF EXISTS v_b2_fsg_summary, v_hs_whitelist_rule, v_hs6_candidate_vs_whitelist, v_hs6_candidate_rule, v_hsk_control_by_hs6, v_hs10_use_tag_all,
+DROP VIEW IF EXISTS v_kdsis_link_summary, v_b2_localized_kdsis, v_overseas_plan_api_kdsis, v_budget_rnd_yearly, v_overseas_plan_api_fsc, v_b2_fsg_summary, v_hs_whitelist_rule, v_hs6_candidate_vs_whitelist, v_hs6_candidate_rule, v_hsk_control_by_hs6, v_hs10_use_tag_all,
   v_civil_mix_rule, v_defense_relevance_b2, v_hs10_use_share,
   v_overseas_plan_yearly, v_contract_monthly, v_review_list, v_hhi_hs6_year, v_import_share_hs6_year, v_import_hs6_year;
-DROP TABLE IF EXISTS clean_dapa_overseas_plan, clean_company_name_link, clean_company, clean_krit_task, clean_dapa_localized_item, clean_dapa_contract;
+DROP TABLE IF EXISTS clean_kdsis_nsn_ref, clean_kdsis_nsn, clean_dapa_overseas_plan, clean_company_name_link, clean_company, clean_krit_task, clean_dapa_localized_item, clean_dapa_contract;
 DROP TABLE IF EXISTS fact_customs_monthly, dim_hs10;
 DROP TABLE IF EXISTS meta_load_log, meta_column_dict, meta_dataset;
-DROP TABLE IF EXISTS raw_hs_unit_name, raw_hs_code_master, raw_hsk_control, raw_dapa_contract_exec_by_service, raw_dapa_domestic_plan, raw_dapa_overseas_bid_result,
+DROP TABLE IF EXISTS raw_kdsis_nsn, raw_openfiscal_program_budget, raw_dapa_fsc_catalog, raw_dapa_overseas_plan_api, raw_hs_unit_name, raw_hs_code_master, raw_hsk_control, raw_dapa_contract_exec_by_service, raw_dapa_domestic_plan, raw_dapa_overseas_bid_result,
   raw_dapa_overseas_contract, raw_dapa_overseas_plan,
   raw_customs_progress, raw_kosis_production_index, raw_kosis_utilization,
   raw_dapa_defense_company, raw_dapa_bid_result, raw_dapa_bid_notice, raw_krit_task,
@@ -133,19 +134,21 @@ CREATE TABLE ref_sido_map (
   KEY ix_sido_code (sido_code)
 ) ENGINE=InnoDB COMMENT='대표업체주소 첫 토큰 → 시도';
 
--- FSC(군급분류) 4자리 라벨. B2 히트맵·조회표 라벨용. 수작업(선택).
+-- FSC(군급분류) 4자리 라벨. B2 히트맵·조회표·국외 조달계획 API 라벨용.
+--   시드(2026-09-16): 군급분류집(15119907) raw_dapa_fsc_catalog 756행 중 FSG 그룹행(끝 00) 80을 뺀 676행 → db/alter_2026-09-16_api_budget.sql §3 INSERT…SELECT(raw 적재 후 실행).
 CREATE TABLE ref_fsc (
   fsc4                 CHAR(4)      NOT NULL,
   fsc2                 CHAR(2)      NOT NULL,
-  name_ko              VARCHAR(100) NULL,
-  name_en              VARCHAR(200) NULL,
+  name_ko              VARCHAR(200) NULL COMMENT '명칭(한글), 군급분류집 최대 104자',
+  name_en              VARCHAR(200) NULL COMMENT '명칭(영문)',
+  status               CHAR(1)      NULL COMMENT '군급상태 A 유효 / C 폐지 (군급분류집)',
   is_electronic_group  TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '58xx·59xx = 1 (기본 필터)',
   PRIMARY KEY (fsc4),
   KEY ix_fsc2 (fsc2)
-) ENGINE=InnoDB COMMENT='FSC 군급분류 라벨';
+) ENGINE=InnoDB COMMENT='FSC 군급분류 4자리 라벨 676행(군급분류집 15119907, 2026-09-16 시드)';
 
 -- FSG(군급 2자리) 라벨. 시드는 db/seed_ref.sql(load_db.py --ref) / 증분은 db/alter_2026-09-16_fsg.sql. 2026-09-16 신설.
---   원본 data/reference/fsg_master.csv 80행 = 팀원 공유 DLA 표 77행 + 95·96·99 보완(GSA PSC Manual 2025-04). 4자리 라벨 ref_fsc는 여전히 출처 없음.
+--   원본 data/reference/fsg_master.csv 80행 = 팀원 공유 DLA 표 77행 + 95·96·99 보완(GSA PSC Manual 2025-04). 4자리 라벨 ref_fsc는 2026-09-16 군급분류집(15119907)에서 시드.
 CREATE TABLE ref_fsg (
   fsg_code             CHAR(2)      NOT NULL COMMENT 'FSG 2자리 = FSC 앞 2자리',
   name_en              VARCHAR(200) NOT NULL,
@@ -156,7 +159,7 @@ CREATE TABLE ref_fsg (
   note_ko              VARCHAR(300) NULL,
   source_url           VARCHAR(300) NULL COMMENT '원 파일: DLA ZSMT_FSG.txt / 보완 3행: GSA PSC Manual 2025-04 xlsx',
   PRIMARY KEY (fsg_code)
-) ENGINE=InnoDB COMMENT='FSG 군급 2자리 라벨 80행 (data/reference/fsg_master.csv). 4자리 라벨 ref_fsc는 출처 없음';
+) ENGINE=InnoDB COMMENT='FSG 군급 2자리 라벨 80행 (data/reference/fsg_master.csv). 4자리 라벨 ref_fsc는 군급분류집 시드(2026-09-16)';
 
 -- 품목군별 정량 지표 (2026-09-16). 한 행 = HS6 × 지표 × 기간. "팀판단" 라벨을 대체하는 수치의 원본 저장소.
 --   axis='civil_mix'          : 민수 혼합 — mil_hs10_share(군용 전용 HS10 수입 비중, 하한선) · aero_hs10_share(항공기용, 민항 포함) ·
@@ -699,6 +702,133 @@ CREATE TABLE raw_hs_unit_name (
   KEY ix_hun_code (hs_code)
 ) ENGINE=InnoDB COMMENT='관세청 HS부호 단위별 품목명 원본(15130660, 5시트 17,072행). 2026-09-16 확보';
 
+-- 국외조달 조달계획 OpenAPI 품목 단위 (data.go.kr 15158418 군수품조달정보 조달계획, 요구연도 demandYear 2016~2026 연도별 호출 — 팀원 안태호 수집 2026-09-15~16,
+--   드라이브 1조/2_데이터수집_저장/02_dapa/dapa_overseas_plan_api_기준20260916.csv → data/raw/dapa/dapa_overseas_plan_api_20260916.csv, 2026-09-16 확보. 열 사전 db/column_dict.csv).
+-- 기대 건수 13,615(utf-8-sig, 24열). 파일판 raw_dapa_overseas_plan(사업 단위·원·3,029행)과 **다른 표** — 판단번호 공유 없음(팀 문서), 예산 합산·대체 금지.
+-- 재고번호 stock_no 13자리(9,970행) 앞 4자리 = FSC → ref_fsc/ref_category_map으로 품목군에 붙는 유일한 국외 자료. 요구연도 2018 1·2019 0·2020 11건은 원자료 공백(추세 제외).
+-- 금액 열(budget_amount·unit_price)은 통화 혼입 의심(2016 신세기함 UAV 173.7억, 2025 GENERATOR 138억) → 통화 검증 전 집계 금지, 건수만.
+CREATE TABLE raw_dapa_overseas_plan_api (
+  row_id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  army_name            VARCHAR(20)  NULL COMMENT '군(소요군)·부대명 armySe',
+  army_code            VARCHAR(4)   NULL COMMENT 'armySeCode',
+  budget_amount        VARCHAR(20)  NULL COMMENT '예산금액 budgetAmount — 통화 미검증, 집계 금지',
+  function_name        VARCHAR(30)  NULL COMMENT '기능구분 fnctSe',
+  function_code        VARCHAR(4)   NULL COMMENT 'fnctSeCode',
+  item_seq             VARCHAR(10)  NULL COMMENT '품목순번 iemNo',
+  stock_no             VARCHAR(20)  NULL COMMENT '재고번호 invntryNo — NSN 13자리 또는 자리표시자(NSN·NSN001 …)',
+  org_name             VARCHAR(50)  NULL COMMENT '집행기관 ornt',
+  org_code             VARCHAR(6)   NULL COMMENT 'orntCode',
+  procure_demand_no    VARCHAR(20)  NULL COMMENT '조달요구번호 prcureDemandNo (+item_seq 조합 고유)',
+  item_kind_name       VARCHAR(20)  NULL COMMENT '품목종류구분 prdlstKndSe ((확정)부품/장비/기름(연료)/물자/기술용역 …)',
+  item_kind_code       VARCHAR(4)   NULL COMMENT 'prdlstKndSeCode',
+  item_name            VARCHAR(200) NULL COMMENT '품명 prdlstNm',
+  progress_status      VARCHAR(20)  NULL COMMENT '진행상태 progrsSttus',
+  purchase_request_no  VARCHAR(20)  NULL COMMENT '구매요구번호 purchsRequstNo',
+  quantity             VARCHAR(20)  NULL COMMENT '수량 qy',
+  unit                 VARCHAR(10)  NULL COMMENT '단위 unit',
+  unit_price           VARCHAR(20)  NULL COMMENT '단가 untpc — 통화 미검증',
+  demand_year_req      VARCHAR(4)   NULL COMMENT '요구연도 _demandYear_req(호출 파라미터)',
+  component_no         VARCHAR(50)  NULL COMMENT '구성품번호 cmpntNo',
+  equipment_code       VARCHAR(20)  NULL COMMENT '적용장비코드 eqpmnCode',
+  equipment_name       VARCHAR(100) NULL COMMENT '적용장비명 eqpmnNm (NSN행 9,970 중 9,264, * 자리표시 포함)',
+  qa_grade             VARCHAR(4)   NULL COMMENT '품질보증등급 qlityAssrncGrad',
+  standard_no          VARCHAR(50)  NULL COMMENT '규격번호 stndrdNo',
+  source_file          VARCHAR(100) NOT NULL,
+  source_row_no        INT UNSIGNED NULL,
+  loaded_at            DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (row_id),
+  KEY ix_ropa_stock (stock_no),
+  KEY ix_ropa_year (demand_year_req),
+  KEY ix_ropa_army (army_name)
+) ENGINE=InnoDB COMMENT='방사청 국외조달 조달계획 OpenAPI 품목 단위 원본 13,615행(요구연도 2016~2026). 파일판과 다른 표, 금액 통화 미검증';
+
+-- 군급분류집 (data.go.kr 15119907, 파일데이터 2025-12-31, cp949 10열 756행 — 팀원 공유 드라이브 02_dapa/dapa_fsc_catalog_기준20251231.csv → data/raw/dapa/dapa_fsc_catalog_20251231.csv, 2026-09-16 확보).
+-- 군급 4자리 756 = FSG 그룹행(끝 두 자리 00) 80 + FSC 676(58/59군 46). 상태 A 734·C 22(폐지). ref_fsc(4자리 라벨)의 시드 원본 — db/alter_2026-09-16_api_budget.sql §3.
+CREATE TABLE raw_dapa_fsc_catalog (
+  row_id        BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  fsc4          CHAR(4)      NULL COMMENT '군급',
+  status        CHAR(1)      NULL COMMENT '군급상태 A/C',
+  name_ko       VARCHAR(200) NULL COMMENT '명칭(한글)',
+  name_en       VARCHAR(200) NULL COMMENT '명칭(영문)',
+  note_ko       TEXT         NULL COMMENT '주석(한글)',
+  note_en       TEXT         NULL COMMENT '주석(영문)',
+  includes_ko   TEXT         NULL COMMENT '포함(한글)',
+  includes_en   TEXT         NULL COMMENT '포함(영문)',
+  excludes_ko   TEXT         NULL COMMENT '제외(한글)',
+  excludes_en   TEXT         NULL COMMENT '제외(영문)',
+  source_file   VARCHAR(100) NOT NULL,
+  source_row_no INT UNSIGNED NULL,
+  loaded_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (row_id),
+  KEY ix_rfc_fsc4 (fsc4)
+) ENGINE=InnoDB COMMENT='방사청 군급분류집 원본 756행(15119907). ref_fsc 시드 원본';
+
+-- 열린재정 「세출/지출 세부사업 예산편성현황(총액)」 소관 방위사업청·일반회계, 회계연도별 12파일 2016~2027(팀원 안태호 내려받아 드라이브 06_budget_rnd/ 업로드 → data/raw/budget/openfiscal_dapa_program_budget_<연도>.csv, 2026-09-16 확보).
+-- utf-8-sig 14열, 합 2,860행(2020~2027 8파일 1,981 = 팀 _manifest 등록분, 2016~2019 4파일 879 = 09-16 추가). 금액 단위 천원·쉼표 포함 문자열. 2027은 정부안(국회확정 0).
+-- 배경 ④ 전용(1만 건 요건 무관). 예산(원·편성)·조달계획(원·집행 예정)·관세청(달러·CIF 실적)은 합산·비율 금지. 세부사업명이 2021·2023 개편 → 시계열은 '국방기술개발' 단위사업 합계로(v_budget_rnd_yearly).
+CREATE TABLE raw_openfiscal_program_budget (
+  row_id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  seq_no             VARCHAR(10)  NULL COMMENT 'No.',
+  fiscal_year        VARCHAR(4)   NULL COMMENT '회계연도',
+  ministry_name      VARCHAR(50)  NULL COMMENT '소관명(방위사업청)',
+  account_name       VARCHAR(50)  NULL COMMENT '회계명(일반회계)',
+  sub_account_name   VARCHAR(50)  NULL COMMENT '계정명(전부 공란)',
+  sector_name        VARCHAR(50)  NULL COMMENT '분야명',
+  field_name         VARCHAR(50)  NULL COMMENT '부문명',
+  program_name       VARCHAR(100) NULL COMMENT '프로그램명',
+  unit_program_name  VARCHAR(100) NULL COMMENT '단위사업명',
+  sub_program_name   VARCHAR(200) NULL COMMENT '세부사업명',
+  expense_type       VARCHAR(50)  NULL COMMENT '경비구분',
+  outlay_type        VARCHAR(50)  NULL COMMENT '지출구분',
+  gov_plan_krw_k     VARCHAR(20)  NULL COMMENT '정부안금액(천원) — 쉼표 포함 문자열',
+  confirmed_krw_k    VARCHAR(20)  NULL COMMENT '국회확정금액(천원) — 2027은 0(미확정)',
+  source_file        VARCHAR(100) NOT NULL,
+  source_row_no      INT UNSIGNED NULL,
+  loaded_at          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (row_id),
+  KEY ix_rob_year_unit (fiscal_year, unit_program_name(50))
+) ENGINE=InnoDB COMMENT='열린재정 방위사업청 세부사업 예산 원본 2,860행(2016~2027, 천원). 배경 ④, 1만 건 요건 무관';
+
+-- 국방표준종합서비스(KDSIS) NSN 목록 — 팀원 정리본 new_data/raw_kdsis_nsn.csv(원본 .txt 172,692 + 2016.csv 55,335 합본), 2026-09-17 보조 조회용 적재(db/alter_2026-09-17_kdsis_nsn.sql).
+-- CSV의 source_file/source_row_no(원본 파일·행) → origin_file/origin_row_no. DB source_file/source_row_no는 적재 파일 기준(load_db.py). 지표 미사용.
+-- 열 순서 = CSV 헤더 순서(db/column_dict.csv). 값은 전부 문자열, 빈 셀은 NULL.
+-- 원 필드명은 KDSIS 화면 필드(DRN 번호 접미: 2180 부여일, 9250 CAGE, 4130 NCB, 4131 NIIN 일련번호, 4080 INC, 2670 NIIN 상태, 3570 참조번호, 2074 요청기관).
+-- chk·itemDvsCd(A1/B1/A2/A3)·workDrngYn·prptnDsgntn* 의 의미는 미확인 — 원문 그대로 보존만 한다.
+CREATE TABLE raw_kdsis_nsn (
+  row_id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  origin_file        VARCHAR(50)  NULL COMMENT 'CSV source_file — 원본 파일(국방표준종합서비스.txt 172,692 / 국방표준종합서비스2016.csv 55,335)',
+  origin_row_no      INT UNSIGNED NULL COMMENT 'CSV source_row_no — 원본 파일 안 행 번호',
+  assigned_date      VARCHAR(10)  NULL COMMENT 'NSN 부여일 assndDt_2180 (YYYY-MM-DD, 공란 34)',
+  cage_code          VARCHAR(10)  NULL COMMENT '제조사 CAGE 코드 cageCd_9250 (5자, 공란 889)',
+  chk_flag           VARCHAR(2)   NULL COMMENT 'chk (전부 0, 의미 미확인)',
+  mfr_item_name_en   VARCHAR(120) NULL COMMENT '업체 품명(영문) entprzEnglshItmnm',
+  mfr_item_name_ko   VARCHAR(80)  NULL COMMENT '업체 품명(한글) entprzHanglItmnm',
+  fsc4               VARCHAR(4)   NULL COMMENT '군급 fsgFsc (= NSN 앞 4자리, 불일치 0)',
+  iin_serial         VARCHAR(10)  NULL COMMENT 'NIIN 일련번호 IINbr_4131 (7자, NCB 2자와 합치면 NSN 뒤 9자리)',
+  inc                VARCHAR(10)  NULL COMMENT '품명 코드 INC inc_4080',
+  item_div_code      VARCHAR(4)   NULL COMMENT '품목 구분 itemDvsCd (A1 181,573·B1 44,246·A2 2,174·A3 34, 의미 미확인)',
+  ncb_code           VARCHAR(4)   NULL COMMENT '국가부호국 NCB ncbCd_4130 (37=한국 183,793·01 15,796·12·14·99 …)',
+  niin_status        VARCHAR(2)   NULL COMMENT 'NIIN 상태 niinStatCd_2670 (0 206,137·N 16,801·공란 4,351 …)',
+  nsn                VARCHAR(20)  NOT NULL COMMENT '재고번호 nsn (숫자 13자리 227,444행·고유 135,331 / 그 외 583행·고유 533 = 검토 대상)',
+  oid                VARCHAR(40)  NULL COMMENT 'KDSIS 객체 ID oid (NSN과 1:1, 고유 135,864)',
+  prop_item_name_en  VARCHAR(100) NULL COMMENT 'prptnDsgntnEnglshItmnm (공란 219,330, 의미 미확인)',
+  prop_item_name_ko  VARCHAR(80)  NULL COMMENT 'prptnDsgntnHanglItmnm (공란 219,367, 의미 미확인)',
+  ref_no             VARCHAR(50)  NULL COMMENT '참조번호(제조사 부품번호) refNbr_3570 (고유 149,317, 공란 884)',
+  request_org_code   VARCHAR(4)   NULL COMMENT '요청기관 rqstOrgan_2074 (공란 227,124)',
+  work_drawing_yn    VARCHAR(2)   NULL COMMENT 'workDrngYn (Y 3 / N, 의미 미확인)',
+  item_name_en       VARCHAR(150) NULL COMMENT '품명(영문) shrtNm2301 (공란 8,960)',
+  item_name_ko       VARCHAR(50)  NULL COMMENT '품명(한글) shrtNmK122 (공란 8,960)',
+  source_file        VARCHAR(100) NOT NULL COMMENT '적재 파일(raw_kdsis_nsn.csv)',
+  source_row_no      INT UNSIGNED NULL COMMENT '적재 파일 안 행 번호(1부터)',
+  loaded_at          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (row_id),
+  UNIQUE KEY ux_rkn_source (source_file, source_row_no),
+  KEY ix_rkn_nsn (nsn),
+  KEY ix_rkn_cage (cage_code),
+  KEY ix_rkn_ref (ref_no),
+  KEY ix_rkn_fsc (fsc4)
+) ENGINE=InnoDB COMMENT='국방표준종합서비스 NSN 목록 원본 228,027행(팀원 정리본, 2016 CSV 포함). 보조 조회용, 지표 미사용';
+
 -- =============================================================================
 -- 3. meta_  출처 기록 · 단계별 건수 · 열 사전
 -- =============================================================================
@@ -819,6 +949,7 @@ CREATE TABLE fact_customs_monthly (
 
 -- =============================================================================
 -- 5. clean_  정제 결과 (값은 사용자 정제 노트북이 채운다)
+
 -- =============================================================================
 
 -- 계약정보 정제. 한 행 = 계약번호 × 정규화 차수 → 43,111행.
@@ -985,6 +1116,55 @@ CREATE TABLE clean_dapa_overseas_plan (
   KEY ix_cop_elec (is_electronics_candidate, electronics_review_status),
   CONSTRAINT fk_cop_raw FOREIGN KEY (first_raw_row_id) REFERENCES raw_dapa_overseas_plan (row_id)
 ) ENGINE=InnoDB COMMENT='A7 국외조달 조달계획 정제(판단번호 단위, 배경 ⓪)';
+
+-- KDSIS NSN 파생 표 2개(2026-09-17) — 노트북이 아니라 db/alter_2026-09-17_kdsis_nsn.sql §2-3 INSERT…SELECT가 raw_kdsis_nsn에서 채운다(재실행 시 다시 만든다).
+-- 2-1 NSN 기본정보: NSN별 1행. 원본에서 NSN이 같으면 아래 속성이 모두 같았다(2026-09-17 pandas 검증, 속성 불일치 NSN 0) → 대표 행 = row_id 최소 행.
+--     그래도 has_attr_conflict 로 재검증한다(속성 조합이 2개 이상인 NSN = 1).
+CREATE TABLE clean_kdsis_nsn (
+  nsn                 VARCHAR(20)  NOT NULL,
+  nsn_format          ENUM('숫자13','검토') NOT NULL COMMENT '숫자13 = ^[0-9]{13}$ (135,331). 검토 = 그 외(533: NIIN 영문 포함 13자·NIIN 없는 4자)',
+  review_note         VARCHAR(50)  NULL COMMENT '검토 사유(nsn_format=검토일 때)',
+  fsc4                VARCHAR(4)   NULL COMMENT '군급 4자리',
+  fsg2                VARCHAR(2)   NULL COMMENT '군급 앞 2자리(ref_fsg 조인)',
+  is_electronic_group TINYINT(1)   NOT NULL DEFAULT 0 COMMENT 'fsg2 IN (58,59)',
+  ncb_code            VARCHAR(4)   NULL,
+  niin                VARCHAR(10)  NULL COMMENT 'NCB 2자 + 일련번호 7자 = NSN 뒤 9자리',
+  niin_status         VARCHAR(2)   NULL,
+  inc                 VARCHAR(10)  NULL,
+  item_div_code       VARCHAR(4)   NULL,
+  item_name_en        VARCHAR(150) NULL,
+  item_name_ko        VARCHAR(50)  NULL,
+  mfr_item_name_en    VARCHAR(120) NULL,
+  mfr_item_name_ko    VARCHAR(80)  NULL,
+  assigned_date       DATE         NULL COMMENT 'YYYY-MM-DD 형식일 때만, 아니면 NULL',
+  oid                 VARCHAR(40)  NULL,
+  raw_row_count       INT UNSIGNED NOT NULL COMMENT '이 NSN의 raw 행 수',
+  ref_count           INT UNSIGNED NOT NULL COMMENT 'CAGE×참조번호 고유 수(clean_kdsis_nsn_ref 행 수)',
+  cage_count          INT UNSIGNED NOT NULL COMMENT 'CAGE 고유 수(공란 제외)',
+  origin_files        VARCHAR(100) NULL COMMENT '나온 원본 파일 목록',
+  has_attr_conflict   TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '같은 NSN에 기본정보 조합이 2개 이상이면 1(기대 0)',
+  first_raw_row_id    BIGINT UNSIGNED NOT NULL COMMENT '대표 원본 행(row_id 최소)',
+  cleaned_at          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (nsn),
+  KEY ix_ckn_fsc (fsc4),
+  KEY ix_ckn_fmt (nsn_format),
+  KEY ix_ckn_niin (niin)
+) ENGINE=InnoDB COMMENT='KDSIS NSN 기본정보 — NSN별 1행 135,864(숫자13 135,331 + 검토 533). 조회·연결 키 전용';
+
+-- 2-2 CAGE·참조번호 목록: NSN × CAGE × 참조번호 고유(원본 완전 중복 2,392행 제거 → 225,635). 공란은 ''로 두어 UNIQUE가 걸리게 한다.
+CREATE TABLE clean_kdsis_nsn_ref (
+  ref_id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  nsn               VARCHAR(20)  NOT NULL,
+  cage_code         VARCHAR(10)  NOT NULL DEFAULT '' COMMENT '공란은 빈 문자열',
+  ref_no            VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '공란은 빈 문자열',
+  source_row_count  INT UNSIGNED NOT NULL COMMENT '같은 (nsn, cage, ref)가 raw에 나온 행 수',
+  origin_files      VARCHAR(100) NULL,
+  first_raw_row_id  BIGINT UNSIGNED NOT NULL,
+  PRIMARY KEY (ref_id),
+  UNIQUE KEY ux_cknr (nsn, cage_code, ref_no),
+  KEY ix_cknr_cage (cage_code),
+  KEY ix_cknr_ref (ref_no)
+) ENGINE=InnoDB COMMENT='KDSIS NSN별 CAGE·참조번호 목록(중복 제거 225,635). CAGE→국가 판별은 하지 않는다';
 
 -- =============================================================================
 -- 6. v_  집계 뷰 (시나리오 값 없음. 모든 무역 값은 "국가 전체 수입(민수 포함)")
@@ -1297,6 +1477,96 @@ FROM ref_hs_whitelist w
 LEFT JOIN ref_hs_rule_flag f
        ON f.hs6 = w.hs6
       AND f.rule_version = (SELECT MAX(rule_version) FROM ref_hs_rule_flag);
+-- 국외 조달계획 API를 FSC 4자리 × 군 × 요구연도로 집계(2026-09-16). 금액은 통화 검증 전이라 뷰에 넣지 않는다(건수만). NSN 13자리 행(9,970)만.
+-- equipment_sample: 적용장비명 최대 3개('*' 자리표시·빈값 제외). 화면 ② "FSC별 국산화 완료(B2) vs 국외조달 계획(API)" 대칭 막대와 사용처 표의 원천.
+-- HS6로 옮길 때는 ref_category_map 확정 행으로만(품목군 수준). 파일판(raw_dapa_overseas_plan, 사업 단위·원)과 합산 금지.
+CREATE OR REPLACE VIEW v_overseas_plan_api_fsc AS
+SELECT LEFT(a.stock_no, 4)                                          AS fsc4,
+       LEFT(a.stock_no, 2)                                          AS fsg_code,
+       f.name_ko                                                    AS fsc_name_ko,
+       g.name_ko                                                    AS fsg_name_ko,
+       (LEFT(a.stock_no, 2) IN ('58', '59'))                        AS is_electronic_group,
+       a.army_name,
+       a.demand_year_req                                            AS demand_year,
+       COUNT(*)                                                     AS plan_item_count,
+       COUNT(DISTINCT NULLIF(NULLIF(a.equipment_name, ''), '*'))    AS equipment_name_count,
+       SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT NULLIF(NULLIF(a.equipment_name, ''), '*') SEPARATOR ' | '), ' | ', 3) AS equipment_sample
+FROM raw_dapa_overseas_plan_api a
+LEFT JOIN ref_fsc f ON f.fsc4 = LEFT(a.stock_no, 4)
+LEFT JOIN ref_fsg g ON g.fsg_code = LEFT(a.stock_no, 2)
+WHERE a.stock_no REGEXP '^[0-9]{13}$'
+GROUP BY LEFT(a.stock_no, 4), LEFT(a.stock_no, 2), f.name_ko, g.name_ko, (LEFT(a.stock_no, 2) IN ('58', '59')), a.army_name, a.demand_year_req;
+
+-- 열린재정 방위사업청 일반회계 연도별 합계(억원, 2026-09-16). 대표 지표는 세부사업명 개편(2021·2023) 영향이 없는 '국방기술개발' 단위사업 합계.
+-- amount_basis: 그 해 국회확정 합이 0이면 '정부안'(2027) — 0을 확정액으로 그리지 않는다. 억원 = 천원 ÷ 100,000. 세부사업 열은 단위사업과 무관하게 세부사업명 패턴으로 집계.
+-- 예산(편성)은 조달계획(집행 예정)·관세청 수입액(실적)과 합산·비율 금지 — 배경 ④ 전용.
+CREATE OR REPLACE VIEW v_budget_rnd_yearly AS
+SELECT fiscal_year,
+       CASE WHEN SUM(CAST(REPLACE(confirmed_krw_k, ',', '') AS UNSIGNED)) = 0 THEN '정부안' ELSE '확정' END AS amount_basis,
+       ROUND(SUM(CAST(REPLACE(gov_plan_krw_k, ',', '') AS UNSIGNED)) / 100000, 1)                                                                                   AS total_gov_100m,
+       ROUND(SUM(CASE WHEN unit_program_name = '국방기술개발'      THEN CAST(REPLACE(gov_plan_krw_k,  ',', '') AS UNSIGNED) ELSE 0 END) / 100000, 1)                  AS tech_dev_gov_100m,
+       ROUND(SUM(CASE WHEN unit_program_name = '국방기술개발'      THEN CAST(REPLACE(confirmed_krw_k, ',', '') AS UNSIGNED) ELSE 0 END) / 100000, 1)                  AS tech_dev_confirmed_100m,
+       ROUND(SUM(CASE WHEN sub_program_name LIKE '부품국산화%'     THEN CAST(REPLACE(gov_plan_krw_k,  ',', '') AS UNSIGNED) ELSE 0 END) / 100000, 1)                  AS localization_gov_100m,
+       ROUND(SUM(CASE WHEN sub_program_name LIKE '국방반도체%'     THEN CAST(REPLACE(gov_plan_krw_k,  ',', '') AS UNSIGNED) ELSE 0 END) / 100000, 1)                  AS semiconductor_gov_100m,
+       ROUND(SUM(CASE WHEN sub_program_name LIKE '기초연구%'       THEN CAST(REPLACE(gov_plan_krw_k,  ',', '') AS UNSIGNED) ELSE 0 END) / 100000, 1)                  AS basic_research_gov_100m,
+       ROUND(SUM(CASE WHEN sub_program_name LIKE '%공급망%'        THEN CAST(REPLACE(gov_plan_krw_k,  ',', '') AS UNSIGNED) ELSE 0 END) / 100000, 1)                  AS supply_chain_gov_100m,
+       COUNT(*)                                                                                                                                                       AS row_count
+FROM raw_openfiscal_program_budget
+GROUP BY fiscal_year;
+
+-- KDSIS 연결 조회 뷰 3개(2026-09-17, db/alter_2026-09-17_kdsis_nsn.sql §3). 모두 LEFT JOIN이라 상대 표 행수가 그대로다(clean_kdsis_nsn PK nsn).
+-- 3-1 국외 조달계획 API 품목 ↔ KDSIS: stock_no = nsn 완전 일치. 13,615행 유지. 지표 뷰 v_overseas_plan_api_fsc는 손대지 않는다.
+CREATE OR REPLACE VIEW v_overseas_plan_api_kdsis AS
+SELECT a.row_id                                   AS api_row_id,
+       a.stock_no,
+       (a.stock_no REGEXP '^[0-9]{13}$')          AS is_nsn13,
+       a.demand_year_req                          AS demand_year,
+       a.army_name,
+       a.item_name                                AS api_item_name,
+       a.equipment_name,
+       (k.nsn IS NOT NULL)                        AS kdsis_matched,
+       k.nsn_format                               AS kdsis_nsn_format,
+       k.fsc4                                     AS kdsis_fsc4,
+       k.item_name_en                             AS kdsis_item_name_en,
+       k.item_name_ko                             AS kdsis_item_name_ko,
+       k.niin_status                              AS kdsis_niin_status,
+       k.ref_count                                AS kdsis_ref_count,
+       k.cage_count                               AS kdsis_cage_count
+FROM raw_dapa_overseas_plan_api a
+LEFT JOIN clean_kdsis_nsn k ON k.nsn = a.stock_no;
+
+-- 3-2 국산화 B2 ↔ KDSIS: fsc(숫자 4) + 재고번호(숫자 9) = nsn. 재고번호가 9자리 미만(7·8자리 등 앞 0 탈락 의심 9,810행)·영문 포함(37A… 1,394행)·공란은
+--     link_key NULL → 연결 시도하지 않는다(임의 0 채움 금지). 33,965행 유지.
+CREATE OR REPLACE VIEW v_b2_localized_kdsis AS
+SELECT b.row_id                                   AS b2_row_id,
+       b.project_name, b.part_mgmt_no, b.fsc, b.nsn AS b2_stock_no, b.item_name AS b2_item_name,
+       CASE WHEN b.fsc REGEXP '^[0-9]{4}$' AND b.nsn REGEXP '^[0-9]{9}$' THEN CONCAT(b.fsc, b.nsn) END AS link_key,
+       (k.nsn IS NOT NULL)                        AS kdsis_matched,
+       k.fsc4                                     AS kdsis_fsc4,
+       k.item_name_en                             AS kdsis_item_name_en,
+       k.item_name_ko                             AS kdsis_item_name_ko,
+       k.niin_status                              AS kdsis_niin_status,
+       k.ref_count                                AS kdsis_ref_count,
+       k.cage_count                               AS kdsis_cage_count
+FROM raw_dapa_localized_item b
+LEFT JOIN clean_kdsis_nsn k
+       ON b.fsc REGEXP '^[0-9]{4}$' AND b.nsn REGEXP '^[0-9]{9}$' AND k.nsn = CONCAT(b.fsc, b.nsn);
+
+-- 3-3 연결률 요약(보고용): 자료별 행수 · 연결 가능 행(키 형식 충족) · 연결된 행 · 연결된 고유 NSN
+CREATE OR REPLACE VIEW v_kdsis_link_summary AS
+SELECT '국외 조달계획 API(stock_no=nsn)' AS link_target,
+       COUNT(*)                                        AS total_rows,
+       SUM(is_nsn13)                                   AS eligible_rows,
+       SUM(kdsis_matched)                              AS matched_rows,
+       COUNT(DISTINCT CASE WHEN kdsis_matched THEN stock_no END) AS matched_nsn_count,
+       SUM(kdsis_matched AND kdsis_nsn_format = '검토') AS matched_review_rows
+FROM v_overseas_plan_api_kdsis
+UNION ALL
+SELECT '국산화 B2(fsc4+재고번호9=nsn)',
+       COUNT(*), SUM(link_key IS NOT NULL), SUM(kdsis_matched),
+       COUNT(DISTINCT CASE WHEN kdsis_matched THEN link_key END), 0
+FROM v_b2_localized_kdsis;
+
 -- =============================================================================
 -- 참고: 팀 확정 후 실행할 참조 데이터 갱신 예시 (idea-review §5 B2 규칙 ②)
 -- UPDATE ref_hs_whitelist SET b2_scope = 'B2 범위 밖' WHERE hs6 IN ('841191','880730','901420');

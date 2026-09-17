@@ -288,3 +288,102 @@ ref_fsg,5,is_historical,is_historical,TINYINT(1),21·33 Historical FSG
 ref_fsg,6,is_electronic_group,(파생),TINYINT(1),58·59 = 1. 핵심 ② 기본 필터
 ref_fsg,7,note_ko,note_ko,VARCHAR(300),보완 3행(95·96·99) 출처·미대조 사유
 ref_fsg,8,source_url,source_url,VARCHAR(300),DLA ZSMT_FSG.txt / GSA PSC Manual 2025-04
+raw_dapa_overseas_plan_api,1,army_name,armySe,VARCHAR(20),"군(소요군)·부대명(육군 7,404·해군 5,254·공군 717·해병 212 등)"
+raw_dapa_overseas_plan_api,2,army_code,armySeCode,VARCHAR(4),군 코드
+raw_dapa_overseas_plan_api,3,budget_amount,budgetAmount,VARCHAR(20),"예산금액 — 통화 미검증(원·달러 혼입 의심: 2016 신세기함 UAV 173.7억, 2025 GENERATOR 138억) → 집계 제외, 건수만"
+raw_dapa_overseas_plan_api,4,function_name,fnctSe,VARCHAR(30),기능구분
+raw_dapa_overseas_plan_api,5,function_code,fnctSeCode,VARCHAR(4),기능구분 코드
+raw_dapa_overseas_plan_api,6,item_seq,iemNo,VARCHAR(10),품목순번(조달요구번호 내)
+raw_dapa_overseas_plan_api,7,stock_no,invntryNo,VARCHAR(20),"재고번호 — NSN 13자리 9,970행(앞 4자리 = FSC) / 나머지는 자리표시자(NSN·NSN001·NSN-01 등)"
+raw_dapa_overseas_plan_api,8,org_name,ornt,VARCHAR(50),집행기관(부서)
+raw_dapa_overseas_plan_api,9,org_code,orntCode,VARCHAR(6),집행기관 코드
+raw_dapa_overseas_plan_api,10,procure_demand_no,prcureDemandNo,VARCHAR(20),"조달요구번호(+item_seq 조합이 13,615행 고유)"
+raw_dapa_overseas_plan_api,11,item_kind_name,prdlstKndSe,VARCHAR(20),"품목종류구분((확정)부품 10,483·장비 860·기름(연료) 288·물자 160·기술용역 142 등, 빈값 1,657)"
+raw_dapa_overseas_plan_api,12,item_kind_code,prdlstKndSeCode,VARCHAR(4),품목종류 코드
+raw_dapa_overseas_plan_api,13,item_name,prdlstNm,VARCHAR(200),품명
+raw_dapa_overseas_plan_api,14,progress_status,progrsSttus,VARCHAR(20),진행상태(부분계약·판단완료·계약·N차공고중·지시중 등)
+raw_dapa_overseas_plan_api,15,purchase_request_no,purchsRequstNo,VARCHAR(20),구매요구번호
+raw_dapa_overseas_plan_api,16,quantity,qy,VARCHAR(20),수량
+raw_dapa_overseas_plan_api,17,unit,unit,VARCHAR(10),단위(EA·SE·CN 등)
+raw_dapa_overseas_plan_api,18,unit_price,untpc,VARCHAR(20),단가 — 통화 미검증(budget_amount와 같은 문제)
+raw_dapa_overseas_plan_api,19,demand_year_req,_demandYear_req,VARCHAR(4),"요구연도(수집 시 demandYear 호출 파라미터, 2016~2026). 2018 1·2019 0·2020 11건 = 원자료 공백"
+raw_dapa_overseas_plan_api,20,component_no,cmpntNo,VARCHAR(50),구성품번호(부품번호)
+raw_dapa_overseas_plan_api,21,equipment_code,eqpmnCode,VARCHAR(20),적용장비 코드
+raw_dapa_overseas_plan_api,22,equipment_name,eqpmnNm,VARCHAR(100),"적용장비명(NSN행 9,970 중 9,264 존재, '*' 자리표시 포함) — 「어느 장비의 부품인가」"
+raw_dapa_overseas_plan_api,23,qa_grade,qlityAssrncGrad,VARCHAR(4),품질보증등급
+raw_dapa_overseas_plan_api,24,standard_no,stndrdNo,VARCHAR(50),규격번호
+raw_dapa_fsc_catalog,1,fsc4,군급,CHAR(4),군급 4자리 756행 = FSG 그룹행(끝 00) 80 + FSC 676
+raw_dapa_fsc_catalog,2,status,군급상태,CHAR(1),A 734 / C 22(폐지)
+raw_dapa_fsc_catalog,3,name_ko,명칭(한글),VARCHAR(200),최대 104자
+raw_dapa_fsc_catalog,4,name_en,명칭(영문),VARCHAR(200),최대 96자
+raw_dapa_fsc_catalog,5,note_ko,주석(한글),TEXT,최대 925자
+raw_dapa_fsc_catalog,6,note_en,주석(영문),TEXT,"최대 1,708자"
+raw_dapa_fsc_catalog,7,includes_ko,포함(한글),TEXT,
+raw_dapa_fsc_catalog,8,includes_en,포함(영문),TEXT,
+raw_dapa_fsc_catalog,9,excludes_ko,제외(한글),TEXT,
+raw_dapa_fsc_catalog,10,excludes_en,제외(영문),TEXT,
+raw_openfiscal_program_budget,1,seq_no,No.,VARCHAR(10),파일 내 순번
+raw_openfiscal_program_budget,2,fiscal_year,회계연도,VARCHAR(4),2016~2027(12파일)
+raw_openfiscal_program_budget,3,ministry_name,소관명,VARCHAR(50),전부 방위사업청
+raw_openfiscal_program_budget,4,account_name,회계명,VARCHAR(50),전부 일반회계
+raw_openfiscal_program_budget,5,sub_account_name,계정명,VARCHAR(50),전부 공란
+raw_openfiscal_program_budget,6,sector_name,분야명,VARCHAR(50),국방
+raw_openfiscal_program_budget,7,field_name,부문명,VARCHAR(50),방위력개선
+raw_openfiscal_program_budget,8,program_name,프로그램명,VARCHAR(100),
+raw_openfiscal_program_budget,9,unit_program_name,단위사업명,VARCHAR(100),시계열 대표 지표는 '국방기술개발' 합계(세부사업명 개편 2021·2023 무관)
+raw_openfiscal_program_budget,10,sub_program_name,세부사업명,VARCHAR(200),국방반도체(R&D) 2027 신설 등
+raw_openfiscal_program_budget,11,expense_type,경비구분,VARCHAR(50),
+raw_openfiscal_program_budget,12,outlay_type,지출구분,VARCHAR(50),
+raw_openfiscal_program_budget,13,gov_plan_krw_k,정부안금액(천원),VARCHAR(20),"천원, 쉼표 포함 문자열('8,080,000'). 억원 = ÷100,000"
+raw_openfiscal_program_budget,14,confirmed_krw_k,국회확정금액(천원),VARCHAR(20),천원. 2027은 전부 0(정부안·미확정) → 0을 확정액으로 그리지 않음
+raw_kdsis_nsn,1,origin_file,source_file,VARCHAR(50),"원본 파일(국방표준종합서비스.txt 172,692 / 국방표준종합서비스2016.csv 55,335) — 적재 파일은 source_file"
+raw_kdsis_nsn,2,origin_row_no,source_row_no,INT UNSIGNED,원본 파일 안 행 번호
+raw_kdsis_nsn,3,assigned_date,assndDt_2180,VARCHAR(10),"NSN 부여일(YYYY-MM-DD, 공란 34). 2016~2020이 대부분, 1960~2015 잔재 — 연도 축으로 쓰지 않는다"
+raw_kdsis_nsn,4,cage_code,cageCd_9250,VARCHAR(10),"제조사 CAGE 코드(5자, 고유 10,101, 공란 889). 국가 판별은 하지 않는다"
+raw_kdsis_nsn,5,chk_flag,chk,VARCHAR(2),"전부 0, 의미 미확인"
+raw_kdsis_nsn,6,mfr_item_name_en,entprzEnglshItmnm,VARCHAR(120),"업체 품명(영문), 공란 35,337"
+raw_kdsis_nsn,7,mfr_item_name_ko,entprzHanglItmnm,VARCHAR(80),"업체 품명(한글), 공란 10,763"
+raw_kdsis_nsn,8,fsc4,fsgFsc,VARCHAR(4),"군급 4자리(= NSN 앞 4자리, 불일치 0). 58·59군 58,236행"
+raw_kdsis_nsn,9,iin_serial,IINbr_4131,VARCHAR(10),"NIIN 일련번호 7자(NCB 2자 + 이 값 = NSN 뒤 9자리, 불일치 0). 공란 3"
+raw_kdsis_nsn,10,inc,inc_4080,VARCHAR(10),품명 코드 INC
+raw_kdsis_nsn,11,item_div_code,itemDvsCd,VARCHAR(4),"품목 구분(A1 181,573·B1 44,246·A2 2,174·A3 34), 의미 미확인"
+raw_kdsis_nsn,12,ncb_code,ncbCd_4130,VARCHAR(4),"국가부호국 NCB(37=한국 183,793·01 15,796·12 7,635·14 7,181·99 6,853 …)"
+raw_kdsis_nsn,13,niin_status,niinStatCd_2670,VARCHAR(2),"NIIN 상태(0 206,137·N 16,801·공란 4,351·7 579 …), 코드 정의 미확인"
+raw_kdsis_nsn,14,nsn,nsn,VARCHAR(20),"재고번호. 숫자 13자리 227,444행(고유 135,331), 그 외 583행(고유 533) = 검토 대상(clean_kdsis_nsn.nsn_format)"
+raw_kdsis_nsn,15,oid,oid,VARCHAR(40),"KDSIS 객체 ID(고유 135,864 = NSN 고유 수)"
+raw_kdsis_nsn,16,prop_item_name_en,prptnDsgntnEnglshItmnm,VARCHAR(100),"공란 219,330, 의미 미확인"
+raw_kdsis_nsn,17,prop_item_name_ko,prptnDsgntnHanglItmnm,VARCHAR(80),"공란 219,367, 의미 미확인"
+raw_kdsis_nsn,18,ref_no,refNbr_3570,VARCHAR(50),"참조번호(제조사 부품번호, 고유 149,317, 공란 884)"
+raw_kdsis_nsn,19,request_org_code,rqstOrgan_2074,VARCHAR(4),"요청기관 코드, 공란 227,124"
+raw_kdsis_nsn,20,work_drawing_yn,workDrngYn,VARCHAR(2),"Y 3 / N 228,024, 의미 미확인"
+raw_kdsis_nsn,21,item_name_en,shrtNm2301,VARCHAR(150),"품명(영문), 공란 8,960"
+raw_kdsis_nsn,22,item_name_ko,shrtNmK122,VARCHAR(50),"품명(한글), 공란 8,960"
+clean_kdsis_nsn,1,nsn,nsn,VARCHAR(20),"PK. NSN별 1행(135,864)"
+clean_kdsis_nsn,2,nsn_format,(파생),ENUM,"숫자13 = ^[0-9]{13}$ 135,331 / 검토 533"
+clean_kdsis_nsn,3,review_note,(파생),VARCHAR(50),검토 사유
+clean_kdsis_nsn,4,fsc4,fsgFsc,VARCHAR(4),군급 4자리
+clean_kdsis_nsn,5,fsg2,(파생),VARCHAR(2),군급 앞 2자리(ref_fsg)
+clean_kdsis_nsn,6,is_electronic_group,(파생),TINYINT(1),"fsg2 IN (58,59)"
+clean_kdsis_nsn,7,ncb_code,ncbCd_4130,VARCHAR(4),NCB
+clean_kdsis_nsn,8,niin,(파생),VARCHAR(10),NCB 2자 + 일련번호 7자
+clean_kdsis_nsn,9,niin_status,niinStatCd_2670,VARCHAR(2),NIIN 상태
+clean_kdsis_nsn,10,inc,inc_4080,VARCHAR(10),INC
+clean_kdsis_nsn,11,item_div_code,itemDvsCd,VARCHAR(4),품목 구분(의미 미확인)
+clean_kdsis_nsn,12,item_name_en,shrtNm2301,VARCHAR(150),품명(영문)
+clean_kdsis_nsn,13,item_name_ko,shrtNmK122,VARCHAR(50),품명(한글)
+clean_kdsis_nsn,14,mfr_item_name_en,entprzEnglshItmnm,VARCHAR(120),업체 품명(영문)
+clean_kdsis_nsn,15,mfr_item_name_ko,entprzHanglItmnm,VARCHAR(80),업체 품명(한글)
+clean_kdsis_nsn,16,assigned_date,assndDt_2180,DATE,YYYY-MM-DD 형식일 때만
+clean_kdsis_nsn,17,oid,oid,VARCHAR(40),KDSIS 객체 ID
+clean_kdsis_nsn,18,raw_row_count,(파생),INT UNSIGNED,이 NSN의 raw 행 수
+clean_kdsis_nsn,19,ref_count,(파생),INT UNSIGNED,CAGE×참조번호 고유 수
+clean_kdsis_nsn,20,cage_count,(파생),INT UNSIGNED,CAGE 고유 수(공란 제외)
+clean_kdsis_nsn,21,origin_files,(파생),VARCHAR(100),나온 원본 파일 목록
+clean_kdsis_nsn,22,has_attr_conflict,(파생),TINYINT(1),같은 NSN에 기본정보 조합 2개 이상이면 1(기대 0)
+clean_kdsis_nsn,23,first_raw_row_id,(파생),BIGINT UNSIGNED,대표 원본 행
+clean_kdsis_nsn_ref,1,nsn,nsn,VARCHAR(20),NSN
+clean_kdsis_nsn_ref,2,cage_code,cageCd_9250,VARCHAR(10),CAGE(공란은 빈 문자열)
+clean_kdsis_nsn_ref,3,ref_no,refNbr_3570,VARCHAR(50),참조번호(공란은 빈 문자열)
+clean_kdsis_nsn_ref,4,source_row_count,(파생),INT UNSIGNED,"같은 (nsn, cage, ref)의 raw 행 수(완전 중복 2,392행 흡수)"
+clean_kdsis_nsn_ref,5,origin_files,(파생),VARCHAR(100),나온 원본 파일 목록
+clean_kdsis_nsn_ref,6,first_raw_row_id,(파생),BIGINT UNSIGNED,대표 원본 행

@@ -21,13 +21,15 @@
 
 | 화면 (idea-review §4) | 읽는 뷰·테이블 | 그 원천 | 지금 상태 |
 |---|---|---|---|
-| 배경 ⓪ 국외조달 예산 추이 | `v_overseas_plan_yearly` | `clean_dapa_overseas_plan` ← `raw_dapa_overseas_plan` | raw만 있음. clean 채우기 전엔 raw를 직접 집계(§5 SQL 4) |
+| 배경 ⓪ 국외조달 예산 추이 | `v_overseas_plan_yearly` | `clean_dapa_overseas_plan` ← `raw_dapa_overseas_plan` | **사용 가능(2026-09-17 적재, 3,023행)**. 판단번호 단위라 원본 3,029행 합과 6행(23.6억+2.5억 원) 다름 — 원본 전체 합(18.26조)은 §5 SQL 4. 전자 후보는 `미검수`(잠정) |
 | 핵심 ① 품목군별 수입 집중도 | `v_import_hs6_year` · `v_import_share_hs6_year` · `v_hhi_hs6_year` | `fact_customs_monthly` ← `raw_customs_trade` | **바로 사용 가능** |
-| 핵심 ② 관련 조달·국산화 근거 | `v_contract_monthly` · `clean_krit_task`(B1) · `clean_dapa_localized_item`(B2) | `raw_dapa_contract` · `raw_krit_task` · `raw_dapa_localized_item` | raw만 있음. clean 정제 대기 |
-| 핵심 ③ 추가 검토 목록·시나리오 | `v_review_list` | 위 전부 + `ref_category_map` | 무역 열은 동작, B1·B2 열은 `미적재` 라벨 |
+| 핵심 ② 관련 조달·국산화 근거 | `v_contract_monthly` · `clean_krit_task`(B1) · `clean_dapa_localized_item`(B2) | `raw_dapa_contract` · `raw_krit_task` · `raw_dapa_localized_item` | B2는 **적재 완료(2026-09-17, 25,025행)**. 계약정보·B1은 raw만 있음(clean 정제 대기) |
+| 핵심 ② 보강 — FSC별 국외조달 계획(API) | `v_overseas_plan_api_fsc` | `raw_dapa_overseas_plan_api` ← 국외 조달계획 OpenAPI 13,615행 | **사용 가능(2026-09-16 적재)**. B2(국산화 완료, 지상 28개 사업)와 같은 FSC4 축으로 대칭 막대·사용처 표. 건수만 |
+| 핵심 ③ 추가 검토 목록·시나리오 | `v_review_list` | 위 전부 + `ref_category_map` | 무역 열은 동작. B2 열은 `대응 미확정`(대응표 확정 대기 — `docs/report/category-map-decision-2026-09-17.md`), B1 열은 `미적재` |
 | 보조 ④ 수출·생산 추세 | `v_import_hs6_year`(수출 열) · `raw_kosis_utilization` · `raw_kosis_production_index` | KOSIS 2종 | 사용 가능(raw 직접) |
 | 보조 ⑤ 국내 지도 | `clean_dapa_contract.sido_code` + `ref_sido_map` | `raw_dapa_contract.vendor_address` | clean 정제 대기 |
 | KPI 카드 | `raw_dapa_contract_exec_by_service`(군별 계약집행) · `raw_dapa_defense_company` | A7 · 방산업체 지정현황 | 사용 가능 |
+| 배경 ④ 예산 흐름(기획안 v8) | `v_budget_rnd_yearly` | `raw_openfiscal_program_budget` ← 열린재정 12파일 | **사용 가능(2026-09-16 적재)**. 국방기술개발 2020 10,053억 → 2027 30,741억(정부안), 국방반도체 2027 565.1억 신설 |
 
 시나리오(제한률 슬라이더) 값은 DB에 없다 — 화면에서 계산하고 `is_scenario` 배너를 붙인다.
 
@@ -43,10 +45,10 @@
 | `ref_hs_indicator` | (2026-09-16) 품목군별 **정량 지표** — "민수 혼합"·"국방 관련성" 라벨의 수치 근거. 한 행 = HS6 × 지표 × 기간 | 뷰에서 계산(`db/alter_2026-09-16_indicator.sql`) | 39 | 적재 완료 | `hs6` · `axis` · `indicator`(mil_hs10_share / aero_hs10_share / auto_hs10_share / b2_part_count / b2_row_count …) · `value_num` · `numerator`/`denominator` · `period_start/end` · `link_status` · `note`(한계) |
 | `ref_hs_rule_flag` | (2026-09-16) HS6별 선정 규칙 **R1~R4 판정·근거 수치 스냅샷** — 84·85·88·90류 HS6 1,003개 전부(화이트리스트 밖 포함). 팀 회의 결정: 규칙은 전부 저장하고 어느 규칙이 진입을 결정하는지는 시각화 단계에서 주피터로 정한다 | `alter_2026-09-16_hs_rule.sql` §5-4 (`v_hs6_candidate_rule` 물질화) | 1,003(팀 서버 2026-09-16 적용) | `r1_mil`·`r2_aero_nav`·`r3_du`·`r3_ml`(현재 항상 0)·`r4_b2` · 근거 수치 · `is_candidate_provisional` · `in_whitelist` · `rule_version` |
 | `ref_country` | 국가코드 → 한글명·좌표 | Google DSPL + 수기 | 238 | 적재 완료 | `stat_cd` PK · `name_ko` · `lat`/`lon`(ZZ 기타국은 NULL) |
-| `ref_category_map` | FSC·품목군 → HS6 **품목군 수준** 대응표. 직접 매핑 아님 | `related_fsc` 분해 시드 | 17 | 전부 `후보` — 팀이 `확정`으로 바꿔야 B2 건수가 채워짐 | `map_type`(fsc4/contract_group/krit_task) · `source_key` · `hs6` · `link_status` |
+| `ref_category_map` | FSC·품목군 → HS6 **품목군 수준** 대응표. 직접 매핑 아님 | `related_fsc` 분해 시드 | 17 | 전부 `후보` — 팀이 `확정`으로 바꿔야 B2 건수가 채워짐. 권장안·실행 SQL: `docs/report/category-map-decision-2026-09-17.md`, `db/alter_2026-09-17_category_map.sql`(미적용) | `map_type`(fsc4/contract_group/krit_task) · `source_key` · `hs6` · `link_status` |
 | `ref_sido_map` | 주소 첫 토큰 → 17개 시도 코드 | 수작업 시드 | 45 | 적재 완료 | `token` PK · `sido_code` · `sido_name` |
 | `ref_fsg` | (2026-09-16) FSG 군급 **2자리** 라벨. 핵심 ② 국산화 완료 섹션의 "사업 × FSC군 히트맵"·FSC별 막대 라벨용. 계약정보·조달계획·입찰 CSV에는 FSC가 없어 이 표와 엮이지 않음 | `data/reference/fsg_master.csv`(팀원 공유 DLA 표 77행 + 95·96·99 보완) | 80 | 적재 완료(`db/alter_2026-09-16_fsg.sql`) | `fsg_code` PK · `name_ko`/`name_en` · `is_historical`(21·33) · `is_electronic_group`(58·59) · `note_ko`(보완 3행 출처·미대조) |
-| `ref_fsc` | FSC 군급분류 4자리 라벨(선택) | 없음 | 0 | 비어 있음 — 2자리 라벨은 `ref_fsg`, 4자리 출처는 여전히 없음 | `fsc4` · `name_ko` · `is_electronic_group` |
+| `ref_fsc` | FSC 군급분류 **4자리** 라벨 | `raw_dapa_fsc_catalog`(군급분류집 15119907)에서 `INSERT…SELECT`(`db/alter_2026-09-16_api_budget.sql` §3, 그룹행 xx00 제외) | 676 | 적재 완료(2026-09-16). 58/59군 46, 폐지(`status='C'`) 22 | `fsc4` · `fsc2` · `name_ko` · `status` · `is_electronic_group` |
 
 ### 3-2. `raw_` 원본 보존 (전 열 문자열, `row_id` 대리키, `source_file`·`source_row_no`·`loaded_at` 공통)
 
@@ -70,6 +72,10 @@
 | `raw_hsk_control` | (2026-09-16) 무역안보관리원 전략물자 **HSK 연계표** — 통제번호 ↔ HSK10 | `data/raw/kosti/hsk_control_15034135.csv` | 2,161(적재 완료 09-16) | HS6 선정 규칙 R3(이중용도 별표2만, ML 없음). `civil_mix` 3번 규칙은 판별력 없어 보류 | `hsk10` · `control_no`(쉼표 목록) |
 | `raw_hs_code_master` | (2026-09-16) 관세청 **HS부호 마스터** — HSK 10자리 전체(포털 12,469행) | `data/raw/customs/hs_code_master_15049722.xlsx` | 12,469(적재 완료 09-16) | HS6 선정 규칙 R1·R2 원본(2026 현행, 과거 세분류는 `dim_hs10`과 UNION) | `hs_code` · `name_ko`(용도 세분류 이름) |
 | `raw_hs_unit_name` | (2026-09-16) 관세청 HS부호 **단위별 품목명** — 2·4·6·8·10단위 명칭(포털 17,072행) | `data/raw/customs/hs_unit_name_15130660.xlsx` | 17,072(적재 완료 09-16) | 규칙 후보 HS6 공식 명칭(5시트 세로 결합) | `hs_code` · `hs_unit` · `name_ko` |
+| `raw_dapa_overseas_plan_api` | (2026-09-16) 방사청 **국외 조달계획 OpenAPI 품목 단위**(15158418, 요구연도 2016~2026) — 재고번호 NSN 13자리 9,970행 → 앞 4자리 FSC, 군·적용장비명. 파일판 `raw_dapa_overseas_plan`(사업 단위·원)과 **다른 표**, 합산 금지 | `data/raw/dapa/dapa_overseas_plan_api_20260916.csv`(조장 수집 → 팀 드라이브) | 13,615(적재 완료 09-16) | 핵심 ② 「FSC별 국산화 완료(B2) vs 국외조달 계획」·사용처 표. 2018 1·2019 0·2020 11건은 원자료 공백. **금액 열은 통화 혼입 의심 → 건수만** | `stock_no` · `army_name` · `equipment_name` · `demand_year_req` · `item_kind_name` |
+| `raw_dapa_fsc_catalog` | (2026-09-16) 방사청 **군급분류집**(15119907) — 군급 4자리 명칭·주석·포함·제외 | `data/raw/dapa/dapa_fsc_catalog_20251231.csv` | 756(적재 완료 09-16) | `ref_fsc` 시드 원본(그룹행 xx00 80 제외 → 676) | `fsc4` · `status` · `name_ko` |
+| `raw_kdsis_nsn` | (2026-09-17) **국방표준종합서비스(KDSIS) NSN 목록** 팀원 정리본 — 원본 .txt 172,692 + 2016.csv 55,335 합본(`origin_file`·`origin_row_no`에 원본 파일·행 보존) | `new_data/raw_kdsis_nsn.csv`(gitignore) | 228,027(적재 완료 09-17) | **보조 조회 전용**(NSN → FSC·품명·CAGE·참조번호). 위험도·국산화율 지표 미사용. 숫자 13자리 NSN 227,444행(고유 135,331), 그 외 583행은 검토 대상 | `nsn` · `fsc4` · `cage_code` · `ref_no` · `item_name_ko` |
+| `raw_openfiscal_program_budget` | (2026-09-16) **열린재정** 세출/지출 세부사업 예산편성현황(총액), 방위사업청·일반회계, 회계연도 2016~2027 12파일 | `data/raw/budget/openfiscal_dapa_program_budget_<연도>.csv` | 2,860(적재 완료 09-16; 2020~2027 1,981 + 2016~2019 879) | 배경 ④ 예산 흐름 전용, 1만 건 무관. 천원·쉼표 문자열, 2027은 정부안(국회확정 0) | `fiscal_year` · `unit_program_name` · `sub_program_name` · `gov_plan_krw_k` |
 
 담당자명·대표자명·연락처는 개인정보다. 국내 계약·입찰 파일은 raw에 원문이 있으니 `clean_`·화면으로 올리지 말고, A7 5개는 적재 때 이미 NULL로 비웠다.
 
@@ -88,7 +94,15 @@
 | `dim_hs10` | HS10 → HS6 · 품명(가장 최근 연월 기준) | 197 | `hs10` PK · `hs6` · `name_ko` |
 | `fact_customs_monthly` | HS10×국가×월 수입·수출액(총계행 제외, 숫자형). 2026년은 `is_partial_year=1` | 268,696 | `hs10`+`stat_cd`+`yyyymm` PK · `hs6` · `year` · `imp_dlr` · `exp_dlr` · `is_partial_year` |
 
-### 3-5. `clean_` 정제 — 전부 0행, 정제 노트북이 채운다
+### 3-5. `clean_` 정제 — 정제 노트북이 채운다 (2026-09-17: B2·A7 2개 적재, 나머지 4개 0행)
+
+| 테이블 | 행(2026-09-17 실측) | 채운 노트북 | 남은 판단 |
+|---|---|---|---|
+| `clean_dapa_localized_item` | **25,025**(고유 부품 12,788, `dup_count` 합 33,965) | `notebooks/clean_b2_a7.ipynb` §1 | `category_link_status` 후보 400행(137부품) → 팀 확정 후 `확정` |
+| `clean_dapa_overseas_plan` | **3,023**(원본 3,029 − 필수값 결측 1 − 판단번호 중복 5) | 같은 노트북 §2 | 전자 후보 392건(13.0%, 예산 21.3% **잠정**) 표본 검수 → `electronics_review_status` |
+| `clean_kdsis_nsn` | **135,864**(숫자13 135,331 + 검토 533) | 노트북 아님 — `db/alter_2026-09-17_kdsis_nsn.sql` §2-3 SQL이 `raw_kdsis_nsn`에서 만든다 | 검토 533(NIIN 영문 포함 13자 530·NIIN 없는 4자 3)의 취급. `has_attr_conflict` 0 확인 |
+| `clean_kdsis_nsn_ref` | **225,635**(원본 완전 중복 2,392 제거) | 같은 SQL | CAGE→국가 판별은 하지 않는다 |
+| 나머지 4개 | 0 | — | 아래 표 |
 
 | 테이블 | 역할 | PK | 노트북이 정해야 하는 것 |
 |---|---|---|---|
@@ -97,7 +111,9 @@
 | `clean_krit_task` | B1 과제. 차수·공고유형·과제번호 단위, 정부지원금(억원)·기간(개월) 숫자화 | `round_id`+`notice_type`+`task_no` | `hs6` 대응(근거 있을 때만), `is_counted` |
 | `clean_company` | 사업자번호 기준 업체 마스터 | `biz_reg_no` | `name_norm` 정규화 규칙 |
 | `clean_company_name_link` | 사업자번호 없는 출처(B2 계약업체·방산업체)의 업체명 연결 결과 | `link_id` | `match_type`(exact/multi/none), 연결률 보고 |
-| `clean_dapa_overseas_plan` | A7 판단번호 단위 3,024행. 전자 관련 후보 + 검수 상태 | `decision_no` | `is_electronics_candidate`, `electronics_review_status` |
+| `clean_dapa_overseas_plan` | A7 판단번호 단위 3,023행(적재 완료). 전자 관련 후보 + 검수 상태 | `decision_no` | `electronics_review_status`(검수), 같은 판단번호 5쌍은 별개 계획 행이라 `has_conflict=1`·대표 행만 남음 |
+| `clean_kdsis_nsn` | (2026-09-17) KDSIS NSN 기본정보 — NSN별 1행(FSC·NIIN·품명·부여일·참조번호 수). 연결 키 전용: 국외 API `stock_no = nsn`, B2 `CONCAT(fsc, 재고번호9) = nsn`(0 채움 금지) | `nsn` | 없음(SQL 파생). `nsn_format='검토'` 533은 연결에 쓸지 팀 판단 |
+| `clean_kdsis_nsn_ref` | (2026-09-17) NSN × CAGE × 참조번호 고유 목록 + 원본 행 수 | `ref_id`(UNIQUE nsn+cage+ref) | 없음(SQL 파생) |
 
 ### 3-6. `v_` 뷰 — 화면이 읽는 것
 
@@ -118,6 +134,11 @@
 | `v_hs6_candidate_rule` | (2026-09-16) 84·85·88·90류 HS6마다 규칙 판정(진입 = R1 군용전용 OR R2 항공·항행·레이더·무인기 OR (R3 이중용도 3·5·6·7부 AND R4 B2)) → `is_candidate`·`priority_rule`·`evidence_rule`·`evidence_note` | "어떤 HS6를 수집할지"의 근거. `ref_hs_whitelist` evidence 3열은 이 뷰의 스냅샷(적재·대조 후 UPDATE). 규칙·법령 근거는 `docs/reference/hs-whitelist-definition.md` §8 |
 | `v_hs6_candidate_vs_whitelist` | (2026-09-16) 규칙 후보 ↔ 현재 21개 대조: `유지(근거 교체)` / `강등·제외 검토(규칙 미해당)` / `신규 후보(미수집)` | 마스터 적재 전에는 24개 전부 '규칙 미해당'으로 보이니 적재 후에만 읽는다. 로컬 대조(09-16, 24개 반영 후): 유지 19 / 미해당 5(847180·848620·851762·854142·854159) / 신규 39 |
 | `v_hs_whitelist_rule` | (2026-09-16) `ref_hs_whitelist` 24행 × `ref_hs_rule_flag` 최신 버전 — 화면·노트북이 화이트리스트의 R1~R4 플래그·근거 수치를 한 번에 읽는 뷰 | 원본 없는 DB에서도 동작(스냅샷 테이블 조인) |
+| `v_overseas_plan_api_fsc` | (2026-09-16) 국외 조달계획 API를 FSC4 × 군 × 요구연도로 집계 — 건수·적용장비명 수·장비 예시 3개. `ref_fsc`·`ref_fsg` 라벨 조인 | NSN 13자리 행(9,970)만. **금액 없음**(통화 검증 전). 파일판과 합산 금지. HS6로 옮길 때는 `ref_category_map` 확정 행만 |
+| `v_overseas_plan_api_kdsis` | (2026-09-17) 국외 조달계획 API 13,615행 ← LEFT JOIN `clean_kdsis_nsn`(`stock_no = nsn`) — KDSIS 품명·FSC·NIIN 상태·참조번호 수 | 행수 불변(PK 조인). 연결 616행(고유 NSN 412, 검토 형식 16 포함). 지표 뷰 `v_overseas_plan_api_fsc`와 무관 |
+| `v_b2_localized_kdsis` | (2026-09-17) B2 33,965행 ← LEFT JOIN `clean_kdsis_nsn`(`fsc`(숫자4)+`nsn`(숫자9)) | 재고번호 9자리 미만·영문 포함은 `link_key` NULL(0 채움 금지). 연결 가능 21,561 중 449행(고유 171) |
+| `v_kdsis_link_summary` | (2026-09-17) 위 두 연결의 행수·연결 가능·연결·고유 NSN 요약 2행 | 보고용. 연결률이 낮은 것은 KDSIS가 한국 NCB(37) 위주(183,793행)이고 국외 품목 NSN이 대부분 없기 때문(추론) |
+| `v_budget_rnd_yearly` | (2026-09-16) 열린재정 연도별 합계(억원): 일반회계 합 · `국방기술개발` 단위사업 정부안/확정 · 부품국산화 · 국방반도체 · 기초연구 · 공급망 세부사업 | `amount_basis`가 `정부안`(2027)이면 확정액 0을 그리지 않는다. 예산(편성)은 조달계획·수입액과 합산·비율 금지 |
 
 ## 4. 꼭 지킬 규칙 5개
 
@@ -192,8 +213,8 @@ erDiagram
 
 | 항목 | 누가 | 언제 |
 |---|---|---|
-| `clean_` 6개 | 정제 노트북(팀원) | 계약정보 정제가 1순위 — 이게 있어야 화면 ②·⑤·`v_contract_monthly` |
-| `ref_category_map` 후보 17행 → `확정` | 팀 결정 | 확정돼야 `v_review_list`의 B2 건수 |
+| `clean_` 나머지 4개(계약정보·B1·업체 2개) | 정제 노트북(팀원) | 계약정보 정제가 1순위 — 이게 있어야 화면 ②·⑤·`v_contract_monthly`. B2·A7은 2026-09-17 적재 완료(`notebooks/clean_b2_a7.ipynb`) |
+| `ref_category_map` 후보 17행 → `확정`/`대응불가` + `b2_scope` | 팀 결정 | 확정돼야 `v_review_list`의 B2 건수. 권장안 `docs/report/category-map-decision-2026-09-17.md`, SQL `db/alter_2026-09-17_category_map.sql` |
 | `ref_hs_whitelist.b2_scope` | 팀 결정 | 항공·함정·유도(841191·880730·901420)를 `B2 범위 밖`으로 — `schema.sql` 말미 UPDATE 예시 |
 | `ref_hs_whitelist.civil_mix` NULL 14개 | — | HSK 연계표를 확인한 결과(2026-09-16) 84·85·88·90류 HS6 486개를 덮는 "해당 가능성" 목록이라 민수 혼합 판별력이 없다 → `hsk` 경로는 보류, 14개는 NULL(판단불가) 유지 |
 | 진입 규칙 확정(어느 R가 화이트리스트를 결정하는지) | 팀(시각화 단계, 주피터) | `ref_hs_rule_flag`를 pandas로 읽어 조합을 정한 뒤 `rule_version` 올려 재스냅샷 → `ref_hs_whitelist` 갱신 |

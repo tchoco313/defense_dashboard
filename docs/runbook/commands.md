@@ -55,9 +55,13 @@ cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" ... defense_dashboard < 
 
 | 파일 | 내용 | 적용 |
 |---|---|---|
-| `db/alter_2026-09-15_civil_mix.sql` | `ref_hs_whitelist.civil_mix` 추가(팀 판단 라벨) | 2026-09-16 적용, 같은 날 아래로 대체 |
+| `db/alter_2026-09-15_civil_mix.sql` | `ref_hs_whitelist.civil_mix` 추가(팀 판단 라벨) | 2026-09-16 적용, 같은 날 아래로 대체. 파일은 2026-09-17 삭제(git 이력) |
 | `db/alter_2026-09-16_indicator.sql` | `ref_hs_indicator`·`raw_hsk_control`·뷰 3개(`v_hs10_use_share`·`v_defense_relevance_b2`·`v_civil_mix_rule`)·`civil_mix` 3열 + 지표 채우기 + `civil_mix` 규칙값 UPDATE | 2026-09-16 적용(2회 실행 확인) |
 | `db/alter_2026-09-16_fsg.sql` | FSG 2자리 참조표 `ref_fsg`(80행 정적 시드) + `v_b2_fsg_summary` + 열 사전 8행 + `meta_dataset` `fsg_master` | **2026-09-16 적용**(팀 서버 3회 실행, 멱등. 기대: `ref_fsg` 80 · historical 2 · electronic 2 / `v_b2_fsg_summary` 53 16,300 · 59 2,942 · 58 379 / 미대응 `0`·NULL 18행 / `meta_column_dict` 289) |
+| `db/alter_2026-09-17_view_collation.sql` | 뷰 15개를 `SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci` 세션에서 정의 변경 없이 재생성. 팀 서버(MySQL 8.4) 뷰가 `utf8mb4_0900_ai_ci`로 만들어져 `WHERE b1_status='미적재'` 같은 상태 열 비교가 `ERROR 1267 Illegal mix of collations`로 실패하던 문제 | **2026-09-17 적용**(exit 0, `information_schema.VIEWS` 15개 전부 `utf8mb4_unicode_ci`, 데이터 294,420행 보존). **앞으로 뷰를 만드는 alter는 머리에 같은 SET NAMES를 둔다** |
+| `db/alter_2026-09-17_category_map.sql` | 품목군 대응표 확정 14 + 신규 1(5985→852910) + 대응불가 3, `clean_dapa_localized_item` 후보→확정, `b2_scope` 설정 | **미적용 — 팀 결정 후**(`docs/report/category-map-decision-2026-09-17.md`) |
+| `db/alter_2026-09-16_api_budget.sql` | 팀 드라이브 채택 3종: `raw_dapa_overseas_plan_api`(국외 조달계획 OpenAPI 품목 단위 13,615)·`raw_dapa_fsc_catalog`(군급분류집 756)·`raw_openfiscal_program_budget`(열린재정 12파일 2,860) + `ref_fsc` 열 보강·시드(§3, raw 적재 후 **다시 실행**해야 676행) + 뷰 `v_overseas_plan_api_fsc`·`v_budget_rnd_yearly` + 열 사전 48행 + `meta_dataset` 3행 | **2026-09-16 적용**(2회 실행, exit 0. 기대: 3표 `--verify` 일치 · `ref_fsc` 676/전자군 46/폐지 22 · 뷰 합 9,970/전자군 1,819 · 예산 뷰 2020 10,053.3 → 2027 30,741.4 정부안 · `meta_column_dict` 337) |
+| `db/alter_2026-09-17_kdsis_nsn.sql` | 국방표준종합서비스(KDSIS) NSN 목록 보조 조회용: `raw_kdsis_nsn`(228,027) + 파생 `clean_kdsis_nsn`(NSN별 1행 135,864)·`clean_kdsis_nsn_ref`(NSN×CAGE×참조번호 225,635) + 뷰 3(`v_overseas_plan_api_kdsis`·`v_b2_localized_kdsis`·`v_kdsis_link_summary`) + 열 사전 51행 + `meta_dataset` `kdsis_nsn` + 로그 2행. 원본은 `new_data/raw_kdsis_nsn.csv`(팀원 정리본, 2016 CSV 포함) | **2026-09-17 적용**(1차 표·뷰 → `load_db.py --raw --tables raw_kdsis_nsn` 89.6s → 2차 clean 채움. 기대: raw 228,027 · 숫자13 135,331 · 검토 533 · 속성 충돌 0 · ref 225,635 · `meta_column_dict` 388 · 기존 뷰 집계 불변 확인) |
 | `db/alter_2026-09-16_hs_rule.sql` | HS6 선정 규칙: `raw_hs_code_master`·`raw_hs_unit_name`·`ref_hs_rule_flag`(R1~R4 스냅샷)·뷰 5개(`v_hs10_use_tag_all`·`v_hsk_control_by_hs6`·`v_hs6_candidate_rule`·`v_hs6_candidate_vs_whitelist`·`v_hs_whitelist_rule`)·`ref_hs_whitelist` `evidence_basis`·`evidence_note` + 열 사전. §5는 정적 UPDATE(rule 16)·강등(5)·INSERT(신규 3) — 적재 전 실행 가능. §5-4 `ref_hs_rule_flag` 스냅샷은 원본 3개 적재 후 **다시 한 번 실행**해야 1,003행이 채워짐(미적재면 0행) | **2026-09-16 적용**(팀 서버 2회 — 1차 ALTER·뷰·§5 정적값, 원본 3개 적재 후 2차에서 §5-4 스냅샷 1,003행. MySQL 8.4에서 `group_concat_max_len` 오류 1260 → 스크립트가 세션 한도를 올림) |
 
 ```powershell
@@ -101,6 +105,21 @@ python scripts/load_db.py --verify           # 테이블별 건수 대조표
 - `db/seed_ref.sql`은 `ref_sido_map`(시도 토큰 45개)과 `ref_category_map` 후보(`ref_hs_whitelist.related_fsc` 분해, `link_status='후보'`)를 넣는다. 재실행해도 중복되지 않는다.
 - 열 사전 `db/column_dict.csv`는 `meta_column_dict` 테이블에 그대로 적재한다(UTF-8).
 - `LOAD DATA`를 쓸 수 있는 환경(로컬 검증 등)에서는 cp949 파일에 `CHARACTER SET euckr`, 줄끝은 파일별로 확인(`mariadb-remote-setup.md` §3).
+
+## 정제 노트북 (`notebooks/*.ipynb`) — `clean_` 채우기
+
+`clean_` 테이블은 노트북이 채운다. 접속은 `scripts/load_db.py`의 `connect()`(`.env`)를 재사용하고, 대상 테이블이 **비어 있을 때만** INSERT한 뒤 `meta_load_log`에 `중복 처리 후`·`관련 후보` 단계를 기록한다.
+
+```bash
+python -m jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=600 notebooks/clean_b2_a7.ipynb
+```
+
+| 노트북 | 채우는 테이블 | 2026-09-17 결과 |
+|---|---|---|
+| `notebooks/clean_b2_a7.ipynb` | `clean_dapa_localized_item`(B2 사업×부품 고유) · `clean_dapa_overseas_plan`(A7 판단번호 단위) | 25,025(고유 부품 12,788) / 3,023(필수값 결측 `TST00001001` 1행 제외, 같은 판단번호 5쌍은 PK 축약 — 별개 계획 행이라 23.6억 원이 빠짐, `has_conflict=1`). 전자 후보 392건(13.0%, 예산 21.3% 잠정·미검수). `meta_load_log` 4행 추가(46~49) |
+
+- 재적재: `TRUNCATE clean_x` 후 노트북 재실행(clean_은 raw를 참조만 하므로 FK 문제 없음). raw는 건드리지 않는다.
+- 판단 속성(`category_link_status='확정'`, `electronics_review_status='확정'/'오탐'`)은 노트북이 만들지 않는다 — 팀 결정·표본 검수 후 UPDATE.
 
 ## Markdown 문서 → PDF (`scripts/md_to_pdf.py`)
 
