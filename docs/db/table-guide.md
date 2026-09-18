@@ -25,7 +25,7 @@
 | 핵심 ① 수출입 현황(품목군별, 수입·수출 동등 배치 — 2026-09-17) | 수입: `v_import_hs6_year` · `v_import_share_hs6_year` · `v_hhi_hs6_year` / 수출: `v_import_hs6_year.exp_dlr` · `v_export_share_hs6_year` · `v_hhi_export_hs6_year` | `fact_customs_monthly` ← `raw_customs_trade` | 수입 뷰 **바로 사용 가능**. 수출 뷰 2개는 `db/alter_2026-09-17_export.sql` **2026-09-17 팀 서버 적용 완료** |
 | 핵심 ② 관련 조달·국산화 근거 | `v_contract_monthly` · `clean_krit_task`(B1) · `clean_dapa_localized_item`(B2) | `raw_dapa_contract` · `raw_krit_task` · `raw_dapa_localized_item` | B2는 **적재 완료(2026-09-17, 25,025행)**. 계약정보·B1은 raw만 있음(clean 정제 대기) |
 | 핵심 ② 보강 — FSC별 국외조달 계획(API) | `v_overseas_plan_api_fsc` | `raw_dapa_overseas_plan_api` ← 국외 조달계획 OpenAPI 13,615행 | **사용 가능(2026-09-16 적재)**. B2(국산화 완료, 지상 28개 사업)와 같은 FSC4 축으로 대칭 막대·사용처 표. 건수만 |
-| 핵심 ③ 추가 검토 목록·시나리오 | `v_review_list` | 위 전부 + `ref_category_map` | 무역 열은 동작. B2 열은 `대응 미확정`(대응표 확정 대기 — `docs/report/category-map-decision-2026-09-17.md`), B1 열은 `미적재` |
+| 핵심 ③ 추가 검토 목록·시나리오 | `v_review_list` | 위 전부 + `ref_category_map` | 무역 열은 동작. B2 열은 **`대응표 없음`·NULL로 고정**(2026-09-18 결정: HS6↔FSC 대응표를 확정하지 않음, `docs/report/category-map-decision-2026-09-17.md` 머리 절 — B2는 FSC 축 화면 ②에서만), B1 열은 `미적재` |
 | 보조 ④ 수출·생산 추세 | `v_import_hs6_year`(수출 열) · `raw_kosis_utilization` · `raw_kosis_production_index` | KOSIS 2종 | 사용 가능(raw 직접) |
 | 보조 ⑤ 국내 지도 | `clean_dapa_contract.sido_code` + `ref_sido_map` | `raw_dapa_contract.vendor_address` | clean 정제 대기 |
 | KPI 카드 | `raw_dapa_contract_exec_by_service`(군별 계약집행) · `raw_dapa_defense_company` | A7 · 방산업체 지정현황 | 사용 가능 |
@@ -52,11 +52,11 @@
 
 | 테이블 | 역할 | 출처 | 행 | 상태 | 핵심 열 |
 |---|---|---|---|---|---|
-| `ref_hs_whitelist` | 분석 대상 HS6 24개(2026-09-16 규칙 도출: rule 19 · 팀판단 5, 신규 852910·901410·901490은 관세청 미수집). 사이드바 필터·집계의 기준 | `data/reference/hs_whitelist.csv` | 24 | 적재 완료. `b2_scope`는 팀 확정 대기 | `hs6` PK · `category`(반도체/전자부품/소재장비) · `priority` · `axis`(import/export/both) · `system_family` · `related_fsc` · `civil_mix`(높음/중간/낮음/NULL) · `civil_mix_basis`(hs10/hsk/판단불가) · `civil_mix_note` |
+| `ref_hs_whitelist` | 분석 대상 HS6 24개(2026-09-16 규칙 도출: rule 19 · 팀판단 5, 신규 852910·901410·901490은 관세청 미수집). 사이드바 필터·집계의 기준 | `data/reference/hs_whitelist.csv` | 24 | 적재 완료. `b2_scope`는 채우지 않음(2026-09-18, 대응표 미확정 결정) | `hs6` PK · `category`(반도체/전자부품/소재장비) · `priority` · `axis`(import/export/both) · `system_family` · `related_fsc` · `civil_mix`(높음/중간/낮음/NULL) · `civil_mix_basis`(hs10/hsk/판단불가) · `civil_mix_note` |
 | `ref_hs_indicator` | (2026-09-16) 품목군별 **정량 지표** — "민수 혼합"·"국방 관련성" 라벨의 수치 근거. 한 행 = HS6 × 지표 × 기간 | 뷰에서 계산(`db/alter_2026-09-16_indicator.sql`) | 39 | 적재 완료 | `hs6` · `axis` · `indicator`(mil_hs10_share / aero_hs10_share / auto_hs10_share / b2_part_count / b2_row_count …) · `value_num` · `numerator`/`denominator` · `period_start/end` · `link_status` · `note`(한계) |
 | `ref_hs_rule_flag` | (2026-09-16) HS6별 선정 규칙 **R1~R4 판정·근거 수치 스냅샷** — 84·85·88·90류 HS6 1,003개 전부(화이트리스트 밖 포함). 팀 회의 결정: 규칙은 전부 저장하고 어느 규칙이 진입을 결정하는지는 시각화 단계에서 주피터로 정한다 | `alter_2026-09-16_hs_rule.sql` §5-4 (`v_hs6_candidate_rule` 물질화) | 1,003(팀 서버 2026-09-16 적용) | `r1_mil`·`r2_aero_nav`·`r3_du`·`r3_ml`(현재 항상 0)·`r4_b2` · 근거 수치 · `is_candidate_provisional` · `in_whitelist` · `rule_version` |
 | `ref_country` | 국가코드 → 한글명·좌표 | Google DSPL + 수기 | 238 | 적재 완료 | `stat_cd` PK · `name_ko` · `lat`/`lon`(ZZ 기타국은 NULL) |
-| `ref_category_map` | FSC·품목군 → HS6 **품목군 수준** 대응표. 직접 매핑 아님 | `related_fsc` 분해 시드 | 17 | 전부 `후보` — 팀이 `확정`으로 바꿔야 B2 건수가 채워짐. 권장안·실행 SQL: `docs/report/category-map-decision-2026-09-17.md`, `db/alter_2026-09-17_category_map.sql`(미적용) | `map_type`(fsc4/contract_group/krit_task) · `source_key` · `hs6` · `link_status` |
+| `ref_category_map` | FSC·품목군 → HS6 **품목군 수준** 대응표. 직접 매핑 아님 | `related_fsc` 분해 시드 | 17 | 전부 `후보`로 **고정**(2026-09-18 결정: 확정하지 않음 — R4 입력용으로만 유지). ~~권장안·실행 SQL: `docs/report/category-map-decision-2026-09-17.md`, `db/alter_2026-09-17_category_map.sql`~~(2026-09-18 폐기·삭제) | `map_type`(fsc4/contract_group/krit_task) · `source_key` · `hs6` · `link_status` |
 | `ref_sido_map` | 주소 첫 토큰 → 17개 시도 코드 | 수작업 시드 | 45 | 적재 완료 | `token` PK · `sido_code` · `sido_name` |
 | `ref_fsg` | (2026-09-16) FSG 군급 **2자리** 라벨. 핵심 ② 국산화 완료 섹션의 "사업 × FSC군 히트맵"·FSC별 막대 라벨용. 계약정보·조달계획·입찰 CSV에는 FSC가 없어 이 표와 엮이지 않음 | `data/reference/fsg_master.csv`(팀원 공유 DLA 표 77행 + 95·96·99 보완) | 80 | 적재 완료(`db/alter_2026-09-16_fsg.sql`) | `fsg_code` PK · `name_ko`/`name_en` · `is_historical`(21·33) · `is_electronic_group`(58·59) · `note_ko`(보완 3행 출처·미대조) |
 | `ref_fsc` | FSC 군급분류 **4자리** 라벨 | `raw_dapa_fsc_catalog`(군급분류집 15119907)에서 `INSERT…SELECT`(`db/alter_2026-09-16_api_budget.sql` §3, 그룹행 xx00 제외) | 676 | 적재 완료(2026-09-16). 58/59군 46, 폐지(`status='C'`) 22 | `fsc4` · `fsc2` · `name_ko` · `status` · `is_electronic_group` |
@@ -123,7 +123,7 @@
 | `clean_company` | 사업자번호 기준 업체 마스터 | `biz_reg_no` | `name_norm` 정규화 규칙 |
 | `clean_company_name_link` | 사업자번호 없는 출처(B2 계약업체·방산업체)의 업체명 연결 결과 | `link_id` | `match_type`(exact/multi/none), 연결률 보고 |
 | `clean_dapa_overseas_plan` | A7 판단번호 단위 3,023행(적재 완료). 전자 관련 후보 + 검수 상태 | `decision_no` | `electronics_review_status`(검수), 같은 판단번호 5쌍은 별개 계획 행이라 `has_conflict=1`·대표 행만 남음 |
-| `clean_kdsis_nsn` | (2026-09-17) KDSIS NSN 기본정보 — NSN별 1행(FSC·NIIN·품명·부여일·참조번호 수). 연결 키 전용: 국외 API `stock_no = nsn`, B2 `CONCAT(fsc, 재고번호9) = nsn`(0 채움 금지) | `nsn` | 없음(SQL 파생). `nsn_format='검토'` 533은 연결에 쓸지 팀 판단 |
+| `clean_kdsis_nsn` | (2026-09-17) KDSIS NSN 기본정보 — NSN별 1행(FSC·NIIN·품명·부여일·참조번호 수). 연결 키 전용: 국외 API `stock_no = nsn`, B2 `CONCAT(fsc, 재고번호9) = nsn`(0 채움 금지). **NSN 등록 = 표준화 사실이며 사용·조달·재고를 뜻하지 않음** — 화면에서 연결 건수를 수요 근거로 쓰지 않는다 | `nsn` | 없음(SQL 파생). `nsn_format='검토'` 533은 연결에 쓸지 팀 판단 |
 | `clean_kdsis_nsn_ref` | (2026-09-17) NSN × CAGE × 참조번호 고유 목록 + 원본 행 수 | `ref_id`(UNIQUE nsn+cage+ref) | 없음(SQL 파생) |
 
 ### 3-6. `v_` 뷰 — 화면이 읽는 것
@@ -240,8 +240,8 @@ erDiagram
 | 항목 | 누가 | 언제 |
 |---|---|---|
 | `clean_` 나머지 4개(계약정보·B1·업체 2개) | 정제 노트북(팀원) | 계약정보 정제가 1순위 — 이게 있어야 화면 ②·⑤·`v_contract_monthly`. B2·A7은 2026-09-17 적재 완료(`notebooks/clean_b2_a7.ipynb`) |
-| `ref_category_map` 후보 17행 → `확정`/`대응불가` + `b2_scope` | 팀 결정 | 확정돼야 `v_review_list`의 B2 건수. 권장안 `docs/report/category-map-decision-2026-09-17.md`, SQL `db/alter_2026-09-17_category_map.sql` |
-| `ref_hs_whitelist.b2_scope` | 팀 결정 | 항공·함정·유도(841191·880730·901420)를 `B2 범위 밖`으로 — `schema.sql` 말미 UPDATE 예시 |
+| ~~`ref_category_map` 후보 17행 → `확정`/`대응불가` + `b2_scope`~~ | **채우지 않음(2026-09-18 결정)** | FSC↔HS 근거 없음. `v_review_list` B2 건수는 NULL·`대응표 없음`으로 고정, B2는 FSC 축(②)에서만. 기록 `docs/report/category-map-decision-2026-09-17.md` 머리 절 |
+| ~~`ref_hs_whitelist.b2_scope`~~ | **채우지 않음(2026-09-18)** | 대응표를 확정하지 않으므로 범위 구분이 필요 없음. 24행 NULL 유지 |
 | `ref_hs_whitelist.civil_mix` NULL 14개 | — | HSK 연계표를 확인한 결과(2026-09-16) 84·85·88·90류 HS6 486개를 덮는 "해당 가능성" 목록이라 민수 혼합 판별력이 없다 → `hsk` 경로는 보류, 14개는 NULL(판단불가) 유지 |
 | 진입 규칙 확정(어느 R가 화이트리스트를 결정하는지) | 팀(시각화 단계, 주피터) | `ref_hs_rule_flag`를 pandas로 읽어 조합을 정한 뒤 `rule_version` 올려 재스냅샷 → `ref_hs_whitelist` 갱신 |
 | `raw_krit_task` 추가 차수 | KRIT 공고 추출(사용자) | 26-2차 예비 RFP 20건 등 |

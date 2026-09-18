@@ -59,11 +59,13 @@ cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" ... defense_dashboard < 
 | `db/alter_2026-09-16_indicator.sql` | `ref_hs_indicator`·`raw_hsk_control`·뷰 3개(`v_hs10_use_share`·`v_defense_relevance_b2`·`v_civil_mix_rule`)·`civil_mix` 3열 + 지표 채우기 + `civil_mix` 규칙값 UPDATE | 2026-09-16 적용(2회 실행 확인) |
 | `db/alter_2026-09-16_fsg.sql` | FSG 2자리 참조표 `ref_fsg`(80행 정적 시드) + `v_b2_fsg_summary` + 열 사전 8행 + `meta_dataset` `fsg_master` | **2026-09-16 적용**(팀 서버 3회 실행, 멱등. 기대: `ref_fsg` 80 · historical 2 · electronic 2 / `v_b2_fsg_summary` 53 16,300 · 59 2,942 · 58 379 / 미대응 `0`·NULL 18행 / `meta_column_dict` 289) |
 | `db/alter_2026-09-17_view_collation.sql` | 뷰 15개를 `SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci` 세션에서 정의 변경 없이 재생성. 팀 서버(MySQL 8.4) 뷰가 `utf8mb4_0900_ai_ci`로 만들어져 `WHERE b1_status='미적재'` 같은 상태 열 비교가 `ERROR 1267 Illegal mix of collations`로 실패하던 문제 | **2026-09-17 적용**(exit 0, `information_schema.VIEWS` 15개 전부 `utf8mb4_unicode_ci`, 데이터 294,420행 보존). **앞으로 뷰를 만드는 alter는 머리에 같은 SET NAMES를 둔다** |
-| `db/alter_2026-09-17_category_map.sql` | 품목군 대응표 확정 14 + 신규 1(5985→852910) + 대응불가 3, `clean_dapa_localized_item` 후보→확정, `b2_scope` 설정 | **미적용 — 팀 결정 후**(`docs/report/category-map-decision-2026-09-17.md`) |
+| ~~`db/alter_2026-09-17_category_map.sql`~~ | 품목군 대응표 확정 14 + 신규 1 + 대응불가 3 (초안) | **2026-09-18 폐기 — FSC↔HS 근거 없음(사용자 결정), 파일 삭제(git 이력 `26d2672` 이전)**. 결정 기록 `docs/report/category-map-decision-2026-09-17.md` 머리 절 |
+| `db/alter_2026-09-18_r4_provisional.sql` | 대응표 미확정 결정 반영: R3∧R4로만 진입한 HS6 6개 `evidence_note`에 "R4 잠정" 사유 추가, `v_review_list.b2_status` 라벨 `대응 미확정`→`대응표 없음`. 표·행 수 불변, 멱등 | **2026-09-18 적용**(exit 0, `evidence_note` 잠정 6행 · `v_review_list` 2025 `대응표 없음` 24 · `ref_category_map` 후보 17 · 뷰 콜레이션 unicode_ci · `ref_hs_rule_flag` r4 14 불변) |
 | `db/alter_2026-09-16_api_budget.sql` | 팀 드라이브 채택 3종: `raw_dapa_overseas_plan_api`(국외 조달계획 OpenAPI 품목 단위 13,615)·`raw_dapa_fsc_catalog`(군급분류집 756)·`raw_openfiscal_program_budget`(열린재정 12파일 2,860) + `ref_fsc` 열 보강·시드(§3, raw 적재 후 **다시 실행**해야 676행) + 뷰 `v_overseas_plan_api_fsc`·`v_budget_rnd_yearly` + 열 사전 48행 + `meta_dataset` 3행 | **2026-09-16 적용**(2회 실행, exit 0. 기대: 3표 `--verify` 일치 · `ref_fsc` 676/전자군 46/폐지 22 · 뷰 합 9,970/전자군 1,819 · 예산 뷰 2020 10,053.3 → 2027 30,741.4 정부안 · `meta_column_dict` 337) |
 | `db/alter_2026-09-17_kdsis_nsn.sql` | 국방표준종합서비스(KDSIS) NSN 목록 보조 조회용: `raw_kdsis_nsn`(228,027) + 파생 `clean_kdsis_nsn`(NSN별 1행 135,864)·`clean_kdsis_nsn_ref`(NSN×CAGE×참조번호 225,635) + 뷰 3(`v_overseas_plan_api_kdsis`·`v_b2_localized_kdsis`·`v_kdsis_link_summary`) + 열 사전 51행 + `meta_dataset` `kdsis_nsn` + 로그 2행. 원본은 `new_data/raw_kdsis_nsn.csv`(팀원 정리본, 2016 CSV 포함) | **2026-09-17 적용**(1차 표·뷰 → `load_db.py --raw --tables raw_kdsis_nsn` 89.6s → 2차 clean 채움. 기대: raw 228,027 · 숫자13 135,331 · 검토 533 · 속성 충돌 0 · ref 225,635 · `meta_column_dict` 388 · 기존 뷰 집계 불변 확인) |
 | `db/alter_2026-09-17_procurement_aux.sql` | 국내 축 확장 뷰 9개: 조달 보조 6종(`raw_dapa_domestic_plan`·`bid_notice`·`bid_result`·`overseas_contract`·`overseas_bid_result`·`defense_company`) raw 직접 집계 + 계약정보 수의계약 사유(`v_contract_private_reason`·`v_contract_reason_group_yearly`). `CREATE OR REPLACE VIEW`만 있어 데이터·표를 건드리지 않음. FSC·HS6 축 아님 | **2026-09-17 적용**(1회, exit 0, 뷰 29개 전부 `utf8mb4_unicode_ci`). 기대값은 파일 §10(계약 37,608 · 수의 그룹 경쟁실패 1,847·단일공급 747 · 유찰 키 1,741 · 공고 10,840 · 국외 사슬 1,362/97 · 국내 계획 2025 8.558조 등). 재실행 가능 |
 | `db/alter_2026-09-17_export.sql` | 수출 축 동등 배치(2026-09-17 사용자 결정): `v_export_share_hs6_year`·`v_hhi_export_hs6_year`(수입 뷰와 같은 구조, `exp_dlr` 기준). `CREATE OR REPLACE VIEW`만, 표·데이터 불변 | **2026-09-17 적용**(exit 0, 뷰 31개, 두 뷰 `utf8mb4_unicode_ci`. 확인: 2025 수출 HHI 854231 1,788(CN 26.9%) · 854239 1,945(TW 26.2%) · 852990 5,038(CN 69.3%)) |
+| `db/alter_2026-09-18_meta_dataset.sql` | `meta_dataset` UPDATE 2문(표·뷰 변경 없음): 관세청 `customs_all`·`customs_progress` `published_on` 2022-05-25·`updated_on` 2026-05-22(포털 확인), `dapa_contract` `is_partial_period` 1(2024는 11~12월만 12,304행). 멱등 | **2026-09-18 적용**(exit 0, `db/meta_dataset.csv`와 일치) |
 | `db/alter_2026-09-16_hs_rule.sql` | HS6 선정 규칙: `raw_hs_code_master`·`raw_hs_unit_name`·`ref_hs_rule_flag`(R1~R4 스냅샷)·뷰 5개(`v_hs10_use_tag_all`·`v_hsk_control_by_hs6`·`v_hs6_candidate_rule`·`v_hs6_candidate_vs_whitelist`·`v_hs_whitelist_rule`)·`ref_hs_whitelist` `evidence_basis`·`evidence_note` + 열 사전. §5는 정적 UPDATE(rule 16)·강등(5)·INSERT(신규 3) — 적재 전 실행 가능. §5-4 `ref_hs_rule_flag` 스냅샷은 원본 3개 적재 후 **다시 한 번 실행**해야 1,003행이 채워짐(미적재면 0행) | **2026-09-16 적용**(팀 서버 2회 — 1차 ALTER·뷰·§5 정적값, 원본 3개 적재 후 2차에서 §5-4 스냅샷 1,003행. MySQL 8.4에서 `group_concat_max_len` 오류 1260 → 스크립트가 세션 한도를 올림) |
 
 ```powershell
@@ -139,6 +141,14 @@ python scripts/md_to_pdf.py docs/db/table-guide.md --subtitle "팀원용 DB 테�
 ## 방사청 파일데이터
 
 OpenAPI 없이 data.go.kr에서 수동 다운로드해 `data/raw/dapa/`에 둔다(cp949). 확보 기록은 `docs/report/data_feasibility_check.md` 형식을 따른다.
+
+## Streamlit 배포 (Community Cloud, 2026-09-18 구축)
+
+- 앱 URL **https://defense-trade.streamlit.app** — 워크스페이스 `kimhh080888-blip`(GitHub 로그인), 저장소 `kimhh080888-blip/Defense_Dashboard` `main` / 메인 파일 `app/main.py` / Python 3.14 / 루트 `requirements.txt` 사용. `main`에 push하면 자동 재배포(첫 빌드 약 2분, 2026-09-18 01:49 UTC 성공).
+- 접속 정보: 로컬은 `.env`, 클라우드는 **앱 설정 → Secrets**(TOML, `.streamlit/secrets.toml.example` 그대로 채움). `app/db.py`가 `.env` → `st.secrets` 순으로 읽고, `MARIADB_SSL=1`이면 TLS(AWS RDS용).
+- 현재 상태: Secrets 비어 있음 → 앱은 "DB 설정 오류 … Secrets에 넣으세요" + 다시 연결 버튼을 보여 준다(정상). 팀 DB(192.168.100.221 내부망)는 클라우드에서 닿지 않으므로 **DB를 AWS로 옮긴 뒤** Secrets를 채운다(사용자 계획).
+- 공개 범위: private 저장소 앱은 기본이 "Only specific people"(팀원에게 안 보임) → **2026-09-18 "This app is public and searchable"로 변경**(사용자 결정). 다시 제한하려면 앱 설정 → 공유하기에서 되돌리고 이메일 초대. GitHub 권한은 OAuth `repo` 스코프(계정 전체 저장소 읽기)로 부여됨 — 작업 공간 설정 → 연결된 계정에서 해제 가능.
+- 로컬 실행: `streamlit run app/main.py` (`.streamlit/config.toml`: headless·통계 수집 끔).
 
 ## 새 스크립트 작성 규칙
 

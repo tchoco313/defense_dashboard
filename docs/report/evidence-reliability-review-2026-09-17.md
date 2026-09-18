@@ -95,7 +95,7 @@
 
 | 연결 | 키·수준 | 관계 | 상태 |
 |---|---|---|---|
-| FSC4 ↔ HS6 (`ref_category_map`) | 품목군 수준 대응표 | **N:M** — 5961→854110/21/29/59(4개), 5962→854231/33/39(3개), 5855·5860→901380 | 17행 **전부 `후보`**, `decided_by='load_db.py seed'`. 확정안 `db/alter_2026-09-17_category_map.sql`(확정 15·대응불가 3)은 **미적용**. 결정 근거는 B2 `item_name` 문자열 전수 대조이며 "5962 IC가 실제 프로세서·증폭기인지는 알 수 없다"(`category-map-decision-2026-09-17.md`) |
+| FSC4 ↔ HS6 (`ref_category_map`) | 품목군 수준 대응표 | **N:M** — 5961→854110/21/29/59(4개), 5962→854231/33/39(3개), 5855·5860→901380 | 17행 **전부 `후보`**, `decided_by='load_db.py seed'`. 확정안 alter(확정 15·대응불가 3)는 **2026-09-18 폐기·삭제(대응표 확정하지 않기로 결정, §6 B-1)**. 결정 근거는 B2 `item_name` 문자열 전수 대조이며 "5962 IC가 실제 프로세서·증폭기인지는 알 수 없다"(`category-map-decision-2026-09-17.md`) |
 | KDSIS NSN ↔ 국외 조달계획 API | `stock_no = nsn` 완전 일치 | 1:1(PK 조인) | 13,615행 중 형식 충족 9,970 → 연결 **616행(고유 412, 4.5%)** |
 | KDSIS NSN ↔ B2 | `fsc4 + 재고번호9 = nsn` | 1:1 | 33,965행 중 키 충족 21,561 → 연결 **449행(고유 171, 1.3%)**. 9자리 미만 9,810행은 0 채움 없이 제외 |
 | HS10 ↔ HS6, HSK10 ↔ HS6 | 코드 앞 6자리 절단 | 계층 | 대응표가 아닌 코드 구조. HSK 연계표는 84·85·88·90류 HS6 486개에 걸려 "판별력 없음"으로 보류 |
@@ -113,11 +113,11 @@
 - `v_defense_relevance_b2`는 `ref_category_map` **후보** 행을 B2 원본에 그대로 조인해 `b2_part_count`를 만든다(`db/schema.sql` 1301행~).
 - 이 값이 `ref_hs_rule_flag.r4_b2`(`b2_part_count > 0`)와 화이트리스트 `evidence='B2-FSC'`의 근거가 된다(`schema.sql` 1412·1429행).
 - 즉 "팀이 후보로 적어 둔 FSC"가 "B2 국산화 완료 품목이 있다"는 근거로 바뀌어 HS6 선정 규칙에 들어간다. 문서는 R4를 "후보 대응이라 보조"(`schema.sql` 1364행)로 표기했고 R4 단독으로는 진입하지 않는다(진입 = R1 OR R2 OR (R3 AND R4)). 그러나 R3∧R4로 진입한 priority 2 품목의 R4 근거는 확정되지 않은 대응이다.
-- **추론**: 대응표 확정 결과 `대응불가` 3건이 실제로 적용되면 해당 HS6의 R4가 0으로 바뀌어 화이트리스트 진입 여부·priority가 달라질 수 있다. 어느 HS6가 영향받는지는 alter 적용 후 `v_hs6_candidate_vs_whitelist`로 재확인해야 한다(미확인).
+- **추론**(2026-09-18 부기: 대응표를 확정하지 않기로 해 적용하지 않음. R4는 잠정 표기로 유지): 대응표 확정 결과 `대응불가` 3건이 실제로 적용되면 해당 HS6의 R4가 0으로 바뀌어 화이트리스트 진입 여부·priority가 달라질 수 있다. 어느 HS6가 영향받는지는 alter 적용 후 `v_hs6_candidate_vs_whitelist`로 재확인해야 한다(미확인).
 
 ### 2-4. 연결 관계가 확인된 경우와 추정된 경우의 구분
 
-구분 플래그 체계는 충분히 설계돼 있다(확인됨): `ref_hs_whitelist.evidence_basis`(`rule` 19 / `팀판단` 5), `ref_category_map.link_status`(확정/후보/대응불가) + `link_basis` + `decided_by`, `clean_*.category_link_status`(확정/후보/대응불가/미연결/조회표 전용), `review_status`, `ref_hs_indicator.link_status`, `clean_kdsis_nsn.nsn_format`(숫자13/검토), `v_review_list.b1_status/b2_status`(미적재/대응 미확정/B2 범위 밖/집계).
+구분 플래그 체계는 충분히 설계돼 있다(확인됨): `ref_hs_whitelist.evidence_basis`(`rule` 19 / `팀판단` 5), `ref_category_map.link_status`(확정/후보/대응불가) + `link_basis` + `decided_by`, `clean_*.category_link_status`(확정/후보/대응불가/미연결/조회표 전용), `review_status`, `ref_hs_indicator.link_status`, `clean_kdsis_nsn.nsn_format`(숫자13/검토), `v_review_list.b1_status/b2_status`(미적재/대응표 없음(2026-09-18 개칭)/B2 범위 밖/집계).
 
 부족한 점(확인됨):
 
@@ -223,7 +223,7 @@
 
 - 요인 연결은 **`v_review_list` 한 곳**에 설계돼 있다(확인됨): 화이트리스트 × 연도별 HHI + B1 확정 과제 수 + B2 확정 대응 부품 수. 예산(A7·A9)·조달 API(A8)·계약정보는 이 뷰에 없고 배경 페이지 독립 표시로 설계됐다.
 - 현재 DB 상태(부록 A-1): 246행 **전부** `b1_status='미적재'`, `b2_status='대응 미확정'`, B1·B2 건수 NULL. 즉 **지금 검토 목록은 무역 열만 값이 있는 나열**이다.
-- 앱에는 HHI·검토 목록·관문·시나리오·B1/B2 표시 어느 것도 없다(확인됨, `app/main.py`·`app/pages/1_관세청_수출입.py`).
+- 앱에는 HHI·검토 목록·관문·시나리오·B1/B2 표시 어느 것도 없다(확인됨, 2026-09-17 시점 `app/main.py`·`app/pages/1_관세청_수출입.py` — 2026-09-18 DB 연결 초안 `app/pages/1_수출입_현황.py`로 교체, 시각화는 보류).
 - 판정: "연결"은 설계 완료·데이터 미충족, "나열"이 현재 실체다. 대응표 확정 alter 적용과 KRIT·계약정보 정제 적재가 끝나야 연결이 실제로 작동한다.
 
 ### 5-2. 같은 원천의 근거를 중복 가산하거나 근거 부족 품목에 높은 점수를 주는가
@@ -265,13 +265,15 @@
 | A-7 | `schema-design.md` §3 ref_fsc "출처 없어 0행" → 676행(군급분류집) 정정 | `docs/db/schema-design.md` | 탐색 기록 |
 | A-8 | 검토표 6항목에 "⑦ 제외 근거(반대 근거)" 추가 제안을 `idea-review.md` §6 후속 작업에 기록 | `docs/idea-review.md` | §5-4 |
 
+**처리 결과(2026-09-18)**: A-1·A-5는 2026-09-17 저녁 개정 시 이미 반영되어 있음(기획서 관문 행 주석·HS6 개수 병기 확인). A-2 `hs-whitelist-definition.md` §8 결론 문구 정정, A-3 `data-sources.md` KDSIS 절·`table-guide.md` `clean_kdsis_nsn` 행 문장 추가, A-4 기획서 2단계 행·검토 목록 열에서 "관련 R&D 예산" 제거(배경 ⓪ 추이로 한정, docx v2에는 원래 없음), A-6 `db/meta_dataset.csv` + `db/alter_2026-09-18_meta_dataset.sql` 팀 서버 적용, A-7 `schema-design.md` §3 676행(전자군 46) 실측 정정, A-8 `idea-review.md` §6 15번.
+
 ### B. 데이터·DB (사용자 노트북 또는 팀 결정 필요)
 
 | # | 조치 | 담당 | 효과 |
 |---|---|---|---|
-| B-1 | `db/alter_2026-09-17_category_map.sql` 팀 확정 후 적용 | 팀 결정 → Claude 적용 | `v_review_list` B2 열이 처음으로 값을 가짐. R4 재평가로 화이트리스트 영향 확인 필요(§2-3) |
+| B-1 | ~~`db/alter_2026-09-17_category_map.sql` 팀 확정 후 적용~~ **폐기(2026-09-18, 사용자 결정 — FSC↔HS 공식 연계표 없음·KRIT 2025 매칭 연구 비공개, `category-map-decision-2026-09-17.md` 머리 절)**. R4는 유지하되 잠정 표기(`alter_2026-09-18_r4_provisional.sql`) | — | B2 열은 `대응표 없음`·NULL로 고정. B2는 FSC 축(화면 ②)에서만 |
 | B-2 | 계약정보·KRIT 정제 노트북 → `clean_dapa_contract`·`clean_krit_task` 적재 | 사용자 | B1 열 활성화, 5분류·국산화 상태 |
-| B-3 | `v_review_list`에 `대응불가` 분기 추가, `ref_hs_whitelist.b2_scope` 24행 채움 | Claude(DDL) + 팀 판단(값) | §5-3 구분 복원 |
+| B-3 | ~~`v_review_list`에 `대응불가` 분기 추가, `ref_hs_whitelist.b2_scope` 24행 채움~~ **폐기(2026-09-18)** — 대응표를 확정하지 않으므로 분기·`b2_scope` 값이 필요 없음. 라벨만 `대응 미확정`→`대응표 없음`으로 정정 | — | §5-3 구분은 "설계상 연결 없음"으로 문서화 |
 | B-4 | 검토 목록 정렬을 근거 등급 층화(priority 1·2 먼저, 팀판단 5개는 별도 탭) 후 HHI↓ | 팀 결정 | §5-2 |
 | B-5 | ~~A7 `계약` ↔ 국외 계약정보 판단번호 대조~~ → 국외 계약정보에 판단번호 없음(대조 불가, 2026-09-17 확인). 대신 계획→입찰 사슬 `v_overseas_bid_chain` 적용 완료 | Claude(완료) | 계획 이후 단계 지표(2025 부분연도 한정) |
 
@@ -339,4 +341,4 @@ A-7. `meta_load_log`: `dapa_contract` 원본 전체 43,112 이후 단계 없음;
 
 ## 부록 B. 인용 문서
 
-`docs/idea-review.md` §3(유의사항 3·9·12·14·15)·§4·§5 / `docs/report/design-validity-review-2026-09-15.md`(논리 사슬 L1~L3, Q3, 금액 비교 조합표) / `docs/report/project-plan-2026-09-16.md`(관문 표, 화면 구성 ③, 하지 않는 것) / `docs/report/project-plan-review-2026-09-16.md` / `docs/report/professor-feedback-2026-09-15.md` / `docs/reference/hs-whitelist-definition.md` §7·§8 / `docs/report/category-map-decision-2026-09-17.md` / `docs/db/schema-design.md` §7 / `docs/db/table-guide.md` / `docs/data-sources.md` / `db/schema.sql`(`ref_category_map`·`v_review_list`·`v_defense_relevance_b2`·`v_hs6_candidate_rule` 주석) / `db/alter_2026-09-17_kdsis_nsn.sql` / `db/alter_2026-09-17_category_map.sql` / `app/main.py`·`app/pages/1_관세청_수출입.py`
+`docs/idea-review.md` §3(유의사항 3·9·12·14·15)·§4·§5 / `docs/report/design-validity-review-2026-09-15.md`(논리 사슬 L1~L3, Q3, 금액 비교 조합표) / `docs/report/project-plan-2026-09-16.md`(관문 표, 화면 구성 ③, 하지 않는 것) / `docs/report/project-plan-review-2026-09-16.md` / `docs/report/professor-feedback-2026-09-15.md` / `docs/reference/hs-whitelist-definition.md` §7·§8 / `docs/report/category-map-decision-2026-09-17.md` / `docs/db/schema-design.md` §7 / `docs/db/table-guide.md` / `docs/data-sources.md` / `db/schema.sql`(`ref_category_map`·`v_review_list`·`v_defense_relevance_b2`·`v_hs6_candidate_rule` 주석) / `db/alter_2026-09-17_kdsis_nsn.sql` / ~~`db/alter_2026-09-17_category_map.sql`~~(2026-09-18 삭제) / `app/main.py`·~~`app/pages/1_관세청_수출입.py`~~(→ `1_수출입_현황.py`)

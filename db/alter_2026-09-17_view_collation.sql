@@ -77,7 +77,7 @@ SELECT w.hs6, w.category, w.name_ko, w.priority, w.axis,
        CASE WHEN w.b2_scope = 'B2 범위 밖' THEN 'B2 범위 밖'
             WHEN NOT EXISTS (SELECT 1 FROM clean_dapa_localized_item) THEN '미적재'
             WHEN NOT EXISTS (SELECT 1 FROM ref_category_map m
-                              WHERE m.map_type = 'fsc4' AND m.hs6 = w.hs6 AND m.link_status = '확정') THEN '대응 미확정'
+                              WHERE m.map_type = 'fsc4' AND m.hs6 = w.hs6 AND m.link_status = '확정') THEN '대응표 없음'
             ELSE '집계' END                                                               AS b2_status,
        CASE WHEN w.b2_scope = 'B2 범위 밖'
               OR NOT EXISTS (SELECT 1 FROM clean_dapa_localized_item)

@@ -80,7 +80,7 @@ CREATE TABLE ref_hs_whitelist (
   axis       ENUM('import','export','both') NOT NULL,
   system_family  VARCHAR(30)  NULL COMMENT '무기체계 계열(반도체/레이더/통신/통신·레이더 부분품/항법/전자광학/항공전자/AI연산/소재장비) — 2026-09-15 추가',
   defense_use_ko VARCHAR(300) NULL COMMENT '국방 용도 1문장(팀 판단, 공식 분류 아님)',
-  related_fsc    VARCHAR(30)  NULL COMMENT 'B2 대응 FSC4 후보(; 구분). ref_category_map 확정 전까지 후보',
+  related_fsc    VARCHAR(30)  NULL COMMENT 'B2 대응 FSC4 후보(; 구분). 확정하지 않음(2026-09-18) — R4 입력용 후보',
   evidence       VARCHAR(120) NULL COMMENT '근거 키. 규칙 도출 후: HSK-군용;HSK-항공/항행;전략물자-ML;전략물자-DU;B2-FSC (v_hs6_candidate_rule.evidence_rule 스냅샷). 도출 전(09-15 팀 판단): A6;B2-FSC;KRIT;A7;팀판단 — docs/reference/hs-whitelist-definition.md §8',
   evidence_basis ENUM('rule','팀판단') NOT NULL DEFAULT '팀판단' COMMENT 'evidence를 정한 방식: rule=공식 자료(관세청 HSK 마스터·전략물자 HSK 연계표) 규칙 도출, 팀판단=09-15 기획 단계 판단 — 2026-09-16 추가',
   evidence_note  VARCHAR(300) NULL COMMENT '규칙 근거 수치 요약(예: HSK10 11개 중 군용전용 1 / 통제 HSK 5개(ML 2) / B2 부품 27). 원값은 v_hs6_candidate_rule',
@@ -105,6 +105,7 @@ CREATE TABLE ref_country (
 ) ENGINE=InnoDB COMMENT='국가코드 → 명칭·좌표';
 
 -- 품목군 대응표(수작업). HS↔FSC↔품명 직접 매핑이 아니라 "품목군 수준" 연결만 기록한다.
+-- 2026-09-18 결정: 확정하지 않는다(FSC↔HS 공식 연계표 없음). 17행은 `후보`로 고정, R4(v_defense_relevance_b2) 입력용. docs/report/category-map-decision-2026-09-17.md
 --   map_type='fsc4'          : B2 군급분류(FSC4) → 화이트리스트 hs6 후보 (idea-review §2 B2 대응 후보)
 --   map_type='contract_group': 계약 후보 품목군명(5분류 정제에서 부여) → category/hs6
 --   map_type='krit_task'     : B1 과제 → category/hs6 (과제별 판단 근거를 link_basis에)
@@ -1231,7 +1232,8 @@ GROUP BY s.hs6, s.year;
 --     화면에는 근거 기준(b1_latest_round_year, B2 원본 파일 날짜 dapa_localized_items_20260509)을 따로 표시한다.
 -- 건수 규칙:
 --   · 집계 대상 = 품목군 대응표(ref_category_map) link_status='확정' + clean_ 쪽 category_link_status='확정'만. 후보 연결은 세지 않는다.
---   · NULL = 미확인(해당 clean_ 테이블 미적재 / 대응표 미확정 / B2 범위 밖). 0 = 확인 결과 실제로 없음. 사유는 b1_status·b2_status.
+--   · NULL = 미확인(해당 clean_ 테이블 미적재 / 대응표 없음 / B2 범위 밖). 0 = 확인 결과 실제로 없음. 사유는 b1_status·b2_status.
+--   · (2026-09-18) 품목군 대응표는 확정하지 않기로 결정 → B2 열은 '대응표 없음'·NULL로 고정된다. B2는 FSC 축(화면 ②)에서만 보여 준다.
 --   · b2_completed_part_count = 고유 부품 수(part_mgmt_no DISTINCT). b2_project_part_count = 사업×부품 건수(같은 부품이 사업 수만큼 반복).
 --   · 한 FSC·과제가 여러 hs6에 대응하면 각 hs6 행에 중복 집계된다. HS별 값을 합산하면 같은 부품·과제가 다시 중복된다.
 CREATE OR REPLACE VIEW v_review_list AS
@@ -1248,7 +1250,7 @@ SELECT w.hs6, w.category, w.name_ko, w.priority, w.axis,
        CASE WHEN w.b2_scope = 'B2 범위 밖' THEN 'B2 범위 밖'
             WHEN NOT EXISTS (SELECT 1 FROM clean_dapa_localized_item) THEN '미적재'
             WHEN NOT EXISTS (SELECT 1 FROM ref_category_map m
-                              WHERE m.map_type = 'fsc4' AND m.hs6 = w.hs6 AND m.link_status = '확정') THEN '대응 미확정'
+                              WHERE m.map_type = 'fsc4' AND m.hs6 = w.hs6 AND m.link_status = '확정') THEN '대응표 없음'
             ELSE '집계' END                                                               AS b2_status,
        CASE WHEN w.b2_scope = 'B2 범위 밖'
               OR NOT EXISTS (SELECT 1 FROM clean_dapa_localized_item)

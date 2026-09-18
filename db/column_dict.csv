@@ -165,7 +165,7 @@ raw_kosis_production_index,4,item_name,(2행 헤더 `T10 생산지수(원지수)
 raw_kosis_production_index,5,value_text,(셀 값),VARCHAR(20),2020=100
 ref_hs_whitelist,9,system_family,system_family,VARCHAR(30),무기체계 계열(2026-09-15 추가)
 ref_hs_whitelist,10,defense_use_ko,defense_use_ko,VARCHAR(300),국방 용도 1문장(팀 판단)
-ref_hs_whitelist,11,related_fsc,related_fsc,VARCHAR(30),B2 대응 FSC4 후보(; 구분)
+ref_hs_whitelist,11,related_fsc,related_fsc,VARCHAR(30),B2 대응 FSC4 후보(; 구분). 확정하지 않음(2026-09-18) — R4 입력용 후보
 ref_hs_whitelist,12,evidence,evidence,VARCHAR(50),근거 키 A6;B2-FSC;KRIT;A7;팀판단
 ref_hs_whitelist,13,civil_mix,civil_mix,"ENUM('높음','중간','낮음')",민수 혼합 정도 — v_civil_mix_rule 규칙 도출값(2026-09-16). 정량 지표 없으면 NULL. docs/reference/hs-whitelist-definition.md §7
 ref_hs_whitelist,14,civil_mix_basis,civil_mix_basis,"ENUM('hs10','hsk','판단불가')",civil_mix를 정한 지표 종류(2026-09-16)
