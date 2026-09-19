@@ -15,6 +15,7 @@
 -- 검토 대상: 숫자 13자리가 아닌 NSN(583행·고유 533 — NIIN에 영문이 섞인 13자, NIIN 없는 4자)은 nsn_format='검토'로 보존한다.
 -- 실행: docs/runbook/commands.md 증분 변경 방식(mariadb.exe, 계정 defense). DBHub는 readonly라 불가.
 -- 순서: 1차 실행(표·뷰·사전·meta_dataset) → load_db.py --raw --tables raw_kdsis_nsn → 2차 실행(§2 clean 채움·§6 로그). 재실행 가능(§2는 raw에서 다시 만든다).
+-- 2026-09-20: niin 은 둘 다 공란이면 NULL(빈 문자열 아님, alter_2026-09-20_null_vocab.sql §1)
 -- =============================================================================
 
 USE defense_dashboard;
@@ -127,7 +128,7 @@ SELECT r.nsn,
             WHEN CHAR_LENGTH(r.nsn) = 13    THEN '길이 13이나 숫자 아님(NIIN 영문 포함)'
             ELSE CONCAT('길이 ', CHAR_LENGTH(r.nsn), '(NIIN 없음)') END,
        r.fsc4, LEFT(r.fsc4, 2), (LEFT(r.fsc4, 2) IN ('58', '59')),
-       r.ncb_code, CONCAT(COALESCE(r.ncb_code, ''), COALESCE(r.iin_serial, '')), r.niin_status, r.inc, r.item_div_code,
+       r.ncb_code, NULLIF(CONCAT(COALESCE(r.ncb_code, ''), COALESCE(r.iin_serial, '')), ''), r.niin_status, r.inc, r.item_div_code,
        r.item_name_en, r.item_name_ko, r.mfr_item_name_en, r.mfr_item_name_ko,
        CASE WHEN r.assigned_date REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN STR_TO_DATE(r.assigned_date, '%Y-%m-%d') END,
        r.oid,
@@ -226,7 +227,7 @@ INSERT INTO meta_column_dict (table_name, ordinal, column_name, original_name, d
 ('clean_kdsis_nsn', 5, 'fsg2', '(파생)', 'VARCHAR(2)', '군급 앞 2자리(ref_fsg)'),
 ('clean_kdsis_nsn', 6, 'is_electronic_group', '(파생)', 'TINYINT(1)', 'fsg2 IN (58,59)'),
 ('clean_kdsis_nsn', 7, 'ncb_code', 'ncbCd_4130', 'VARCHAR(4)', 'NCB'),
-('clean_kdsis_nsn', 8, 'niin', '(파생)', 'VARCHAR(10)', 'NCB 2자 + 일련번호 7자'),
+('clean_kdsis_nsn', 8, 'niin', '(파생)', 'VARCHAR(10)', 'NCB 2자 + 일련번호 7자 = NSN 뒤 9자리. NULL = 원본 결측 3행(ncb_code·iin_serial 모두 공란, 2026-09-20 빈 문자열→NULL) → 화면 「미기재」, 집계 무시'),
 ('clean_kdsis_nsn', 9, 'niin_status', 'niinStatCd_2670', 'VARCHAR(2)', 'NIIN 상태'),
 ('clean_kdsis_nsn', 10, 'inc', 'inc_4080', 'VARCHAR(10)', 'INC'),
 ('clean_kdsis_nsn', 11, 'item_div_code', 'itemDvsCd', 'VARCHAR(4)', '품목 구분(의미 미확인)'),

@@ -1,6 +1,6 @@
 # 열별 결측 프로파일 — clean·fact·dim 22표 (2026-09-19)
 
-**목적**: `docs/reference/data-cleaning-rules.md` §1 규칙 #9 「NULL ≠ 0」과 `docs/db/table-guide.md` §4-2를 측정으로 뒷받침하고, 열마다 화면 표기·집계 규칙을 정하는 입력을 만든다. 화면 표기·집계 처리 열은 **제안**이며 사용자와 함께 확정한다(열 사전 `description`·규칙 #9 확장은 이 보고서에서 하지 않았다).
+**목적**: `docs/reference/data-cleaning-rules.md` §1 규칙 #9 「NULL ≠ 0」과 `docs/db/table-guide.md` §4-2를 측정으로 뒷받침하고, 열마다 화면 표기·집계 규칙을 정하는 입력을 만든다. 화면 표기·집계 처리 열은 **제안**이며 사용자와 함께 확정한다(열 사전 `description`·규칙 #9 확장은 이 보고서에서 하지 않았다). **→ 2026-09-20 사용자 결정으로 §2 제안값 그대로 확정·반영, 기록은 §6.**
 
 **방법**: ① RDS `defense_dashboard`의 clean 20표 + `fact_customs_monthly` + `dim_hs10` = 22표 전 열의 NULL·빈 문자열(`''`) 수를 실측(2026-09-19 메인 세션, `db/query_null_profile.sql` 1번 생성 쿼리 — 결측 1건 이상인 열 77개 / 표 15개). ② 열 사전(`db/column_dict.csv`) `original_name`이 같은 raw 열을 `raw_row_id`/`first_raw_row_id`로 조인해 「raw에 값이 있는데 clean NULL」(정제 누락 후보)을 셌다(§4). ③ 이 보고서 작성 시 구조적 결측의 조건 일치 여부를 DBHub(app_ro)로 추가 실측했다(부록). 수치는 전부 실측값이며 추정하지 않았다.
 
@@ -10,11 +10,11 @@
 
 | 표 | 행 | 열 수 | 결측 있는 열 | 셀 결측 / 전체 셀 | 주된 판정 |
 |---|---|---|---|---|---|
-| `clean_company` | 14,838 | 6 | 1 | 4 / 89,028 = 0.0% | 의도된 NULL 1 |
+| `clean_company` | 14,838 → 14,836(09-19 저녁 테스트 업체 2 삭제) | 6 | 1 | 4 / 89,028 = 0.0% → 2 / 89,016 | 의도된 NULL 1 |
 | `clean_company_name_link` | 491 | 8 | 2 | 801 / 3,928 = 20.4% | 구조적 2 |
 | `clean_dapa_bid_notice` | 10,840 | 38 | 7 | 50,571 / 411,920 = 12.3% | 구조적 5 · 원본 2 |
 | `clean_dapa_bid_result` | 7,403 | 34 | 10 | 17,910 / 251,702 = 7.1% | 구조적 8 · 원본 2 |
-| `clean_dapa_contract` | 43,111 | 41 | 9 | 228,475 / 1,767,551 = 12.9% | 의도된 4 · 구조적 3 · 원본 2 |
+| `clean_dapa_contract` | 43,111 → 43,105(09-19 저녁 테스트 업체 6 제외) | 41 | 9 | 228,475 / 1,767,551 = 12.9%(반영 전 프로파일; `sido_code` 20→2 외 열별 수치는 재프로파일 전) | 의도된 4 · 구조적 3 · 원본 2 |
 | `clean_dapa_domestic_plan` | 35,859 | 17 | 2 | 5,155 / 609,603 = 0.8% | 원본 2 |
 | `clean_dapa_localized_item` | 25,025 | 15 | 8 | 42,925 / 375,375 = 11.4% | 원본 5 · 구조적 2 · 의도된 1 |
 | `clean_dapa_overseas_contract` | 6,333 | 14 | 2 | 791 / 88,662 = 0.9% | 구조적 1 · 원본 1 |
@@ -63,7 +63,7 @@
 | `clean_dapa_bid_result` | `winner_sido_code` | 2,128 | 0 | 28.7 | (파생) | 구조적 | 실측: `winner_address` NULL과 1:1(미매핑 0), 예외 0 | 해당 없음 | 시도 집계 분모 = 5,275 |
 | `clean_dapa_contract` | `total_contract_amount` | 1 | 0 | 0.0 | `total_contract_amount` | 원본 결측 | raw 공란 1. 실측: 그 행이 `is_latest_seq=1` → 계약 단위 금액 1건 결측 | 미기재 | 금액 합 분모 제외 + 1건 병기(`v_contract_monthly`) |
 | `clean_dapa_contract` | `reserve_price` | 36 | 0 | 0.1 | `reserve_price` | 원본 결측 | raw 공란 36 | 미기재 | 무시(규칙 §2-2 ▲/✕) |
-| `clean_dapa_contract` | `sido_code` | 20 | 0 | 0.0 | (파생) | 의도된 NULL | 규칙 §2-2 대표업체주소 행: 미매핑 4토큰 20행(`충남대전시` 16·`용산구` 2·`**` 1·`1` 1) 추정 금지, P2 전달(9/23) | 미기재(시도 미확인) | 시도 집계 시 미확인 20 병기 |
+| `clean_dapa_contract` | `sido_code` | 20 → **2** | 0 | 0.0 | (파생) | 의도된 NULL | 규칙 §2-2 대표업체주소 행: 미매핑 4토큰 20행 중 09-19 저녁 P2 검수 반영으로 `충남대전시` 16 → 30 백필, `용산구` 2는 테스트 업체 제외 → 남은 `**` 1·`1` 1 판별 불가 | 미기재(시도 미확인) | 시도 집계 시 미확인 2 병기 |
 | `clean_dapa_contract` | `conflict_raw_row_ids` | 43,110 | 0 | 100.0 | (파생) | 구조적 | 사전 "seq_conflict_flag=1일 때". 실측: 충돌 1행과 1:1, 예외 0 | 표시 안 함 | 무시 |
 | `clean_dapa_contract` | `matched_keywords` | 43,111 | 0 | 100.0 | (파생) | 의도된 NULL(후속) | 가이드 §3-5: `class5` 키워드 규칙 확정 후 UPDATE. 규칙 §2-2 미확정, §7 | 판단 보류 | 무시(후보일 뿐, 합산 금지) |
 | `clean_dapa_contract` | `evidence` | 43,110 | 0 | 100.0 | (파생) | 구조적 | 실측: 충돌 1행만 값. `class5` 근거는 규칙 확정 후 | 표시 안 함 | 무시 |
@@ -140,11 +140,43 @@
 
 ## 5. 다음 단계
 
-1. **사용자와 정할 것**: §2의 화면 표기·집계 처리 제안을 열별로 확정 → 열 사전 `description`에 판정·표기 어휘를 적고 규칙 #9를 「의도된 NULL = 판단 보류 / 원본 결측 = 미기재 / 구조적 = 해당 없음」으로 확장(다른 에이전트가 `docs/db`·`docs/reference` 편집 중이라 이 보고서에서는 손대지 않았다).
-2. **화면 영향이 큰 결측 3개는 `stats-advisor`로 편중 확인**: 국내 조달계획 예산 미기재 4,965(연도별 17.1%/13.4% — `exec_type`·계약방법별 편중이면 MAR) / `dim_hs10` 마스터 미연결 104(HS6별 편중, 851762 35) / 국산화품목 `last_modified_date` 72.6%(사업·FSG별 편중 — 연도 축 금지 열이라 화면 영향은 스냅샷 해석에 한정).
-3. **§3 예외 38행**(2+3+24+9)은 열 사전에 예외 수를 적을지, 화면에서 「미기재」로 구분할지 결정.
-4. **빈 문자열 2열**: `clean_kdsis_nsn.niin` 3행은 NULL로 바꾸는 alter를 제안(규칙 #9). `clean_dapa_overseas_plan_api.item_seq` 842행은 PK라 유지하고 `is_item_seq_missing`으로 구분.
-5. 후속 UPDATE 예정 열(`matched_keywords`·`contract_group`)은 `class5` 규칙 확정 시 이 표를 다시 실측.
+1. **사용자와 정할 것**: §2의 화면 표기·집계 처리 제안을 열별로 확정 → 열 사전 `description`에 판정·표기 어휘를 적고 규칙 #9를 「의도된 NULL = 판단 보류 / 원본 결측 = 미기재 / 구조적 = 해당 없음」으로 확장(다른 에이전트가 `docs/db`·`docs/reference` 편집 중이라 이 보고서에서는 손대지 않았다). **→ §6-1 반영(2026-09-20)**
+2. **화면 영향이 큰 결측 3개는 `stats-advisor`로 편중 확인**: 국내 조달계획 예산 미기재 4,965(연도별 17.1%/13.4% — `exec_type`·계약방법별 편중이면 MAR) / `dim_hs10` 마스터 미연결 104(HS6별 편중, 851762 35) / 국산화품목 `last_modified_date` 72.6%(사업·FSG별 편중 — 연도 축 금지 열이라 화면 영향은 스냅샷 해석에 한정). **→ §6-2 확인(2026-09-20)**
+3. **§3 예외 38행**(2+3+24+9)은 열 사전에 예외 수를 적을지, 화면에서 「미기재」로 구분할지 결정. **→ §6-1 「미기재」 구분으로 결정(2026-09-20)**
+4. **빈 문자열 2열**: `clean_kdsis_nsn.niin` 3행은 NULL로 바꾸는 alter를 제안(규칙 #9). `clean_dapa_overseas_plan_api.item_seq` 842행은 PK라 유지하고 `is_item_seq_missing`으로 구분. **→ §6-1 niin NULL 적용(2026-09-20), item_seq 유지**
+5. 후속 UPDATE 예정 열(`matched_keywords`·`contract_group`)은 `class5` 규칙 확정 시 이 표를 다시 실측. **→ 미완(팀원 class5 규칙표 도착 후, §6-3)**
+
+## 6. 반영 기록 (2026-09-20)
+
+### 6-1. 결정과 반영
+
+사용자 결정(2026-09-20): §2 제안값을 **그대로 확정**, §3 구조적 예외 38행은 열 사전에 예외 수를 적고 화면에서 「해당 없음」이 아니라 **「미기재」로 구분**, `clean_kdsis_nsn.niin` 빈 문자열 3행은 **NULL**, 집계 뷰 4개에 **미기재 건수 열 추가**, CSV↔RDS 열 사전 불일치 8셀은 CSV 기준으로 정리, 편중 확인 3건은 지금 수행.
+
+| 반영처 | 내용 | 검증(DBHub app_ro, 2026-09-20) |
+|---|---|---|
+| `db/column_dict.csv` → `meta_column_dict` | 77열 `description`에 「NULL = <판정> n행(근거) → 화면 「어휘」, 집계 <처리>」 추가(의도된 NULL은 「결정」 8열 / 「후속 예정」 2열 구분, 편중 3열은 꼬리에 판정·V). 불일치 8행 정정 포함 85행 `INSERT … ON DUPLICATE KEY UPDATE` | 849행 불변, `→ 화면` 포함 77, CSV↔RDS 6필드 전체 diff 0 |
+| `docs/reference/data-cleaning-rules.md` §1 #9 | 어휘 4종·집계 3종·예외 규칙을 규칙 본문에 확장 | — |
+| `db/alter_2026-09-20_null_vocab.sql` §1 | `clean_kdsis_nsn.niin` `''`→NULL 3행 + COMMENT, 원인 줄 `alter_2026-09-17_kdsis_nsn.sql` L130 `NULLIF` | `niin=''` 0 · NULL 3 · 135,864 |
+| 같은 alter §2 | `v_bid_notice_monthly` `budget_missing_count` + `COALESCE(SUM,0)` 제거 / `v_contract_monthly` `amount_missing_count` / `v_domestic_plan_yearly` `budget_missing_count` / `v_contract_private_reason` `amount_missing_count` + `reason_group` `해당 없음(경쟁계약)` 분리 | 538행·미기재 596·전 행 NULL 그룹 46(0→NULL)·예산 합 불변 / 28·37,602·1 / 62·35,859·4,965 / 144행, 해당 없음(경쟁계약) 10,734·사유 미기재 9·나머지 8그룹 불변, `v_contract_reason_group_yearly` 18→20 |
+
+09-20 재실측으로 §2 표와 달라진 수치(표는 09-19 스냅샷으로 둠): `clean_company.sido_code` 4→2, `clean_dapa_contract.sido_code` 20→2(09-19 저녁 백필·테스트 업체 제외), `conflict_raw_row_ids`·`evidence` 43,110→43,104, `matched_keywords`·`contract_group`·`category` 43,111→43,105, `clean_dapa_overseas_contract.period_end` 731→725(09-20 P3 테스트 업체 6행 제외, 표 6,333→6,327), 수의계약 모수 30,255→30,249(`private_contract_reason` 12,865·예외 9 불변). 나머지 68열은 동일. `v_contract_private_reason`의 종전 `사유 미기재` 10,743은 경쟁계약 10,734(사유 열이 구조적으로 없음)와 수의계약 9(원본 공란)를 합친 값이었다 — 이번에 분리.
+
+### 6-2. 편중 확인 (`stats-advisor`, 2026-09-20, 읽기 전용)
+
+χ² 독립성 검정 + Cramér's V(r×2라 V=φ, Cohen 기준 <0.1 무시 / 0.1~0.3 작음 / 0.3~0.5 중간 / ≥0.5 큼). n이 수천~수만이라 p는 전부 <0.001 → 판정은 V로만. MNAR은 관측 변수만으로 확정·배제할 수 없다.
+
+| 항목 | 축 | 판정 | V | 해석 한계 |
+|---|---|---|---|---|
+| A `clean_dapa_domestic_plan.budget_krw` NULL 4,965/35,859 | progress_status(6) / 집행계획 여부(2) / exec_type(7) / contract_method(8) / plan_year(2) | **MAR** — 집행계획 단계 4,893행 중 99.5% NULL, 그 외 상태 30,966행 중 0.3%(구조적). exec_type 공사 62%·2단계경쟁(분리) 92%는 집행계획 비중 교란이며 집행계획을 빼면 모든 축 2% 이하. MNAR 근거 없음, 잔여 84건 사유 미확인 | 0.99 / 0.99 / 0.08 / 0.05 / 0.04 (집행계획 제외 시 0.07 / 0.05 / 0.00) | 예산 합·평균은 "집행계획 단계 제외" 값; NULL→0 대체·무작위 결측 표기 금지. 계약완료 행(27,444)만 쓰면 결측 27(0.1%) |
+| B `dim_hs10.master_name_ko` NULL 104/211 | hs6(24) | **MAR** — 미연결 104는 `apply_start`·`apply_end` 전부 NULL, 수입액 비중 2016~21 연 13.8~24.4% → 2022 0.1% 이후 ≤0.2%(HS 2022 개정 전 폐지 코드로 추론). 폐지 vs 마스터 누락은 데이터로 구분 불가 | 0.56 (n<10 HS6 병합 시 0.54; 기대빈도<5 셀 2/3라 순열검정 5,000회 p=0.0002로 보강) | HS6 집계 무영향(hs6 전 행 보유). HS10 품명·현행 마스터 필터를 걸면 2016~21 수입액 14~24%(901480 81%·901380 80%·852990 64%·851762 52%) 누락 → "폐지 코드(구 명칭)"로 남겨 표시 |
+| C `clean_dapa_localized_item.last_modified_date` NULL 18,160/25,025(부품 단위 9,247/12,788) | project_name(단일사업 부품 5,788, 27) / fsc2(부품, n<30 병합 26) / is_electronic_group(부품 2) | **MAR(부분) + MNAR 배제 불가** — 부품 내 NULL 일치 99.98%라 행 단위 χ²는 반복 계수로 과대. 비NULL 값이 전부 2021-06-13~07-07 약 3.5주 창 → 특정 일괄 갱신 배치의 흔적일 가능성(가정) | 0.33 / 0.22 / 0.05 | 스냅샷 전용. NULL ≠ 오래됨·미관리, 사업 간 NULL율 차(29~100%)를 사업 특성으로 읽지 말 것. 사업 축은 다사업 부품 7,000개(NULL율 71.7%) 제외 표본. 연도 축 금지 유지 |
+
+B 실측 SQL 주의: `dim_hs10 LEFT JOIN fact_customs_monthly ON hs10`은 월별 fact 행만큼 dim 행이 복제되므로 hs10별로 먼저 합산한 서브쿼리(`SELECT hs10, SUM(imp_dlr) FROM fact_customs_monthly GROUP BY hs10`)로 조인해야 한다. 열 사전 꼬리 문장: A `MAR, 상태별 V=0.99` / B `MAR, hs6 V=0.56` / C `MAR, 사업별 V=0.33, 값은 2021-06~07 일괄갱신 창, MNAR 배제 불가`.
+
+### 6-3. 남은 것
+
+- `matched_keywords`·`contract_group` 재실측(§5-5)은 `class5` 키워드 규칙 확정 후. 규칙표는 팀원 `notebooks/eda_contract.ipynb`가 쓰는 `data/reference/contract_class5_rules.csv` + `docs/reference/contract-class5-rules.md`(미커밋)를 받아 넣은 뒤 `scripts/contract_name_tokens.py --rules`로 커버리지를 검사한다(`docs/report/contract-name-tokens-2026-09-20.md` §7).
+- 이전 alter(09-17 `procurement_aux`, 09-19 `views_to_clean`)의 뷰 본문은 구판 — 재실행 시 `alter_2026-09-20_null_vocab.sql`을 뒤에 다시 적용(정본 `db/schema.sql`).
 
 ## 부록. 실측 SQL (DBHub app_ro, 2026-09-19)
 

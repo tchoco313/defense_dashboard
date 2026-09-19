@@ -21,6 +21,11 @@ USE defense_dashboard;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- 5. clean_
+TRUNCATE TABLE clean_dapa_contract_exec_by_service;
+TRUNCATE TABLE clean_dapa_domestic_plan;
+TRUNCATE TABLE clean_dapa_bid_result;
+TRUNCATE TABLE clean_dapa_bid_notice;
+TRUNCATE TABLE clean_excluded_row;
 TRUNCATE TABLE clean_dapa_overseas_plan;
 TRUNCATE TABLE clean_company_name_link;
 TRUNCATE TABLE clean_company;

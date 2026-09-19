@@ -1269,7 +1269,7 @@ CREATE TABLE clean_kdsis_nsn (
   fsg2                VARCHAR(2)   NULL COMMENT '군급 앞 2자리(ref_fsg 조인)',
   is_electronic_group TINYINT(1)   NOT NULL DEFAULT 0 COMMENT 'fsg2 IN (58,59)',
   ncb_code            VARCHAR(4)   NULL,
-  niin                VARCHAR(10)  NULL COMMENT 'NCB 2자 + 일련번호 7자 = NSN 뒤 9자리',
+  niin                VARCHAR(10)  NULL COMMENT 'NCB 2자 + 일련번호 7자 = NSN 뒤 9자리. ncb_code·iin_serial 모두 공란이면 NULL(빈 문자열 아님, 2026-09-20)',
   niin_status         VARCHAR(2)   NULL,
   inc                 VARCHAR(10)  NULL,
   item_div_code       VARCHAR(4)   NULL,
@@ -1700,11 +1700,13 @@ JOIN v_hhi_hs6_year h ON h.hs6 = w.hs6;
 --          MIN(contract_date)가 첫 차수의 계약일과 다른 계약이 있으면 정제 노트북에서 확인해 기록한다.
 --   건수 = 계약번호당 1(is_latest_seq=1 행), 금액 = 최종 차수의 total_contract_amount. 변경계약은 최초 월에 최종 금액으로 잡힌다.
 --   변경일 기준 월별 추이가 필요하면 이 뷰가 아니라 clean_dapa_contract.contract_date를 직접 집계한다.
+--   2026-09-20 amount_missing_count 추가(alter_2026-09-20_null_vocab.sql §2-1, total_contract_amount NULL 1건 — 규칙 #9 분모 제외·건수 병기).
 CREATE OR REPLACE VIEW v_contract_monthly AS
 SELECT DATE_FORMAT(f.first_contract_date, '%Y%m') AS yyyymm,
        c.biz_type, c.class5,
        COUNT(*)                     AS contract_count,
-       SUM(c.total_contract_amount) AS total_contract_amount
+       SUM(c.total_contract_amount) AS total_contract_amount,
+       SUM(c.total_contract_amount IS NULL) AS amount_missing_count
 FROM clean_dapa_contract c
 JOIN (SELECT contract_no, MIN(contract_date) AS first_contract_date
       FROM clean_dapa_contract GROUP BY contract_no) f ON f.contract_no = c.contract_no
@@ -2029,7 +2031,8 @@ FROM v_b2_localized_kdsis;
 
 -- -----------------------------------------------------------------------------
 -- 국내 축 확장 뷰 9개 (2026-09-17 db/alter_2026-09-17_procurement_aux.sql 신설 → 2026-09-19 db/alter_2026-09-19_views_to_clean.sql 3-9~3-15 에서
--- v_defense_company_sector(clean 없음)를 뺀 8개를 clean_ 기준으로 전환. 현재 정의는 2026-09-19 alter 와 동일 — 바꿀 때 두 파일을 함께 고친다)
+-- v_defense_company_sector(clean 없음)를 뺀 8개를 clean_ 기준으로 전환. 현재 정의는 2026-09-19 alter 와 동일 — 바꿀 때 두 파일을 함께 고친다.
+-- 단 v_contract_private_reason·v_bid_notice_monthly·v_domestic_plan_yearly 는 2026-09-20 db/alter_2026-09-20_null_vocab.sql §2 판이 현재 정의)
 -- 조달 보조 6종(clean_dapa_domestic_plan·bid_notice·bid_result·overseas_contract·overseas_bid_result + raw_dapa_defense_company)과
 -- 계약정보 수의계약 사유(clean_dapa_contract.private_contract_reason)를 집계. FSC·HS6 축 아님(연도·계약방법·사유·업체 축). 원칙·그룹 정의는 2026-09-17 alter 파일 머리 참조.
 -- -----------------------------------------------------------------------------
@@ -2045,23 +2048,28 @@ FROM v_b2_localized_kdsis;
 --      우수·혁신·인증제품 = §26①3(우수조달물품·혁신제품·성능인증·신기술·개발제품 협약 등)
 --      사회적 배려        = §26①4(중증장애인생산품·국가유공자 단체·사회복지법인)
 --      방위사업법 특례    = 방위사업법시행령 §61③(성과기반계약·국내업체 정비·시제품 양산)
---      사유 미기재        = 경쟁계약 전부(사유 열 없음) + 수의계약 9건
+--      해당 없음(경쟁계약) = 경쟁계약 전부(사유 열 없음)
+--      사유 미기재        = 수의계약 9건(원본 공란, null-profile §3 예외)
 --      기타              = 그 외(긴급 §23①3, 분할 §29, 용역·공사 §26①2 차카·가-마 등)
 -- 3-9 v_contract_private_reason — raw_dapa_contract → clean_dapa_contract(§1-1 private_contract_reason).
 --     계약번호당 1행(43,111 → 계약 37,608 기대). 연도 = 최초 계약체결 연도(MIN contract_date), 금액 = 최종 차수(is_latest_seq=1)의 total_contract_amount(합 158,338억 기대).
 --     의미 변경: 충돌 키 2024UMM1504-01(같은 차수 raw 2행)은 raw 뷰가 "큰 값"을 취했고 clean 은 대표 행 1개(seq_conflict_flag=1)라 그 계약 1건 금액이 다를 수 있다.
 --     reason_group 팀 그룹핑·조문 REGEXP 는 종전과 같다(그룹 정의는 위 주석).
+--     2026-09-20 amount_missing_count 추가·경쟁계약 라벨 분리(alter_2026-09-20_null_vocab.sql §2-2. reason_text '(해당 없음)', reason_group '해당 없음(경쟁계약)' — 종전 '사유 미기재' 10,743 → 10,734 + 9).
 CREATE OR REPLACE VIEW v_contract_private_reason AS
 SELECT c.contract_year, c.contract_method_name, c.biz_type_name, c.reason_group, c.reason_text,
        COUNT(*)                          AS contract_count,
-       SUM(c.total_contract_amount_krw)  AS total_contract_amount_krw
+       SUM(c.total_contract_amount_krw)  AS total_contract_amount_krw,
+       SUM(c.total_contract_amount_krw IS NULL) AS amount_missing_count
 FROM (
   SELECT r.contract_no,
          YEAR(MIN(r.contract_date))                                      AS contract_year,
          MAX(r.contract_method_name)                                     AS contract_method_name,
          MAX(r.biz_type)                                                 AS biz_type_name,
-         COALESCE(NULLIF(MAX(r.private_contract_reason), ''), '(사유 미기재)') AS reason_text,
+         CASE WHEN MAX(r.contract_method_name) <> '수의계약' THEN '(해당 없음)'
+              ELSE COALESCE(NULLIF(MAX(r.private_contract_reason), ''), '(사유 미기재)') END AS reason_text,
          CASE
+           WHEN MAX(r.contract_method_name) <> '수의계약'                                                 THEN '해당 없음(경쟁계약)'
            WHEN COALESCE(MAX(r.private_contract_reason), '') = ''                                        THEN '사유 미기재'
            WHEN MAX(r.private_contract_reason) REGEXP '제27조|제28조|특례규정제23조제1호'                   THEN '경쟁실패 후 수의'
            WHEN MAX(r.private_contract_reason) REGEXP '제26조제1항제2호 (자목|사목|아목|바목)|제26조제1항제1호 다목|특례규정제23조제2호|특례규정제23조제4호'
@@ -2096,13 +2104,15 @@ FROM clean_dapa_bid_result
 GROUP BY YEAR(opening_date), biz_type, opening_result;
 
 -- 3-11 v_bid_notice_monthly — raw_dapa_bid_notice → clean_dapa_bid_notice(bid_notice_date DATE·budget_amount_krw BIGINT). 열 밀림 2행 제외분 = clean 10,840 유지 기대.
+--      2026-09-20 COALESCE(SUM, 0) 제거(규칙 #9: 전 행 NULL 그룹 46개 0→NULL) + budget_missing_count 추가(alter_2026-09-20_null_vocab.sql §2-3, 합 596).
 CREATE OR REPLACE VIEW v_bid_notice_monthly AS
 SELECT DATE_FORMAT(bid_notice_date, '%Y-%m')                             AS notice_month,
        bid_notice_status                                                 AS bid_notice_status_name,
        contract_method_name,
        biz_type                                                          AS biz_type_name,
        COUNT(*)                                                          AS notice_count,
-       COALESCE(SUM(budget_amount_krw), 0)                               AS budget_amount_krw
+       SUM(budget_amount_krw)                                            AS budget_amount_krw,
+       SUM(budget_amount_krw IS NULL)                                    AS budget_missing_count
 FROM clean_dapa_bid_notice
 GROUP BY DATE_FORMAT(bid_notice_date, '%Y-%m'), bid_notice_status, contract_method_name, biz_type;
 
@@ -2154,6 +2164,7 @@ GROUP BY b.decision_no, b.item_seq, p.decision_no, p.plan_year, p.exec_type, p.p
 
 -- 3-14 v_domestic_plan_yearly — clean_dapa_domestic_plan(plan_year·exec_type 표준값·budget_krw·is_contracted·§1-2 is_budget_approx). 35,859 · 지수 표기 11 유지 기대.
 --      budget_krw NULL(원본 미기재 4,965행)은 SUM 에서 빠진다(raw 뷰는 ''→0 이라 합계 동일).
+--      2026-09-20 budget_missing_count 추가(alter_2026-09-20_null_vocab.sql §2-4, 합 4,965).
 CREATE OR REPLACE VIEW v_domestic_plan_yearly AS
 SELECT plan_year,
        exec_type,
@@ -2161,7 +2172,8 @@ SELECT plan_year,
        COUNT(*)                                                           AS plan_count,
        SUM(budget_krw)                                                    AS budget_krw,
        SUM(is_contracted)                                                 AS contracted_count,
-       SUM(is_budget_approx)                                              AS approx_amount_rows
+       SUM(is_budget_approx)                                              AS approx_amount_rows,
+       SUM(budget_krw IS NULL)                                            AS budget_missing_count
 FROM clean_dapa_domestic_plan
 GROUP BY plan_year, exec_type, contract_method;
 
@@ -2186,6 +2198,7 @@ FROM raw_dapa_defense_company
 GROUP BY COALESCE(NULLIF(sector, ''), '미기재');
 
 -- §9 수의계약 사유 그룹 연도 요약(화면 카드용) — §1을 그룹 단위로 접은 것. 비중 분모 = 그 해 전체 계약(경쟁 포함).
+--    2026-09-20 reason_group 분리로 결과 행 18 → 20(해당 없음(경쟁계약) 2024·2025 추가, 사유 미기재는 9건만).
 CREATE OR REPLACE VIEW v_contract_reason_group_yearly AS
 SELECT contract_year, reason_group,
        SUM(contract_count)                                                AS contract_count,
