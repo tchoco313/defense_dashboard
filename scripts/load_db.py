@@ -1,6 +1,6 @@
-"""팀 DB(defense_dashboard) 적재 스크립트 — ref_ / meta_ / raw_ / dim_·fact_ 계층.
+"""운영 DB(AWS RDS defense_dashboard, 2026-09-18부터) 적재 스크립트 — ref_ / meta_ / raw_ / dim_·fact_ 계층.
 
-서버는 local_infile=0 이라 LOAD DATA LOCAL 을 못 쓴다(defense3 권한으로 못 켬). pymysql executemany 로 넣는다.
+접속은 scripts/dbconf.py(.env 의 MARIADB_*, 기본 계정 etl_rw, TLS). LOAD DATA LOCAL 은 쓰지 않고 pymysql executemany 로 넣는다.
 열 매핑은 db/column_dict.csv 의 (table_name, ordinal, column_name, original_name) 을 기준으로 CSV 헤더를 순서 대조한 뒤 적재한다.
 clean_ 계층은 다루지 않는다(정제 규칙은 사용자 노트북 영역).
 
@@ -22,12 +22,16 @@ import glob
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
 
 import pandas as pd
 import pymysql
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import dbconf  # noqa: E402  접속 설정 단일 지점
 
 if hasattr(sys.stdout, "reconfigure"):  # Jupyter 커널(OutStream)에는 없음
     sys.stdout.reconfigure(encoding="utf-8")
@@ -59,7 +63,7 @@ RAW_TABLES: dict[str, dict] = {
         files="data/raw/dapa/dapa_localized_items_20260509.csv", encoding="cp949", expected=33_965,
         dataset_key="dapa_localized_item", tier="핵심"),
     "raw_krit_task": dict(
-        files="data/raw/krit/*_t*.csv", encoding="utf-8-sig", expected=None,
+        files="data/raw/krit/*_t*.csv", encoding="utf-8-sig", expected=96,   # 2026-09-18: 26-1차 2 + PDF 5건 74 + 26-2차 본공고(hwp) 20
         dataset_key="krit_task", special="krit", tier="핵심"),
     "raw_dapa_bid_notice": dict(
         files="data/raw/dapa/dapa_domestic_bid_notice_20251231.csv", encoding="cp949", expected=10_842,
@@ -125,32 +129,15 @@ RAW_TABLES: dict[str, dict] = {
         dataset_key="kdsis_nsn", int_cols={"origin_row_no"}, tier="보조"),
 }
 
-REF_EXPECTED = {"ref_hs_whitelist": 24, "ref_country": 238, "meta_column_dict": 388}  # 388 = column_dict.csv (2026-09-17 KDSIS 51행 추가 후. 이전 337)
+REF_EXPECTED = {"ref_hs_whitelist": 24, "ref_country": 238, "meta_column_dict": 849}  # 849 = column_dict.csv (2026-09-19 clean_kdsis_nsn_ref 6행 삭제 후. 이전 855 · 853 · 827 · 806 · 681 · 546 · 489 · 388 · 337)
 
 
 # ---------------------------------------------------------------------------
 # 공통
 # ---------------------------------------------------------------------------
-def load_env() -> dict[str, str]:
-    env: dict[str, str] = {}
-    p = ROOT / ".env"
-    for line in p.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        k, v = line.split("=", 1)
-        env[k.strip()] = v.strip()
-    return env
-
-
 def connect():
-    env = load_env()
-    return pymysql.connect(
-        host=env["MARIADB_HOST"], port=int(env.get("MARIADB_PORT", "3306")),
-        user=env["MARIADB_USER"], password=env["MARIADB_PASSWORD"],
-        database=env.get("MARIADB_DATABASE", "defense_dashboard"),
-        charset="utf8mb4", autocommit=False, local_infile=False,
-    )
+    """운영 DB(RDS) 접속 — 접속 정보·TLS 는 scripts/dbconf.py 가 .env 의 MARIADB_* 에서 읽는다(기본 역할 etl_rw)."""
+    return pymysql.connect(**dbconf.pymysql_kwargs("etl", autocommit=False, local_infile=False))
 
 
 def read_column_dict() -> dict[str, list[tuple[int, str, str]]]:
@@ -244,27 +231,51 @@ def frame_generic(path: Path, spec: dict, dict_cols: list[tuple[int, str, str]])
     return db_cols + ["source_file", "source_row_no"], rows
 
 
+# KRIT 공고 차수별로 다른 표 헤더 → column_dict.csv 의 공통 5열 원본명(norm_header 후 형태, 줄바꿈은 "\\n").
+# 뜻이 같은 열만 잇는다. 24-1차 `총과제비(억원)` 는 정부지원금이 아니라 총 사업비라 잇지 않는다(extra_json 으로).
+KRIT_HEADER_ALIAS = {
+    "구분": "순",                                        # 24-1차 예비: 순번 대신 핵심/수출 구분 글자
+    "과제명(예정)": "국산화 개발대상 과제명",              # 24-1차 예비 · 26-2차 예비RFP
+    "최대 정부\\n지원금(백만원)": "정부지원\\n연구개발비",  # 26-2차 예비RFP (단위 백만원 — 원본열명을 extra_json 에 남긴다)
+    "최대\\n정부지원금": "정부지원\\n연구개발비",         # 23-4차 (예상개발비 열은 extra_json)
+    "개발기간\\n(개월)": "개발\\n기간",                  # 24-1차 · 26-2차 예비RFP
+}
+# 파일명 토큰 → raw_krit_task.notice_type (schema.sql 주석: 예비 / 본공고 / 재공고 / 수정). 앞에서부터 첫 일치.
+KRIT_NOTICE_TYPES = (("예비RFP", "예비"), ("예비공고", "예비"), ("수정공고", "수정"), ("재공고", "재공고"), ("공고문", "본공고"))
+
+
 def frame_krit(path: Path, spec: dict, dict_cols: list[tuple[int, str, str]]) -> tuple[list[str], list[tuple]]:
-    """parse_krit.py 출력(<차수>_<문서명>_t<N>.csv). 공통 5열은 사전 순서대로, 나머지 열은 extra_json."""
+    """parse_krit.py 출력(<차수>_<문서명>_t<N>.csv 또는 _p<쪽>_t<N>.csv).
+    공통 5열은 사전 순서대로(별칭 KRIT_HEADER_ALIAS 로 흡수, 없으면 NULL), 나머지 열은 extra_json.
+    별칭으로 이은 열은 extra_json["원본열명"] 에 원래 헤더를 남겨 단위(억/백만원)를 잃지 않는다."""
     df = read_csv_str(path, spec["encoding"])
     header = [norm_header(c) for c in df.columns]
-    expected = [o for _, _, o in dict_cols]
-    common = {o: c for _, c, o in dict_cols}
-    if [h for h in header if h in common] != expected:
-        raise ValueError(f"KRIT 공통 5열 불일치 {path.name}: {header}")
-    stem = path.stem                      # 26-1차_연구개발기관모집_공고문_t7
+    canon = {h: KRIT_HEADER_ALIAS.get(h, h) for h in header}          # 원본 헤더 → 공통명(또는 그대로)
+    common = {o: c for _, c, o in dict_cols}                            # 공통 원본명 → 영문 열
+    if "국산화 개발대상 과제명" not in canon.values():
+        raise ValueError(f"KRIT 과제명 열 없음 {path.name}: {header}")
+    dup = [o for o in common if sum(1 for h in header if canon[h] == o) > 1]
+    if dup:
+        raise ValueError(f"KRIT 공통 열 중복 {path.name}: {dup}")
+    by_common = {canon[h]: h for h in header if canon[h] in common}   # 공통명 → 실제 헤더
+    renamed = {common[o]: h for o, h in by_common.items() if h != o}   # 별칭으로 이은 것만
+    extra_names = [h for h in header if canon[h] not in common]
+    stem = path.stem                      # 26-1차_연구개발기관모집_공고문_t7 / 26-2차_예비RFP_p3_t2
     round_label = stem.split("_")[0]
     table_index = int(stem.rsplit("_t", 1)[1]) if "_t" in stem else None
-    extra_names = [h for h in header if h not in common]
+    notice_type = next((v for tok, v in KRIT_NOTICE_TYPES if tok in stem), None)
     cols = ["round_label", "notice_type", "task_seq", "task_name", "gov_fund_text", "dev_period_text", "note",
             "extra_json", "table_index", "source_file", "source_url", "source_row_no"]
     rows = []
     for i, rec in enumerate(df.itertuples(index=False, name=None), start=1):
         d = dict(zip(header, rec))
+        get = lambda o: nz(d[by_common[o]]) if o in by_common else None
         extra = {k: d[k] for k in extra_names if d[k] != ""}
-        rows.append((round_label, None,
-                     nz(d["순"]), nz(d["국산화 개발대상 과제명"]), nz(d["정부지원\\n연구개발비"]),
-                     nz(d["개발\\n기간"]), nz(d["비고"]),
+        if renamed:
+            extra["원본열명"] = renamed
+        rows.append((round_label, notice_type,
+                     get("순"), get("국산화 개발대상 과제명"), get("정부지원\\n연구개발비"),
+                     get("개발\\n기간"), get("비고"),
                      json.dumps(extra, ensure_ascii=False) if extra else None,
                      table_index, path.name, None, i))
     return cols, rows
@@ -285,8 +296,17 @@ def frame_kosis_wide1(path: Path, spec: dict, dict_cols) -> tuple[list[str], lis
     return cols, rows
 
 
+_KOSIS_YM = re.compile(r"\d{4}\.\d{2}")
+
+
 def frame_kosis_wide2(path: Path, spec: dict, dict_cols) -> tuple[list[str], list[tuple]]:
-    """KOSIS 101: 헤더 2행(1행 'M201601 2016.01', 2행 'T10 …') 광폭 → 세로형."""
+    """KOSIS 101: 헤더 2행(1행 'M201601 2016.01', 2행 'T10 …') 광폭 → 세로형.
+
+    2026-09-19 수정: 잠정치 열의 1행 헤더는 'M202606 M202606 2026.06 p)' 처럼 뒤에 p) 가 붙는다. 이전 코드 split()[-1] 은
+    마지막 토큰 'p)' 를 stat_ym 으로 넣어 raw_kosis_production_index 16행(2026.06·07 × T10/T20 × 4산업)이 stat_ym='p)' 로 적재됐다.
+    이제는 YYYY.MM 토큰을 정규식으로 찾는다. 잠정 표기 p) 는 raw 에 담을 열이 없어 버린다(잠정 여부는 clean_kosis_production_index.is_provisional).
+    이미 적재된 raw 는 원본 동결 원칙에 따라 재적재하지 않고, clean 이 source_col_no 로 월을 복원한다(notebooks/clean_p5_kosis.ipynb §2).
+    """
     with open(path, encoding=spec["encoding"], newline="") as f:
         rd = csv.reader(f)
         h1 = [norm_header(x) for x in next(rd)]
@@ -299,7 +319,10 @@ def frame_kosis_wide2(path: Path, spec: dict, dict_cols) -> tuple[list[str], lis
     for r, rec in enumerate(data, start=1):
         region, industry = rec[0], rec[1]
         for c in range(2, len(h1)):
-            stat_ym = h1[c].split()[-1]          # 'M201601 2016.01' → '2016.01'
+            m = _KOSIS_YM.search(h1[c])           # 'M201601 2016.01' / 'M202606 M202606 2026.06 p)' → '2016.01' / '2026.06'
+            if m is None:
+                raise ValueError(f"KOSIS 101 1행 헤더 {c + 1}열에서 YYYY.MM 을 못 찾음: {h1[c]!r}")
+            stat_ym = m.group(0)
             rows.append((region, industry, stat_ym, h2[c], nz(rec[c]) if c < len(rec) else None, path.name, r, c + 1))
     return cols, rows
 

@@ -5,10 +5,10 @@ raw_customs_trade,3,cnty_name_ko,statCdCntnKor1,VARCHAR(100),국가명(관세청
 raw_customs_trade,4,hs_cd,hsCd,VARCHAR(10),HS10 세부코드. 총계행은 `-`
 raw_customs_trade,5,item_name_ko,statKor,VARCHAR(300),HS10 품명
 raw_customs_trade,6,exp_wgt,expWgt,VARCHAR(20),수출중량(kg)
-raw_customs_trade,7,exp_dlr,expDlr,VARCHAR(20),"수출금액(USD, FOB)"
+raw_customs_trade,7,exp_dlr,expDlr,VARCHAR(20),"수출금액(USD, FOB). 달러 단위이며 천 달러가 아니다 — 2026-09-19 자릿수 검증"
 raw_customs_trade,8,imp_wgt,impWgt,VARCHAR(20),수입중량(kg)
-raw_customs_trade,9,imp_dlr,impDlr,VARCHAR(20),"수입금액(USD, CIF)"
-raw_customs_trade,10,bal_payments,balPayments,VARCHAR(20),무역수지(USD)
+raw_customs_trade,9,imp_dlr,impDlr,VARCHAR(20),"수입금액(USD, CIF). 달러 단위이며 천 달러가 아니다 — 2026-09-19 자릿수 검증. 국가 전체 수입(민수 포함)"
+raw_customs_trade,10,bal_payments,balPayments,VARCHAR(20),무역수지(USD) = expDlr − impDlr. 파생값이라 fact 계산에 쓰지 않음
 raw_customs_trade,11,req_hs,req_hs,CHAR(6),요청 HS6(화이트리스트)
 raw_customs_trade,12,req_cnty,req_cnty,VARCHAR(4),요청 국가코드. 전체 국가 수집은 `ALL`
 raw_customs_trade,13,req_year,req_year,CHAR(4),요청 연도
@@ -226,7 +226,7 @@ raw_dapa_contract_exec_by_service,3,contract_amount_100m_krw,계약금액(억원
 raw_hsk_control,1,hsk10,품목번호,VARCHAR(12),HSK 10자리
 raw_hsk_control,2,name_ko,품명(국문),VARCHAR(300),
 raw_hsk_control,3,name_en,품명(영문),VARCHAR(400),최대 368자
-raw_hsk_control,4,control_no,통제번호,TEXT,전략물자 통제번호 쉼표 목록(별표2 이중용도, ML 없음)
+raw_hsk_control,4,control_no,통제번호,TEXT,"전략물자 통제번호 쉼표 목록(별표2 이중용도, ML 없음)"
 raw_hs_code_master,1,hs_code,HS부호,VARCHAR(12),7~10자리
 raw_hs_code_master,2,apply_start,적용시작일자,VARCHAR(20),
 raw_hs_code_master,3,apply_end,적용종료일자,VARCHAR(20),
@@ -252,7 +252,7 @@ raw_hs_unit_name,2,hs_unit,(시트 이름),CHAR(2),02/04/06/08/10
 raw_hs_unit_name,3,name_ko,한글품목명,VARCHAR(700),최대 603자
 raw_hs_unit_name,4,name_en,영문품목명,VARCHAR(800),최대 745자
 ref_hs_rule_flag,1,hs6,hs6,CHAR(6),PK1
-ref_hs_rule_flag,2,rule_version,rule_version,VARCHAR(20),PK2, 규칙 정의 버전
+ref_hs_rule_flag,2,rule_version,rule_version,VARCHAR(20),"PK2, 규칙 정의 버전"
 ref_hs_rule_flag,3,hs2,hs2,CHAR(2),
 ref_hs_rule_flag,4,hs6_name_ko,hs6_name_ko,VARCHAR(700),관세청 HS6 공식 명칭
 ref_hs_rule_flag,5,r1_mil,r1_mil,TINYINT(1),R1 군용전용 세분류
@@ -270,7 +270,7 @@ ref_hs_rule_flag,16,hs10_master,hs10_master,SMALLINT,현행 2026
 ref_hs_rule_flag,17,control_hsk10_count,control_hsk10_count,SMALLINT,
 ref_hs_rule_flag,18,du_elec_hsk10_count,du_elec_hsk10_count,SMALLINT,
 ref_hs_rule_flag,19,ml_hsk10_count,ml_hsk10_count,SMALLINT,
-ref_hs_rule_flag,20,control_ratio_pct,control_ratio_pct,DECIMAL(5,1),
+ref_hs_rule_flag,20,control_ratio_pct,control_ratio_pct,"DECIMAL(5,1)",
 ref_hs_rule_flag,21,control_no_list,control_no_list,TEXT,
 ref_hs_rule_flag,22,b2_part_count,b2_part_count,INT,NULL=대응 없음
 ref_hs_rule_flag,23,is_candidate_provisional,is_candidate_provisional,TINYINT(1),잠정 진입식 R1 OR R2 OR (R3_du AND R4)
@@ -280,6 +280,7 @@ ref_hs_rule_flag,26,evidence_note,evidence_note,VARCHAR(300),
 ref_hs_rule_flag,27,in_whitelist,in_whitelist,TINYINT(1),
 ref_hs_rule_flag,28,computed_at,computed_at,DATETIME,
 ref_hs_rule_flag,29,source_note,source_note,VARCHAR(300),
+ref_hs_rule_flag,30,hs6_name_src,(파생),ENUM,06시트 / 10시트단일(6단위 행이 없고 10자리 자식 1개) / 없음
 ref_fsg,1,fsg_code,fsg_code,CHAR(2),FSG 2자리 = FSC 앞 2자리
 ref_fsg,2,name_en,fsg_name_en,VARCHAR(200),영문 군급명(DLA)
 ref_fsg,3,name_ko,fsg_name_ko,VARCHAR(100),국문 군급명(팀원 번역)
@@ -381,9 +382,469 @@ clean_kdsis_nsn,20,cage_count,(파생),INT UNSIGNED,CAGE 고유 수(공란 제�
 clean_kdsis_nsn,21,origin_files,(파생),VARCHAR(100),나온 원본 파일 목록
 clean_kdsis_nsn,22,has_attr_conflict,(파생),TINYINT(1),같은 NSN에 기본정보 조합 2개 이상이면 1(기대 0)
 clean_kdsis_nsn,23,first_raw_row_id,(파생),BIGINT UNSIGNED,대표 원본 행
-clean_kdsis_nsn_ref,1,nsn,nsn,VARCHAR(20),NSN
-clean_kdsis_nsn_ref,2,cage_code,cageCd_9250,VARCHAR(10),CAGE(공란은 빈 문자열)
-clean_kdsis_nsn_ref,3,ref_no,refNbr_3570,VARCHAR(50),참조번호(공란은 빈 문자열)
-clean_kdsis_nsn_ref,4,source_row_count,(파생),INT UNSIGNED,"같은 (nsn, cage, ref)의 raw 행 수(완전 중복 2,392행 흡수)"
-clean_kdsis_nsn_ref,5,origin_files,(파생),VARCHAR(100),나온 원본 파일 목록
-clean_kdsis_nsn_ref,6,first_raw_row_id,(파생),BIGINT UNSIGNED,대표 원본 행
+clean_excluded_row,1,excl_id,(파생),INT UNSIGNED,PK
+clean_excluded_row,2,table_name,(파생),VARCHAR(64),제외한 raw 테이블명
+clean_excluded_row,3,raw_row_id,(파생),BIGINT UNSIGNED,제외한 raw 행의 row_id
+clean_excluded_row,4,reason_code,(파생),ENUM,제외 사유 코드: DUP_EXACT 완전 중복 / COL_SHIFT 열 밀림 / PLACEHOLDER 자리표시 / OUT_OF_SCOPE 범위 밖 / KEY_CONFLICT 키 충돌 / OTHER
+clean_excluded_row,5,note,(파생),VARCHAR(300),제외 근거 메모(어느 열이 어떻게 이상한지)
+clean_excluded_row,6,excluded_by,(파생),VARCHAR(50),기록자
+clean_excluded_row,7,excluded_at,(파생),DATETIME,기록 시각
+clean_dapa_bid_notice,1,ref_notice_no,참조공고번호,VARCHAR(30),"PK 1. 실제 고유 키(raw 고유 10,842)"
+clean_dapa_bid_notice,2,ref_notice_seq_norm,참조공고차수,CHAR(2),PK 2. 차수 2자리 정규화
+clean_dapa_bid_notice,3,raw_row_id,(파생),BIGINT UNSIGNED,"원본 행 추적(UNIQUE, FK)"
+clean_dapa_bid_notice,4,bid_notice_no,입찰공고번호,VARCHAR(20),"비유일(고유 10,486). 입찰결과 연결용"
+clean_dapa_bid_notice,5,bid_notice_seq_norm,입찰공고차수,CHAR(2),차수 2자리 정규화
+clean_dapa_bid_notice,6,bid_notice_name,입찰공고명,VARCHAR(500),공고 제목
+clean_dapa_bid_notice,7,bid_notice_status,입찰공고상태명,VARCHAR(20),표준값 긴급/정상/재공고/취소/정정/연기
+clean_dapa_bid_notice,8,bid_notice_date,입찰공고일자,DATE,공고일(연도 축)
+clean_dapa_bid_notice,9,biz_type,업무구분명,VARCHAR(20),물품/용역
+clean_dapa_bid_notice,10,g2b_notice_yn,나라장터공고여부,TINYINT(1),나라장터 공고 1/0
+clean_dapa_bid_notice,11,joint_contract_yn,공동계약여부,TINYINT(1),공동계약 1/0
+clean_dapa_bid_notice,12,joint_supply_method_name,공동수급방식명,VARCHAR(50),공동수급 방식
+clean_dapa_bid_notice,13,e_bid_yn,전자입찰여부,TINYINT(1),전자입찰 1/0
+clean_dapa_bid_notice,14,contract_form_name,계약체결형태명,VARCHAR(50),계약체결형태
+clean_dapa_bid_notice,15,contract_method_name,계약체결방법명,VARCHAR(50),계약체결방법(제한경쟁 등)
+clean_dapa_bid_notice,16,award_method_name,낙찰자결정방법명,VARCHAR(50),낙찰자 결정방법
+clean_dapa_bid_notice,17,notice_org_name,공고기관명,VARCHAR(100),공고기관
+clean_dapa_bid_notice,18,notice_org_code,공고기관코드,VARCHAR(20),공고기관 코드
+clean_dapa_bid_notice,19,notice_org_dept_name,공고기관담당자부서명,VARCHAR(100),공고기관 부서(담당자명은 제외)
+clean_dapa_bid_notice,20,demand_org_name,수요기관명,VARCHAR(100),수요기관
+clean_dapa_bid_notice,21,demand_org_code,수요기관코드,VARCHAR(20),수요기관 코드
+clean_dapa_bid_notice,22,demand_org_dept_name,수요기관담당자부서명,VARCHAR(100),수요기관 부서(담당자명은 제외)
+clean_dapa_bid_notice,23,briefing_yn,설명회실시여부,TINYINT(1),설명회 실시 1/0
+clean_dapa_bid_notice,24,briefing_date,설명회실시일자,DATE,설명회 일자(시각은 raw)
+clean_dapa_bid_notice,25,briefing_place,설명회실시장소,VARCHAR(200),설명회 장소
+clean_dapa_bid_notice,26,qualification_deadline_date,입찰참가자격등록마감일자,DATE,참가자격 등록 마감일
+clean_dapa_bid_notice,27,bid_deadline_date,입찰마감일자,DATE,입찰 마감일
+clean_dapa_bid_notice,28,opening_date,개찰일자,DATE,개찰일
+clean_dapa_bid_notice,29,opening_place,개찰장소,VARCHAR(200),개찰 장소
+clean_dapa_bid_notice,30,budget_amount_krw,예산금액,BIGINT,공고 예산(원). 낙찰액·계약액과 다름
+clean_dapa_bid_notice,31,allocated_budget_amount_krw,배정예산금액(설계금액),BIGINT,배정예산(원)
+clean_dapa_bid_notice,32,region_limit_yn,지역제한여부,TINYINT(1),지역제한 1/0
+clean_dapa_bid_notice,33,eligible_region_name,참가가능지역명,VARCHAR(200),참가 가능 지역
+clean_dapa_bid_notice,34,license_limit_group_count,(파생),TINYINT,면허제한 그룹 수(raw 8열 중 비공란)
+clean_dapa_bid_notice,35,license_limit_groups,(파생),VARCHAR(2500),면허제한 그룹 원문 결합(' | ')
+clean_dapa_bid_notice,36,bid_notice_url,입찰공고URL,VARCHAR(300),공고 URL
+clean_dapa_bid_notice,37,cleaned_at,(파생),DATETIME,정제 시각
+clean_dapa_bid_notice,38,cleaned_by,(파생),VARCHAR(50),정제 담당
+clean_dapa_bid_result,1,bid_notice_no,입찰공고번호,VARCHAR(20),PK 1. 공고번호(연도 미포함)
+clean_dapa_bid_result,2,bid_notice_seq_norm,입찰공고차수,CHAR(2),PK 2. 차수 2자리 정규화
+clean_dapa_bid_result,3,result_seq,(파생),TINYINT,PK 3. 같은 키 안 순번(row_id 순)
+clean_dapa_bid_result,4,raw_row_id,(파생),BIGINT UNSIGNED,"원본 행 추적(UNIQUE, FK)"
+clean_dapa_bid_result,5,key_row_count,(파생),SMALLINT,같은 키의 행 수(1이면 단일)
+clean_dapa_bid_result,6,dup_kind,(파생),ENUM,"중복 키 성격: 단일 / 복수 낙찰(결과 같고 낙찰자 여럿, 108키) / 결과 상이(개찰결과 값 다름, 73키) / 동일 결과 반복(결과·낙찰자 같음, 재개찰 16키+같은 날 기초금액 상이 2키, 18키) / 미확인"
+clean_dapa_bid_result,7,is_key_representative,(파생),TINYINT(1),키 기준 집계용 대표 행(키당 정확히 1행)
+clean_dapa_bid_result,8,bid_notice_name,입찰공고명,VARCHAR(500),공고 제목
+clean_dapa_bid_result,9,biz_type,업무구분명,VARCHAR(20),물품/용역
+clean_dapa_bid_result,10,contract_form_name,계약체결형태명,VARCHAR(50),계약체결형태
+clean_dapa_bid_result,11,contract_method_name,계약체결방법명,VARCHAR(50),계약체결방법
+clean_dapa_bid_result,12,award_method_name,낙찰자결정방법명,VARCHAR(50),낙찰자 결정방법
+clean_dapa_bid_result,13,qualification_review_yn,적격심사여부,TINYINT(1),적격심사 1/0
+clean_dapa_bid_result,14,notice_org_name,공고기관명,VARCHAR(100),공고기관
+clean_dapa_bid_result,15,notice_org_code,공고기관코드,VARCHAR(20),공고기관 코드
+clean_dapa_bid_result,16,demand_org_name,수요기관명,VARCHAR(100),수요기관
+clean_dapa_bid_result,17,demand_org_code,수요기관코드,VARCHAR(20),수요기관 코드
+clean_dapa_bid_result,18,award_lower_limit_rate,낙찰하한율,"DECIMAL(7,3)",낙찰하한율(%)
+clean_dapa_bid_result,19,reserve_price_krw,예정가격,BIGINT,예정가격(원)
+clean_dapa_bid_result,20,base_amount_krw,기초금액,BIGINT,기초금액(원)
+clean_dapa_bid_result,21,estimated_price_krw,추정가격,BIGINT,추정가격(원)
+clean_dapa_bid_result,22,opening_date,개찰일자,DATE,개찰일(연도 축)
+clean_dapa_bid_result,23,opening_result,개찰결과구분명,ENUM,유찰 / 개찰완료 / 순위확정
+clean_dapa_bid_result,24,is_awarded,(파생),TINYINT(1),낙찰 확정 여부(낙찰금액 존재)
+clean_dapa_bid_result,25,final_award_amount_krw,최종낙찰금액,BIGINT,최종 낙찰금액(원). 계약금액과 다름
+clean_dapa_bid_result,26,final_award_rate,최종낙찰율,"DECIMAL(7,3)",최종 낙찰률(%)
+clean_dapa_bid_result,27,final_award_date,최종낙찰일자,DATE,최종 낙찰일
+clean_dapa_bid_result,28,winner_name,최종낙찰업체명,VARCHAR(200),낙찰업체명(원문)
+clean_dapa_bid_result,29,winner_biz_reg_no,최종낙찰업체사업자등록번호,CHAR(12),낙찰업체 사업자등록번호(clean_company 키)
+clean_dapa_bid_result,30,winner_address,최종낙찰업체주소,VARCHAR(300),낙찰업체 소재지(생산·납품 위치 아님)
+clean_dapa_bid_result,31,winner_sido_code,(파생),CHAR(2),소재지 시도코드(ref_sido_map)
+clean_dapa_bid_result,32,notice_link_status,(파생),ENUM,입찰공고 대조 상태: 1:1 / 다중(공고 여러 행) / 미연결
+clean_dapa_bid_result,33,cleaned_at,(파생),DATETIME,정제 시각
+clean_dapa_bid_result,34,cleaned_by,(파생),VARCHAR(50),정제 담당
+clean_dapa_domestic_plan,1,raw_row_id,(파생),BIGINT UNSIGNED,PK. 원본 행 추적(FK)
+clean_dapa_domestic_plan,2,decision_no,판단번호,VARCHAR(20),판단번호(고유성 확인 전)
+clean_dapa_domestic_plan,3,decision_row_count,(파생),SMALLINT,같은 판단번호의 행 수
+clean_dapa_domestic_plan,4,plan_month,집행예정월,DATE,집행예정월(매월 1일)
+clean_dapa_domestic_plan,5,plan_year,(파생),CHAR(4),집행예정 연도
+clean_dapa_domestic_plan,6,is_partial_year,(파생),TINYINT(1),불완전 연도 라벨(2024=1)
+clean_dapa_domestic_plan,7,rep_item_name,대표품명,VARCHAR(500),대표품명
+clean_dapa_domestic_plan,8,exec_type,집행유형,VARCHAR(30),집행유형 표준값
+clean_dapa_domestic_plan,9,contract_method,계약방법,VARCHAR(30),계약방법
+clean_dapa_domestic_plan,10,exec_agency,집행기관,VARCHAR(100),집행기관
+clean_dapa_domestic_plan,11,budget_krw,예산금액,BIGINT,"예산금액(원, 집행 예정액). NULL = 원본 미기재 4,965행(0 아님). 지수 표기 11행은 정수로 변환"
+clean_dapa_domestic_plan,12,bid_method,입찰방법,VARCHAR(30),입찰방법
+clean_dapa_domestic_plan,13,progress_status,진행상태,VARCHAR(30),진행상태
+clean_dapa_domestic_plan,14,is_contracted,(파생),TINYINT(1),계약완료 1/0
+clean_dapa_domestic_plan,15,cleaned_at,(파생),DATETIME,정제 시각
+clean_dapa_domestic_plan,16,cleaned_by,(파생),VARCHAR(50),정제 담당
+clean_dapa_domestic_plan,17,is_budget_approx,(파생),TINYINT(1),raw 예산금액이 지수 표기(1.71528E+12)라 budget_krw 가 근사값이면 1 (11행). 합계에 억 원 단위 오차 가능
+clean_dapa_contract_exec_by_service,1,year,년도,SMALLINT,PK 1. 연도
+clean_dapa_contract_exec_by_service,2,service_branch,군구분,ENUM,PK 2. 군 구분 표준값
+clean_dapa_contract_exec_by_service,3,contract_amount_100m_krw,계약금액(억원),"DECIMAL(14,1)",계약금액(억원)
+clean_dapa_contract_exec_by_service,4,raw_row_id,(파생),BIGINT UNSIGNED,"원본 행 추적(UNIQUE, FK)"
+clean_dapa_contract_exec_by_service,5,cleaned_at,(파생),DATETIME,정제 시각
+clean_dapa_contract_exec_by_service,6,cleaned_by,(파생),VARCHAR(50),정제 담당
+clean_dapa_contract,1,contract_no,계약번호,VARCHAR(20),PK 1. 계약번호
+clean_dapa_contract,2,contract_seq_norm,계약차수,CHAR(2),"PK 2. 차수 2자리 정규화(0 → 00). raw 혼재 0 837 / 00 34,365"
+clean_dapa_contract,3,raw_row_id,(파생),BIGINT UNSIGNED,"원본 행 추적(UNIQUE, FK → raw_dapa_contract.row_id)"
+clean_dapa_contract,4,contract_name,계약명,VARCHAR(500),계약명(5분류·속성의 원천 텍스트)
+clean_dapa_contract,5,biz_type,업무구분명,"ENUM('물품','용역')",업무구분
+clean_dapa_contract,6,contract_form_name,계약체결형태명,VARCHAR(50),계약체결형태
+clean_dapa_contract,7,contract_method_name,계약체결방법명,VARCHAR(50),계약체결방법(수의/경쟁)
+clean_dapa_contract,8,joint_contract_yn,공동계약여부,TINYINT(1),공동계약=1
+clean_dapa_contract,9,contract_date,계약체결일자,DATE,계약체결일(사건 연도 기준 열)
+clean_dapa_contract,10,period_start,계약기간,DATE,계약기간 시작일(원본 문자열 분해)
+clean_dapa_contract,11,period_end,계약기간,DATE,계약기간 종료일(원본 문자열 분해)
+clean_dapa_contract,12,period_anomaly_flag,(파생),TINYINT(1),종료일 2525-01-16 류 이상치=1
+clean_dapa_contract,13,contract_amount,계약금액,BIGINT,해당 차수 계약액(원)
+clean_dapa_contract,14,total_contract_amount,총계약금액,BIGINT,전체 계약액(원). 계약 단위 금액 = 최종 차수의 이 값
+clean_dapa_contract,15,reserve_price,예정가격,BIGINT,예정가격(원)
+clean_dapa_contract,16,contract_org_name,계약기관명,VARCHAR(100),계약기관명
+clean_dapa_contract,17,demand_org_name,수요기관명,VARCHAR(100),수요기관명
+clean_dapa_contract,18,vendor_name,대표업체명,VARCHAR(200),대표업체명
+clean_dapa_contract,19,vendor_biz_reg_no,대표업체사업자등록번호,CHAR(12),사업자등록번호(clean_company 키)
+clean_dapa_contract,20,vendor_address,대표업체주소,VARCHAR(300),계약업체 소재지(화면 미노출·sido_code 파생용)
+clean_dapa_contract,21,sido_code,(파생),CHAR(2),주소 첫 토큰 → ref_sido_map 적용 결과
+clean_dapa_contract,22,contract_type,계약유형,VARCHAR(50),계약유형
+clean_dapa_contract,23,is_latest_seq,(파생),TINYINT(1),계약번호별 최종 차수=1(집계 기준). 계약번호당 정확히 1행
+clean_dapa_contract,24,seq_conflict_flag,(파생),TINYINT(1),같은 키에 원본 여러 행(2024UMM1504-01) → 대표 행 1개만 적재하고 1
+clean_dapa_contract,25,conflict_raw_row_ids,(파생),VARCHAR(100),seq_conflict_flag=1일 때 적재하지 않은 나머지 원본 row_id(쉼표 구분)
+clean_dapa_contract,26,class5,(파생),ENUM,5분류: 방산 장비·부품 후보 / 정비·기술지원 / 일반 군수물자 / 일반 행정·운영 / 판단 보류(기본)
+clean_dapa_contract,27,is_electronic,(파생),"ENUM('예','아니오','미확인')",전자 관련성(기본 미확인)
+clean_dapa_contract,28,is_part,(파생),"ENUM('예','아니오','미확인')",부품 여부(완제품·전산장비·용역과 구분)
+clean_dapa_contract,29,is_defense_related,(파생),"ENUM('예','아니오','미확인')",방산 관련성(기본 미확인)
+clean_dapa_contract,30,matched_keywords,(파생),VARCHAR(200),"후보 선정 키워드(후보일 뿐, 합산 금지)"
+clean_dapa_contract,31,evidence,(파생),TEXT,분류 근거(검수 메모·출처·충돌 행에서 달랐던 열)
+clean_dapa_contract,32,review_status,(파생),"ENUM('후보','검수완료','보류')",검수 상태(기본 후보)
+clean_dapa_contract,33,contract_group,(파생),VARCHAR(50),계약 후보 품목군명(정제에서 부여)
+clean_dapa_contract,34,category,(파생),VARCHAR(20),대응된 HS category
+clean_dapa_contract,35,category_link_status,(파생),"ENUM('확정','후보','대응불가','미연결')",품목군 연결 상태(기본 미연결)
+clean_dapa_contract,36,is_target_b1,(파생),"ENUM('예','아니오','미확인')",B1 KRIT 공고 대상
+clean_dapa_contract,37,is_completed_b2,(파생),"ENUM('예','아니오','미확인')",B2 국산화개발품목(지상체계 한정)
+clean_dapa_contract,38,domestic_mfg_status,국내업체여부,"ENUM('국내 제조 확인','미확인')",국내 제조 판정(기본 미확인). raw 국내업체여부는 전부 국내라 국산 근거 아님 — 그대로 옮기지 않고 판정 열로 대체
+clean_dapa_contract,39,cleaned_at,(파생),DATETIME,정제 시각
+clean_dapa_contract,40,cleaned_by,(파생),VARCHAR(50),정제 담당
+clean_dapa_contract,41,private_contract_reason,수의계약사유,VARCHAR(500),수의계약 사유 원문(공란은 NULL). v_contract_private_reason 원천. 같은 계약번호 안에서 전 차수 동일
+clean_company,1,biz_reg_no,대표업체사업자등록번호,CHAR(12),PK. 사업자등록번호(계약정보·입찰결과 공통)
+clean_company,2,name_norm,(파생),VARCHAR(200),법인격 표기 제거·공백 정리한 업체명(이름 매칭 키)
+clean_company,3,name_raw,대표업체명,VARCHAR(200),가장 많이 쓰인 원문 업체명
+clean_company,4,address,대표업체주소,VARCHAR(300),계약업체 소재지(생산·납품 위치 아님)
+clean_company,5,sido_code,(파생),CHAR(2),address → ref_sido_map 적용 결과
+clean_company,6,first_seen_source,(파생),"ENUM('contract','bid_result')",처음 관측된 출처
+clean_company_name_link,1,link_id,(파생),INT UNSIGNED,PK
+clean_company_name_link,2,source,(파생),"ENUM('localized_item','defense_company')",사업자번호 없는 출처(B2 계약업체 / 방산업체 지정현황)
+clean_company_name_link,3,name_raw,업체명,VARCHAR(200),출처 원문 업체명(UNIQUE source+name_raw)
+clean_company_name_link,4,name_norm,(파생),VARCHAR(200),법인격 제거 정규화명
+clean_company_name_link,5,biz_reg_no,(파생),CHAR(12),연결된 clean_company 키(FK). none이면 NULL
+clean_company_name_link,6,match_type,(파생),"ENUM('exact','multi','none')",연결 결과: 1건 일치 / 다중 일치 / 미연결 — 연결률 보고 후에만 화면 사용
+clean_company_name_link,7,match_count,(파생),SMALLINT,name_norm 일치 clean_company 건수
+clean_company_name_link,8,note,(파생),VARCHAR(200),연결 메모
+ref_sido_map,1,token,(수작업),VARCHAR(30),PK. 주소 첫 토큰 원문(서울/서울특별시/서울시 …). 시드 db/seed_ref.sql 45행
+ref_sido_map,2,sido_code,(수작업),CHAR(2),행정표준코드 앞 2자리(11 서울 … 50 제주)
+ref_sido_map,3,sido_name,(수작업),VARCHAR(20),표준 시도명
+clean_dapa_localized_item,1,project_name,사업명,VARCHAR(100),무기체계 사업명(raw 그대로)
+clean_dapa_localized_item,2,part_mgmt_no,부품관리번호,VARCHAR(20),"PK. 부품 식별자(완전 중복 8,940행 축약 후 1행)"
+clean_dapa_localized_item,3,nsn,재고번호,VARCHAR(20),NSN 13자리(공란은 NULL). KDSIS 연결 키
+clean_dapa_localized_item,4,fsc4,군급분류,CHAR(4),"FSC 4자리 — ref_fsc·국외 API LEFT(invntryNo,4) 조인 키"
+clean_dapa_localized_item,5,fsc2,(파생),CHAR(2),"LEFT(fsc4,2) — 58·59가 전자 계열"
+clean_dapa_localized_item,6,item_name,품명,VARCHAR(200),품명(raw 그대로. 부품명이며 HS 매핑에 쓰지 않음)
+clean_dapa_localized_item,7,contractor_name,계약업체,VARCHAR(200),계약 상대(개발 주체 아님). 국산 제조의 증거로 쓰지 않음
+clean_dapa_localized_item,8,contractor_name_norm,(파생),VARCHAR(200),업체명 정규화(법인 표기 제거·공백 제거). clean_company_name_link 연결률 보고용
+clean_dapa_localized_item,9,last_modified_date,최종수정일,DATE,포털 스냅샷 수정일. 연도 축으로 쓰지 않음
+clean_dapa_localized_item,10,dup_count,(파생),SMALLINT,원본 완전 중복 행 수(원본 규모 재현용)
+clean_dapa_localized_item,11,is_electronic_group,(파생),TINYINT(1),"fsc2 IN (58,59) = 1. 전자 여부 속성(기본 필터)"
+clean_dapa_localized_item,12,category,(파생),VARCHAR(20),ref_category_map(map_type=fsc4) 결과. 미확정이면 NULL
+clean_dapa_localized_item,13,category_link_status,(파생),"ENUM('확정','후보','대응불가','조회표 전용')",품목군 연결 상태. 집계 뷰는 확정만 센다(HS6↔FSC4 대응표 미확정이라 현재 전부 미확정)
+clean_dapa_localized_item,14,first_raw_row_id,(파생),BIGINT UNSIGNED,대표 원본 행 → raw_dapa_localized_item.row_id
+clean_dapa_localized_item,15,cleaned_at,(파생),DATETIME,정제 시각
+clean_dapa_overseas_plan,1,decision_no,판단번호,VARCHAR(20),PK. 국외 조달계획 사업 단위 키(API판 판단번호와 체계 다름 — 조인 금지)
+clean_dapa_overseas_plan,2,plan_year,집행예정월,CHAR(4),집행예정월 앞 4자리(사건 연도 축)
+clean_dapa_overseas_plan,3,plan_month,집행예정월,CHAR(7),YYYY-MM
+clean_dapa_overseas_plan,4,rep_item_name,대표품명,VARCHAR(500),전자 관련 후보 키워드 분류 대상
+clean_dapa_overseas_plan,5,exec_type,집행유형,VARCHAR(30),집행유형(TRIM 후)
+clean_dapa_overseas_plan,6,contract_method,계약방법,VARCHAR(30),계약방법
+clean_dapa_overseas_plan,7,exec_agency,집행기관,VARCHAR(100),집행기관
+clean_dapa_overseas_plan,8,budget_krw,예산금액,BIGINT,"예산금액(원, 집행 예정액 — 실적 아님). 관세청 수입액과 합산·직접 비교 금지"
+clean_dapa_overseas_plan,9,progress_status,진행상태,VARCHAR(30),진행상태(is_contracted 파생 원천)
+clean_dapa_overseas_plan,10,is_contracted,(파생),TINYINT(1),"progress_status IN (계약, 부분계약) = 1"
+clean_dapa_overseas_plan,11,is_electronics_candidate,(파생),TINYINT(1),대표품명 키워드 후보(검수 전) = 1. 후보일 뿐 전자부품 확정 아님
+clean_dapa_overseas_plan,12,electronics_review_status,(파생),"ENUM('미검수','확정','오탐','판단 보류')",키워드 후보 검수 상태. 기본 미검수
+clean_dapa_overseas_plan,13,system_family_hint,(파생),VARCHAR(30),"레이더/통신/항법/전자광학/음탐 등 키워드 계열 라벨(품목군 대응 아님, 집계 축 아님)"
+clean_dapa_overseas_plan,14,dup_count,(파생),SMALLINT,같은 판단번호 원본 행 수
+clean_dapa_overseas_plan,15,has_conflict,(파생),TINYINT(1),"같은 판단번호에 다른 내용 = 1(기록만, 삭제하지 않음)"
+clean_dapa_overseas_plan,16,first_raw_row_id,(파생),BIGINT UNSIGNED,대표 원본 행 → raw_dapa_overseas_plan.row_id
+clean_dapa_overseas_plan,17,cleaned_at,(파생),DATETIME,정제 시각
+clean_krit_task,1,round_id,차수(파일명),VARCHAR(10),PK 1. 공고 차수 예 26-1(raw round_label에서 차 제거)
+clean_krit_task,2,notice_type,공고 구분(파일명·본문),"ENUM('예비','본공고','재공고','수정','미확인')",PK 2. 예비 / 본공고 / 재공고 / 수정 / 미확인
+clean_krit_task,3,task_no,순,SMALLINT,PK 3. 표 내 과제 순번
+clean_krit_task,4,round_year,(파생),SMALLINT,round_id 앞 2자리 → 20YY(공고 연도 축)
+clean_krit_task,5,round_seq,(파생),TINYINT,round_id 뒤 자리(차수 내 회차)
+clean_krit_task,6,program_type,(본문 절 제목),VARCHAR(30),핵심부품 / 수출연계 E/L / 전략부품 / 상생협력
+clean_krit_task,7,task_name,국산화 개발대상 과제명,VARCHAR(300),과제명(품목군 대응 후보 텍스트. HS6 직접 매핑 금지)
+clean_krit_task,8,gov_fund_100m_krw,정부지원\n연구개발비,"DECIMAL(10,2)",정부지원 연구개발비(억원). 원문 23.67억 → 숫자 변환
+clean_krit_task,9,dev_period_months,개발\n기간,SMALLINT,개발 기간(개월). 원문 30개월 → 숫자 변환
+clean_krit_task,10,category,(파생),VARCHAR(20),ref_category_map(map_type=krit_task) 결과. 미확정이면 NULL
+clean_krit_task,11,hs6,(파생),CHAR(6),품목군 대응 HS6(근거 있을 때만). 텍스트 매칭으로 채우지 않음
+clean_krit_task,12,category_link_status,(파생),"ENUM('확정','후보','대응불가','미연결')",품목군 연결 상태. 집계 뷰는 확정만 센다
+clean_krit_task,13,is_counted,(파생),TINYINT(1),같은 차수 중복 공고(예비→본공고) 중 집계에 쓰는 1건 = 1. 공고 수와 과제 수 구분용
+clean_krit_task,14,raw_row_id,(파생),BIGINT UNSIGNED,→ raw_krit_task.row_id
+clean_krit_task,15,source_file,(파생),VARCHAR(200),추출 CSV 파일명(raw 그대로)
+clean_krit_task,16,cleaned_at,(파생),DATETIME,정제 시각
+clean_krit_task,17,task_seq_text,순,VARCHAR(10),원문 순번(표마다 1부터. 24-1차 예비는 구분값 핵심/수출)
+clean_krit_task,18,gov_fund_text,정부지원\n연구개발비,VARCHAR(30),"정부지원 연구개발비 원문(14.64억 / 10.35억원 / 1,657)"
+clean_krit_task,19,gov_fund_unit_text,(원본 헤더),VARCHAR(30),원본 헤더가 밝힌 금액 단위(억 / 억원 / 백만원 / 없음)
+clean_krit_task,20,dev_period_text,개발\n기간,VARCHAR(30),개발 기간 원문(36개월 / 36)
+clean_krit_task,21,note,비고,VARCHAR(300),비고 원문. 자리표시 - · 는 NULL
+clean_krit_task,22,notice_order,(파생),TINYINT,공고 진행 순서 예비1<본공고2<수정3<재공고4 (잠정)
+clean_krit_task,23,is_latest,(파생),TINYINT(1),같은 차수·과제명 중 최신 공고 1행 = 1. 차수별 과제 수는 이 열로만 센다
+clean_krit_task,24,dup_task_row_count,(파생),SMALLINT,"같은 (round_id, task_name) raw 행 수"
+clean_krit_task,25,cleaned_by,(파생),VARCHAR(50),정제 담당
+dim_hs10,1,hs10,hsCd,CHAR(10),PK. 관세청 HS10 세부코드(raw_customs_trade 고유값)
+dim_hs10,2,hs6,(파생),CHAR(6),"LEFT(hs10,6) → ref_hs_whitelist.hs6"
+dim_hs10,3,name_ko,statKor,VARCHAR(300),HS10 품명(코드당 최근 값)
+dim_hs10,4,master_name_ko,한글품목명,VARCHAR(500),"관세청 HS부호 마스터(15049722, 2026 현행) 품목명. 마스터에 없는 이력 코드는 NULL"
+dim_hs10,5,apply_start,적용시작일자,DATE,마스터 적용시작일
+dim_hs10,6,apply_end,적용종료일자,DATE,마스터 적용종료일(현행 코드는 전부 2026-12-31)
+dim_hs10,7,master_link_status,(파생),ENUM,현행 = 2026 마스터에 있음 / 마스터없음 = 과거 연도에만 있던 이력 코드
+fact_customs_monthly,1,hs10,hsCd,CHAR(10),PK 1. HS10 → dim_hs10
+fact_customs_monthly,2,stat_cd,statCd,CHAR(2),PK 2. 국가코드 ISO2 → ref_country. NA는 나미비아(결측 아님)
+fact_customs_monthly,3,yyyymm,year,CHAR(6),PK 3. 연월 6자리(raw stat_ym YYYY.MM에서 점 제거). 총계행(is_total=1) 제외
+fact_customs_monthly,4,hs6,(파생),CHAR(6),"LEFT(hs10,6) 화이트리스트 키"
+fact_customs_monthly,5,year,(파생),SMALLINT,yyyymm 앞 4자리
+fact_customs_monthly,6,month,(파생),TINYINT,yyyymm 뒤 2자리
+fact_customs_monthly,7,imp_dlr,impDlr,BIGINT,"수입금액(USD, CIF) — 달러 단위(천 달러 아님, 2026-09-19 검증). 국가 전체 수입(민수 포함)이며 방산 수입이 아니다"
+fact_customs_monthly,8,exp_dlr,expDlr,BIGINT,"수출금액(USD, FOB) — 달러 단위(천 달러 아님, 2026-09-19 검증). 국가 전체 수출(민수 포함)"
+fact_customs_monthly,9,imp_wgt,impWgt,BIGINT,"수입중량 kg(참고값, 반올림 오차)"
+fact_customs_monthly,10,exp_wgt,expWgt,BIGINT,수출중량 kg(참고값)
+fact_customs_monthly,11,bal_payments,balPayments,BIGINT,무역수지(USD) = exp_dlr − imp_dlr
+fact_customs_monthly,12,is_partial_year,(파생),TINYINT(1),2026(1~8월) = 1. 연간 실적처럼 쓰지 않음(부분연도 판정의 유일 기준)
+fact_customs_monthly,13,raw_row_id,(파생),BIGINT UNSIGNED,"→ raw_customs_trade.row_id (1:1). 294,420 → 294,174(총계행 246 제외)"
+meta_column_dict,1,table_name,table_name,VARCHAR(64),PK 1. db/column_dict.csv 적재본
+meta_column_dict,2,ordinal,ordinal,SMALLINT,PK 2. 원본 열 순서(raw_) 또는 DDL 열 순서
+meta_column_dict,3,column_name,column_name,VARCHAR(64),DB 열명(영문 snake_case)
+meta_column_dict,4,original_name,original_name,VARCHAR(100),원본 CSV 헤더(줄바꿈은 \n). 파생 열은 (파생)
+meta_column_dict,5,dtype,dtype,VARCHAR(50),설계 타입(raw는 문자열)
+meta_column_dict,6,description,description,VARCHAR(300),한글 설명
+meta_dataset,1,dataset_key,dataset_key,VARCHAR(40),"PK. 데이터셋 키(db/meta_dataset.csv 적재본). 예 customs_all, dapa_contract"
+meta_dataset,2,tier,tier,"ENUM('핵심','보조','참조','메타')",핵심 / 보조 / 참조 / 메타
+meta_dataset,3,provider,provider,VARCHAR(100),제공기관
+meta_dataset,4,dataset_id,dataset_id,VARCHAR(40),공공데이터포털 ID(15050920 등) / KOSIS tblId
+meta_dataset,5,title,title,VARCHAR(200),데이터셋 제목
+meta_dataset,6,url,url,VARCHAR(300),출처 URL
+meta_dataset,7,access_method,access_method,VARCHAR(50),OpenAPI / 파일 다운로드 / 웹 다운로드 / 수작업
+meta_dataset,8,acquired_on,acquired_on,DATE,확보일
+meta_dataset,9,period_start,period_start,DATE,실제 대상 기간 시작(사건 날짜 기준)
+meta_dataset,10,period_end,period_end,DATE,실제 대상 기간 끝
+meta_dataset,11,is_partial_period,is_partial_period,TINYINT(1),부분연도·부분기간 = 1
+meta_dataset,12,published_on,published_on,DATE,포털 게시일(연도 축으로 쓰지 않음)
+meta_dataset,13,updated_on,updated_on,DATE,포털 수정일
+meta_dataset,14,query_condition,query_condition,TEXT,조회 조건·API 호출 파라미터
+meta_dataset,15,raw_path,raw_path,VARCHAR(300),data/raw/... 상대 경로(패턴 허용)
+meta_dataset,16,file_bytes,file_bytes,BIGINT,파일 크기
+meta_dataset,17,sha256,sha256,CHAR(64),단일 파일 해시. 다중 파일은 note에
+meta_dataset,18,encoding,encoding,VARCHAR(20),cp949 / utf-8 / utf-8-sig
+meta_dataset,19,parser,parser,VARCHAR(100),건수 집계 파서(pandas read_csv dtype=str 등)
+meta_dataset,20,raw_row_count,raw_row_count,INT,파서 기준 레코드 수(헤더 제외) — 확보 건수의 기준
+meta_dataset,21,portal_row_count,portal_row_count,INT,"포털 표시 건수(확보 건수가 아님, 다르면 둘 다 기록)"
+meta_dataset,22,target_table,target_table,VARCHAR(64),적재 대상 raw_ 테이블
+meta_dataset,23,note,note,TEXT,비고
+meta_load_log,1,log_id,(파생),INT UNSIGNED,PK AUTO_INCREMENT
+meta_load_log,2,dataset_key,(파생),VARCHAR(40),→ meta_dataset.dataset_key
+meta_load_log,3,table_name,(파생),VARCHAR(64),건수를 잰 테이블
+meta_load_log,4,stage,(파생),"ENUM('원본 전체','선택 연도 원본','중복 처리 후','관련 후보','검증된 분석 대상')",건수 5단계: 원본 전체 → 선택 연도 원본 → 중복 처리 후 → 관련 후보 → 검증된 분석 대상
+meta_load_log,5,stage_detail,(파생),VARCHAR(100),예 2025 / HS10 / HS6 집계 / 5분류=방산 장비·부품 후보
+meta_load_log,6,row_count,(파생),INT,해당 단계 건수
+meta_load_log,7,exclusion_reason,(파생),TEXT,이전 단계 대비 제외 사유
+meta_load_log,8,method,(파생),TEXT,집계 SQL 또는 노트북 셀 참조(재현용)
+meta_load_log,9,measured_at,(파생),DATETIME,측정 시각
+meta_load_log,10,measured_by,(파생),VARCHAR(50),측정자(계정·노트북)
+ref_category_map,1,map_id,(파생),INT UNSIGNED,PK AUTO_INCREMENT
+ref_category_map,2,map_type,(파생),"ENUM('fsc4','contract_group','krit_task')",fsc4 / contract_group / krit_task — 품목군 대응 축
+ref_category_map,3,source_key,(파생),VARCHAR(50),FSC4 / 품목군명 / round_id:task_no
+ref_category_map,4,category,(파생),VARCHAR(20),반도체 / 전자부품 / 소재장비(화이트리스트 category)
+ref_category_map,5,hs6,(파생),VARCHAR(6),대응 HS6. 품목군까지만 연결되면 NULL. 2026-09-17 결정으로 대응표 미확정(공식 연계표 없음) — 현재 행 0
+ref_category_map,6,hs6_key,(파생),VARCHAR(6),"생성열 COALESCE(hs6,'') — UNIQUE(map_type, source_key, hs6_key)용"
+ref_category_map,7,link_status,(파생),"ENUM('확정','후보','대응불가')",확정 / 후보 / 대응불가. 집계 뷰는 확정만
+ref_category_map,8,link_basis,(파생),TEXT,연결 근거(문서·표본 검수 결과). 텍스트 매칭은 근거로 인정하지 않음
+ref_category_map,9,decided_by,(파생),VARCHAR(50),결정자
+ref_category_map,10,decided_at,(파생),DATE,결정일
+ref_fsc,1,fsc4,군급,CHAR(4),PK. FSC 4자리(군급분류집 756행 중 FSG 그룹행 제외)
+ref_fsc,2,fsc2,(파생),CHAR(2),"LEFT(fsc4,2) = FSG"
+ref_fsc,3,name_ko,명칭(한글),VARCHAR(200),"명칭(한글), 최대 104자"
+ref_fsc,4,name_en,명칭(영문),VARCHAR(200),명칭(영문)
+ref_fsc,5,status,군급상태,CHAR(1),A 유효 / C 폐지
+ref_fsc,6,is_electronic_group,(파생),TINYINT(1),58xx·59xx = 1 (전자 계열 기본 필터)
+ref_hs_indicator,1,indicator_id,(파생),INT UNSIGNED,PK AUTO_INCREMENT
+ref_hs_indicator,2,hs6,(파생),CHAR(6),→ ref_hs_whitelist.hs6
+ref_hs_indicator,3,axis,(파생),"ENUM('civil_mix','defense_relevance')",civil_mix(민수 혼합) / defense_relevance(방산 관련성) — 화이트리스트 라벨의 정량 근거 축
+ref_hs_indicator,4,indicator,(파생),VARCHAR(30),지표명: mil_hs10_share / aero_hs10_share / auto_hs10_share / hsk_control_hs10_ratio / hsk_control_imp_share / b2_part_count / b2_row_count / a7_plan_count / a7_plan_budget / krit_task_count
+ref_hs_indicator,5,value_num,(파생),"DECIMAL(18,4)","비율(%)이면 0~100, 건수·금액이면 그 값"
+ref_hs_indicator,6,numerator,(파생),BIGINT,분자(재현용)
+ref_hs_indicator,7,denominator,(파생),BIGINT,분모(재현용). 건수 지표는 NULL
+ref_hs_indicator,8,unit,(파생),VARCHAR(10),% / 건 / USD / KRW
+ref_hs_indicator,9,period_start,(파생),SMALLINT,연도. 시점 미상(B2)은 NULL
+ref_hs_indicator,10,period_end,(파생),SMALLINT,연도
+ref_hs_indicator,11,period_key,(파생),SMALLINT,"생성열 COALESCE(period_start,0) — UNIQUE(hs6, indicator, period_key)용"
+ref_hs_indicator,12,link_status,(파생),"ENUM('확정','후보','해당없음')","확정 / 후보 / 해당없음. 대응표 경유 지표만 확정·후보, 관세청 HS10 지표는 해당없음"
+ref_hs_indicator,13,source,(파생),VARCHAR(50),→ meta_dataset.dataset_key
+ref_hs_indicator,14,method,(파생),VARCHAR(300),산식 또는 뷰 이름
+ref_hs_indicator,15,computed_at,(파생),DATETIME,계산 시각
+ref_hs_indicator,16,note,(파생),VARCHAR(300),해석 한계(하한선·민항 포함·1:N 중복 등)
+clean_dapa_overseas_plan_api,1,procure_demand_no,prcureDemandNo,VARCHAR(20),PK 1. 조달요구번호
+clean_dapa_overseas_plan_api,2,item_seq,iemNo,VARCHAR(10),PK 2. 품목순번(원본 공란 842행은 빈 문자열)
+clean_dapa_overseas_plan_api,3,raw_row_id,(파생),BIGINT UNSIGNED,"원본 행 추적(UNIQUE, FK)"
+clean_dapa_overseas_plan_api,4,is_item_seq_missing,(파생),TINYINT(1),품목순번 원본 공란 1/0
+clean_dapa_overseas_plan_api,5,demand_year,_demandYear_req,SMALLINT,요구연도(연도 축). 2018·2020 은 원자료 공백 구간
+clean_dapa_overseas_plan_api,6,army_name_raw,armySe,VARCHAR(20),소요군·부대명 원문
+clean_dapa_overseas_plan_api,7,army_std,(파생),ENUM,군 표준값 육군/해군/공군/해병대/국직/미확인
+clean_dapa_overseas_plan_api,8,army_code,armySeCode,VARCHAR(4),소요군 코드
+clean_dapa_overseas_plan_api,9,function_name,fnctSe,VARCHAR(30),기능구분
+clean_dapa_overseas_plan_api,10,function_code,fnctSeCode,VARCHAR(4),기능구분 코드
+clean_dapa_overseas_plan_api,11,item_kind_name,prdlstKndSe,VARCHAR(20),품목종류구분
+clean_dapa_overseas_plan_api,12,item_kind_code,prdlstKndSeCode,VARCHAR(4),품목종류구분 코드
+clean_dapa_overseas_plan_api,13,item_name,prdlstNm,VARCHAR(200),품명
+clean_dapa_overseas_plan_api,14,stock_no_raw,invntryNo,VARCHAR(20),재고번호 원문(정제 전)
+clean_dapa_overseas_plan_api,15,nsn,(파생),VARCHAR(13),13자 재고번호일 때만. 하이픈 없음 — clean_kdsis_nsn.nsn 형식
+clean_dapa_overseas_plan_api,16,nsn_format,(파생),ENUM,숫자13 / 영숫자13(NCB 37) / 자리표시 / 기타
+clean_dapa_overseas_plan_api,17,is_placeholder_nsn,(파생),TINYINT(1),NSN·NSN001 류 자리표시 1/0
+clean_dapa_overseas_plan_api,18,fsc4,(파생),CHAR(4),군급 4자리(ref_fsc). HS6 대응은 만들지 않음
+clean_dapa_overseas_plan_api,19,fsg2,(파생),CHAR(2),군급 2자리(ref_fsg)
+clean_dapa_overseas_plan_api,20,is_elec,(파생),TINYINT(1),"fsg2 IN (58,59,60) 1/0"
+clean_dapa_overseas_plan_api,21,kdsis_link_status,(파생),ENUM,clean_kdsis_nsn 대조 상태 연결/미연결/대상아님
+clean_dapa_overseas_plan_api,22,equipment_code,eqpmnCode,VARCHAR(20),적용장비코드(코드로 장비를 묶지 않음)
+clean_dapa_overseas_plan_api,23,equipment_name,eqpmnNm,VARCHAR(100),적용장비명 원문
+clean_dapa_overseas_plan_api,24,equipment_name_norm,(파생),VARCHAR(100),기계적 정규화 결과
+clean_dapa_overseas_plan_api,25,equipment_name_std,(파생),VARCHAR(100),표준명(잠정). 근거 없으면 NULL
+clean_dapa_overseas_plan_api,26,is_equipment_missing,(파생),TINYINT(1),적용장비명 공란 또는 * 1/0
+clean_dapa_overseas_plan_api,27,quantity,qy,INT,수량
+clean_dapa_overseas_plan_api,28,unit,unit,VARCHAR(10),단위
+clean_dapa_overseas_plan_api,29,budget_amount_num,budgetAmount,"DECIMAL(18,2)","예산금액 숫자형 — 통화 미검증, 집계 금지"
+clean_dapa_overseas_plan_api,30,unit_price_num,untpc,"DECIMAL(18,2)","단가 숫자형 — 통화 미검증, 집계 금지"
+clean_dapa_overseas_plan_api,31,amount_unverified,(파생),TINYINT(1),1 = 통화 미검증이라 합계·비교 금지
+clean_dapa_overseas_plan_api,32,progress_status,progrsSttus,VARCHAR(20),진행상태
+clean_dapa_overseas_plan_api,33,is_contracted,(파생),TINYINT(1),진행상태가 계약·부분계약 1/0
+clean_dapa_overseas_plan_api,34,cleaned_at,(파생),DATETIME,정제 시각
+clean_dapa_overseas_plan_api,35,cleaned_by,(파생),VARCHAR(50),정제 담당
+ref_equipment_alias,1,name_raw,eqpmnNm,VARCHAR(100),PK. 적용장비명 원문
+ref_equipment_alias,2,name_norm,(파생),VARCHAR(100),기계적 정규화(NFKC·공백 제거·대괄호→소괄호·대문자)
+ref_equipment_alias,3,variant_key,(파생),VARCHAR(100),표기 변이 규칙을 더한 묶음 키(잠정)
+ref_equipment_alias,4,name_std,(파생),VARCHAR(100),표준명(잠정). 변이 근거 없으면 NULL
+ref_equipment_alias,5,variant_group_size,(파생),SMALLINT,같은 variant_key 원문 종수
+ref_equipment_alias,6,row_count,(파생),INT UNSIGNED,이 원문이 나온 raw 행 수
+ref_equipment_alias,7,elec_row_count,(파생),INT UNSIGNED,그중 전자 군급(58·59·60) 행 수
+ref_equipment_alias,8,code_count,(파생),SMALLINT,이 원문에 붙은 장비코드 고유 수
+ref_equipment_alias,9,in_elec_scope,(파생),TINYINT(1),전자·통신 건에 나오는 원문 1/0
+ref_equipment_alias,10,link_status,(파생),ENUM,후보(자동 매핑) / 확정(사람 확인) / 미확인(표준명 없음)
+ref_equipment_alias,11,basis,(파생),VARCHAR(300),매핑 근거
+ref_equipment_alias,12,decided_at,(파생),DATETIME,확정 시점
+clean_dapa_overseas_contract,1,contract_no,계약번호,VARCHAR(20),"PK. 계약번호(raw 고유 6,333)"
+clean_dapa_overseas_contract,2,raw_row_id,(파생),BIGINT UNSIGNED,"원본 행 추적(UNIQUE, FK)"
+clean_dapa_overseas_contract,3,contract_name,계약명,VARCHAR(500),계약명
+clean_dapa_overseas_contract,4,contract_form_name,계약체결형태명,VARCHAR(50),계약체결형태
+clean_dapa_overseas_contract,5,contract_method_name,계약체결방법명,VARCHAR(50),계약체결방법
+clean_dapa_overseas_contract,6,contract_date,계약체결일자,DATE,계약체결일(연도 축)
+clean_dapa_overseas_contract,7,contract_year,(파생),SMALLINT,계약체결 연도
+clean_dapa_overseas_contract,8,period_start,계약기간,DATE,계약기간 시작
+clean_dapa_overseas_contract,9,period_end,계약기간,DATE,계약기간 종료(없으면 NULL)
+clean_dapa_overseas_contract,10,is_open_ended,(파생),TINYINT(1),종료일 미기재 1/0
+clean_dapa_overseas_contract,11,contract_org_dept_name,계약기관담당부서명,VARCHAR(100),계약기관 부서(담당자명은 제외)
+clean_dapa_overseas_contract,12,vendor_name,대표업체명,VARCHAR(200),외국 업체명. 국가 추정 금지
+clean_dapa_overseas_contract,13,cleaned_at,(파생),DATETIME,정제 시각
+clean_dapa_overseas_contract,14,cleaned_by,(파생),VARCHAR(50),정제 담당
+clean_dapa_overseas_bid_result,1,raw_row_id,(파생),BIGINT UNSIGNED,PK. 원본 행 추적(FK) — 업무 식별자 단독 고유성 없음
+clean_dapa_overseas_bid_result,2,bid_notice_no,공고번호,VARCHAR(20),공고번호 원문(공고번호-차수)
+clean_dapa_overseas_bid_result,3,notice_no_base,(파생),VARCHAR(20),공고번호 앞부분
+clean_dapa_overseas_bid_result,4,notice_seq,(파생),VARCHAR(4),공고 차수
+clean_dapa_overseas_bid_result,5,decision_no,판단번호,VARCHAR(20),판단번호(조달계획 파일판과 공유)
+clean_dapa_overseas_bid_result,6,item_seq,항목번호,VARCHAR(6),항목번호
+clean_dapa_overseas_bid_result,7,bid_item_name,입찰건명,VARCHAR(500),입찰건명
+clean_dapa_overseas_bid_result,8,ordering_agency,발주기관,VARCHAR(100),발주기관
+clean_dapa_overseas_bid_result,9,contract_method,계약방법,VARCHAR(30),계약방법
+clean_dapa_overseas_bid_result,10,bid_method,입찰방법,VARCHAR(30),입찰방법
+clean_dapa_overseas_bid_result,11,award_method,낙찰방법,VARCHAR(30),낙찰방법
+clean_dapa_overseas_bid_result,12,opening_at,개찰일시,DATETIME,개찰일시
+clean_dapa_overseas_bid_result,13,opening_date,(파생),DATE,개찰일
+clean_dapa_overseas_bid_result,14,opening_ym,(파생),CHAR(7),개찰 연월
+clean_dapa_overseas_bid_result,15,is_partial_year,(파생),TINYINT(1),부분연도(2025-03~09) 라벨 1/0
+clean_dapa_overseas_bid_result,16,bid_result_std,입찰결과,ENUM,낙찰 / 유찰 / 미확인
+clean_dapa_overseas_bid_result,17,is_awarded,(파생),TINYINT(1),낙찰 1/0
+clean_dapa_overseas_bid_result,18,budget_amount_usd,예산금액(달러),"DECIMAL(18,2)",예산금액(달러). 원화 예산과 합산 금지
+clean_dapa_overseas_bid_result,19,plan_link_status,(파생),ENUM,판단번호 기준 조달계획 파일판 대조 상태 연결/미연결
+clean_dapa_overseas_bid_result,20,cleaned_at,(파생),DATETIME,정제 시각
+clean_dapa_overseas_bid_result,21,cleaned_by,(파생),VARCHAR(50),정제 담당
+clean_openfiscal_program_budget,1,raw_row_id,(파생),BIGINT UNSIGNED,"PK. 원본 행 추적(FK, raw 1:1)"
+clean_openfiscal_program_budget,2,fiscal_year,회계연도,SMALLINT,회계연도 2016~2027(편성 연도)
+clean_openfiscal_program_budget,3,program_name,프로그램명,VARCHAR(100),프로그램명(2018년 개칭 — 기준축 아님)
+clean_openfiscal_program_budget,4,unit_program_name,단위사업명,VARCHAR(100),단위사업명. 시계열 대표 축은 국방기술개발
+clean_openfiscal_program_budget,5,sub_program_name,세부사업명,VARCHAR(200),세부사업명 원문. 2021·2023 개편으로 연도 간 직접 비교 금지
+clean_openfiscal_program_budget,6,sub_program_key,(파생),VARCHAR(200),세부사업명 표기 정규화 키(공백·(R&D)·(방사청) 제거)
+clean_openfiscal_program_budget,7,sub_program_first_year,(파생),SMALLINT,정규화 키가 자료에 처음 나온 회계연도
+clean_openfiscal_program_budget,8,sub_program_last_year,(파생),SMALLINT,정규화 키가 자료에 마지막으로 나온 회계연도
+clean_openfiscal_program_budget,9,expense_type,경비구분,VARCHAR(50),경비구분 원문(3종)
+clean_openfiscal_program_budget,10,outlay_type,지출구분,VARCHAR(50),지출구분 원문(2종)
+clean_openfiscal_program_budget,11,gov_plan_krw_k,정부안금액,BIGINT,정부안금액(천원). 쉼표 제거 후 숫자
+clean_openfiscal_program_budget,12,gov_plan_100m_krw,(파생),"DECIMAL(18,5)",정부안금액(억원) = 천원 / 100000
+clean_openfiscal_program_budget,13,confirmed_krw_k,국회확정금액,BIGINT,국회확정금액(천원). 2027은 전부 0 = 미확정
+clean_openfiscal_program_budget,14,confirmed_100m_krw,(파생),"DECIMAL(18,5)",국회확정금액(억원)
+clean_openfiscal_program_budget,15,amount_basis,(파생),ENUM,확정 / 정부안(그 해 확정액 합이 0)
+clean_openfiscal_program_budget,16,is_unconfirmed,(파생),TINYINT(1),1 = 국회확정 전(2027 268행). 0원이 아님
+clean_openfiscal_program_budget,17,is_unit_tech_dev,(파생),TINYINT(1),1 = 단위사업 국방기술개발(93행)
+clean_openfiscal_program_budget,18,budget_group_candidate,(파생),VARCHAR(20),"⑤ 탭 예산 3선 키워드 후보(확정 아님, 합산 금지)"
+clean_openfiscal_program_budget,19,budget_group_basis,(파생),VARCHAR(200),후보값 판정 근거
+clean_openfiscal_program_budget,20,cleaned_at,(파생),DATETIME,정제 시각
+clean_openfiscal_program_budget,21,cleaned_by,(파생),VARCHAR(50),정제 담당
+clean_openfiscal_program_link,1,link_id,(파생),INT UNSIGNED,PK. 자동 증가
+clean_openfiscal_program_link,2,program_name,프로그램명,VARCHAR(100),프로그램명(참고)
+clean_openfiscal_program_link,3,unit_program_name,단위사업명,VARCHAR(100),"연결을 찾은 범위(단위사업, 상위 합계 축)"
+clean_openfiscal_program_link,4,from_sub_program_name,세부사업명,VARCHAR(200),바뀌기 전 세부사업명(신설이면 NULL)
+clean_openfiscal_program_link,5,from_last_year,(파생),SMALLINT,바뀌기 전 이름의 마지막 회계연도
+clean_openfiscal_program_link,6,to_sub_program_name,세부사업명,VARCHAR(200),바뀐 뒤 세부사업명(종료면 NULL)
+clean_openfiscal_program_link,7,to_first_year,(파생),SMALLINT,바뀐 뒤 이름의 첫 회계연도
+clean_openfiscal_program_link,8,link_type,(파생),ENUM,표기변경 / 승계 후보 / 신설 / 종료
+clean_openfiscal_program_link,9,link_status,(파생),ENUM,확정(표기 차이만) / 후보 / 미확인
+clean_openfiscal_program_link,10,candidate_count,(파생),SMALLINT,같은 from 의 to 후보 수(>1이면 1:1 연결 불가)
+clean_openfiscal_program_link,11,link_basis,(파생),VARCHAR(300),판정 근거. 공식 개편 고시를 확인한 것이 아님
+clean_openfiscal_program_link,12,created_at,(파생),DATETIME,생성 시각
+clean_openfiscal_program_link,13,created_by,(파생),VARCHAR(50),생성 담당
+clean_hsk_control,1,hsk_ctrl_id,(파생),INT UNSIGNED,PK AUTO_INCREMENT
+clean_hsk_control,2,raw_row_id,(파생),BIGINT UNSIGNED,→ raw_hsk_control.row_id (1 raw 행 = N 통제번호)
+clean_hsk_control,3,hsk10,품목번호,CHAR(10),"HSK 10자리(원본 고유 2,161)"
+clean_hsk_control,4,hs6,(파생),CHAR(6),"LEFT(hsk10,6). 화이트리스트 밖 HS6 도 들어와 FK 없음"
+clean_hsk_control,5,hs2,(파생),CHAR(2),"LEFT(hsk10,2) 류"
+clean_hsk_control,6,name_ko,품명(국문),VARCHAR(300),HSK10 단위 품명 — 같은 값이 여러 행에 반복
+clean_hsk_control,7,control_no,통제번호,VARCHAR(40),통제번호 1개(목록에서 잘라낸 원문)
+clean_hsk_control,8,control_no_norm,(파생),VARCHAR(40),"대문자 + 끝 마침표 제거. UNIQUE(hsk10, control_no_norm)"
+clean_hsk_control,9,regime,(파생),ENUM,"이중용도(별표2) / 군용물자(ML, 별표3). 현재 자료에 ML 0건 — 「자료에 없음」"
+clean_hsk_control,10,part_no,(파생),TINYINT,부 0~9(통제번호 첫 글자). ML 은 NULL
+clean_hsk_control,11,part_name_ko,(파생),VARCHAR(30),부 이름(3 전자 · 5 통신·정보보안 · 6 센서·레이저 · 7 항법·항공전자 등)
+clean_hsk_control,12,group_code,(파생),CHAR(1),그룹 A~E
+clean_hsk_control,13,is_du_elec,(파생),TINYINT(1),"part_no IN (3,5,6,7) = 1 — R3 전략물자-DU 부 집합"
+clean_hsk_control,14,seq_in_row,(파생),SMALLINT,원본 목록 안 순번(1부터)
+clean_hsk_control,15,cleaned_at,(파생),DATETIME,정제 시각
+clean_hsk_control,16,cleaned_by,(파생),VARCHAR(50),정제 담당
+clean_kosis_utilization,1,raw_row_id,(파생),BIGINT UNSIGNED,"PK. 원본 행 추적(FK, raw 1:1)"
+clean_kosis_utilization,2,sector_name,분야별,VARCHAR(20),분야(평균·항공유도·화력·탄약·기동·통신전자·함정·화생방·기타). 원문 공백 제거
+clean_kosis_utilization,3,is_avg_row,(파생),TINYINT(1),1 = 「평균」 행(KOSIS 전 분야 평균). 분야 값으로 다시 평균 내지 않음
+clean_kosis_utilization,4,in_scope,(파생),TINYINT(1),"1 = 통신전자(§2-11 ★). 나머지 0(스코프 밖, 배경 비교용)"
+clean_kosis_utilization,5,year,(연도 열 헤더 2016~2024),SMALLINT,연도(연간 확정치)
+clean_kosis_utilization,6,utilization_pct,(셀 값),"DECIMAL(5,1)",평균가동률(%) 숫자화. 금액과 합산·비율 계산 금지
+clean_kosis_utilization,7,value_text,(셀 값),VARCHAR(20),raw 원문 보존
+clean_kosis_utilization,8,source_file,(파생),VARCHAR(100),raw source_file(갱신본 구분)
+clean_kosis_utilization,9,cleaned_at,(파생),DATETIME,정제 시각
+clean_kosis_utilization,10,cleaned_by,(파생),VARCHAR(50),정제 담당
+clean_kosis_production_index,1,raw_row_id,(파생),BIGINT UNSIGNED,"PK. 원본 행 추적(FK, raw 1:1)"
+clean_kosis_production_index,2,region_name,A 시도별,VARCHAR(30),시도 원문(00 전국)
+clean_kosis_production_index,3,industry_code,B 산업별,VARCHAR(5),KSIC 코드 = 원문 앞 토큰(C26 / C261 / C262 / C264)
+clean_kosis_production_index,4,industry_name,B 산업별,VARCHAR(100),산업명(코드 뒤 원문)
+clean_kosis_production_index,5,stat_month,(1행 헤더 `M201601 2016.01`),DATE,"YYYY-MM-01. raw stat_ym 이 p) 인 16행(2026-06·07)은 source_col_no 로 복원: month_idx=(col-3) DIV 2, 2016-01 + idx 개월"
+clean_kosis_production_index,6,is_month_restored,(파생),TINYINT(1),1 = stat_ym p) 결함 행(load_db.py split()[-1] 절단)이라 source_col_no 로 월을 복원. 정상 행은 파싱값=복원값 검산
+clean_kosis_production_index,7,item_code,(2행 헤더 `T10 생산지수(원지수)`),CHAR(3),T10 원지수 / T20 계절조정 = 원문 앞 토큰
+clean_kosis_production_index,8,item_name,(2행 헤더 `T10 생산지수(원지수)`),VARCHAR(50),항목명(코드 뒤 원문)
+clean_kosis_production_index,9,index_value,(셀 값),"DECIMAL(8,3)",생산지수(2020=100) 숫자화. 금액과 합산·비율 계산 금지
+clean_kosis_production_index,10,is_provisional,(1행 헤더 p) 표기),TINYINT(1),"1 = 잠정치(2026.06·2026.07, 16행). 확정치 갱신본은 새 source_file 로 누적"
+clean_kosis_production_index,11,is_partial_year,(파생),TINYINT(1),1 = 2026(1~7월 부분연도)
+clean_kosis_production_index,12,scope_grade,(파생),ENUM,§2-11 등급: 전국×C26·C261×T20=★ / 같은 조합 T10=▲ / 그 외 ✕
+clean_kosis_production_index,13,value_text,(셀 값),VARCHAR(20),raw 원문 보존
+clean_kosis_production_index,14,source_file,(파생),VARCHAR(100),raw source_file(갱신본 구분)
+clean_kosis_production_index,15,cleaned_at,(파생),DATETIME,정제 시각
+clean_kosis_production_index,16,cleaned_by,(파생),VARCHAR(50),정제 담당
