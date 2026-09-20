@@ -1,0 +1,14 @@
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false
+
+# 다크 테마 — 색은 docs/report/mockup-2026-09-18/common.css 와 같은 값(app/ui.py 색 토큰)
+[theme]
+base = "dark"
+primaryColor = "#5b9bff"
+backgroundColor = "#0e1320"
+secondaryBackgroundColor = "#1c2436"
+textColor = "#e7eaf0"
+borderColor = "#2a3347"

@@ -1,0 +1,44 @@
+rule_id,stage,signal,field,pattern,value,note,measured_rows_2026_09_17
+N01,normalize,MASK,contract_name,"[가-힣A-Za-z0-9]*(대대|여단|사단|군단|부대|훈련장|훈련단|비행단|전대|사령부|근무지원단|탄약고|무기고|탄약창|정비창|정비공장|생활관|소초|중대|연대|포상|포병|훈련대)"," ","부대·시설 명칭 토큰을 공백으로 치환한 뒤 신호 판정. 원문은 raw_ 보존",9003
+T01,signal,A,contract_name_norm,"비품|사무|책상|의자|캐비닛|선반|가구|매트리스|도서|장서|간행물|문고|청소|제초|조경|폐기물|위탁|식당|취사|부식|급식|식품|부대조달|축산물|농산물|과일|우유|햄|김치|후식|숙소|아파트|콘도|공사|신축|재해예방|관급|레미콘|아스콘|철근|설계용역|감리|승강기|소방|보험|견학|공연|기념품|체육|체력단련|운동기구|골프|캐디|냉난방|에어컨|보일러|정수기|임차|리스|인쇄|복사용지|볼펜|봉투|세탁|소독|세제|교육|연수|강사|행사|환경개선|리모델링|전기안전관리|기술지도|민간위탁|외진|수송용역|전세버스|전자레인지|냉장고|냉동고|세탁기|제습기|청소기|공기청정기|비데|소모품|설치납품|자산취득|사무기기|OA|만족도|조사 연구|라이선스|소프트웨어|SW|홈페이지",1,일반 행정·운영 신호,20234
+T02,signal,A_fac,contract_name_norm,"공사|신축|관급|레미콘|아스콘|철근|재해예방|설치납품|보수|설계|세탁|청소|소독|수송|임차|처리|위탁",1,A의 부분집합. 시설·용역성. A+M 충돌 해소에만 사용,
+T03,signal,M,contract_name_norm,"피복|전투복|군화|방한|모포|침구|식량|건빵|유류|휘발유|경유|등유|의약품|의료기재|의무물자|의무장비|병원장비|마스크|텐트|천막|배낭|수통|장구류|표적지|파레트|목상자|포장|위생|약품|타이어|윤활유|도료|페인트|용접기|(?<![0-9])공구|렌치",1,일반 군수물자 신호. 공구는 숫자 뒤(1공구) 제외,2379
+T04,signal,R_strong,contract_name_norm,"외주정비|창정비|야전정비|유지보수|유지관리|점검|기술지원|기술도입|성능개선|개량|오버홀|검교정|교정|기술교범|체계개발|연구용역|선행연구|시험평가|정비 ?용역|정비\)|정비$|수리(?!부속)",1,정비·기술지원(강). 계약 성격이 정비임이 분명,3411
+T05,signal,R_weak,contract_name_norm,정비,1,정비(약). 수식어 포함. R = R_strong 또는 R_weak,2308
+T06,signal,W,contract_name_norm,"K-?[0-9]{1,3}|자주포|전차|장갑차|박격포|유도탄|미사일|천궁|비호|발칸|레이더|소나|어뢰|잠수함|항공기|헬기|전투기|T-50|KF-|F-15|F-16|F-35|KT-1|UH-60|CH-47|AH-1|KUH|수리온|PRC-|TICN|ATCIS|C4I|KVMF|무전기|암호장비|지뢰탐지|총열|소화기|소총|권총|기관총|방탄|조준경|야간투시|열상|관측장비|사격통제|포탄|모의탄|훈련탄|수류탄|함정|전투장비|무기체계|자동소화장치|항법세트|워리어플랫폼|재밍|피아식별",1,무기체계·군용 장비 식별,2394
+T07,signal,E,contract_name_norm,"전자|전기|회로|반도체|안테나|레이더|통신|무전|송수신|수신기|송신기|중계기|표시기|센서|전원|전지|축전|배터리|충전|모듈|SFP|계기|계측|측정기|제어기|제어장치|암호|GPS|항법|신호|주파수|재밍|광학|열상|적외선|모니터|디스플레이|CCTV|카메라|마이크|스피커|케이블|전선|램프|LED|인버터|변환기|증폭기|스위치|프로세서|컴퓨터|서버|네트워크|UPS|무정전",1,전자 관련 신호(가전 포함),4235
+T08,signal,P,contract_name_norm,"부품|수리부속|조립체|키트|KIT|부속|류$|류\)|류\(|류 |베어링|가스켓|개스킷|밸브|커넥터|회로카드|모듈|센서|안테나|필터|호스|씰|패킹|기어|브래킷|샤프트|샤후트|튜브|스프링|볼트|너트",1,부품 표지,3050
+S01,signal,S_DAPA,contract_org_name,^방위사업청$,1,계약기관 방위사업청,837
+S02,signal,S_REASON,private_contract_reason,"군용물자|방위사업법|호환성이 없는|제조.공급한 자가 직접",1,수의계약 사유 방산 신호. NULL은 0,445
+S03,signal,S_LOG,contract_org_dept_name,"군수사령부|정비창|군수지원|보급창|정비단|정비대|수리창|항공정비|군수단|계약팀",1,군수·정비 계열 부서. P와 함께일 때만 D에 기여,8768
+S04,signal,S_SVC,biz_type_name,^용역$,1,용역 여부,11563
+G01,group,D,derived,"W or S_DAPA or S_REASON or (P and S_LOG)",1,방산 신호군. P∧S_LOG 1739,
+C00,class,none,derived,"A+M+R+D == 0",판단 보류,신호 없음,
+C01,class,single,derived,"A only",일반 행정·운영,,
+C02,class,single,derived,"M only",일반 군수물자,,
+C03,class,single,derived,"R only",정비·기술지원,,
+C04,class,single,derived,"D only",방산 장비·부품 후보,,
+C05,class,pair,derived,"A and M","S_SVC or A_fac → 일반 행정·운영 ; else 일반 군수물자",피복 세탁 용역→행정 / 정비피복 제조→군수물자,
+C06,class,pair,derived,"A and R",일반 행정·운영,시설 유지관리·점검,
+C07,class,pair,derived,"A and D","S_DAPA → 방산 장비·부품 후보 ; else 일반 행정·운영",전차 표적지·탄약고 제초는 행정. 방사청 장비는 방산,
+C08,class,pair,derived,"M and R","R_strong → 정비·기술지원 ; else 일반 군수물자",의무장비 외주정비→정비 / 정비피복→군수물자,
+C09,class,pair,derived,"M and D","P → 판단 보류 ; else 일반 군수물자",공구류·방한화(방사청)→군수물자. is_defense_related는 별도로 예,
+C10,class,pair,derived,"R and D",정비·기술지원,K2전차 엔진 외주정비,
+C11,class,multi,derived,"A+M+R+D >= 3",판단 보류,159행 전부 검수,
+X01,attr,is_electronic,derived,E,예,,
+X02,attr,is_electronic,contract_name_norm,"레미콘|아스콘|철근|피복|전투복|군화|모포|침구|식량|부식|농산물|축산물|과일|우유|도서|장서|볼펜|봉투|복사용지|제초|조경|폐기물|청소|세탁|소독|의약품|유류|휘발유|경유|가구|매트리스|책상|의자|캐비닛|파레트|목상자|텐트|천막|배낭|수통|보험|견학|공연|수송용역|전세버스",아니오,E가 없고 비전자 구체 품목이 있을 때만,
+X03,attr,is_electronic,derived,else,미확인,,
+X04,attr,is_part,derived,"P and not S_SVC",예,,
+X05,attr,is_part,derived,"S_SVC or (class5 in (일반 행정·운영, 일반 군수물자) and not P)",아니오,,
+X06,attr,is_part,derived,else,미확인,,
+X07,attr,is_defense_related,derived,"W or S_DAPA or S_REASON",예,,
+X08,attr,is_defense_related,derived,"class5 == 일반 행정·운영 and not (W or S_DAPA or S_REASON)",아니오,,
+X09,attr,is_defense_related,derived,else,미확인,,
+K01,group,contract_group,contract_name_norm,"무전기|PRC-|TICN|송수신|수신기|송신기|중계기|통신|안테나|암호|KVMF|C4I|ATCIS",통신,"대상: is_electronic=예 and class5 in (방산 장비·부품 후보, 판단 보류). category_link_status=후보",
+K02,group,contract_group,contract_name_norm,"레이더|탐지|소나|재밍|피아식별",레이더·탐지,,
+K03,group,contract_group,contract_name_norm,"항법|GPS|위성신호|관성",항법,,
+K04,group,contract_group,contract_name_norm,"전지|축전|배터리|충전|전원|발전기|인버터|변환기|UPS|무정전",전원·전지,화이트리스트 대응 후보 없음,
+K05,group,contract_group,contract_name_norm,"회로|회로카드|반도체|집적회로|프로세서|모듈|기판|PCB",회로·반도체,,
+K06,group,contract_group,contract_name_norm,"광학|조준경|열상|적외선|야간투시|카메라|관측|영상|표시기|디스플레이|모니터",광학·영상,,
+K07,group,contract_group,contract_name_norm,"계기|계측|측정기|제어기|제어장치|센서|시험기|점검기",계측·제어,화이트리스트 대응 후보 없음,
+K08,group,contract_group,derived,"2개 이상 일치",복수,하나로 정하지 않음,

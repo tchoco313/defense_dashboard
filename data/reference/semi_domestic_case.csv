@@ -1,0 +1,14 @@
+case_no,type_no,org,title,date,target_system,stage,source_title,source_url,verify_level,note,dapa_2025_task
+1,1,웨이비스,국내 최초 GaN RF 반도체 칩 양산 기술 국산화,2024-10-10,첨단무기체계·안티드론·통신·위성,양산,시사프라임,https://www.sisaprime.co.kr/news/articleView.html?idxno=21597,기사 원문,기업 발표. 칩·패키지 트랜지스터·모듈 양산 공정 내재화,0
+2,1,웨이비스 · 국방기술진흥연구소,L-SAM 다기능레이더용 S대역 RF GaN HEMT·IMFET 일반부품 국산화,2026-09-15,L-SAM 다기능레이더 송신부,개발 착수,뉴스핌,https://www.newspim.com/news/view/20260915000210,기사 원문,현재 해외 부품 의존. 금액 미공시,0
+3,1,ETRI · 웨이비스,X대역 GaN 송수신 단일 프론트엔드 MMIC,,군용 레이더·SAR,개발 완료 발표,로봇신문,https://www.irobotnews.com/news/articleView.html?idxno=40238,검색 요약,송신 출력 19W급·효율 28%. 날짜 미확인,0
+4,2,LIG넥스원 · 국방기술진흥연구소,AESA 레이다용 X-밴드 공통 MMIC 및 프런트엔드 모듈 개발,2025-11-28,"전투기용 AESA 레이다, 저피탐 무인편대기",개발 착수,서울신문,https://www.seoul.co.kr/news/economy/industry/2025/12/05/20251205500050,기사 원문,방사청 2025 핵심기술 과제. 기간·금액 미공시,1
+5,2,알에프코어,CMOS 기반 빔포밍칩(MFC MMIC) 자체 개발,2024-01-18,저고도 안티드론 체계 AESA 레이다(한화시스템 협력사),공급,벤처스퀘어,https://www.venturesquare.net/910511,기사 원문,기업 발표,0
+6,3,방위사업청 과제,소형위성용 다채널 빔포밍 시스템을 위한 송수신 트랜시버 우주 반도체,2025-05-19,소형위성 위성통신,과제 선정,데일리안,https://www.dailian.co.kr/news/view/1499291,기사 원문,유형 5(우주)에도 해당,1
+7,3,LIG넥스원 · 국방기술진흥연구소,무인항공기 SAR용 광대역 공통 MMIC 및 프런트엔드 모듈 개발,2025-11-28,한국형 스텔스 무인기 SAR,개발 착수,서울신문,https://www.seoul.co.kr/news/economy/industry/2025/12/05/20251205500050,기사 원문,방사청 과제명은 「무인항공기 SAR용 반도체칩」. 유형 2에도 해당,1
+8,4,딥엑스 · 국방부,NPU 기반 지능형 영상감시체계 시범 구축 사업,2026-08-05,공군 기지 활주로·철책 AI 경계감시,시범 적용,이데일리,https://edaily.co.kr/News/Read?mediaCodeNo=257&newsId=03808086645544368,기사 원문,외산 GPU 기반 체계를 국산 NPU로 구현. 무기체계 탑재는 아님,0
+9,5,항우연 우주항공 반도체 전략연구단 · ETRI,"우주용 반도체 7종 국산화(SoC, GaN 전력, DC-DC, GaN MMIC, 광반도체, CIS, M램)",2026-05-07,위성,개발 중(2025~),디일렉,https://www.thelec.kr/news/articleView.html?idxno=56167,기사 원문,"정부 출연금 1,000억 원 이상. 민수 우주 사업이며 국방 과제는 아님",0
+10,6,방위사업청 과제,초소형 전술급 자이로 센서,2025-05-19,,과제 선정,데일리안,https://www.dailian.co.kr/news/view/1499291,기사 원문,,1
+11,6,방위사업청 과제,저시정 장애물 탐지·경고 시스템 센서,2025-05-19,,과제 선정(2026 착수),데일리안,https://www.dailian.co.kr/news/view/1499291,기사 원문,5건 중 유일하게 2026년 착수,1
+12,6,아이쓰리시스템 · 민군협력진흥원,1280×1024 화소·8㎛ 피치 SWIR 적외선 검출기 개발,2020-09-01,군수·민수 주야간 영상,국책과제 선정,이투데이,https://www.etoday.co.kr/news/view/1935816,기사 원문,"총 연구비 27억 2,300만 원. 발전전략 이전 사례",0
+13,7,구미전자정보기술원,첨단 방위산업용 고성능·고신뢰성 시스템반도체 부품 실증 기반구축,2024-11,,기반 구축,GERI 웹진,https://geri.re.kr/webzine/31/geri01.pdf,검색 요약,전원·아날로그 전용 개발 사례는 찾지 못함,0
