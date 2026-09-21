@@ -1,7 +1,7 @@
 -- =============================================================================
 -- 정량 지표 도입: ref_hs_indicator · raw_hsk_control · 뷰 3개 · ref_hs_whitelist civil_mix 3열 (작성 2026-09-16, 팀 서버 적용 2026-09-16 — 계정 defense, mariadb.exe 2회 실행으로 재실행성 확인, 검증값 §7 기대와 일치)
 --
--- 근거: docs/reference/hs-whitelist-definition.md §7 (지표 정의·문턱값), docs/report/design-validity-review-2026-09-15.md §2-3
+-- 근거: docs/reference/hs-whitelist-definition.md §7 (지표 정의·문턱값), docs/report/plan/design-validity-review-2026-09-15.md §2-3
 -- 목적: civil_mix "팀 판단" 라벨을 폐기하고, 관세청 HS10 용도 세분류 수입 비중(7개 품목군)으로 규칙 도출한 값만 남긴다.
 --       정량 경로가 없는 14개 품목군은 NULL(civil_mix_basis='판단불가').
 -- 실행: DBHub는 readonly라 불가. docs/runbook/commands.md "DB 스키마 적용"과 같이 mariadb.exe + MYSQL_PWD 로:

@@ -175,7 +175,7 @@ B 실측 SQL 주의: `dim_hs10 LEFT JOIN fact_customs_monthly ON hs10`은 월별
 
 ### 6-3. 남은 것
 
-- `matched_keywords`·`contract_group` 재실측(§5-5)은 `class5` 키워드 규칙 확정 후. 규칙표는 팀원 `notebooks/eda_contract.ipynb`가 쓰는 `data/reference/contract_class5_rules.csv` + `docs/reference/contract-class5-rules.md`(미커밋)를 받아 넣은 뒤 `scripts/contract_name_tokens.py --rules`로 커버리지를 검사한다(`docs/report/contract-name-tokens-2026-09-20.md` §7).
+- `matched_keywords`·`contract_group` 재실측(§5-5)은 `class5` 키워드 규칙 확정 후. 규칙표는 팀원 `notebooks/eda_contract.ipynb`가 쓰는 `data/reference/contract_class5_rules.csv` + `docs/reference/contract-class5-rules.md` — 2026-09-20 팀 저장소 커밋 `101b5d9`에서 반입했고 `scripts/contract_name_tokens.py --rules` 커버리지 검사 결과는 `docs/report/data/contract-name-tokens-2026-09-20.md` §7(어느 규칙에도 안 걸리는 행 11,095 = R7 상한 29.5%, 충돌 토큰 7, 보완안). 표본 검수 전이라 `class5` 값은 그대로.
 - 이전 alter(09-17 `procurement_aux`, 09-19 `views_to_clean`)의 뷰 본문은 구판 — 재실행 시 `alter_2026-09-20_null_vocab.sql`을 뒤에 다시 적용(정본 `db/schema.sql`).
 
 ## 부록. 실측 SQL (DBHub app_ro, 2026-09-19)

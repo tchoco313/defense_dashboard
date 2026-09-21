@@ -1,6 +1,6 @@
 # 근거 신뢰도·판단 로직 자기 검토 (2026-09-17)
 
-**목적**: 대시보드가 내놓는 "추가 검토 목록"의 근거가 무엇을 입증하고 무엇을 입증하지 못하는지를 5개 관점에서 비판적으로 점검한다. 발표(10-06) Q&A 대비와 기획서 보완에 재사용한다. 이 문서는 반론 문서이며 `docs/idea-review.md` §5 절충안·`docs/report/project-plan-2026-09-16.md`를 대체하지 않는다.
+**목적**: 대시보드가 내놓는 "추가 검토 목록"의 근거가 무엇을 입증하고 무엇을 입증하지 못하는지를 5개 관점에서 비판적으로 점검한다. 발표(10-06) Q&A 대비와 기획서 보완에 재사용한다. 이 문서는 반론 문서이며 `docs/idea-review.md` §5 절충안·`docs/report/plan/project-plan-2026-09-16.md`를 대체하지 않는다.
 
 **검토 범위**: `docs/`(기획·출처·설계·검증 문서), `db/schema.sql`·`db/alter_2026-09-17_*.sql`, 팀 DB `defense_dashboard` 직접 조회(DBHub, 2026-09-17, 부록 A), `app/`(연습용 2페이지), `data/reference/hs_whitelist.csv`.
 
@@ -31,14 +31,14 @@
 | 입증하는 것 | HS10 × **선적국** × 월 단위의 **국가 전체** 수입(CIF USD)·수출(FOB USD) 금액과 중량. 2016-01~2026-08, 24개 HS6, 294,420행 | 확인됨 (`docs/data-sources.md` §관세청, `db/schema.sql` `fact_customs_monthly` 주석 "국가 전체 수입(민수 포함)") |
 | 입증하는 것 | HS6 × 연도별 국가 집중도(상위국 점유율·HHI·교역국 수). 총계행 대조 완전 일치, 완전 중복 0, 나미비아 `NA` 결측 오류 정정(국가 237→238) | 확인됨 (`docs/data-sources.md` 원본 확보 기록, `docs/db/schema-design.md` §7) |
 | 입증 **못** 하는 것 | 군수 수요 규모·비중 — HS는 용도를 구분하지 않음. 군용 전용 HS10 세분류는 집적회로 3개(854231/33/39)뿐이고 신고 비중 ≤0.026%(하한선) | 확인됨 (`docs/reference/hs-whitelist-definition.md` §7-1·§7-3, `ref_hs_indicator.mil_hs10_share`) |
-| 입증 못 하는 것 | "방산 수입의존도"·"국산화율"·"국방용 수입액" — 문서가 산출 불가로 명시하고 표현을 금지 | 확인됨 (`docs/idea-review.md` §3-3·§4 라벨 원칙, `docs/report/design-validity-review-2026-09-15.md` Q3) |
+| 입증 못 하는 것 | "방산 수입의존도"·"국산화율"·"국방용 수입액" — 문서가 산출 불가로 명시하고 표현을 금지 | 확인됨 (`docs/idea-review.md` §3-3·§4 라벨 원칙, `docs/report/plan/design-validity-review-2026-09-15.md` Q3) |
 | 입증 못 하는 것 | **원산지** — 관세청 국가는 선적국. 홍콩·싱가포르 경유(852610 레이더 1위 SG 43.3%가 그 예일 수 있음) | 확인됨(선적국 기준: `docs/idea-review.md` §3-4) / SG 경유 여부는 미확인 |
 | 입증 못 하는 것 | 국내 생산 대비 의존율 — 국내 생산액이 없으므로 "해외 의존율" 산출 불가 | 확인됨 (`docs/idea-review.md` §4 "해외 의존율이라고 쓰지 않음") |
 | 입증 못 하는 것 | 방산 부품이 민수 범용(COTS)인지 군 전용(MIL)인지 | 확인됨 — 문서가 "어떤 확보 자료로도 구분 불가 → 미확인"으로 판정 (`design-validity-review` L1) |
 
 ### 1-2. 수입액·수입량만으로 군수 수요·해외 의존도·국산화 필요성을 과도 추정하는가
 
-**설계 문서의 논리 사슬 판정**(`docs/report/design-validity-review-2026-09-15.md` §논리 사슬, 확인됨):
+**설계 문서의 논리 사슬 판정**(`docs/report/plan/design-validity-review-2026-09-15.md` §논리 사슬, 확인됨):
 
 - L1 "방산도 같은 글로벌 부품 공급망에 노출돼 있다" → **간접 근거**(A6 언론 인용 98.9%, A7 부품 예산 존재, KRIT 공고). COTS/MIL 구분 불가.
 - L2 "수입 집중도가 높으면 국산화 검토가 필요하다" → **근거 없음, 정책 판단**. 그래서 산출물을 "국산화 필요" 결론이 아니라 "추가 검토 목록"으로 부른다.
@@ -50,7 +50,7 @@
 
 | # | 위험 | 근거 | 판정 |
 |---|---|---|---|
-| R-1 | 기획서가 산업부 「3050 전략」의 관문(특정국 수입의존도 50%)을 "최대 수입국 점유율 50% 또는 HHI 2,500"으로 준용하면서, 관문 표 자체에는 "국가 전체 수입 기준이며 군수 수요 기준이 아님"이 없다. 본문 앞쪽(§배경 "수입 통계는 국방을 따로 보여 주지 않는다")에만 있어 관문 표만 인용되면 오독된다 | `docs/report/project-plan-2026-09-16.md` 1단계 관문 행·"점유율 50%는 정부 기준을 그대로 준용" | 확인됨 |
+| R-1 | 기획서가 산업부 「3050 전략」의 관문(특정국 수입의존도 50%)을 "최대 수입국 점유율 50% 또는 HHI 2,500"으로 준용하면서, 관문 표 자체에는 "국가 전체 수입 기준이며 군수 수요 기준이 아님"이 없다. 본문 앞쪽(§배경 "수입 통계는 국방을 따로 보여 주지 않는다")에만 있어 관문 표만 인용되면 오독된다 | `docs/report/plan/project-plan-2026-09-16.md` 1단계 관문 행·"점유율 50%는 정부 기준을 그대로 준용" | 확인됨 |
 | R-2 | 팀 회의 결론 문장에 "**해외 수입 의존도 시각화** 때 DB에서 가져와…"라는, 문서 전체가 금지한 표현이 남아 있다 | `docs/reference/hs-whitelist-definition.md` §8 회의 결론 표 | 확인됨 |
 | R-3 | 2025년 HHI 정렬 상위 5개 중 3개(854142 광전지 CN 83.5% · 847180 자료처리기기 CN 71.7% · 854159 기타 반도체 TW 65.5%)가 `evidence_basis=팀판단`·priority 3, 즉 규칙 R1~R4 어느 것에도 걸리지 않은 "근거 미확인" 품목이다. 관문 통과 14개 중 4개가 팀판단이다. 화면 기본 정렬이 HHI↓이면 **가장 근거가 약한 품목이 가장 위에 온다** | 부록 A-5 | 확인됨 |
 
@@ -71,7 +71,7 @@
 | B2 국산화개발품목 | `최종수정일` 공란 25,191행 → **시점 미상 스냅샷**. 문서는 "연도 축 사용 금지"로 처리 |
 | A7 국외 조달계획 파일판 | 포털 ID·게시일·SHA-256 미확인(`meta_dataset.dataset_id` NULL) |
 | KDSIS NSN | 팀원 정리본. 포털 ID·다운로드일·조회 조건 미확인. `item_div_code`·`niin_status`·`chk_flag` 의미 미확인 |
-| KRIT B1 | 26-1차 2행만 적재. 나머지 7파일(23-4차~26-2차 예비) 미추출 |
+| KRIT B1 | ~~26-1차 2행만 적재. 나머지 7파일(23-4차~26-2차 예비) 미추출~~ → 2026-09-18 7건 추출·96행 적재(예비·본·재공고 중복 포함 원본 행수) |
 
 **문서 간 수치 불일치(확인됨)**: 기획서 "24개 기준 2025 수입액 681억$·대만 33.9%" vs 정의 문서 "21개 기준 678억$·34.1%"; 분석 대상 개수가 기획서 19 / 정의 문서 18로 다르고 `project-plan-review-2026-09-16.md`는 "19 또는 17로 통일"을 제안. 기준 개수를 병기하지 않으면 발표 중 모순으로 보인다.
 
@@ -189,7 +189,7 @@
 
 | 항목 | 상태 | 판정 |
 |---|---|---|
-| 국산화 과제 공고(B1 KRIT) | 과제명·정부지원 연구개발비·개발기간·비고만. **개발 상태·주관업체·성공/실패 열 없음**. 26-1차 2행만 적재(3년 누적 100건 안팎 확보 가능) | 확인됨 — 공고 단계 목록 |
+| 국산화 과제 공고(B1 KRIT) | 과제명·정부지원 연구개발비·개발기간·비고만. **개발 상태·주관업체·성공/실패 열 없음**. 2026-09-18 96행 적재(예비·본·재공고 중복 포함, 본공고 기준 과제 수는 `is_counted` 뒤 확정) | 확인됨 — 공고 단계 목록 |
 | 개발 완료 이력(B2) | 국산화개발품목 33,965행 → 고유 부품 12,788. 단 **지상 기동·화력 28개 사업 한정**(항공·함정·유도 사실상 없음), 시점 미상, 모수 없음(국산화율 산출 금지) | 확인됨 |
 | 성공·실패 사례 | 없음. KRIT 재공고만 간접 신호 | 없음 |
 | 국내 공급업체 | B2 `계약업체`는 "계약 상대(개발 주체 아님)", 방산업체 지정현황 84행은 품목과 무관. `clean_company` 0행 | 없음 |
@@ -209,7 +209,7 @@
 | 기술 난이도 | 없음 |
 | 시험·인증(국방규격·형식승인) | 없음(KDSIS `standard_no`·B2 `규격번호`는 규격 존재 여부일 뿐) |
 | 지식재산권·라이선스 | 없음 |
-| 개발비 | KRIT `정부지원 연구개발비`가 유일. 2행 |
+| 개발비 | KRIT `정부지원 연구개발비`가 유일. 96행 중 85행(24-1차 예비 11행은 총과제비만 있어 NULL), 단위 억/백만원 혼재 |
 | 수익성·시장 규모 | 없음. 조달 금액은 §3-12 "방산 매출 아님" |
 | 시장 진입 장벽(기존 공급자·계약 형태) | 계약정보 수의계약 비중 **70.2%(30,255/43,112행, 계약 단위 26,874/37,608 = 71.5%)** — 2026-09-17 `v_contract_private_reason`으로 재현됨(기획서 수치 확인). 다만 그중 21,718계약은 소액·소기업 사유라 진입 장벽 신호는 단일공급·호환성·특허 747계약에 한정 |
 
@@ -256,10 +256,10 @@
 
 | # | 조치 | 대상 | 근거 |
 |---|---|---|---|
-| A-1 | 1단계 관문 표 옆에 "국가 전체 수입 기준(민수 포함). 군수 수요 비중이 아님" 주석 추가 | `docs/report/project-plan-2026-09-16.md` | §1-2 R-1 |
+| A-1 | 1단계 관문 표 옆에 "국가 전체 수입 기준(민수 포함). 군수 수요 비중이 아님" 주석 추가 | `docs/report/plan/project-plan-2026-09-16.md` | §1-2 R-1 |
 | A-2 | "해외 수입 의존도 시각화" → "수입 집중도 시각화"로 정정 | `docs/reference/hs-whitelist-definition.md` §8 회의 결론 | §1-2 R-2 |
 | A-3 | KDSIS 절에 "NSN 등록은 표준화 사실이며 사용·조달·재고를 뜻하지 않는다" 문장 추가 | `docs/data-sources.md`, `docs/db/table-guide.md` | §2-5 |
-| A-4 | 기획서 ③ 검토 목록 열에서 "관련 R&D 예산" 제거 또는 "연도별 R&D 예산 추이(배경, 품목군 무관)"로 재정의 | `docs/report/project-plan-2026-09-16.md` | §3-2 |
+| A-4 | 기획서 ③ 검토 목록 열에서 "관련 R&D 예산" 제거 또는 "연도별 R&D 예산 추이(배경, 품목군 무관)"로 재정의 | `docs/report/plan/project-plan-2026-09-16.md` | §3-2 |
 | A-5 | 수입액·점유율 수치에 기준 HS6 개수 병기(24개 681억$ / 21개 678억$) | 기획서·정의 문서 | §1-3 |
 | A-6 | 계약정보 2024년(11~12월) 부분연도 표기, `meta_dataset` 관세청 행 `published_on` 채움 | `db/meta_dataset.csv`, `docs/data-sources.md` | §1-3 |
 | A-7 | `schema-design.md` §3 ref_fsc "출처 없어 0행" → 676행(군급분류집) 정정 | `docs/db/schema-design.md` | 탐색 기록 |
@@ -341,4 +341,4 @@ A-7. `meta_load_log`: `dapa_contract` 원본 전체 43,112 이후 단계 없음;
 
 ## 부록 B. 인용 문서
 
-`docs/idea-review.md` §3(유의사항 3·9·12·14·15)·§4·§5 / `docs/report/design-validity-review-2026-09-15.md`(논리 사슬 L1~L3, Q3, 금액 비교 조합표) / `docs/report/project-plan-2026-09-16.md`(관문 표, 화면 구성 ③, 하지 않는 것) / `docs/report/project-plan-review-2026-09-16.md` / `docs/report/professor-feedback-2026-09-15.md` / `docs/reference/hs-whitelist-definition.md` §7·§8 / `docs/report/category-map-decision-2026-09-17.md` / `docs/db/schema-design.md` §7 / `docs/db/table-guide.md` / `docs/data-sources.md` / `db/schema.sql`(`ref_category_map`·`v_review_list`·`v_defense_relevance_b2`·`v_hs6_candidate_rule` 주석) / `db/alter_2026-09-17_kdsis_nsn.sql` / ~~`db/alter_2026-09-17_category_map.sql`~~(2026-09-18 삭제) / `app/main.py`·~~`app/pages/1_관세청_수출입.py`~~(→ `1_수출입_현황.py`)
+`docs/idea-review.md` §3(유의사항 3·9·12·14·15)·§4·§5 / `docs/report/plan/design-validity-review-2026-09-15.md`(논리 사슬 L1~L3, Q3, 금액 비교 조합표) / `docs/report/plan/project-plan-2026-09-16.md`(관문 표, 화면 구성 ③, 하지 않는 것) / `docs/report/plan/project-plan-review-2026-09-16.md` / `docs/report/feedback/professor-feedback-2026-09-15.md` / `docs/reference/hs-whitelist-definition.md` §7·§8 / `docs/report/data/category-map-decision-2026-09-17.md` / `docs/db/schema-design.md` §7 / `docs/db/table-guide.md` / `docs/data-sources.md` / `db/schema.sql`(`ref_category_map`·`v_review_list`·`v_defense_relevance_b2`·`v_hs6_candidate_rule` 주석) / `db/alter_2026-09-17_kdsis_nsn.sql` / ~~`db/alter_2026-09-17_category_map.sql`~~(2026-09-18 삭제) / `app/main.py`·~~`app/pages/1_관세청_수출입.py`~~(→ `1_수출입_현황.py`)

@@ -1,5 +1,7 @@
 # MariaDB 학원 내부망 서버 구축·원격 접속 (2026-09-15 팀 작업용)
 
+> **2026-09-18부터 이 서버는 백업·로컬 연습용이다.** 운영 DB는 AWS RDS(`docs/runbook/aws-rds-setup.md`)이며 적재·alter·앱 접속은 전부 RDS로 한다. 이 서버에 새 데이터를 쓰지 않고, 필요할 때 RDS 덤프를 복원해 연습하는 용도로만 남긴다(`aws-rds-setup.md` §6). 아래 내용은 2026-09-15~18 구축 기록이다.
+
 한 팀원 PC에 DB 서버를 두고 나머지가 같은 내부망에서 원격 접속하는 구성. 서버는 **협업 편의 수단**이고, 과제 제출물은 DDL·덤프 파일이다. 서버 PC가 없어도 작업이 멈추지 않도록 §5 덤프 공유를 매일 한다.
 
 스키마는 `docs/db/schema-design.md` + `db/schema.sql`(2026-09-15, 구 초안 `dashboard-scope-2026-09-14.md` §5는 이관됨). 적재 코드(노트북)는 팀원이 작성하며 이 문서는 절차·설정값만 다룬다.
@@ -97,12 +99,12 @@ MARIADB_DATABASE=defense_dashboard
 - 국가 참조표: pandas로 다룰 때 `keep_default_na=False` — `"NA"`(나미비아)가 결측으로 사라진다(`schema-design.md` §7-1).
 - `LOAD DATA LOCAL INFILE`은 **클라이언트 쪽 파일**을 읽으므로 원격에서도 된다. 서버 `local_infile=1`(§1-1) + 클라이언트 옵션(`mysql --local-infile=1`, pymysql `local_infile=True`) 둘 다 필요.
 - 원본 테이블(`dapa_contract_raw` 등)은 CSV 그대로, 정제 결과는 별도 테이블(`*_clean`). 원본 테이블은 적재 후 수정하지 않는다(CLAUDE.md 데이터 검증 규칙).
-- 적재 후 `SELECT COUNT(*)`를 파서 기준 원본 건수(`docs/data-sources.md`, `docs/report/data_feasibility_check.md`)와 대조해 기록한다. 물리 줄 수와 다를 수 있다.
+- 적재 후 `SELECT COUNT(*)`를 파서 기준 원본 건수(`docs/data-sources.md`, `docs/report/data-feasibility-check-2026-09-13.md`)와 대조해 기록한다. 물리 줄 수와 다를 수 있다.
 - 관세청 `customs_all_*.csv`는 utf-8. 총계행(`is_total`) 포함 그대로 적재.
 
 ## 4. 하지 말 것
 
-- 공유기 포트포워딩·외부 인터넷 노출. 학원 내부망 밖에서 붙을 일이 없다.
+- (팀 서버에 한함) 공유기 포트포워딩·외부 인터넷 노출. 외부 접속이 필요한 용도는 RDS가 맡는다(`aws-rds-setup.md` — 보안 그룹 `/32` 허용만).
 - root 비밀번호 공백, root 원격 허용.
 - `.env` 커밋(이미 gitignore). 비밀번호는 팀 채팅으로만.
 - 원본 CSV 수정·덮어쓰기.

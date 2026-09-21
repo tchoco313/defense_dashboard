@@ -1,6 +1,6 @@
 # 설계 타당성 검토 — 예산 비교군·HS6 분류 근거·"방산 수입의존도" 논리 (2026-09-15)
 
-교수 Q&A 대비용 반론 세 가지에 답한다. 근거는 **확인됨 / 추론 / 제안 / 미확인**으로 구분하고, 확인된 수치는 기준 문서(`docs/idea-review.md`, `docs/report/professor-feedback-2026-09-15.md`, `docs/reference/hs-whitelist-definition.md`)의 값을 그대로 쓴다. 외부 조사(§4)는 2026-09-15 웹에서 직접 확인한 범위만 적고, 확인하지 못한 것은 미확인으로 남긴다.
+교수 Q&A 대비용 반론 세 가지에 답한다. 근거는 **확인됨 / 추론 / 제안 / 미확인**으로 구분하고, 확인된 수치는 기준 문서(`docs/idea-review.md`, `docs/report/feedback/professor-feedback-2026-09-15.md`, `docs/reference/hs-whitelist-definition.md`)의 값을 그대로 쓴다. 외부 조사(§4)는 2026-09-15 웹에서 직접 확인한 범위만 적고, 확인하지 못한 것은 미확인으로 남긴다.
 
 | 질문 | 한 줄 결론 |
 |---|---|
@@ -118,4 +118,4 @@
 | 팀 DB `ref_hs_whitelist` | `db/alter_2026-09-15_civil_mix.sql` — `mariadb.exe`(계정 `defense`)로 실행, 높음 13/중간 7/낮음 1 검증 | **적용(2026-09-16)** → 같은 날 아래로 대체. 파일은 2026-09-17 삭제(git 이력) |
 | 팀 DB `ref_hs_indicator`·`raw_hsk_control`·뷰 3개·`civil_mix` 3열 | `db/alter_2026-09-16_indicator.sql` — 정량 지표 39행, `civil_mix` 높음 3 / 중간 2 / 낮음 2 / NULL 14, 2회 실행으로 재실행성 확인 | **적용(2026-09-16)** |
 | `docs/data-sources.md` 팀원 공유분 표 | 군별 계약집행 ID `15070269` 기입 | 이 작업에서 적용 |
-| `docs/report/professor-feedback-2026-09-15.md` §5 | 사용자 후속: 방산업체 매칭(1-2 ③), HSK 연계표 대조(2-3), 군별 집행 범위 문의 여부 | 이 작업에서 적용 |
+| `docs/report/feedback/professor-feedback-2026-09-15.md` §5 | 사용자 후속: 방산업체 매칭(1-2 ③), HSK 연계표 대조(2-3), 군별 집행 범위 문의 여부 | 이 작업에서 적용 |

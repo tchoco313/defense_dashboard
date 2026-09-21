@@ -105,8 +105,8 @@ if trade.empty:
 years = sorted(trade["year"].unique())
 partial_years = set(trade.loc[trade["is_partial_year"] == 1, "year"].unique())
 last_full_year = max(y for y in years if y not in partial_years)
-analysis_hs = wl.loc[wl["evidence_basis"] == "rule", "hs6"].tolist()  # 분석 대상 19개(규칙 근거)
-label_of = {r.hs6: f"{r.hs6} · {r.name_ko} ({r.category}{', 팀판단' if r.evidence_basis != 'rule' else ''})"
+analysis_hs = wl.loc[wl["priority"] <= 2, "hs6"].tolist()  # 분석 대상 13개(진입 R1 OR R2, 2026-09-21 M5). priority 3 = 분석 제외
+label_of = {r.hs6: f"{r.hs6} · {r.name_ko} ({r.category}{', 분석 제외' if r.priority == 3 else ''})"
             for r in wl.itertuples()}
 
 # ── 제목 ─────────────────────────────────────────────────────────────────────
@@ -120,7 +120,7 @@ imp_rank = (trade[(trade["year"] == last_full_year) & trade["hs6"].isin(analysis
             .groupby("hs6")["imp_dlr"].sum().sort_values(ascending=False))
 options = [ALL] + imp_rank.index.tolist() + [h for h in wl["hs6"] if h not in imp_rank.index]
 sel = f1.selectbox("품목군(HS6)", options,
-                   format_func=lambda h: f"분석 대상 19개 합계 (수집 24개 중 규칙 근거 {len(analysis_hs)}개)" if h == ALL else label_of[h])
+                   format_func=lambda h: f"분석 대상 {len(analysis_hs)}개 합계 (수집 24개 중 규칙 R1·R2 진입)" if h == ALL else label_of[h])
 year = f2.selectbox("기준 연도", sorted(years, reverse=True), index=sorted(years, reverse=True).index(last_full_year),
                     format_func=lambda y: f"{y} (부분연도)" if y in partial_years else str(y))
 top_n = f3.slider("상위 국가 수", 5, 15, 10)
@@ -129,7 +129,7 @@ zones_on = z_top.pills("표시 구역", ZONES, selection_mode="multi", default=Z
                        help="보고 싶은 구역만 남깁니다. 조건과 요약(KPI)은 항상 보입니다") or ZONES
 
 hs_list = tuple(analysis_hs) if sel == ALL else (sel,)
-scope_title = "분석 대상 19개 합계" if sel == ALL else f"{sel} {wl.set_index('hs6').loc[sel, 'name_ko']}"
+scope_title = f"분석 대상 {len(analysis_hs)}개 합계" if sel == ALL else f"{sel} {wl.set_index('hs6').loc[sel, 'name_ko']}"
 d = trade[trade["hs6"].isin(hs_list)]
 if d.empty or d.loc[d["year"] == year].empty:
     first_year = int(d["year"].min()) if not d.empty else None
@@ -284,7 +284,7 @@ if "지도 · 집중도" in zones_on:
             st.caption("HHI = Σ(국가 점유율)². 국가 전체 수입·수출 기준이며 군수 의존도가 아닙니다. 검토 목록(③)의 관문·정렬은 수입 HHI만 씁니다.")
         st.caption("지도 좌표: `ref_country`(238개국). 좌표 없는 국가는 표시되지 않습니다.")
 
-    # 지도에서 고른 나라 → 19개 합계면 그 나라의 품목군 구성, 품목군 하나면 그 나라의 연도별 추이
+    # 지도에서 고른 나라 → 분석 대상 합계면 그 나라의 품목군 구성, 품목군 하나면 그 나라의 연도별 추이
     pts = picked.selection.points
     if not pts:
         z_map.caption("지도의 원을 누르면 그 나라의 세부 내역이 아래에 나옵니다. 지도 빈 곳을 두 번 누르면 풀립니다.")

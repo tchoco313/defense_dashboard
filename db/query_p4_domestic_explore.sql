@@ -4,7 +4,7 @@
 --         raw_dapa_domestic_plan · raw_dapa_contract_exec_by_service · raw_dapa_defense_company
 --   목표: clean_dapa_contract(정의 있음, 0행) · clean_company/clean_company_name_link(정의 있음, 0행)
 --         clean_dapa_bid_notice · clean_dapa_bid_result · clean_dapa_domestic_plan · clean_dapa_contract_exec_by_service · clean_excluded_row(db/alter_2026-09-18_p4_clean.sql, 2026-09-18 DDL)
---   주석의 "기대" 값은 docs/db/schema-design.md §7 · table-guide.md · 담당분배 명세(new_data/) 기준.
+--   주석의 "기대" 값은 docs/db/schema-design.md §7 · table-guide.md · 전환 명세(docs/reference/clean-conversion-spec-2026-09-18.md) 기준.
 --   raw 는 읽기만 한다(원본 동결). 한 블록씩 복사해 실행.
 -- ============================================================================
 

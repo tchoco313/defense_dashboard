@@ -1,12 +1,12 @@
 """홈 — 한눈에 보는 KPI · 어디서 들어오나(지도 · 1위 공급국 점유율) · 안내와 한계.
 
-디자인: docs/report/mockup-2026-09-18/main.html. 데이터 판정: docs/report/data-usage-decision-2026-09-18.md §4.
-- 분석 대상 = ref_hs_whitelist 중 evidence_basis='rule'(priority 1·2). 수입액은 국가 전체 수입(민수 포함).
-  선정 근거는 공식 분류표·통제 목록에 팀 규칙 R1~R4 를 적용한 것이며, R3∧R4 로만 진입한 품목군은 R4 잠정(metrics.r4_provisional).
+디자인: docs/report/app/mockup-2026-09-18/main.html. 데이터 판정: docs/report/data/data-usage-decision-2026-09-18.md §4.
+- 분석 대상 = ref_hs_whitelist 중 priority IN (1, 2) — 13개(2026-09-21 회의 M5: 진입식 R1 OR R2, R4 제외). 수입액은 국가 전체 수입(민수 포함).
+  선정 근거는 공식 분류표·통제 목록의 규칙 R1·R2(군용전용·항공/항행 세분류). 회의 결정 반영표는 app/specs/00_common.md §8.
 - 기간 기준(기준 연도 / 최근 5년 / 전체)은 KPI 1~3과 지도·막대에만 적용. 부분연도(예: 2026.01~08)는 빼고 센다.
   점유율·HHI 계산은 metrics.concentration(③·🔎 KPI 와 같은 산식: 선택 연도 합산 → 국가 점유율, 수입 실적>0 국가만).
-- KPI 4(국외 조달계획)는 clean_dapa_overseas_plan_api 의 is_elec=1(FSG 58·59·60, 영숫자 NSN 포함) 행 수 — 전자 판정은
-  팀 확인 전 「잠정」. KPI 5는 B2 정제본(is_electronic_group=1) 스냅샷. 둘 다 기간 기준과 무관.
+- KPI 4(국외 조달계획)는 clean_dapa_overseas_plan_api 의 is_elec=1(FSG 58·59·60, 영숫자 NSN 포함 — 2026-09-21 M4 확정) 행 수.
+  KPI 5는 B2 정제본(is_electronic_group=1) 스냅샷. 둘 다 기간 기준과 무관.
 - KPI 4·5·규칙 건수는 캐시 밖에서 try_query 로 읽어 「조회 실패 / 적재 0건 / n」을 구분한다(실패값이 캐시에 남지 않게).
 """
 from __future__ import annotations
@@ -22,7 +22,7 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from db import db_ready, query, try_query  # noqa: E402
-from metrics import concentration, count_state, r4_provisional  # noqa: E402
+from metrics import concentration, count_state  # noqa: E402
 from ui import BG, MUTED, PANEL2, SHORT, TEXT, country_colors, kpi, period_control, zone  # noqa: E402
 
 # 지도 라벨 위치(목업과 같게 — 동아시아 원이 겹치지 않도록). 없으면 아래 가운데
@@ -35,7 +35,7 @@ if not db_ready():
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load() -> dict:
-    wl = query("SELECT hs6, name_ko, evidence FROM ref_hs_whitelist WHERE evidence_basis = 'rule'")
+    wl = query("SELECT hs6, name_ko FROM ref_hs_whitelist WHERE priority IN (1, 2)")
     imp = query("""
         SELECT hs6, year, stat_cd, imp_dlr, is_partial_year
         FROM v_import_hs6_year WHERE hs6 IN :hs AND imp_dlr > 0
@@ -79,7 +79,6 @@ with st.spinner("팀 DB 조회 중…"):
 wl, imp, ctry = d["wl"], d["imp"], d["ctry"]
 names = {r.hs6: SHORT.get(r.hs6, r.name_ko) for r in wl.itertuples()}
 cname = dict(zip(ctry["stat_cd"], ctry["name_ko"]))
-n_r4 = int(wl["evidence"].map(r4_provisional).sum())   # R3∧R4 로만 진입(R4 잠정) 품목군 수
 
 # ── KPI ─────────────────────────────────────────────────────────────────────
 with zone("kpi", "한눈에 보는 KPI"):
@@ -96,21 +95,21 @@ with zone("kpi", "한눈에 보는 KPI"):
     st_rule, n_rule = count_state(rule_df, rule_err, "n")
     st_plan, plan_n = count_state(plan_df, plan_err, "n", total_col="n_all")
     st_b2, b2_n = count_state(b2_df, b2_err, "n", total_col="n_all")
-    rule_sub = (f"HS6 {n_rule:,}개에 " if st_rule == "ok" else "") + f"공식 분류·통제표 + 팀 규칙 R1~R4 · {n_r4}개는 R4 잠정"
+    rule_sub = (f"HS6 {n_rule:,}개에 " if st_rule == "ok" else "") + f"공식 분류·통제표 규칙 R1·R2 적용 · 수집 24개 중 {len(wl)}개"
     plan_sub = b2_sub = ""
     if st_plan == "ok":
         r = plan_df.iloc[0]
         yr_txt = f"{int(r['y0'])}~{int(r['y1'])}" if pd.notna(r["y0"]) and pd.notna(r["y1"]) else "—"
-        plan_sub = f"적용장비 {int(r['eq']):,}종 · FSG 58·59·60 · 요구연도 {yr_txt} · 전자 판정 잠정(팀 확인 전)"
+        plan_sub = f"적용장비 {int(r['eq']):,}종 · FSG 58·59·60 · 요구연도 {yr_txt}"
     if st_b2 == "ok":
         r = b2_df.iloc[0]
         b2_sub = f"전자 군급(is_electronic_group) · 지상 {int(r['p_all'])}개 사업 중 {int(r['p'])}개 · 국산화율 아님"
 
     st.html('<div class="kpis">'
             + kpi("분석 대상 품목군", f"{len(wl)}", "개", rule_sub)
-            + kpi(f"{y_label} 수입액 ({len(wl)}개 합)", f"{total / 1e8:,.0f}", "억 달러", "국가 전체 수입 · 민수 포함")
-            + kpi("특정국 50% 이상 품목군", f"{int((top1['share'] >= 0.5).sum())}", "개", f"1위 공급국 점유율 기준 · {y_label}")
-            + kpi("전자 군급 국외 조달계획", *kpi_num(st_plan, plan_n, "건", plan_sub, plan_err, "전자 군급(FSG 58·59·60) 행 0건"), "잠정")
+            + kpi(f"{y_label} 수입액 ({len(wl)}개 합)", f"{total / 1e8:,.0f}", "억 달러", "국가 전체 수입 · 민수 포함 · 기간 합계")
+            + kpi("특정국 50% 이상 품목군", f"{int((top1['share'] >= 0.5).sum())}", "개", f"1위 공급국 점유율 · {y_label} 합계 기준")
+            + kpi("전자 군급 국외 조달계획", *kpi_num(st_plan, plan_n, "건", plan_sub, plan_err, "전자 군급(FSG 58·59·60) 행 0건"))
             + kpi("국산화개발 전자 부품", *kpi_num(st_b2, b2_n, "개", b2_sub, b2_err, "전자 군급 부품 0개"))
             + "</div>")
     if "failed" in (st_rule, st_plan, st_b2):
@@ -191,9 +190,9 @@ with zone("guide", "안내와 한계"):
             st.page_link(path, label=f"**{no}** {text}", width="stretch")
     with c_read.container(border=True, key="card_read", height="stretch"):
         st.html("""<div class="h">읽는 법</div><div class="note">
-  · 「수입 의존도」 = 품목군 수입액 중 특정국 비중(점유율·HHI)<br>
+  · 「수입 집중도」 = 품목군 수입액 중 특정국 비중(1위 점유율·HHI)<br>
   · 국가 전체 수입으로 <b>민수가 포함</b>됩니다<br>
-  · 군수 몫은 관세 통계로 나뉘지 않습니다 — 과천시 소재 수입자 비중은 <b>추정</b>(⑤ 참고, 화면 반영은 팀 결정 전)<br>
+  · 군수 몫은 관세 통계로 나뉘지 않습니다 — 과천시 소재 수입자 비중은 <b>추정</b>(⑤ 참고)<br>
   · 조달계획 ≠ 계약, 국산화개발 부품 수 ≠ 국산화율</div>""")
     with c_src.container(border=True, key="card_src", height="stretch"):
         st.html("""<div class="h">출처</div><div class="note">
@@ -202,5 +201,5 @@ with zone("guide", "안내와 한계"):
   열린재정 예산 · KOSIS 방산 가동률 · 광공업생산지수<br>
   <span style="color:#6f7890">모든 수치에 기준일·산식 표시 · 상세는 ⑤ DATA INFO</span></div>""")
 
-st.html('<div class="caption">「잠정」 = 정제·산출식 팀 확정 전 값(국외 조달계획 전자 판정 FSG 58·59·60). '
-        '수입액은 관세청 품목별 국가별 수출입실적(USD) 합계이며 군수 수요 비중이 아닙니다. 선정 근거는 공식 자료에 팀 규칙을 적용한 것입니다.</div>')
+st.html('<div class="caption">수입액은 관세청 품목별 국가별 수출입실적(USD) 합계이며 군수 수요 비중이 아닙니다. '
+        '품목군은 공식 분류·통제표의 규칙 R1·R2(군용전용 · 항공/항행 세분류)로 골랐습니다.</div>')

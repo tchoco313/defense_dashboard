@@ -1,7 +1,7 @@
 -- =============================================================================
 -- P5-4 KRIT 공고(clean_krit_task 열 보강) + P2-6 열린재정 예산(clean_ 2표 신설)  (작성 2026-09-19)
 --
--- 배경: 팀 raw·ref → clean 전환 분배 명세(new_data/K_Defense_clean전환_담당분배_명세_20260918.md §6-4 · §3-4·5).
+-- 배경: 팀 raw·ref → clean 전환 분배 명세(docs/reference/clean-conversion-spec-2026-09-18.md §6-4 · §3-4·5).
 --       clean_krit_task 는 정의가 이미 db/schema.sql 에 있고 0행이라 새로 만들지 않고 ALTER 로 열만 보강한다.
 --       clean_openfiscal_program_budget · clean_openfiscal_program_link 는 신설이다(A9 예산에는 clean 정의가 없었다).
 -- 원칙: raw 는 읽기만(원본 동결). 모든 clean 행에 raw_row_id(FK). 금액 단위는 열 이름에 표기(_krw_k=천원, _100m_krw=억원).

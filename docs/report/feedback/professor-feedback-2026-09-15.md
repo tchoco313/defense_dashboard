@@ -90,6 +90,6 @@
 | 담당 | 작업 |
 |---|---|
 | Claude | `docs/idea-review.md` §1·§2·§3·§4·§5·§6 갱신, `docs/data-sources.md` 신규 파일 잠정 기록, `hs_whitelist.csv` 열 추가 + 정의 문서, DB 스키마(raw 5 테이블·clean·뷰·열 사전) |
-| Claude (2026-09-16 완료) | 설계 타당성 검토 `docs/report/design-validity-review-2026-09-15.md`(예산 비교군·HS6 분류 근거·"TV 부품 아닌가" 논리 사슬), `hs_whitelist.csv`·`ref_hs_whitelist`에 `civil_mix` 열(팀 서버 `db/alter_2026-09-15_civil_mix.sql` 2026-09-16 적용 → 규칙값으로 대체되어 2026-09-17 삭제, git 이력), A6 출처 기관 정정, 군별 계약집행 ID `15070269` 기입 |
+| Claude (2026-09-16 완료) | 설계 타당성 검토 `docs/report/plan/design-validity-review-2026-09-15.md`(예산 비교군·HS6 분류 근거·"TV 부품 아닌가" 논리 사슬), `hs_whitelist.csv`·`ref_hs_whitelist`에 `civil_mix` 열(팀 서버 `db/alter_2026-09-15_civil_mix.sql` 2026-09-16 적용 → 규칙값으로 대체되어 2026-09-17 삭제, git 이력), A6 출처 기관 정정, 군별 계약집행 ID `15070269` 기입 |
 | 사용자 (2026-09-16 추가) | ⑤ 국내조달 계약정보 × 방산업체 지정현황(84행) 업체명 매칭으로 "방산업체 계약금액 vs 그 외" 집계(연결률·미연결·다중 일치 보고) ⑥ 무역안보관리원 HSK 연계표(`15034135`, 2,161행)를 내려받아 `data/raw/kosti/hsk_control_15034135.csv`에 두고 `db/meta_dataset.csv`에 `kosti_hsk_control` 행 추가 → `load_db.py --raw --tables raw_hsk_control`(HS6 대조는 DB 지표 `hsk_control_*`로 Claude가 계산, `hs-whitelist-definition.md` §7) ⑦ 군별 계약집행 현황의 국내/국외 포함 여부를 포털 "문의하기"로 확인할지 결정(대신 문의하지 않음) ⑧ 847180 기본 필터 강등 여부 결정 |
 | 사용자 | ① `new_data/` 6개 파일을 `data/raw/dapa/`로 이동(`dapa_overseas_plan_20251231.csv` 등), 나머지 5개는 삭제 또는 `resource/` ② 팀원에게 data.go.kr ID·다운로드일 확인 ③ 노트북: 조달계획 `대표품명` 전자 관련 후보 분류·표본 검수(오탐 예: EOD 슈트), 집행유형×연도 예산 집계, 2019년 후보 1.6조 원의 단일 대형 건 여부, 진행상태 `계약`/공고 중 분리 ④ 품목군(21 HS6)별 국가별 수입액 상위국 표 집계 |

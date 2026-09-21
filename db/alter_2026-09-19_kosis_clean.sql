@@ -1,7 +1,7 @@
 -- =============================================================================
 -- P5-5 KOSIS 2종 raw → clean 세로형 (clean_kosis_utilization · clean_kosis_production_index 신설)  (작성 2026-09-19)
 --
--- 배경: 팀 raw·ref → clean 전환 분배 명세(new_data/K_Defense_clean전환_담당분배_명세_20260918.md §6-5 · §1-1~1-3).
+-- 배경: 팀 raw·ref → clean 전환 분배 명세(docs/reference/clean-conversion-spec-2026-09-18.md §6-5 · §1-1~1-3).
 --       명세는 "v3 기획서 미사용이라 가장 마지막, 시간 없으면 보류"였으나 2026-09-19 사용자 지시("보류가 뭐야, 그냥 다 해")로 실행.
 --       규칙: docs/reference/data-cleaning-rules.md §2-11(컬럼 등급 ★/▲/✕) · §1 공통(6 부분연도 · 9 NULL≠0 · 10 지수↔금액 합산 금지).
 -- 원칙: raw 는 읽기만(원본 동결). 두 clean 표 모두 raw 1:1(PK = raw_row_id, FK). 값은 원문 value_text 를 보존하고 숫자화 열을 따로 둔다.

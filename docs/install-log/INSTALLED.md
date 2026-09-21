@@ -74,3 +74,11 @@
 - `.claude/settings.json` PreToolUse matcher를 `Edit|Write|NotebookEdit|Bash|PowerShell`로 변경 — Windows에서는 `PowerShell` 도구가 `Bash`와 별개라 PowerShell의 `Remove-Item` 등이 원본 보호 훅을 우회하던 것을 막음. `.claude/hooks/protect_raw.jq`에 PowerShell 쓰기 cmdlet·별칭(`Remove-Item`, `Set-Content`, `Out-File`, `del`, `ri`, `sc` 등) 판정 추가, 12케이스 jq 단위 검사 통과. 도구 목록에 없는 `MultiEdit`는 matcher에서 제거.
 - 전역 `~/.claude/settings.json`의 `env.SLACK_WEBHOOK_URL`(평문, 모든 하위 프로세스·MCP 서버·서브에이전트에 상속됨) 제거 → 값은 `~/.claude/.env`(한 줄)로 이동하고 `~/.claude/hooks/slack_notify.py`가 "환경변수 → `~/.claude/.env` → 프로젝트 `.env`" 순으로 읽도록 변경(`--test` 전송 확인). 같은 파일의 `autoMode.environment` 마지막 항목(라벨 없이 잘린 문장)을 `**Expected activity**: …`로 정정. 공식 문서 확인: `modelSettings` 키는 `[1m]` 접미사 없이 쓰는 것이 맞고, `autoMode`는 프로젝트 설정에서는 읽지 않으므로 전역 유지.
 - 서브에이전트 정의 점검(전역 7 + 프로젝트 6). 프로젝트 `db-verifier`·`doc-consistency-checker`·`schema-dict-checker`에 남아 있던 옛 기준값(테이블 48, `test_table` 보존, DDL 48/사전 37, `clean_` 13표)을 현재 값(테이블 56·뷰 31, `test_table`·`clean_kdsis_nsn_ref` 삭제, 사전 56, `clean_` 20표)으로 갱신하고 `data-reviewer`·`source-researcher`의 "MariaDB" 표기를 "AWS RDS MySQL 8.4"로 통일. 전역의 내려받은 범용 5종은 원본을 유지한 채 "Claude Code 환경 보정" 절을 끝에 추가(상세는 `~/.claude/agents/README.md`).
+
+## 2026-09-20 (openpyxl 재설치)
+
+- `openpyxl` 3.1.5 (pip, `.venv`, 의존성 `et-xmlfile` 2.0.0) — 2026-09-16 설치 기록과 `requirements.txt`에는 있으나 `.venv`에 없어(`pip show` 미발견, 원인 미확인) `load_db.py`의 XLSX 2표 파서가 실패. 파일 정리 검증 중 발견해 재설치(`docs/report/file-cleanup-audit-2026-09-20.md` §5-4).
+
+## 2026-09-21 (minimalist-ui 스킬)
+
+- `minimalist-ui` 프로젝트 스킬 (`.claude/skills/minimalist-ui/SKILL.md`, 10,342 B) — 출처 https://github.com/Leonxlnx/taste-skill `skills/minimalist-skill/SKILL.md`(MIT, blob `44ead27e`, ⭐88.9k, 마지막 push 2026-09-20), 원문 그대로 복사 + §9 프로젝트 오버라이드(밀도·모션 끔·의미색·한글 폰트·표현 경계, HTML 목업 단계 전용). 설치는 `npx skills add` 대신 GitHub API로 파일 1개 내려받아 저장. 페이지 목업 품질용 — 공식 `frontend-design`(방향)·내장 `dataviz`(차트)와 역할 분리.

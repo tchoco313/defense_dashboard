@@ -1,7 +1,7 @@
 -- =============================================================================
 -- 열 사전 공백 4표 보충 (작성 2026-09-18)
 --
--- 배경: P4 명세 점검(new_data/K_Defense_clean전환_담당분배_명세_20260918.md §4·§5)에서 db/column_dict.csv 에
+-- 배경: P4 명세 점검(docs/reference/clean-conversion-spec-2026-09-18.md §4·§5)에서 db/column_dict.csv 에
 --       clean_dapa_contract(40열)·clean_company(6)·clean_company_name_link(8)·ref_sido_map(3) 정의가 빠져 있어
 --       meta_column_dict ↔ DB 열 대조를 이 4표에 적용할 수 없었다. schema.sql 의 DDL(COMMENT) 그대로 57행을 등재한다.
 --       같은 날 CSV 의 필드 수 오류 3행(raw_hsk_control 통제번호·ref_hs_rule_flag rule_version·control_ratio_pct — 쉼표 미인용)도 바로잡았다.

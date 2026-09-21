@@ -1,7 +1,7 @@
 -- =============================================================================
 -- 결측 어휘 확정: 열 사전 85행 + 집계 뷰 4개 미기재 건수 열 + clean_kdsis_nsn.niin 빈 문자열→NULL  (작성 2026-09-20)
 --
--- 배경: docs/report/null-profile-2026-09-19.md 가 clean·fact·dim 22표의 결측 77열을 실측해 판정 4종(의도된 NULL·원본 결측·구조적·미확인)과
+-- 배경: docs/report/data/null-profile-2026-09-19.md 가 clean·fact·dim 22표의 결측 77열을 실측해 판정 4종(의도된 NULL·원본 결측·구조적·미확인)과
 --       화면 표기·집계 처리를 "제안"으로 남겼다(§2 표·§3 구조적 예외 38행·§5 다음 단계). 2026-09-20 사용자 결정으로 그 제안값을 그대로 확정한다:
 --         · 열 사전 description 에 「NULL = <판정> n행(근거) → 화면 「어휘」, 집계 <처리>」 를 적는다(어휘: 미기재 / 판단 보류 / 해당 없음 / 표시 안 함).
 --         · 구조적 예외 38행(bid_notice.joint_supply_method_name 2 · briefing_date 3 · bid_result.reserve_price_krw·final_award_rate 24 · contract.private_contract_reason 9)은

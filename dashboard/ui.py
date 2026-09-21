@@ -1,6 +1,6 @@
 """공용 화면 요소 — 다크 테마 CSS, 상단 바(브랜드·메뉴·기준일), 구역 틀, 국가 색.
 
-디자인 기준: docs/report/mockup-2026-09-18/(main.html · common.css). 색 토큰은 common.css 와 같은 값을 쓴다.
+디자인 기준: docs/report/app/mockup-2026-09-18/(main.html · common.css). 색 토큰은 common.css 와 같은 값을 쓴다.
 """
 from __future__ import annotations
 
@@ -174,8 +174,8 @@ def top_bar(pages: list[tuple[object | None, str]], current: object, stamp: str)
     """브랜드 | 메뉴 | 기준일. pages = [(st.Page 또는 None(준비 중), 라벨)], current = 지금 페이지(강조, 링크 아님)."""
     with st.container(key="topbar"):
         c_brand, c_nav, c_stamp = st.columns([3.2, 7, 1.6], vertical_alignment="center")
-        c_brand.html('<div class="brand">주요 방산 전자부품 수입 의존도 · 국산화 현황'
-                     '<small>법령·분류코드로 고른 전자부품 품목군 · 공개 데이터 기반 현황 대시보드</small></div>')
+        c_brand.html('<div class="brand">주요 방산 전자부품 수출입 및 국산화 현황'   # 2026-09-21 회의 M1·M8
+                     '<small>공식 분류·통제표로 고른 전자부품 품목군 · 공개 데이터 기반 현황 대시보드</small></div>')
         with c_nav.container(key="topnav"):
             cols = st.columns(len(pages), gap=None, vertical_alignment="center")
             for col, (page, label) in zip(cols, pages):

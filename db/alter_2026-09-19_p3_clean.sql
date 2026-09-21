@@ -1,7 +1,7 @@
 -- =============================================================================
 -- P3 국외조달 clean 테이블 3개 + 표기 통일 사전 ref_equipment_alias + FSG/FSC 60 전자 플래그 수정 (작성 2026-09-19)
 --
--- 배경: 팀 raw·ref → clean 전환 분배 명세(new_data/K_Defense_clean전환_담당분배_명세_20260918.md §4, 담당 강지수 묶음 P3).
+-- 배경: 팀 raw·ref → clean 전환 분배 명세(docs/reference/clean-conversion-spec-2026-09-18.md §4, 담당 강지수 묶음 P3).
 --       6개 중 clean_dapa_overseas_plan 은 정의·적재가 끝나 있어(3,023행) 손대지 않는다.
 --       여기서 만드는 것: clean_dapa_overseas_plan_api / clean_dapa_overseas_contract / clean_dapa_overseas_bid_result / ref_equipment_alias.
 --       ref_fsg·ref_fsc 는 clean 으로 바꾸지 않고 검수(명세 §1-1) — FSG 60(광섬유) 전자 플래그 0 → 1.

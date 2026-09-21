@@ -2,7 +2,7 @@
 -- 품목군 대응표 "확정하지 않음" 결정 반영 (작성 2026-09-18)
 --
 -- 결정: HS6↔FSC4 대응표(ref_category_map)는 확정하지 않는다 — FSC↔HS 공식 연계표 없음(미 DLA·WCO·UN),
---       국방기술진흥연구소 2025 「군급분류-HS코드 간 매칭 모델 연구」 결과 비공개. docs/report/category-map-decision-2026-09-17.md 머리 절.
+--       국방기술진흥연구소 2025 「군급분류-HS코드 간 매칭 모델 연구」 결과 비공개. docs/report/data/category-map-decision-2026-09-17.md 머리 절.
 -- 조치 1: R3∧R4로만 화이트리스트에 진입한 HS6 6개의 evidence_note 에 "R4 잠정" 사유를 덧붙인다(evidence·evidence_basis 는 바꾸지 않는다 —
 --         ref_hs_rule_flag 스냅샷·문서 수치와 어긋나지 않게).
 -- 조치 2: v_review_list.b2_status 라벨 '대응 미확정' → '대응표 없음'(설계 결정). 정의는 db/schema.sql §6 과 동일.

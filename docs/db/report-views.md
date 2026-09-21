@@ -1,6 +1,6 @@
 # 보고용 뷰 목록 — 화면에 쓰지 않는 뷰의 역할과 처분 (2026-09-19)
 
-사용자 지시("중복되거나 사용되지 않을 테이블은 삭제")로 RDS 전체 객체를 점검한 결과다. 점검 방법: RDS `information_schema.view_table_usage`(뷰가 어떤 뷰를 읽는지) + `app/`·`notebooks/`·`scripts/`·`docs/db/table-guide.md` §2(화면↔테이블)·`docs/report/dashboard-scope-2026-09-14.md`·`db/alter_*.sql` 참조 전수 집계(2026-09-19). 삭제한 것은 테이블 2개(`clean_kdsis_nsn_ref`, `test_table` — `db/alter_2026-09-19_drop_unused.sql`)이고, 아래 뷰는 **삭제하지 않고 목록으로만 관리**한다(사용자 결정).
+사용자 지시("중복되거나 사용되지 않을 테이블은 삭제")로 RDS 전체 객체를 점검한 결과다. 점검 방법: RDS `information_schema.view_table_usage`(뷰가 어떤 뷰를 읽는지) + `app/`·`notebooks/`·`scripts/`·`docs/db/table-guide.md` §2(화면↔테이블)·`docs/report/plan/dashboard-scope-2026-09-14.md`·`db/alter_*.sql` 참조 전수 집계(2026-09-19). 삭제한 것은 테이블 2개(`clean_kdsis_nsn_ref`, `test_table` — `db/alter_2026-09-19_drop_unused.sql`)이고, 아래 뷰는 **삭제하지 않고 목록으로만 관리**한다(사용자 결정).
 
 "보고용"의 뜻: 대시보드 화면 ①~⑤·⓪이 읽지 않고 다른 뷰도 읽지 않지만, 정합성 점검·Q&A·DATA INFO 탭 근거로 조회하는 뷰. 화면에 올리려면 `table-guide.md` §2에 먼저 등록한다.
 
@@ -27,7 +27,6 @@
 | `v_hs10_use_tag_all` | HS10 품목명에서 군용·항공 용도어 태그 | `v_hs6_candidate_rule` |
 | `v_hs10_use_share` | HS6별 군용 HS10 수입 비중(지표 `mil_hs10_share` 원천) | — (`ref_hs_indicator` INSERT 원천) |
 | `v_hsk_control_by_hs6` | HS6별 전략물자 통제 HSK10 수·DU 전자 수(R3) | `v_hs6_candidate_rule` |
-| `v_defense_relevance_b2` | HS6↔FSC 후보 대응으로 본 B2 부품 수(R4, 잠정) | `v_hs6_candidate_rule` |
 | `v_hs6_candidate_rule` | R1~R4를 합쳐 HS6 후보 판정 | `v_hs6_candidate_vs_whitelist`, `ref_hs_rule_flag` 스냅샷 |
 | `v_hs6_candidate_vs_whitelist` | 규칙 결과 vs 현재 화이트리스트 verdict(유지 19·신규 후보 39·강등 검토 5) | — |
 | `v_civil_mix_rule` | 지표 문턱값으로 `civil_mix` 라벨 도출(라벨 NULL 15, 문턱값 미정) | — |
@@ -44,6 +43,6 @@
 
 - `raw_*` 22개: 원본 보존 원칙(`data-cleaning-rules.md` §1 #2). `raw_customs_progress`는 수집 누락 점검용, `raw_dapa_fsc_catalog`는 `ref_fsc`의 시드 원본(raw→ref, 중복 아님).
 - `meta_*` 3개: 적재 이력·열 사전·데이터셋 대장.
-- `ref_*` 9개: 참조표. `ref_category_map`(17행, 확정 안 함)은 `v_review_list`·`v_defense_relevance_b2`가 읽어 유지.
+- `ref_*` 8개: 참조표(`ref_category_map`은 2026-09-21 카테고리 맵 폐기로 삭제).
 - `clean_*` 20개(삭제 후, RDS 실측 2026-09-19) + `dim_hs10` + `fact_customs_monthly`: 화면 뷰의 원천. `clean_excluded_row`는 검산(`raw = clean + excluded`) 기록.
 - 화면 뷰 19개: 전체 31 − 보고용 5 − 규칙 뷰 7(§2의 8개 중 `v_hs_whitelist_rule`은 §1과 중복). `v_b2_fsg_summary`(② FSC 축 B2 쪽)·`v_contract_monthly`·`v_review_list` 등 `table-guide.md` §2 화면↔테이블 표에 등록된 것.

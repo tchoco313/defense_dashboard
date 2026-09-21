@@ -1,8 +1,8 @@
 """🔎 조회 — 정해진 조건을 골라 관세청 수입 실적을 표·차트로 보고 내려받는다(자유 입력·임의 SQL 없음).
 
-디자인: docs/report/mockup-2026-09-18/search.html (왼쪽 조건 · 상단 요약 4 · 중앙 차트 · 하단 표와 내려받기).
+디자인: docs/report/app/mockup-2026-09-18/search.html (왼쪽 조건 · 상단 요약 4 · 중앙 차트 · 하단 표와 내려받기).
 - 지금 되는 조건: 품목군(HS6) · 세부코드(HS10) · 국가 · 기간 · 차트 형태. 원천은 fact_customs_monthly(월별 HS10 × 국가).
-- 연결 군급(FSC)·적용장비 조건은 ② 국외 조달계획 정제 뒤 붙인다(자리만 회색으로 둔다).
+- 연결 군급(FSC) 조건은 두지 않는다(카테고리 맵 폐기, 2026-09-21). 적용장비 조건은 자리만 회색으로 둔다.
 - 그래프 PNG는 plotly 도구 막대의 카메라 버튼(브라우저에서 바로 저장, 추가 설치 없음). 표는 CSV(조건·출처·기준일 머리줄 포함).
 """
 from __future__ import annotations
@@ -30,7 +30,7 @@ if not db_ready():
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_ref() -> tuple[pd.DataFrame, pd.DataFrame]:
-    wl = query("SELECT hs6, name_ko FROM ref_hs_whitelist WHERE evidence_basis = 'rule' ORDER BY priority, hs6")
+    wl = query("SELECT hs6, name_ko FROM ref_hs_whitelist WHERE priority IN (1, 2) ORDER BY priority, hs6")   # 분석 대상 13개(2026-09-21 M5)
     ctry = query("SELECT stat_cd, name_ko FROM ref_country")
     return wl, ctry
 
@@ -91,7 +91,6 @@ with left, zone("p6_cond", "조회 조건"):
     country = st.selectbox("국가", [ALL] + ranked, key="q_ctry",
                            format_func=lambda c: "전체 국가" if c == ALL else cname.get(c, c))
     chart = st.selectbox("차트 형태", CHARTS, key="q_chart")
-    st.selectbox("연결 군급 (FSC · 후보)", ["② 국외 조달계획 정제 후"], disabled=True)
     st.selectbox("적용장비", ["② 국외 조달계획 정제 후"], disabled=True)
     if st.button("초기화", width="stretch"):
         for k in KEYS:

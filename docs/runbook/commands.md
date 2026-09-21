@@ -1,6 +1,6 @@
 # 실행 명령
 
-모두 저장소 루트에서 실행한다. 테스트 스위트·린터는 없다.
+모두 저장소 루트에서 실행한다. 린터는 없다. 테스트는 `tests/`(unittest, DB 불필요 — 실행 명령은 §10 앱 공통 계층 항목).
 
 ## 1. 관세청 수출입 OpenAPI 수집
 
@@ -62,7 +62,7 @@ cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" -h 192.168.100.221 -P 33
 # 확인(2026-09-15 당시): 테이블 31(+ 조장의 test_table) + 뷰 6 — 2026-09-18 테이블 48(+test_table) + 뷰 31 — 2026-09-19 RDS 실측 BASE TABLE 56 + 뷰 31(test_table·clean_kdsis_nsn_ref는 alter_2026-09-19_drop_unused.sql로 삭제)
 cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" -h 192.168.100.221 -P 3306 -u defense3 --protocol=TCP --skip-ssl-verify-server-cert defense_dashboard -e "SHOW FULL TABLES"'
 
-# 데이터 계층만 비우기(ref_·meta_dataset·meta_column_dict 보존). clean_ → fact_/dim_ → raw_ → meta_load_log 순 TRUNCATE
+# 데이터 계층만 비우기(ref_ 9·meta_dataset·meta_column_dict 보존, 46표 TRUNCATE — 목록은 schema.sql DROP과 1:1, 2026-09-21 갱신 · 같은 날 `raw_customs_region` 추가). clean_ 20 → fact_/dim_ 2 → raw_ 23 → meta_load_log 순. RDS는 admin 계정으로
 cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" ... defense_dashboard < db\reset_data.sql'
 ```
 
@@ -76,7 +76,7 @@ cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" ... defense_dashboard < 
 | `db/alter_2026-09-16_indicator.sql` | `ref_hs_indicator`·`raw_hsk_control`·뷰 3개(`v_hs10_use_share`·`v_defense_relevance_b2`·`v_civil_mix_rule`)·`civil_mix` 3열 + 지표 채우기 + `civil_mix` 규칙값 UPDATE | 2026-09-16 적용(2회 실행 확인) |
 | `db/alter_2026-09-16_fsg.sql` | FSG 2자리 참조표 `ref_fsg`(80행 정적 시드) + `v_b2_fsg_summary` + 열 사전 8행 + `meta_dataset` `fsg_master` | **2026-09-16 적용**(팀 서버 3회 실행, 멱등. 기대: `ref_fsg` 80 · historical 2 · electronic 2 / `v_b2_fsg_summary` 53 16,300 · 59 2,942 · 58 379 / 미대응 `0`·NULL 18행 / `meta_column_dict` 289) |
 | `db/alter_2026-09-17_view_collation.sql` | 뷰 15개를 `SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci` 세션에서 정의 변경 없이 재생성. 팀 서버(MySQL 8.4) 뷰가 `utf8mb4_0900_ai_ci`로 만들어져 `WHERE b1_status='미적재'` 같은 상태 열 비교가 `ERROR 1267 Illegal mix of collations`로 실패하던 문제 | **2026-09-17 적용**(exit 0, `information_schema.VIEWS` 15개 전부 `utf8mb4_unicode_ci`, 데이터 294,420행 보존). **앞으로 뷰를 만드는 alter는 머리에 같은 SET NAMES를 둔다** |
-| ~~`db/alter_2026-09-17_category_map.sql`~~ | 품목군 대응표 확정 14 + 신규 1 + 대응불가 3 (초안) | **2026-09-18 폐기 — FSC↔HS 근거 없음(사용자 결정), 파일 삭제(git 이력 `26d2672` 이전)**. 결정 기록 `docs/report/category-map-decision-2026-09-17.md` 머리 절 |
+| ~~`db/alter_2026-09-17_category_map.sql`~~ | 품목군 대응표 확정 14 + 신규 1 + 대응불가 3 (초안) | **2026-09-18 폐기 — FSC↔HS 근거 없음(사용자 결정), 파일 삭제(git 이력 `26d2672` 이전)**. 결정 기록 `docs/report/data/category-map-decision-2026-09-17.md` 머리 절 |
 | `db/alter_2026-09-18_r4_provisional.sql` | 대응표 미확정 결정 반영: R3∧R4로만 진입한 HS6 6개 `evidence_note`에 "R4 잠정" 사유 추가, `v_review_list.b2_status` 라벨 `대응 미확정`→`대응표 없음`. 표·행 수 불변, 멱등 | **2026-09-18 적용**(exit 0, `evidence_note` 잠정 6행 · `v_review_list` 2025 `대응표 없음` 24 · `ref_category_map` 후보 17 · 뷰 콜레이션 unicode_ci · `ref_hs_rule_flag` r4 14 불변) |
 | `db/alter_2026-09-16_api_budget.sql` | 팀 드라이브 채택 3종: `raw_dapa_overseas_plan_api`(국외 조달계획 OpenAPI 품목 단위 13,615)·`raw_dapa_fsc_catalog`(군급분류집 756)·`raw_openfiscal_program_budget`(열린재정 12파일 2,860) + `ref_fsc` 열 보강·시드(§3, raw 적재 후 **다시 실행**해야 676행) + 뷰 `v_overseas_plan_api_fsc`·`v_budget_rnd_yearly` + 열 사전 48행 + `meta_dataset` 3행 | **2026-09-16 적용**(2회 실행, exit 0. 기대: 3표 `--verify` 일치 · `ref_fsc` 676/전자군 46/폐지 22 · 뷰 합 9,970/전자군 1,819 · 예산 뷰 2020 10,053.3 → 2027 30,741.4 정부안 · `meta_column_dict` 337) |
 | `db/alter_2026-09-17_kdsis_nsn.sql` | 국방표준종합서비스(KDSIS) NSN 목록 보조 조회용: `raw_kdsis_nsn`(228,027) + 파생 `clean_kdsis_nsn`(NSN별 1행 135,864)·`clean_kdsis_nsn_ref`(NSN×CAGE×참조번호 225,635 — **2026-09-19 삭제됨**, `alter_2026-09-19_drop_unused.sql`, 사유 `docs/db/report-views.md` §3) + 뷰 3(`v_overseas_plan_api_kdsis`·`v_b2_localized_kdsis`·`v_kdsis_link_summary`) + 열 사전 51행 + `meta_dataset` `kdsis_nsn` + 로그 2행. 원본은 `new_data/raw_kdsis_nsn.csv`(팀원 정리본, 2016 CSV 포함) | **2026-09-17 적용**(1차 표·뷰 → `load_db.py --raw --tables raw_kdsis_nsn` 89.6s → 2차 clean 채움. 기대: raw 228,027 · 숫자13 135,331 · 검토 533 · 속성 충돌 0 · ref 225,635 · `meta_column_dict` 388 · 기존 뷰 집계 불변 확인) |
@@ -93,10 +93,24 @@ cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" ... defense_dashboard < 
 | `db/alter_2026-09-19_kosis_clean.sql` | P5-5 KOSIS 2종 clean 세로형 신설(0행): `clean_kosis_utilization`(10열, raw 1:1 81 기대) · `clean_kosis_production_index`(16열, raw 1:1 1,016 기대, `stat_month` DATE·`is_provisional`·`scope_grade` ENUM ★/▲/✕·`is_month_restored`) + 열 사전 26행. raw `stat_ym='p)'` 결함 16행의 월 복원 규칙(`source_col_no`)은 파일 머리 주석 | **2026-09-19 적용 완료**(`python scripts/apply_alter.py --twice db/alter_2026-09-19_kosis_clean.sql`, 2회 exit 0. 작성 시점에는 이 PC 공인 IP 변경으로 보안 그룹에 막혀 지연 — `schema-design.md` §7-29). 실측: 표 2개 생성(콜레이션 `utf8mb4_unicode_ci`), 열 사전 +26. 적재 결과는 §6 `clean_p5_kosis.ipynb` 행 |
 | `db/alter_2026-09-19_views_to_clean.sql` | raw 직독 뷰 14개를 clean 기준으로 전환(`CREATE OR REPLACE VIEW` 15문 = 14 + `v_kdsis_link_summary` raw 행 기준 열 3개 추가) + clean 열 2개 조건부 추가·백필(`clean_dapa_contract.private_contract_reason` ← raw 원문, `clean_dapa_domestic_plan.is_budget_approx` ← raw 지수 표기 11행) + 열 사전 2행. `v_defense_company_sector`는 clean 없음이라 제외. 의미 변경(전자 58·59·60, NSN 모집단 13,236, B2 kdsis 고유 부품 기준, `demand_org_count` 삭제)은 파일 §3 주석·`schema-design.md` §7-27. `SEPARATOR ';'`는 `0x3B`로 씀(apply_alter.py 세미콜론 분리 제약) | **2026-09-19 적용 완료**(`python scripts/apply_alter.py --twice db/alter_2026-09-19_views_to_clean.sql`, 2회 exit 0 — 1회차 백필 `private_contract_reason` 30,246행·`is_budget_approx` 11행, 2회차 0행. 사전에 로컬 MariaDB 12.2 스크래치(3307)에서 문법·멱등·열 위치 검증). 전후 스냅샷 실측(`schema-design.md` §6): 예상 외 변화 0 — 바뀐 것은 `v_b2_fsg_summary` 58→57행, `v_b2_localized_kdsis` 33,965→25,025행·연결 449→310, `v_kdsis_link_summary` matched 1,065→926·eligible 31,531→26,868, `v_overseas_plan_api_fsc` 2,321→2,566행·모집단 9,970→13,236·전자 1,819→2,267, `v_bid_notice_result_link` 키 7,201→7,199·낙찰업체 3,210→3,209, `v_overseas_contract_yearly` `demand_org_count` 삭제뿐. 뷰 31개 전부 `utf8mb4_unicode_ci`, `v_hs6_candidate_vs_whitelist` 39/19/5 불변 |
 | `db/alter_2026-09-19_drop_unused.sql` | 미사용 테이블 2개 DROP: `clean_kdsis_nsn_ref`(225,635 — 뷰·앱·노트북 참조 0)·`test_table`(4, 사용자 임시 표) + `meta_column_dict`에서 `clean_kdsis_nsn_ref` 6행 DELETE. `meta_load_log` 이력은 유지. 후보 선정·사유는 `docs/db/report-views.md` §3, 되돌리기는 `alter_2026-09-17_kdsis_nsn.sql` INSERT…SELECT | **2026-09-19 적용 완료**(`python scripts/apply_alter.py --twice db/alter_2026-09-19_drop_unused.sql`, 2회 exit 0. 기대·실측 일치: 표 2개 삭제 → RDS BASE TABLE **56**(= `schema.sql` 정의 표 전부) + 뷰 31, `meta_column_dict` 855 → **849**(−6, `db/column_dict.csv`도 849)) |
-| `db/alter_2026-09-18_sido_gwangju.sql` | (조장 작성, P2 검수 `docs/report/ref-review-p2-2026-09-18.md` §3) `ref_sido_map` 토큰 `광주`·`광주시` DELETE(경기 광주시와 겹침 — 정제 코드가 둘째 토큰으로 29/41 판별) + `충남대전시`→30 INSERT. 45→44행. `db/seed_ref.sql`도 같은 내용 | **2026-09-19 저녁 적용**(`python scripts/apply_alter.py --twice`, 1회차 DELETE 2·INSERT 1, 2회차 0·0(1062 경고 = IGNORE), exit 0). DBHub 실측 44행·광주 토큰 0·충남대전시=30. 파일 주석의 "clean_dapa_contract 0행이라 재계산 대상 없음"은 작성 시점(09-18) 기준 — 실제로는 09-19 적재분 43,111행이 있어 아래 alter로 백필 |
-| `db/alter_2026-09-20_p3_test_vendor.sql` | P3 검수 회신(09-20) 반영: `clean_dapa_overseas_contract`에서 대표업체명 `TEST2` 테스트 계약 6행(`raw_row_id` 202·203·709·713·1558·1559 명시) `clean_excluded_row` PLACEHOLDER 기록·DELETE + `meta_load_log` 「검증된 분석 대상」 1행(6,327). 키워드 TEST/테스트로는 거르지 않음(실제 계약 19행). 판정 근거 `docs/report/p3-review-response-2026-09-20.md` | **2026-09-20 적용**(`--twice`, 1회차 rows 6·6·1, 2회차 전부 0, exit 0). DBHub 실측: 6,333 = 6,327 + 6(gap 0), `v_overseas_contract_yearly` 2017 703·2018 850·2019 824, 고유 업체 442, `meta_load_log` 130 |
+| `db/alter_2026-09-18_sido_gwangju.sql` | (조장 작성, P2 검수 `docs/report/data/ref-review-p2-2026-09-18.md` §3) `ref_sido_map` 토큰 `광주`·`광주시` DELETE(경기 광주시와 겹침 — 정제 코드가 둘째 토큰으로 29/41 판별) + `충남대전시`→30 INSERT. 45→44행. `db/seed_ref.sql`도 같은 내용 | **2026-09-19 저녁 적용**(`python scripts/apply_alter.py --twice`, 1회차 DELETE 2·INSERT 1, 2회차 0·0(1062 경고 = IGNORE), exit 0). DBHub 실측 44행·광주 토큰 0·충남대전시=30. 파일 주석의 "clean_dapa_contract 0행이라 재계산 대상 없음"은 작성 시점(09-18) 기준 — 실제로는 09-19 적재분 43,111행이 있어 아래 alter로 백필 |
+| `db/alter_2026-09-20_p3_test_vendor.sql` | P3 검수 회신(09-20) 반영: `clean_dapa_overseas_contract`에서 대표업체명 `TEST2` 테스트 계약 6행(`raw_row_id` 202·203·709·713·1558·1559 명시) `clean_excluded_row` PLACEHOLDER 기록·DELETE + `meta_load_log` 「검증된 분석 대상」 1행(6,327). 키워드 TEST/테스트로는 거르지 않음(실제 계약 19행). 판정 근거 `docs/report/data/p3-review-response-2026-09-20.md` | **2026-09-20 적용**(`--twice`, 1회차 rows 6·6·1, 2회차 전부 0, exit 0). DBHub 실측: 6,333 = 6,327 + 6(gap 0), `v_overseas_contract_yearly` 2017 703·2018 850·2019 824, 고유 업체 442, `meta_load_log` 130 |
 | `db/alter_2026-09-19_sido_backfill_test_vendor.sql` | P2 검수 반영 ②③: `clean_dapa_contract`·`clean_company` `sido_code` 백필(`충남대전시`→30) + 테스트 업체 6행(`조달테스트업체Ⅰ` 2·`테스트업체1` 4, `raw_row_id` 명시) `clean_excluded_row` PLACEHOLDER 기록·DELETE + `clean_company` 테스트 업체 2행 DELETE(다른 clean 행·`name_link` 참조 0 조건) + `meta_column_dict` `ref_sido_map.token` 설명 45→44행 | **2026-09-19 저녁 적용**(`--twice`, 1회차 rows 16·1·6·6·2·1, 2회차 전부 0, exit 0). DBHub 실측: `clean_dapa_contract` 43,105·`sido_code` NULL 2(`**`·`1`)·`is_latest_seq=1` 37,602 = 계약번호 수·위반 0, `clean_excluded_row` 11(KEY_CONFLICT 1·COL_SHIFT 4·PLACEHOLDER 6), 검산 raw 43,112 = 43,105 + 7(5표 gap 0), `clean_company` 14,836·NULL 2, 사전 849. 노트북 셀 2·4 규칙(광주 둘째 토큰·테스트 업체 정확 일치 제외)과 SQL 동치 확인: 계약 43,105·낙찰 5,275 불일치 0 |
 | `db/alter_2026-09-20_null_vocab.sql` | 결측 어휘 확정(사용자 결정 2026-09-20, `null-profile-2026-09-19.md` §2 제안 그대로 + 예외 38행 「미기재」): §1 `clean_kdsis_nsn.niin` 빈 문자열 3행 → NULL + COMMENT · §2 집계 뷰 4개 `CREATE OR REPLACE`(`v_contract_monthly`·`v_contract_private_reason`·`v_bid_notice_monthly`·`v_domestic_plan_yearly`에 `*_missing_count` 열, `v_bid_notice_monthly` `COALESCE(…,0)` 제거, `v_contract_private_reason` `reason_group`에 `해당 없음(경쟁계약)` 분리) · §3 `meta_column_dict` 85행 `INSERT … ON DUPLICATE KEY UPDATE`(77열 결측 판정·화면 어휘·집계 처리 + CSV↔RDS 불일치 8행 정정, `related_fsc`의 `;`는 `CHAR(59 USING utf8mb4)`) · §4 검증 SQL. `db/schema.sql` 뷰 4개·niin 주석, `db/alter_2026-09-17_kdsis_nsn.sql` L130 `NULLIF` 동기 | **2026-09-20 적용 완료**(`python scripts/apply_alter.py --twice db/alter_2026-09-20_null_vocab.sql`, 24문 × 2회 exit 0, 2회차 변경 0, 경고는 deprecated `VALUES()` 1287뿐). DBHub 실측: niin `''` 0·NULL 3 / 뷰 열 수 7·6·8·8 / `v_bid_notice_monthly` 538행·미기재 합 596·전 행 NULL 그룹 46(0→NULL)·예산 합 불변 / `v_contract_monthly` 28·37,602·미기재 1 / `v_domestic_plan_yearly` 62·35,859·4,965 / `v_contract_private_reason` 144행, `해당 없음(경쟁계약)` 10,734·`사유 미기재` 9·나머지 8그룹 불변 / `v_contract_reason_group_yearly` 18→20 / `meta_column_dict` 849, `db/column_dict.csv`와 6필드 전체 diff 0(스크래치 `verify_dict.py`) |
+| `db/alter_2026-09-18_domestic_plan_budget_null.sql` | `clean_dapa_domestic_plan.budget_krw` NULL 허용(예산 미기재 행 보존) | 2026-09-18 적용 — 2026-09-20 RDS 실측 `IS_NULLABLE=YES`(`file-cleanup-audit-2026-09-20.md` §2) |
+| `db/alter_2026-09-19_krit_budget_clean.sql` | `clean_krit_task` 열 9개 보강 + 열린재정 clean 2표(`clean_openfiscal_program_budget`·`clean_openfiscal_program_link`) 신설 | 2026-09-19 적용 — 2026-09-20 RDS 실측 열·표 존재 |
+| `db/alter_2026-09-21_elec_fsg60.sql` | 전자 판정 플래그 FSG 60 기준 통일: `clean_kdsis_nsn.is_electronic_group` fsg2='60' 0→1 + 두 표(`clean_kdsis_nsn`·`clean_dapa_localized_item`) 열 COMMENT·열 사전 2행을 「58·59·60, 잠정」으로. 근거 `open-decisions-2026-09-21.md` D5 | **2026-09-21 적용**(`apply_alter.py --twice`, 2회 exit 0. 1회째 UPDATE 317·0·1·1, 2회째 전부 0. 실측: kdsis 60 317/317, 전자군 합 33,577 → **33,894**, `clean_dapa_localized_item` 2,717 불변. 경고는 1681 display width뿐) |
+| `db/alter_2026-09-21_hhi_views.sql` | HHI 뷰 4개 정정(`open-decisions-2026-09-21.md` D6·D7): `v_import_share_hs6_year`·`v_export_share_hs6_year` `share`를 `CAST(… AS DOUBLE)`(DECIMAL 4자리 반올림 제거 → 뷰 HHI = pandas HHI), `v_hhi_hs6_year`·`v_hhi_export_hs6_year` `country_count`를 `CAST(SUM(imp_dlr>0) AS UNSIGNED)`(실적 있는 국가 수). 09-20 제안 파일 `alter_2026-09-20_country_count.sql` 대체·삭제. `schema.sql`·`table_dict.csv`·카탈로그 동기 | **2026-09-21 적용**(`apply_alter.py --twice`, 5문 × 2회 exit 0). DBHub 실측 2025 `country_count` 847180 127→**73** · 854231 86→**68** · 852692 104→**50** · 851762 144→**86**(수출 118·69·92·138), `v_review_list` 동일, hhi 정수 자리·top1 불변(5276.18→5276.11 등 소수만), 열 타입 `share`·`top1_share`·`hhi` double, 246행 |
+| `db/alter_2026-09-21_drop_customs_copies.sql` | 사전 밖 표 2개 DROP(`clean_customs_trade` 294,420·`clean_customs_progress` 264 — 09-20 밤 생성된 raw 복사본, `open-decisions-2026-09-21.md` D14) | **2026-09-21 적용**(`apply_alter.py --twice`, 2회 exit 0, 2회째 Note 1051뿐). 실측: BASE TABLE 58 → **56**, `clean_customs%` 0, raw 2표 294,420·264 불변 |
+| `db/alter_2026-09-21_meta_dataset_ids.sql` | `meta_dataset` UPDATE 4문(표·뷰 변경 없음): 팀원 공유 파일 3건 `dataset_id`·`url`·포털 등록/수정일(15050919·15050925·15050923, D10) + 군별 계약집행 note 라벨 「국내·국외 구분 없는 총액」(D11) | **2026-09-21 적용**(`apply_alter.py --twice`, 1회차 rows 1·1·1·1, 2회차 0). `dataset_id` NULL 0 |
+| `db/alter_2026-09-21_gwacheon_view.sql` | `v_customs_region_gwacheon_year` 신설(D1 ⑤): HS6 × 연도 전국 수입액·과천시 수입액·비중·건수·시군구 수(금액 천 달러). 화면 반영은 M7 결정 후 | **2026-09-21 적용**(`apply_alter.py --twice`, 2문 × 2회 exit 0). DBHub 실측: 246행, 2025 880730 0.3009(224,248/745,179) · 901490 0.2700 · 852560 0.2015 · 841191 0.0948 · 854231 0.0016 — `data-sources.md` 검증값과 일치. 뷰 31 → **32** |
+| `db/alter_2026-09-21_customs_region.sql` | 관세청 시군구별 수출입실적(15134343) raw 표 `raw_customs_region` 신설(13열 + 적재 열, `utf8mb4_unicode_ci`) + 열 사전 13행 + `meta_dataset` `customs_region` 1행. clean·뷰 없음 — 화면 채택 여부는 팀 결정(`open-decisions-2026-09-21.md` D1). **금액 단위 천 달러** | **2026-09-21 적용**(조장 맥에 admin 계정이 없어 CREATE 권한이 있는 `dev_taeho`로 `apply_alter.apply` 2회, exit 0 — 1회째 rows 0·13·1, 2회째 전부 0, 경고는 1287·1050뿐). 이어서 `load_db.py --raw --tables raw_customs_region` 24파일 **273,586행 [일치]** 37.3s. 실측: 파일 24 · HS6 24 · 시군구 234 · 2016.01~2026.08 · NULL 0 · 키(`stat_ym`,`sgg_name`,`hs_cd`) 중복 0 · 880730 2025 수입 합 745,179(천$) · 2025 상위 5개 HS6 합이 `fact_customs_monthly`÷1,000 과 100.00% · `meta_column_dict` 849 → 862 · BASE TABLE 56 → 57 |
+| `db/alter_2026-09-21_m5_r4_exclude.sql` | 회의 M5(R4 제외, 진입식 R1 OR R2): R3∧R4로만 진입했던 6개(854110·854121·854129·852560·852692·901380) `priority` → 3 + `evidence_note` 머리 「규칙 미해당(2026-09-21 M5)」, `meta_column_dict` priority 행 1. 값 외 표·뷰 불변. 앱 필터는 `priority IN (1, 2)` | **2026-09-21 적용**(`apply_alter.py --twice`, 4문 × 2회 exit 0. 1회째 rows 6·1, 2회째 0). DBHub 실측: priority 1 **8** · 2 **5** · 3 **11**, `priority IN (1,2)` = 13, M5 노트 6행(전부 `evidence_basis='rule'` 유지) |
+| `db/alter_2026-09-21_m4_elec_confirmed.sql` | 회의 M4(전자 판정 FSG 58·59·60 + 영숫자 NSN 확정): `clean_kdsis_nsn`·`clean_dapa_localized_item` `is_electronic_group` COMMENT의 「잠정」 제거(MODIFY, 정의 불변) + `meta_column_dict` 4행(두 표 + `ref_fsg`·`ref_fsc`의 뒤처진 「58·59」 문구 → 58·59·60). 값 불변 | **2026-09-21 적용**(`apply_alter.py --twice`, 8문 × 2회 exit 0. 1회째 UPDATE 1·1·1·1, 2회째 0, ALTER 경고는 1681뿐). 실측 kdsis 전자군 33,894 불변, `ref_fsg` 58·59·60 = 1 |
+| `db/alter_2026-09-21_drop_category_map.sql` | 카테고리 맵 폐기(사용자 결정·DROP 승인): `v_review_list` B2 열 제거·`v_hs6_candidate_rule` R4 항 제거 재정의 → `v_defense_relevance_b2` DROP → `ref_hs_indicator` defense_relevance 28행 DELETE → `ref_category_map` DROP → `ref_hs_whitelist.related_fsc` DROP(information_schema 조건 PREPARE) → 열 사전 11행 삭제·ordinal 재번호(`@mx` 가드, `ORDER BY ordinal`). 문자열 안 `;`는 `CHAR(59)` | **2026-09-21 적용**(`apply_alter.py --twice`, 16문 × 2회 exit 0. 1회째 DELETE 28·10·1, ordinal 6, 2회째 0). 실측: 표 56·뷰 31·사전 851, `ref_hs_indicator` civil_mix 61만, `v_hs6_candidate_rule` 후보 52(R4 0), `v_review_list` 246 |
+| `db/alter_2026-09-21_drop_category_link_cols.sql` | 카테고리 맵 폐기 후속: `v_review_list` B1 열 제거(HHI만) → `clean_krit_task` FK·인덱스·`hs6`·`category`·`category_link_status` / `clean_dapa_localized_item` 인덱스·`category`·`category_link_status` / `clean_dapa_contract` `contract_group`·`category`·`category_link_status` / `ref_hs_whitelist.b2_scope` DROP(information_schema 조건 PREPARE) → 열 사전 8행 삭제·4표 ordinal 재번호(변수 카운터) | **2026-09-21 적용**(`apply_alter.py --twice`, 35문 × 2회 exit 0. 1회째 DELETE 3·2·3, ordinal 13·2·6). 실측: 남은 연결 열 0, `v_review_list` 246, 사전 823 |
+| `db/alter_2026-09-21_drop_low_variance.sql` | 규칙 #13(clean_ 저분산 원본 속성 열 제외) 첫 적용: `v_overseas_bid_chain`에서 `ordering_agency` 제거 → 5표 20열 DROP(`clean_dapa_bid_notice` 10 · `clean_dapa_contract` 3 · `clean_dapa_overseas_bid_result` 4 · `clean_dapa_domestic_plan` 1 · `clean_openfiscal_program_budget` 2) + `meta_column_dict` 20행 삭제·5표 ordinal 재부여(851→831) + `meta_load_log` 5행. 행 수 불변. 적용 직전 5표 `db/dump_20260921_pre_drop.sql`(gitignore) | **2026-09-21 적용**(`apply_alter.py` 1회, 12문 전부 ok: DELETE 20 · ordinal UPDATE 118·118 · 로그 5). 실측 열 수 28/38/17/16/19 · `meta_column_dict` 831(ordinal 빈틈 0) · `v_overseas_bid_chain` 1,362행 · 5표 행 수 불변 · 표 56/뷰 31. DROP COLUMN 은 재실행 시 1091 오류가 정상이라 `--twice` 안 씀. 카탈로그 재생성(사전 누락 0·RDS 누락 0) |
+| `db/alter_2026-09-20_meta_dataset_sha.sql` | `meta_dataset` UPDATE 3문(표·뷰 변경 없음): `customs_progress` sha256·file_bytes를 현행 264행 파일 값으로, `ref_hs_whitelist` sha256을 현행 17열 파일 값으로, `krit_task` sha256 NULL(다중 파일)·note. 근거 `file-cleanup-audit-2026-09-20.md` §2·§5 | **2026-09-20 적용 완료**(사용자 실행 `apply_alter.py`, 5문 exit 0, UPDATE 3문 각 rows=1). DBHub 실측: customs_progress 8,538/`fc1d199e…`, ref_hs_whitelist 14,363/`47ca912f…`, krit_task sha256 NULL |
 
 ```powershell
 $env:MYSQL_PWD = "<MARIADB_PASSWORD>"
@@ -133,7 +147,7 @@ python scripts/apply_alter.py --twice   db/alter_2026-09-18_bid_result_dup_kind.
 ```bash
 python scripts/load_db.py --dry-run          # DB 접속 없이 파일 파싱·헤더 대조·건수 대조(기대 건수는 스크립트 RAW_TABLES)
 python scripts/load_db.py --ref              # ref_hs_whitelist 24 · ref_country 238 · meta_column_dict 849(db/column_dict.csv, 2026-09-19 RDS 실측 = 56표 전부) · meta_dataset(db/meta_dataset.csv) · db/seed_ref.sql
-python scripts/load_db.py --raw              # raw_ 22개(스크립트 RAW_TABLES, 2026-09-19 RDS 실측 22표. 파일 없으면 SKIP, 비어 있지 않으면 건너뜀)
+python scripts/load_db.py --raw              # raw_ 23개(스크립트 RAW_TABLES, 2026-09-19 RDS 실측 22표 + 2026-09-21 `raw_customs_region`. 파일 없으면 SKIP, 비어 있지 않으면 건너뜀)
 python scripts/load_db.py --raw --tables raw_dapa_overseas_plan raw_dapa_domestic_plan
 python scripts/load_db.py --fact             # dim_hs10 · fact_customs_monthly (schema.sql §4 INSERT…SELECT, ref_country 누락 국가 사전 검사)
 python scripts/load_db.py --verify           # 테이블별 건수 대조표
@@ -190,7 +204,7 @@ python scripts/md_to_pdf.py docs/db/table-guide.md --subtitle "팀원용 DB 테�
 
 ## 9. 방사청 파일데이터
 
-OpenAPI 없이 data.go.kr에서 수동 다운로드해 `data/raw/dapa/`에 둔다(cp949). 확보 기록은 `docs/report/data-feasibility-check-2026-09-13.md` 형식을 따른다.
+OpenAPI 없이 data.go.kr에서 수동 다운로드해 `data/raw/dapa/`에 둔다(cp949). 확보 기록은 `docs/report/data/data-feasibility-check-2026-09-13.md` 형식을 따른다.
 
 ## 10. Streamlit 배포 (Community Cloud, 2026-09-18 구축)
 
@@ -198,7 +212,21 @@ OpenAPI 없이 data.go.kr에서 수동 다운로드해 `data/raw/dapa/`에 둔�
 - 접속 정보: 로컬은 `.env`, 클라우드는 **앱 설정 → Secrets**(TOML, `.streamlit/secrets.toml.example` 그대로 채움). `app/db.py`가 `.env` → `st.secrets` 순으로 읽고, `MARIADB_SSL=1`이면 TLS(AWS RDS용).
 - 현재 상태(2026-09-18): Secrets에 RDS `app_ro`(SELECT 전용) 접속 정보(`.streamlit/secrets.toml`과 동일 — `scripts/rds_accounts.py`가 생성)를 넣었고 화면 ①이 RDS 데이터로 뜬다. **RDS가 유일한 운영 DB**이므로 적재·alter가 RDS에 들어가면 앱에 그대로 반영된다(캐시 1시간, 즉시 보려면 앱 ⋮ → Reboot). 계정 3종·보안 그룹·크레딧은 `docs/runbook/aws-rds-setup.md`.
 - 공개 범위: private 저장소 앱은 기본이 "Only specific people"(팀원에게 안 보임) → **2026-09-18 "This app is public and searchable"로 변경**(사용자 결정). 다시 제한하려면 앱 설정 → 공유하기에서 되돌리고 이메일 초대. GitHub 권한은 OAuth `repo` 스코프(계정 전체 저장소 읽기)로 부여됨 — 작업 공간 설정 → 연결된 계정에서 해제 가능.
-- 로컬 실행: `streamlit run app/main.py` (`.streamlit/config.toml`: headless·통계 수집 끔).
+- 로컬 실행: `streamlit run app/main.py` (`.streamlit/config.toml`: headless·통계 수집 끔·`client.showErrorDetails = "type"` — 브라우저에는 예외 유형만, 전체 메시지는 콘솔. 로컬에서 전부 보려면 `STREAMLIT_CLIENT_SHOW_ERROR_DETAILS=full`).
+- 앱 공통 계층(2026-09-20): `app/metrics.py`(집중도·기간·건수 상태 — streamlit 미의존), `app/db.py`(`try_query` 실패=예외 클래스명, `data_stamp` 데이터별 자료 기간·적재일), `app/ui.py`(`period_control`·`csv_header`). 회귀 검증: `.venv\Scripts\python.exe -m unittest discover -s tests -v`(DB 불필요, 22 케이스).
+
+## 10-2. Jupyter MCP (2026-09-21)
+
+Claude Code가 노트북 셀을 실행·검산하도록 JupyterLab을 MCP로 연결한다(설치 기록 `docs/install-log/INSTALLED.md` 2026-09-21). 세션마다 JupyterLab이 떠 있어야 `jupyter` MCP가 붙는다.
+
+```powershell
+$tok = (Get-Content .jupyter\token.env) -replace '^JUPYTER_TOKEN=',''
+Start-Process .venv\Scripts\jupyter.exe -ArgumentList @('lab','--no-browser','--port','8888','--ServerApp.root_dir=C:\Defense_Dashboard',"--IdentityProvider.token=$tok") -WindowStyle Hidden
+claude mcp get jupyter      # Status: Connected 확인. 안 붙으면 Claude Code 재시작
+```
+
+- 토큰 파일 `.jupyter/token.env`(gitignore)는 로컬 전용. 새 PC에서는 `python -c "import secrets;print(secrets.token_hex(24))"`로 만들고 `claude mcp add jupyter --scope local -e JUPYTER_URL=http://localhost:8888 -e JUPYTER_TOKEN=<토큰> -- <프로젝트>\.venv\Scripts\jupyter.exe mcp start --transport stdio`.
+- 용도 경계: 정제·EDA 코드는 사용자가 쓴다. Claude는 검산 셀 실행·결과 확인·`stats-advisor` 자문 결과 확인에 쓴다.
 
 ## 11. 새 스크립트 작성 규칙
 
@@ -206,11 +234,20 @@ OpenAPI 없이 data.go.kr에서 수동 다운로드해 `data/raw/dapa/`에 둔�
 
 ### 계약명 토큰 빈도 (`scripts/contract_name_tokens.py`, 2026-09-20)
 
-`clean_dapa_contract.contract_name`(최종 차수 37,602)의 유니그램·바이그램 빈도를 뽑아 `class5` 키워드 사전 초안의 기초 자료를 만든다(`dbconf.py` etl_rw SELECT만, 형태소 분석기 없이 `re`). 키워드는 후보일 뿐이며(`data-cleaning-rules.md` §1 #8) 정확도 측정 전에는 `class5`를 바꾸지 않는다. 결과 보고서 `docs/report/contract-name-tokens-2026-09-20.md`.
+`clean_dapa_contract.contract_name`(최종 차수 37,602)의 유니그램·바이그램 빈도를 뽑아 `class5` 키워드 사전 초안의 기초 자료를 만든다(`dbconf.py` etl_rw SELECT만, 형태소 분석기 없이 `re`). 키워드는 후보일 뿐이며(`data-cleaning-rules.md` §1 #8) 정확도 측정 전에는 `class5`를 바꾸지 않는다. 결과 보고서 `docs/report/data/contract-name-tokens-2026-09-20.md`.
 
 ```powershell
 python scripts/contract_name_tokens.py --top 300 --min-df 2 --out tokens.md     # 상위 300, 바이그램 문서 빈도 2 이상, 파일로도 저장
 python scripts/contract_name_tokens.py --keep-verbs                            # 행위·수량어(구매·용역·등…)를 메인 표에 남김
-python scripts/contract_name_tokens.py --rules data/reference/contract_class5_rules.csv   # 팀원 규칙표 pattern 커버리지(파일 없으면 경고 1줄)
+python scripts/contract_name_tokens.py --rules data/reference/contract_class5_rules.csv   # 팀원 규칙표 pattern 커버리지: 규칙별 걸린 토큰 수·원문 걸린 행 수(단독 대조), 분류 충돌 토큰, 안 걸리는 토큰(파일 없으면 경고 1줄)
+```
+
+### 테이블 카탈로그 생성 (`scripts/gen_table_catalog.py`, 2026-09-20)
+
+`db/table_dict.csv`(테이블 사전: 역할·원천·한 행·쓰는 곳·주의, 87행) + `db/column_dict.csv`(열 사전) + RDS 실측(행 수·PK·뷰 열) → `docs/db/table-catalog.md`. 새 테이블·뷰를 만들면 `table_dict.csv`에 1행 추가하고 재생성한다(사전 누락·RDS 누락이 0이어야 정상). etl_rw SELECT만.
+
+```bash
+python scripts/gen_table_catalog.py               # docs/db/table-catalog.md 덮어씀(COUNT(*) 포함, 약 1분)
+python scripts/gen_table_catalog.py --no-count    # 행 수 생략(빠름)
 ```
 

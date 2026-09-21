@@ -2,11 +2,11 @@
 
 근거 문서(문구를 바꿀 때 먼저 고친다):
 - 출처 표: DB meta_dataset(= db/meta_dataset.csv) — 화면이 문서와 따로 놀지 않게 DB에서 읽는다
-- 선정 규칙 R1~R4: docs/reference/hs-whitelist-definition.md §8-2 (R3∧R4 로만 진입한 품목군 = R4 잠정, metrics.r4_provisional)
-- 제외 데이터: docs/report/data-usage-decision-2026-09-18.md §1 「제외」, docs/idea-review.md §2-C
+- 선정 규칙: docs/reference/hs-whitelist-definition.md §8-2 — 진입 R1 OR R2(2026-09-21 회의 M5, R4 제외). 분석 제외 = priority 3
+- 제외 데이터: docs/report/data/data-usage-decision-2026-09-18.md §1 「제외」, docs/idea-review.md §2-C
 - 과장 금지: docs/idea-review.md §3 유의사항
 - 과천: docs/data-sources.md 「지역 통계 검증」 절 — "과천시 소재 수입자 비중(방위사업청 소재지), 추정"으로만 쓰고 하한으로 단정하지 않는다.
-  수치는 시군구별 수입이 RDS 에 없어 화면에 싣지 않는다(재현: notebooks/eda_customs.ipynb §11, 채택 여부는 팀 결정).
+  수치는 RDS 뷰 v_customs_region_gwacheon_year 로 재현되지만 화면 반영(M7)이 팀 결정 전이라 아직 싣지 않는다.
 - 건수(품목군 수 · HS6 후보 수 · B2 사업 수)는 리터럴 대신 DB 에서 읽고, 실패하면 숫자 없이 표현한다.
 """
 from __future__ import annotations
@@ -19,7 +19,7 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from db import db_ready, safe_query, try_query  # noqa: E402
-from metrics import count_state, r4_provisional  # noqa: E402
+from metrics import count_state  # noqa: E402
 from ui import MUTED, SHORT, zone  # noqa: E402
 
 if not db_ready():
@@ -27,13 +27,13 @@ if not db_ready():
 
 # 건수 3종 — 캐시 밖(try_query): 실패해도 페이지는 그리고 숫자만 뺀다
 rule_df, rule_err = try_query("SELECT COUNT(*) AS n FROM ref_hs_rule_flag")
-wl_df, wl_err = try_query("SELECT hs6, name_ko, evidence FROM ref_hs_whitelist WHERE evidence_basis = 'rule' ORDER BY hs6")
+wl_df, wl_err = try_query("SELECT hs6, name_ko, priority FROM ref_hs_whitelist ORDER BY priority, hs6")
 b2_df, b2_err = try_query("SELECT COUNT(DISTINCT project_name) AS n FROM clean_dapa_localized_item")
 st_rule, n_rule = count_state(rule_df, rule_err, "n")
 st_b2, n_b2 = count_state(b2_df, b2_err, "n")
-n_wl = len(wl_df) if wl_df is not None else None
-r4_items = ([f"{r.hs6} {SHORT.get(r.hs6, r.name_ko)}" for r in wl_df.itertuples() if r4_provisional(r.evidence)]
-            if wl_df is not None else [])
+n_wl = int((wl_df["priority"] <= 2).sum()) if wl_df is not None else None      # 분석 대상 13개(priority 1·2)
+excl_items = ([f"{r.hs6} {SHORT.get(r.hs6, r.name_ko)}" for r in wl_df.itertuples() if r.priority == 3]
+              if wl_df is not None else [])                                       # 규칙 미해당 11개(priority 3)
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -86,7 +86,7 @@ with zone("p5_src", "데이터 출처와 규모"):
         st.html('<div class="note">'
                 + bullets(["이 표는 팀 DB에 적재한 자료 전체입니다. 화면에 쓰지 않는 자료와 이유는 아래 「쓰지 않은 데이터」에 있습니다",
                            "원본 건수 = 실제로 내려받아 파서로 센 수입니다. 포털 표시 건수 · API 총건수 · 반복 수집분은 넣지 않았습니다",
-                           f"1만 건 이상 원본 {n_big}종 — 과제 요건 「2종 × 각 1만 건」은 관측 대상이 서로 다른 자료로 셉니다",
+                           f"1만 건 이상 원본 {n_big}종 — 과제 요건 「2종 × 각 1만 건」은 관세청 수출입실적과 국산화개발품목으로 충족합니다(관측 대상이 서로 다른 자료). 국내조달 계약정보는 부록 자료",
                            "관세청 2026년은 8월까지의 부분연도라 연간 비교 · KPI에서 뺍니다"])
                 + "</div>")
 
@@ -96,18 +96,14 @@ with zone("p5_rule", "품목 선정 규칙과 지표 정의"):
         (f"분석 대상 {n_wl if n_wl is not None else ''}품목군은 이렇게 골랐습니다".replace("  ", " "), bullets([
             (f"범위: HS 84 · 85 · 88 · 90류의 HS6 {n_rule:,}개(ref_hs_rule_flag)" if st_rule == "ok"
              else "범위: HS 84 · 85 · 88 · 90류의 HS6 전체(ref_hs_rule_flag — 건수 조회 실패)"),
-            "<b>공식 자료에서 확인한 사실</b>: 관세청 분류표의 세분류 명칭(R1·R2 입력), 전략물자수출입고시 별표2 HSK 연계표(R3 입력), "
-            "방사청 국산화개발품목의 군급(R4 입력)",
-            "<b>팀이 정한 규칙</b>: <b>R1 군용전용</b> — 「제9301호 · 제9306호 물품 전용」 세분류가 있음 / "
+            "<b>공식 자료에서 확인한 사실</b>: 관세청 분류표의 세분류 명칭(R1·R2 입력), 전략물자수출입고시 별표2 HSK 연계표(R3 입력)",
+            "<b>규칙</b>: <b>R1 군용전용</b> — 「제9301호 · 제9306호 물품 전용」 세분류가 있음 / "
             "<b>R2 항공 · 항행</b> — 「항공기용 · 항행 · 레이더 · 무인기」 세분류가 있거나 HS6 명칭에 같은 용도어 / "
-            "<b>R3 이중용도</b> — 별표2 3 · 5 · 6 · 7부(전자 · 정보통신 · 센서 · 항법) 통제품목 / "
-            "<b>R4 국산화 대응</b> — B2 군급 후보 대응",
-            "진입 = <b>R1 또는 R2 또는 (R3 그리고 R4)</b>. R3만으로는 들어오지 않습니다",
-            "<b>잠정 대응</b>: R4 는 공식 HS↔군급 연계표가 없어 후보 대응에 기댑니다(2026-09-18 대응표 미확정 결정). "
-            + (f"R3∧R4 로만 진입해 R4 잠정에 기대는 품목군 <b>{len(r4_items)}개</b>: {', '.join(r4_items)}" if r4_items
-               else "R3∧R4 로만 진입한 품목군 목록은 조회 실패로 표시하지 못했습니다"),
-            "규칙 조합·문턱값은 공식 자료에 적용한 <b>팀의 분석 규칙</b>이며 정부 공식 목록도, 통계적 검증도 아닙니다. "
-            "규칙 미해당 품목군(팀 판단, priority 3)은 분석 대상에서 빼고 배경 자료로만 둡니다"])),
+            "<b>R3 이중용도</b> — 별표2 3 · 5 · 6 · 7부(전자 · 정보통신 · 센서 · 항법) 통제품목(참고, 진입 근거 아님)",
+            "진입 = <b>R1 또는 R2</b>(2026-09-21 확정). R3만으로는 들어오지 않고, 국산화개발품목 군급 대응(R4)은 공식 HS↔군급 연계표가 없어 규칙에서 뺐습니다",
+            (f"수집 24개 중 규칙 미해당 <b>{len(excl_items)}개</b>는 분석 대상에서 빼고 배경 자료로만 둡니다: {', '.join(excl_items)}" if excl_items
+             else "분석 제외 품목군 목록은 조회 실패로 표시하지 못했습니다"),
+            "규칙 조합·문턱값은 공식 자료에 적용한 <b>팀의 분석 규칙</b>이며 정부 공식 목록도, 통계적 검증도 아닙니다"])),
         ("지표는 이렇게 계산합니다", bullets([
             "<b>수입액</b> = 관세청 품목별 국가별 수출입실적, HS10 → HS6 합산, 총계 행 제외, USD",
             "<b>1위 공급국 점유율</b> = 1위 국가 수입액 ÷ 품목군 수입액(동률이면 국가코드가 큰 쪽 — DB 뷰와 같은 규칙)",
@@ -118,7 +114,7 @@ with zone("p5_rule", "품목 선정 규칙과 지표 정의"):
             "<b>수출/수입</b> = 같은 기간 수출액 ÷ 수입액. HS6 합계라 민수 반도체가 대부분입니다",
             "<b>특정국 50% 이상</b> = 1위 공급국 점유율 50% 이상인 품목군 수(산업부 공급망 참고선)",
             "<b>국외 조달계획 건수</b> = clean_dapa_overseas_plan_api 에서 전자 군급(FSG 58 · 59 · 60, NSN 13자 숫자 · 영숫자)으로 판정한 행 수"
-            "(조달요구번호 × 품목순번). 전자 판정은 팀 확인 전 <b>잠정</b>이며 금액은 통화 미검증이라 쓰지 않습니다",
+            "(조달요구번호 × 품목순번). 전자 판정 기준은 확정(2026-09-21)이며 금액은 통화 미검증이라 쓰지 않습니다",
             "국가는 <b>선적국</b> 기준입니다. 원산지와 다를 수 있습니다(홍콩 · 싱가포르 경유 등)"])),
     ]))
 
@@ -126,19 +122,19 @@ with zone("p5_rule", "품목 선정 규칙과 지표 정의"):
 with zone("p5_terms", "용어"):
     terms = pd.DataFrame([
         ("코드", "HS6 · HS10", "국제 통일 상품분류. 6자리는 세계 공통, 10자리(HSK)는 한국 세분류. 군용 · 민수를 구분하지 않습니다"),
-        ("코드", "품목군", "이 대시보드에서는 HS6 하나를 품목군 하나로 부릅니다. 분석 대상은 규칙으로 고른 19개입니다"),
+        ("코드", "품목군", "이 대시보드에서는 HS6 하나를 품목군 하나로 부릅니다. 수집 24개 중 분석 대상은 규칙(R1 또는 R2)으로 고른 13개입니다"),
         ("코드", "FSG · FSC(군급)", "미 연방보급분류. FSG = 앞 2자리 그룹, FSC = 4자리 군급"),
-        ("코드", "전자 군급(FSG 58 · 59)", "58 = 통신 · 탐지 및 코히런트 방사 장비, 59 = 전기 및 전자 장비 구성품"),
-        ("코드", "NSN(국가재고번호)", "군수품 13자리 번호. 앞 4자리가 FSC라서 전자 군급(58 · 59) 여부를 가릴 수 있습니다"),
+        ("코드", "전자 군급(FSG 58 · 59 · 60)", "58 = 통신 · 탐지 및 코히런트 방사 장비, 59 = 전기 및 전자 장비 구성품, 60 = 광섬유 재료 · 구성품"),
+        ("코드", "NSN(국가재고번호)", "군수품 13자리 번호(숫자 · 영숫자). 앞 4자리가 FSC라서 전자 군급(58 · 59 · 60) 여부를 가릴 수 있습니다"),
         ("지표", "1위 공급국 점유율", "1위 국가 수입액 ÷ 품목군 수입액"),
         ("지표", "HHI", "Σ(국가별 점유율 %)², 0~10,000. 2,500 이상 = 높은 집중. 수입 집중도이며 위험도가 아닙니다"),
         ("지표", "선적국", "관세청 통계의 국가 기준. 원산지와 다를 수 있습니다(홍콩 · 싱가포르 경유 등)"),
         ("지표", "민수 포함", "수입액 · 수출액은 국가 전체 교역액입니다. 군수 몫만 따로 떼어 낸 통계는 없습니다"),
-        ("지표", "과천시 소재 수입자 비중(추정)", "수입자 소재지가 경기 과천시인 수입 비중. 군수 몫의 참고 추정치이며 DB 미적재 · 하한이라고 단정하지 않습니다"),
+        ("지표", "과천시 소재 수입자 비중(추정)", "수입자 소재지가 경기 과천시인 수입 비중(방위사업청 소재지). 군수 몫의 참고 추정치이며 하한이라고 단정하지 않습니다"),
         ("자료", "국외 조달계획", "방위사업청이 공개하는 품목 단위 국외 조달 계획. 계획이지 계약 · 실적이 아닙니다"),
         ("자료", "국산화개발품목", "방위사업청 국산화개발 완료 부품 목록(지상 28개 사업). 부품 수이지 국산화율이 아닙니다"),
         ("표시", "부분연도", "1년이 다 차지 않은 해(2026년은 8월까지). 연간 비교 · KPI · 전년비에서 뺍니다"),
-        ("표시", "잠정", "정제 · 산출식 확정 전 값. 확정 뒤 표시를 뗍니다"),
+        ("표시", "잠정", "정제 · 산출식 확정 전 값(KOSIS 잠정치 등). 확정 뒤 표시를 뗍니다"),
         ("표시", "후보", "공식 연계표가 없어 확정하지 않은 대응(예: HS6 ↔ 군급). 참고용이며 집계 기준으로 쓰지 않습니다"),
     ], columns=["구분", "용어", "뜻"])
     st.dataframe(terms, hide_index=True, width="stretch", height=38 + 35 * len(terms),
@@ -147,13 +143,13 @@ with zone("p5_terms", "용어"):
     st.html('<div class="note">· 표 오른쪽 위 돋보기로 용어를 찾을 수 있습니다 · 계산식은 위 「지표는 이렇게 계산합니다」가 기준입니다</div>')
 
 # ── 3. 과천시 소재 수입자 비중(추정) — 관측값과 가설을 나눠 적는다 ─────────────
-with zone("p5_gc", "과천시 소재 수입자 비중(추정) — 참고"):
+with zone("p5_gc", "과천시 소재 수입자 비중(추정)"):
     st.html(cards([
         ("무엇을 관측할 수 있나", bullets([
             "관세청 <b>시군구별</b> 품목별 수출입실적(15134343)에서 수입자 소재지가 <b>경기 과천시</b>인 수입액의 비중 — "
             "관세청 명세상 「<b>납세의무자 주소지</b>」 기준이며 사용처 · 생산지가 아닙니다",
             "관측값의 이름은 「과천시 소재 수입자 비중(방위사업청 소재지), 추정」입니다(docs/data-sources.md 지역 통계 검증 절)",
-            "이 자료는 팀 DB(RDS)에 <b>적재되지 않았습니다</b>. 그래서 이 화면·① · ③ 어디에도 수치를 싣지 않습니다",
+            "이 자료는 팀 DB(RDS) raw_customs_region · 뷰 v_customs_region_gwacheon_year 로 재현됩니다(2026-09-21 채택, 「추정」 표기)",
             "재현 경로: 시군구별 CSV(2016~2026) → docs/data-sources.md 지역 통계 검증 절(HS6별, 2025) · "
             "notebooks/eda_customs.ipynb §11(분류별, 2025). 분모는 각각 HS6 수입액 · 분류 수입액으로 다릅니다"])),
         ("왜 「군 직접 수입의 하한」이라고 쓰지 않나", bullets([
@@ -161,7 +157,7 @@ with zone("p5_gc", "과천시 소재 수입자 비중(추정) — 참고"):
             "공개 자료로 확인되지 않았습니다 — 이 부분은 <b>가설</b>입니다",
             "과천 소재 <b>민간 수입자</b>가 섞일 수 있어 비중이 군 몫보다 클 수 있고, 관세법 §92 위탁 업체 명의(창원 · 사천 등)로 들어오는 "
             "군수품은 빠져 작을 수도 있습니다 → 어느 쪽으로도 치우칠 수 있으므로 <b>하한도 상한도 아닙니다</b>",
-            "채택 여부 · RDS 적재는 팀 결정 사항(2026-09-21 회의 안건: 보류 · 쓰더라도 보조 설명). 확정되기 전에는 관측값과 가설을 나눠 적습니다",
+            "2026-09-21 회의에서 「추정」 표기를 붙여 참고 지표로 채택했습니다. 관측값과 가설은 계속 나눠 적습니다",
             f'<span style="color:{MUTED}">군수 몫은 관세 통계로 나뉘지 않습니다 — 품목군 지표는 국가 전체 수입(민수 포함)입니다</span>'])),
     ]))
 
@@ -198,4 +194,4 @@ with zone("p5_no", "이 대시보드가 말하지 않는 것"):
     ]))
 
 st.html('<div class="caption">근거 문서: docs/data-sources.md · docs/reference/hs-whitelist-definition.md · docs/reference/data-cleaning-rules.md §2-6 · '
-        'docs/report/data-usage-decision-2026-09-18.md · docs/idea-review.md §3 · 지표 검토 docs/report/app-metrics-review-2026-09-20.md</div>')
+        'docs/report/data/data-usage-decision-2026-09-18.md · docs/idea-review.md §3 · 지표 검토 docs/report/app/app-metrics-review-2026-09-20.md</div>')

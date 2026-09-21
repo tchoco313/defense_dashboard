@@ -2,8 +2,6 @@
 -- 수작업 참조표 시드 (작성 2026-09-15). scripts/load_db.py --ref 가 실행한다(문장 구분은 ";\n").
 --   ref_sido_map     : 대표업체주소 첫 토큰 → 시도. 행정표준코드 앞 2자리(강원 51·전북 52 는 특별자치도 전환 후 코드,
 --                      구 코드 42·45 는 쓰지 않는다).
---   ref_category_map : ref_hs_whitelist.related_fsc(; 구분)를 풀어 FSC4 → hs6 '후보'로 넣는다.
---                      '확정' 전환은 팀 확인 후 UPDATE (docs/db/schema-design.md §7-2).
 --   ref_fsg          : FSG 2자리 라벨 80행(data/reference/fsg_master.csv, 2026-09-16). 증분 적용본은 db/alter_2026-09-16_fsg.sql.
 -- 재실행 가능: 이미 있으면 건너뛴다(INSERT IGNORE / NOT EXISTS).
 -- =============================================================================
@@ -28,19 +26,7 @@ INSERT IGNORE INTO ref_sido_map (token, sido_code, sido_name) VALUES
   ('경남','48','경상남도'), ('경상남도','48','경상남도'),
   ('제주','50','제주특별자치도'), ('제주도','50','제주특별자치도'), ('제주특별자치도','50','제주특별자치도');
 
-INSERT INTO ref_category_map (map_type, source_key, category, hs6, link_status, link_basis, decided_by, decided_at)
-SELECT 'fsc4',
-       TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(w.related_fsc, ';', n.n), ';', -1)) AS fsc4,
-       w.category, w.hs6, '후보',
-       'ref_hs_whitelist.related_fsc 후보(docs/reference/hs-whitelist-definition.md). 팀 확인 전 — 확정 시 link_status·decided_by 갱신',
-       'load_db.py seed', CURDATE()
-FROM ref_hs_whitelist w
-JOIN (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4) n
-  ON n.n <= 1 + LENGTH(w.related_fsc) - LENGTH(REPLACE(w.related_fsc, ';', ''))
-WHERE w.related_fsc IS NOT NULL AND w.related_fsc <> ''
-  AND NOT EXISTS (SELECT 1 FROM ref_category_map m
-                  WHERE m.map_type = 'fsc4' AND m.hs6 = w.hs6
-                    AND m.source_key = TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(w.related_fsc, ';', n.n), ';', -1)));
+-- (ref_category_map 시드는 2026-09-21 폐기 — 카테고리 맵을 두지 않는다. db/alter_2026-09-21_drop_category_map.sql)
 
 -- ref_fsg 시드 (fsg_master.csv 80행과 동일. 재실행 시 덮어씀)
 INSERT INTO ref_fsg (fsg_code, name_en, name_ko, status, is_historical, is_electronic_group, note_ko, source_url) VALUES

@@ -1,14 +1,14 @@
-"""③ 품목군 현황표 — 분석 대상 품목군(evidence_basis='rule')을 한 표로(선정 근거 · 수입 집중 지표 · 수출/수입 비율 · 관련 군급 후보).
+"""③ 품목군 현황표 — 분석 대상 품목군(priority IN (1, 2), 13개)을 한 표로(선정 근거 · 수입 집중 지표 · 수출/수입 비율).
 
-기획서 v6 §수행 방향 ③: 선정 근거 · 수입액 · 1위국 · 점유율 · HHI · 수출/수입 비율 · 관련 군급, 정렬·필터, 수입액 × HHI 산점도, CSV.
+기획서 v6 §수행 방향 ③: 선정 근거 · 수입액 · 1위국 · 점유율 · HHI · 수출/수입 비율, 정렬·필터, 수입액 × HHI 산점도, CSV.
 트리맵(분류 › 품목군 수입액 구성)은 2026-09-20 벤치마킹(SIPRI) 반영.
 - 지표는 기간 기준(홈과 같은 3개 선택지) 합계로 다시 계산한다(metrics.concentration — 홈·🔎 KPI 와 같은 산식). 여러 해를 고르면
   기간 합계의 국가 점유율로 HHI를 낸다(연도별 HHI의 평균이 아니다). 부분연도는 선택지에 넣지 않는다.
-- 수입국 수 = 기간 합계 수입액 > 0 인 국가 수(수출만 있는 국가는 빼며, DB 뷰 v_hhi_hs6_year.country_count 와 다른 정의).
-- 선정 근거는 ref_hs_whitelist.evidence(규칙 스냅샷 키)를 R1~R4로 읽는다. R4(B2 대응)는 잠정(대응표 미확정, 2026-09-18) —
-  R3∧R4 로만 진입한 품목군은 metrics.r4_provisional 로 표시한다.
-- 관련 군급은 related_fsc 후보값 — HS6↔FSC4 공식 연계표가 없어 확정하지 않는다(CLAUDE.md 핵심 설계 제약).
-- 과천시 소재 수입자 비중(추정) 열은 두지 않는다 — 시군구별 수입 미적재이고 채택 여부는 팀 결정(⑤ 참고).
+- 수입국 수 = 기간 합계 수입액 > 0 인 국가 수(수출만 있는 국가는 뺌 — DB 뷰 v_hhi_hs6_year.country_count 와 같은 정의, 단 여기는 기간 합산).
+- 선정 근거는 ref_hs_whitelist.evidence(규칙 스냅샷 키)를 R1·R2(진입)·R3(참고)로 읽는다. R4(B2 대응)는 2026-09-21 회의 M5로
+  규칙에서 제외 — B2-FSC 키는 표시하지 않는다(관세청 데이터를 FSC와 엮지 않음, CLAUDE.md).
+- 「관련 군급(후보)」 열은 두지 않는다 — 카테고리 맵(HS6↔FSC 대응)은 2026-09-21 폐기(수출입 현황 대시보드이므로, CLAUDE.md).
+- 과천시 소재 수입자 비중(추정) 열은 두지 않는다 — 홈 KPI·⑤ DATA INFO에서 본다(2026-09-21 M7).
 """
 from __future__ import annotations
 
@@ -22,12 +22,12 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from db import data_stamp, db_ready, query  # noqa: E402
-from metrics import concentration, r4_provisional  # noqa: E402
+from metrics import concentration  # noqa: E402
 from ui import (ACCENT, BG, MUTED, PANEL, PANEL2, SHORT, TEXT, country_colors, csv_header,  # noqa: E402
                 period_control, style_fig, zone)
 
 # evidence 키 → 규칙(docs/reference/hs-whitelist-definition.md §8-2)
-RULES = [("HSK-군용", "R1 군용전용"), ("HSK-항공/항행", "R2 항공·항행"), ("전략물자-DU", "R3 이중용도"), ("B2-FSC", "R4 국산화 대응*")]
+RULES = [("HSK-군용", "R1 군용전용"), ("HSK-항공/항행", "R2 항공·항행"), ("전략물자-DU", "R3 이중용도(참고)")]   # R4 제외(2026-09-21 M5)
 SOURCE = "관세청 품목별 국가별 수출입실적(15100475) · 국가 전체 수입·수출(민수 포함) · USD"
 
 if not db_ready():
@@ -37,8 +37,8 @@ if not db_ready():
 @st.cache_data(ttl=3600, show_spinner=False)
 def load() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     wl = query("""
-        SELECT hs6, category, name_ko, evidence, related_fsc
-        FROM ref_hs_whitelist WHERE evidence_basis = 'rule'
+        SELECT hs6, category, name_ko, evidence
+        FROM ref_hs_whitelist WHERE priority IN (1, 2)
     """)
     trade = query("""
         SELECT hs6, year, stat_cd, imp_dlr, exp_dlr, is_partial_year
@@ -87,7 +87,6 @@ t["top1"] = t["top1_cd"].map(lambda c: cname.get(c, c) if isinstance(c, str) els
 t["top1_share"] = conc["top1_share"] * 100
 t["ratio"] = t["exp_dlr"] / t["imp_dlr"]
 t["rules"] = t["evidence"].map(rule_text)
-t["r4_only"] = t["evidence"].map(r4_provisional)
 t["short"] = [SHORT.get(h, n) for h, n in zip(t.index, t["name_ko"])]
 t["trend"] = trend.reindex(t.index)
 t["late"] = first_year.reindex(t.index) > years[0]
@@ -109,7 +108,7 @@ with zone("p3_table", f"{len(t)}개 품목군 한 표"):
             f"수입액(백만$, {y_label})": (t["imp_dlr"] / 1e6).round(0),
             "1위 공급국": t["top1"], "1위 점유율(%)": t["top1_share"], "HHI": t["hhi"].round(0),
             "수입국 수": t["n_ctry"].astype("Int64"),
-            "수출/수입": t["ratio"], "관련 군급(후보)": t["related_fsc"].fillna("—").str.replace(";", " · "),
+            "수출/수입": t["ratio"],
             "수입 추이(백만$)": t["trend"],
         }).reset_index(drop=True)
         st.dataframe(view, hide_index=True, width="stretch", height=min(38 + 35 * len(view), 720), column_config={
@@ -118,14 +117,11 @@ with zone("p3_table", f"{len(t)}개 품목군 한 표"):
             "HHI": st.column_config.NumberColumn(format="localized", help="Σ(국가 점유율 %)². 2,500 이상 = 높은 집중(미 법무부 기준)"),
             "수입국 수": st.column_config.NumberColumn(format="localized", help="기간 합계 수입액이 0보다 큰 국가 수(수출만 있는 국가 제외)"),
             "수출/수입": st.column_config.NumberColumn(format="%.2f", help="1보다 크면 수출이 수입보다 많음. HS6 합계라 민수 반도체가 대부분"),
-            "관련 군급(후보)": st.column_config.TextColumn(help="HS6↔FSC4 공식 연계표가 없어 확정하지 않은 후보값"),
             "수입 추이(백만$)": st.column_config.LineChartColumn(help="완결 연도(부분연도 제외) 연간 수입액"),
         })
-        r4_list = ", ".join(f"{h} {s}" for h, s in zip(t.index[t["r4_only"]], t.loc[t["r4_only"], "short"]))
         notes = ["표 머리를 누르면 정렬됩니다. 기본 정렬은 HHI 내림차순",
-                 "R1~R3 = 관세청 분류표·전략물자 고시 등 공식 자료에 팀 규칙을 적용한 것, *R4 = B2 국산화개발품목 대응(잠정 — 대응표 미확정)",
-                 (f"R3∧R4 로만 진입해 R4 잠정 근거에 기대는 품목군 {int(t['r4_only'].sum())}개: {r4_list}" if r4_list
-                  else "이 표에는 R3∧R4 로만 진입한 품목군이 없습니다"),
+                 "R1·R2 = 관세청 HS10 세분류(군용전용 · 항공/항행)로 진입, R3 = 전략물자 이중용도 통제품목(참고, 단독 진입 아님)",
+                 "수집 24개 중 규칙(R1 OR R2) 미해당 11개는 이 표에 없습니다(⑤ DATA INFO)",
                  "여러 해를 고르면 기간 합계 점유율로 HHI 계산(연도별 HHI 평균 아님) · 수입국 수 = 수입 실적(>0) 있는 국가 수"]
         if t["late"].any():
             notes.append(f"HS6 * = {years[0]}년 이후 일부 연도만 집계(HS 개정)")

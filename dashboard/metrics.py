@@ -4,7 +4,6 @@
   ①은 DB 뷰(v_hhi_hs6_year, 단일 연도)를 그대로 읽으므로 여기를 쓰지 않는다 — 여러 해 합산 HHI 와 연도별 HHI 는 다른 지표.
 - period_years: 기간 선택지(기준 연도 / 최근 5년 / 전체)의 연도 목록. 완결 연도만 받는다(부분연도는 호출부에서 뺀다).
 - count_state: safe/try_query 결과를 「조회 실패 / 미적재 / 실제 0 / n」 네 상태(failed/unloaded/zero/ok)로 나눈다(실제 0 과 미적재·조회 실패를 구분).
-- r4_provisional: R3∧R4 로만 진입한 품목군(R4 잠정) 판정 — docs/reference/hs-whitelist-definition.md §8-2.
 """
 from __future__ import annotations
 
@@ -78,9 +77,3 @@ def count_state(df: pd.DataFrame | None, err: str | None, col: str, total_col: s
     if pd.isna(row[col]) or int(row[col]) == 0:
         return "unloaded", 0
     return "ok", int(row[col])
-
-
-def r4_provisional(evidence: str | None) -> bool:
-    """R3∧R4 로만 진입(R1·R2 키 없음) = R4 잠정 근거에 기댄 품목군. evidence 키는 ';' 구분(hs-whitelist-definition.md §8-2)."""
-    keys = {k.strip() for k in (evidence or "").split(";") if k.strip()}
-    return "B2-FSC" in keys and not ({"HSK-군용", "HSK-항공/항행"} & keys)

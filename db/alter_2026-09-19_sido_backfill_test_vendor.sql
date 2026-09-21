@@ -1,7 +1,7 @@
 -- ============================================================================
 -- alter_2026-09-19_sido_backfill_test_vendor.sql — P2 검수(09-18) 반영: sido_code 백필 + 테스트 업체 6행 제외 (2026-09-19)
 -- ============================================================================
--- 배경: docs/report/ref-review-p2-2026-09-18.md §3·§0 #7. db/alter_2026-09-18_sido_gwangju.sql(ref_sido_map 45→44, 같은 날 적용)의
+-- 배경: docs/report/data/ref-review-p2-2026-09-18.md §3·§0 #7. db/alter_2026-09-18_sido_gwangju.sql(ref_sido_map 45→44, 같은 날 적용)의
 --       주석 "clean_dapa_contract 는 0행이라 재계산 대상 없음"은 작성 시점(09-18 17:20) 기준이고, 09-19 P4 적재로 43,111행이 있어
 --       clean 값을 여기서 고친다. 재적재 시 같은 결과가 나오도록 notebooks/clean_p4_domestic.ipynb 셀 2·4에도 같은 규칙을 넣었다.
 --

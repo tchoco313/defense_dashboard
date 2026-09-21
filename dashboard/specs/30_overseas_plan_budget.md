@@ -22,11 +22,11 @@
 |---|---|---|---|---|
 | `v_overseas_plan_yearly` | `plan_year, exec_type, plan_count, budget_krw, contracted_count, elec_candidate_count, elec_candidate_budget_krw, elec_confirmed_budget_krw` | 연도 × 집행유형 계획 건수·예산 합(원, **집행 예정액**)·계약완료 수·전자 후보 건수. 화면은 `plan_year`로 다시 합산해 막대(억 원 = `budget_krw / 1e8`)·선(건수) | 2017~2025 · 사용 가능(2026-09-17 적재, `clean_dapa_overseas_plan` 3,023행) | table-guide §2 「배경 ⓪」 · §3-6 |
 | `v_domestic_plan_yearly` | `plan_year, exec_type, contract_method, plan_count, budget_krw, contracted_count, approx_amount_rows, budget_missing_count` | 국내 조달계획 연도 × 집행유형 × 계약방법 건수·예산·계약완료. 국외와 열 이름을 맞춰 나란히 비교 | 2024~2025만(2024 4,545행 불완전) · 사용 가능(2026-09-17 적용, 2026-09-19 clean 전환) | table-guide §2 「배경 ⓪ 보강」 · §3-6 |
-| `v_overseas_bid_chain` | `decision_no, item_seq, bid_item_name, ordering_agency, notice_count, result_rows, award_rows, final_result, first_opening, last_opening, budget_usd, plan_linked, plan_year, plan_exec_type, plan_progress_status` | 국외 입찰결과 2,494행을 판단번호 × 항목 1,362 단위로 접고 조달계획과 판단번호 LEFT JOIN. 최종 결과 = 한 번이라도 낙찰이면 낙찰(낙찰 342·유찰 1,020), 재공고(2회 이상) 1,126, 계획 연결 1,331(97.7%) | 개찰 2025-01~09 **부분연도** · 적재 완료(2026-09-19) | table-guide §2 「배경 ⓪ 보강」 · §3-6 |
+| `v_overseas_bid_chain` | `decision_no, item_seq, bid_item_name, notice_count, result_rows, award_rows, final_result, first_opening, last_opening, budget_usd, plan_linked, plan_year, plan_exec_type, plan_progress_status` | 국외 입찰결과 2,494행을 판단번호 × 항목 1,362 단위로 접고 조달계획과 판단번호 LEFT JOIN. 최종 결과 = 한 번이라도 낙찰이면 낙찰(낙찰 342·유찰 1,020), 재공고(2회 이상) 1,126, 계획 연결 1,331(97.7%) | 개찰 2025-01~09 **부분연도** · 적재 완료(2026-09-19) | table-guide §2 「배경 ⓪ 보강」 · §3-6 |
 | `v_overseas_contract_yearly` | `contract_year, contract_method_name, contract_count, contract_no_count, vendor_count` | 국외 계약 연도 × 계약방법 건수·고유 업체 수. **금액·국가 열이 없다** | 적재 완료(2026-09-19, `clean_dapa_overseas_contract` 6,327행) | table-guide §2 「핵심 ② 보조」 · §3-6 |
 | `clean_dapa_contract_exec_by_service` | `year, service_branch, contract_amount_100m_krw` | KPI 3(군별 계약집행 총액) = 연도 × 군 계약금액(억 원) 합. 국외조달 계획 예산(원, 집행 예정)과 **합산·비율 금지** — 별개 KPI로만 | 2015~2024 · 적재 완료(2026-09-19, 40행) | table-catalog `clean_dapa_contract_exec_by_service`, table-guide §2 「KPI 카드」 |
 
-현재 코드(`dashboard/pages/4_정책_산업_배경.py` 조달계획 구역)는 이 중 `v_overseas_plan_yearly` 하나만 읽는다 — 나머지 3개는 명세만 있고 화면 미구현.
+현재 코드(`app/pages/4_정책_산업_배경.py` 조달계획 구역)는 이 중 `v_overseas_plan_yearly` 하나만 읽는다 — 나머지 3개는 명세만 있고 화면 미구현.
 
 ## 3. 레이아웃
 | 구역 | 키 | 내용 |
@@ -63,7 +63,7 @@ KPI 3장(`kpi()`, 채택 2026-09-21): ① 「국외조달 계획 예산 합계�
 ## 5. 필터·기본값
 | 필터 | 선택지 | 기본값(코드 실측) | 근거 |
 |---|---|---|---|
-| (없음) | — | **해당 없음 — 이 구역에 필터가 없다**(전체 연도·전체 집행유형 고정) | `dashboard/pages/4_정책_산업_배경.py` |
+| (없음) | — | **해당 없음 — 이 구역에 필터가 없다**(전체 연도·전체 집행유형 고정) | `app/pages/4_정책_산업_배경.py` |
 | 집행유형 묶음 | 고정 | 건수 합 상위 5개 + 「기타」 | 코드 `keep = … index[:5]` |
 | 캐시 | 고정 | `@st.cache_data(ttl=3600)` | 코드 |
 
@@ -100,8 +100,7 @@ KPI 3장(`kpi()`, 채택 2026-09-21): ① 「국외조달 계획 예산 합계�
 ## 9. 미결
 | M# | 달라지는 부분 |
 |---|---|
-| 원본 구성 | **원본은 `dashboard/pages/4_정책_산업_배경.py` 한 파일의 일부다. M3 결정 후 페이지 묶음 재검토**(30~33을 한 페이지로 되돌릴지, 나눠 둘지) |
-| M3 | 표시 순서(⓪이 ① 뒤) · 페이지 번호 |
+| 원본 구성 | 원본은 `app/pages/4_정책_산업_배경.py` 한 파일의 일부. 30~33을 한 페이지로 묶을지·표시 순서(⓪이 ① 뒤)·번호는 담당자 Figma 결과에 따른다(M3, 09-21) |
 | 미구현 | 국내 vs 국외 비교, 계획→입찰 사슬, 국외 계약 건수 — 뷰는 적재 완료, 화면 없음 |
 | 결정(2026-09-21, 사용자) | 상단 KPI 3장 채택 — §2·§3·§4에 반영. 데이터는 `v_overseas_plan_yearly`·`clean_dapa_contract_exec_by_service` |
 | 결정(2026-09-21, 사용자) | 하단 조달계획 조회표는 두지 않는다 — 배경 화면은 추세만, 조회는 🔎(91) 역할 |

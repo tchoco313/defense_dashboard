@@ -1,7 +1,7 @@
 -- =============================================================================
 -- P1 관세청 수입 축 — dim_hs10 마스터 보강 열 + clean_hsk_control 신설 + HSK 통제 지표 (작성 2026-09-19)
 --
--- 배경: 팀 raw·ref → clean 전환 분배 명세(new_data/K_Defense_clean전환_담당분배_명세_20260918.md §2, 묶음 P1).
+-- 배경: 팀 raw·ref → clean 전환 분배 명세(docs/reference/clean-conversion-spec-2026-09-18.md §2, 묶음 P1).
 --       6개 중 raw_customs_trade → fact_customs_monthly(294,174행)·raw_customs_progress·ref_hs_whitelist 는 검증만 하고
 --       테이블·값을 건드리지 않는다. 여기서 만드는 것은 dim_hs10 열 4개 · clean_hsk_control · ref_hs_rule_flag 열 1개 ·
 --       ref_hs_indicator 의 hsk_control_* 지표 48행이다.

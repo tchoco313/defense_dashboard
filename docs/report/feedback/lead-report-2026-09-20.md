@@ -1,6 +1,6 @@
 # 조장 진행 보고 — 기획서 v7 · EDA 1차 · 화면 뼈대 · 중간 발표 준비 (2026-09-20, 안태호)
 
-`docs/report/team-report-2026-09-19.md`(김훈희, DB raw→clean 전환)와 짝이 되는 문서다. 그 보고서 범위 밖인 **기획 · 수집 보강 · EDA · 화면 · 발표 자료**의 진행을 적는다. 수치는 각 산출물에서 옮겼고, DB 실측이 필요한 값은 출처를 밝혔다.
+`docs/report/feedback/team-report-2026-09-19.md`(김훈희, DB raw→clean 전환)와 짝이 되는 문서다. 그 보고서 범위 밖인 **기획 · 수집 보강 · EDA · 화면 · 발표 자료**의 진행을 적는다. 수치는 각 산출물에서 옮겼고, DB 실측이 필요한 값은 출처를 밝혔다.
 
 ## 1. 한 줄 요약
 
@@ -33,7 +33,7 @@
 
 ## 4. 화면 · 발표 자료
 
-- **화면 뼈대**: `app/home.py`, `app/ui.py`, `app/pages/1~6`(수출입 현황 · 부품→무기체계 · 품목군 현황표 · 정책·산업 배경 · DATA INFO · 조회), 약 1,700줄. 구상 시안 `docs/report/mockup-2026-09-18/`. **디자인 확정 전 뼈대**이며, 화면 ④의 국방반도체 구역은 구역 단독 실행만 확인했다(전체 페이지는 RDS 닿는 네트워크에서 확인 필요).
+- **화면 뼈대**: `app/home.py`, `app/ui.py`, `app/pages/1~6`(수출입 현황 · 부품→무기체계 · 품목군 현황표 · 정책·산업 배경 · DATA INFO · 조회), 약 1,700줄. 구상 시안 `docs/report/app/mockup-2026-09-18/`. **디자인 확정 전 뼈대**이며, 화면 ④의 국방반도체 구역은 구역 단독 실행만 확인했다(전체 페이지는 RDS 닿는 네트워크에서 확인 필요).
 - **중간 발표(09-22) PPT 초안**: 조장 드라이브 `훈수안이조_중간발표_2026-09-22_초안.pptx`, 10장 · 5분. 개요 → 선정 근거 → 수집·저장 → 전처리 → EDA 1차 → 화면 구상 → 남은 일정. 전처리 수치는 09-20 기준(국외 계약 6,327, 제외 17행)으로 맞췄다. 기획서 docx와 PPT, 생성 스크립트는 저장소에 올리지 않는다(조장 개인 작업물, 드라이브가 정본).
 
 ## 5. 팀 확정이 필요한 것 (09-21 회의)
@@ -55,8 +55,8 @@
 
 ## 7. 어디를 보면 되나
 
-- 기획: `docs/report/project-plan-v7-brief-2026-09-19.md`(요약) · `project-plan-v7-2026-09-19.md`(전문)
-- 98.9% 등 정책 근거: `docs/report/policy-pdf-analysis-2026-09-19.md`
-- 데이터 채택 판단: `docs/report/data-usage-decision-2026-09-18.md`
+- 기획: `docs/report/plan/project-plan-v7-brief-2026-09-19.md`(요약) · `project-plan-v7-2026-09-19.md`(전문)
+- 98.9% 등 정책 근거: `docs/report/data/policy-pdf-analysis-2026-09-19.md`
+- 데이터 채택 판단: `docs/report/data/data-usage-decision-2026-09-18.md`
 - EDA: `notebooks/eda_customs.ipynb` · `notebooks/eda_contract.ipynb`(각 마지막 절이 요약 · 한계)
-- 화면: `app/` · `docs/report/mockup-2026-09-18/`
+- 화면: `app/` · `docs/report/app/mockup-2026-09-18/`

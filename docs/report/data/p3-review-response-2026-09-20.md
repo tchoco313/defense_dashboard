@@ -1,6 +1,6 @@
 # P3 검수 회신 재검수 (2026-09-20)
 
-P3(방사청 국외조달, 담당 강지수) 담당이 보낸 검수 SQL(6묶음: `clean_dapa_overseas_plan_api` · `clean_dapa_overseas_plan_2` · `clean_dapa_overseas_contract` · `clean_dapa_overseas_bid_result` · `ref_fsg` · `ref_fsc`)을 운영 DB(AWS RDS `defense_dashboard`) 실측과 기준 문서에 대조해 항목별로 판정했다. 기준: `new_data/K_Defense_clean전환_담당분배_명세_20260918.md` §1(공통 규칙)·§4(P3), `docs/reference/data-cleaning-rules.md` §1·§2-6·§2-8, 09-19 적재분 `db/alter_2026-09-19_p3_clean.sql` + `notebooks/clean_p3_overseas.ipynb`.
+P3(방사청 국외조달, 담당 강지수) 담당이 보낸 검수 SQL(6묶음: `clean_dapa_overseas_plan_api` · `clean_dapa_overseas_plan_2` · `clean_dapa_overseas_contract` · `clean_dapa_overseas_bid_result` · `ref_fsg` · `ref_fsc`)을 운영 DB(AWS RDS `defense_dashboard`) 실측과 기준 문서에 대조해 항목별로 판정했다. 기준: `docs/reference/clean-conversion-spec-2026-09-18.md` §1(공통 규칙)·§4(P3), `docs/reference/data-cleaning-rules.md` §1·§2-6·§2-8, 09-19 적재분 `db/alter_2026-09-19_p3_clean.sql` + `notebooks/clean_p3_overseas.ipynb`.
 
 ## 0. 한눈에
 
