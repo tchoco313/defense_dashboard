@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 import sys
-from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -16,8 +15,9 @@ import plotly.graph_objects as go
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from db import db_ready, query, safe_query  # noqa: E402
-from ui import BG, ETC, IMP, MUTED, SHORT, country_colors, kpi, style_fig, zone  # noqa: E402
+from db import data_stamp, db_ready, query, safe_query  # noqa: E402
+from metrics import concentration, period_years  # noqa: E402
+from ui import BG, ETC, IMP, MUTED, SHORT, country_colors, csv_header, kpi, style_fig, zone  # noqa: E402
 
 ALL = "__all__"
 SOURCE = "관세청 품목별 국가별 수출입실적(15100475) · 국가 전체 수입(민수 포함) · USD"
@@ -80,15 +80,14 @@ with left, zone("p6_cond", "조회 조건"):
                               format_func=lambda h: "전체 세부코드" if h == ALL else label10.get(h, h))
         hs10 = None if pick10 == ALL else pick10
     raw = load_trade(tuple(wl["hs6"]) if hs6 == ALL else (hs6,), hs10)
-    full_years = sorted(raw.loc[raw["is_partial_year"] == 0, "year"].unique())
-    if not full_years:
+    p = period_years(raw.loc[raw["is_partial_year"] == 0, "year"].unique())   # 홈·③ 과 같은 연도 목록 규칙(완결 연도만)
+    if not p:
         st.info("이 조건에는 완결 연도 실적이 없습니다.")
         st.stop()
-    y1, y0 = int(full_years[-1]), int(full_years[0])
-    periods = {str(y1): [y1], "최근 5년": list(range(max(y0, y1 - 4), y1 + 1)), "전체": list(range(y0, y1 + 1))}
+    periods = {str(p["base"][0]): p["base"], "최근 5년": p["recent5"], "전체": p["all"]}
     pick = st.pills("기간 기준", list(periods), default="최근 5년", key="q_period") or "최근 5년"
     years = periods[pick]
-    ranked = raw[raw["year"] == y1].groupby("stat_cd")["imp_dlr"].sum().sort_values(ascending=False).index.tolist()
+    ranked = raw[raw["year"] == p["base"][0]].groupby("stat_cd")["imp_dlr"].sum().sort_values(ascending=False).index.tolist()
     country = st.selectbox("국가", [ALL] + ranked, key="q_ctry",
                            format_func=lambda c: "전체 국가" if c == ALL else cname.get(c, c))
     chart = st.selectbox("차트 형태", CHARTS, key="q_chart")
@@ -103,15 +102,18 @@ with left, zone("p6_cond", "조회 조건"):
 y_label = f"{years[0]}" if len(years) == 1 else f"{years[0]}~{years[-1]}"
 scope = f"{len(wl)}개 합계" if hs6 == ALL else f"{names[hs6]} {hs6}" + (f" · {hs10}" if hs10 else "")
 yr = raw[raw["year"].isin(years) & (raw["imp_dlr"] > 0)]
-by_c = yr.groupby("stat_cd")["imp_dlr"].sum().sort_values(ascending=False)
-total = float(by_c.sum())
+by_c = yr.groupby("stat_cd")["imp_dlr"].sum().sort_values(ascending=False)   # 표·상위 5개국용(기간 합계, 내림차순)
+conc = concentration(yr.assign(hs6="_"), "imp_dlr")                            # 합계·1위국·HHI·수입국 수 — 홈·③ 과 같은 산식
+total = float(conc["total"].iloc[0]) if not conc.empty else 0.0
 share = by_c / total * 100 if total else by_c
-hhi = float((share ** 2).sum())
+hhi = float(conc["hhi"].iloc[0]) if not conc.empty else 0.0
+top1_cd = str(conc["top1_stat_cd"].iloc[0]) if not conc.empty else None
+n_ctry = int(conc["country_count"].iloc[0]) if not conc.empty else 0
 cur = raw[(raw["year"] == years[-1]) & (raw["imp_dlr"] > 0)].groupby("stat_cd")["imp_dlr"].sum()
 prev = raw[(raw["year"] == years[-1] - 1) & (raw["imp_dlr"] > 0)].groupby("stat_cd")["imp_dlr"].sum()
 d_share = (cur / cur.sum() * 100).subtract(prev / prev.sum() * 100, fill_value=0) if not prev.empty else None
 ctry_label = "전체 국가" if country == ALL else cname.get(country, country)
-fname = f"조회_{hs6 if hs6 != ALL else 'all19'}_{y_label.replace('~', '-')}"
+fname = f"조회_{hs6 if hs6 != ALL else f'all{len(wl)}'}_{y_label.replace('~', '-')}"
 
 with right:
     # ── 상단 · 요약 ─────────────────────────────────────────────────────────
@@ -123,17 +125,16 @@ with right:
             st.info("이 조건에는 수입 실적이 없습니다. 기간이나 세부코드를 바꿔 보세요.")
             st.stop()
         if country == ALL:
-            top = by_c.index[0]
             cards = [kpi(f"{y_label} 수입액", f"{total / 1e8:,.1f}", "억 달러", "국가 전체 수입 · 민수 포함"),
-                     kpi("1위 공급국", cname.get(top, top), "", f"점유율 {share.iloc[0]:.1f}%"),
-                     kpi("HHI", f"{hhi:,.0f}", "", "2,500 이상 = 높은 집중" if hhi >= 2500 else "기간 합계 점유율 기준"),
-                     kpi("교역국 수", f"{len(by_c)}", "개국", f"{y_label} 수입 실적이 있는 국가")]
+                     kpi("1위 공급국", cname.get(top1_cd, top1_cd), "", f"점유율 {float(share.get(top1_cd, 0)):.1f}%"),
+                     kpi("HHI", f"{hhi:,.0f}", "", ("2,500 이상 = 높은 집중 · " if hhi >= 2500 else "") + "기간 합계 점유율 기준"),
+                     kpi("수입국 수", f"{n_ctry}", "개국", f"{y_label} 수입 실적(>0)이 있는 국가")]
         else:
             v = float(by_c.get(country, 0))
             rank = by_c.index.get_loc(country) + 1 if country in by_c.index else None
             cards = [kpi(f"{ctry_label} 수입액", f"{v / 1e8:,.2f}", "억 달러", y_label),
                      kpi("점유율", f"{v / total * 100:.1f}", "%", f"{scope} 수입 중"),
-                     kpi("순위", f"{rank}" if rank else "—", "위" if rank else "", f"{len(by_c)}개국 중"),
+                     kpi("순위", f"{rank}" if rank else "—", "위" if rank else "", f"{n_ctry}개 수입국 중"),
                      kpi("품목군 HHI", f"{hhi:,.0f}", "", "기간 합계 점유율 기준")]
         st.html('<div class="kpis k4">' + "".join(cards) + "</div>")
 
@@ -168,7 +169,7 @@ with right:
                                      mode="lines+markers", line=dict(color="#f2b33d", width=2),
                                      hovertemplate="%{x} 1위국 %{y:.1f}%<extra></extra>"))
             fig.add_hline(y=2500, line=dict(color=MUTED, dash="dash", width=1))
-            fig.update_layout(title=f"1위국 점유율 · HHI — {scope} · 점선 = HHI 2,500",
+            fig.update_layout(title=f"연도별 1위국 점유율 · HHI — {scope} · 점선 = HHI 2,500 (요약 카드의 기간 합계 HHI 와 다른 값)",
                               yaxis=dict(title="HHI", rangemode="tozero"),
                               yaxis2=dict(title="1위국 점유율(%)", overlaying="y", side="right", range=[0, 100], showgrid=False))
         fig.update_layout(margin=dict(t=60, b=30), legend=dict(orientation="h", y=-0.15, title=None), bargap=0.3)
@@ -188,8 +189,10 @@ with right:
         st.dataframe(tbl, hide_index=True, width="stretch", height=min(38 + 35 * len(tbl), 420), column_config={
             f"수입액(백만$, {y_label})": st.column_config.NumberColumn(format="localized"),
             "점유율(%)": st.column_config.ProgressColumn(format="%.1f%%", min_value=0, max_value=100)})
-        head = (f"# 조건: {scope} · 기간 {y_label} · {ctry_label}\n# 출처: {SOURCE}\n"
-                f"# 기준일: {date.today():%Y-%m-%d} · 점유율 = 국가별 수입액 ÷ 품목군 수입액(기간 합계)\n")
+        stamp = data_stamp("customs_all", "fact_customs_monthly")
+        head = csv_header(f"{scope} · 기간 {y_label} · {ctry_label}", SOURCE, [("관세청 수출입", stamp, None)],
+                          extra="점유율 = 국가별 수입액 ÷ 품목군 수입액(기간 합계) · HHI = 기간 합계 점유율 기준")
         st.download_button("⬇ 표 CSV 내려받기(엑셀)", (head + tbl.to_csv(index=False)).encode("utf-8-sig"),
                            file_name=f"{fname}.csv", mime="text/csv")
-        st.html(f'<div class="note">출처 {SOURCE} · 기준일 {date.today():%Y-%m-%d} · 내려받은 파일 맨 위에도 조건 · 출처 · 기준일이 적힙니다</div>')
+        st.html(f'<div class="note">출처 {SOURCE} · 자료 기간 {stamp["period"]} · DB 적재 {stamp["loaded"] or "—"} · '
+                f'내려받은 날 {stamp["today"]} — 내려받은 파일 맨 위에도 조건 · 출처 · 자료 기간 · 적재일이 적힙니다</div>')

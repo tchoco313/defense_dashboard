@@ -252,11 +252,18 @@ with zone("p4_semi", "국방반도체 발전전략 · 국내 기반"):
         cv = cv.merge(ctype[["type_no", "name_ko"]], on="type_no").rename(columns={
             "name_ko": "유형", "org": "주체", "title": "내용", "date": "시점", "target_system": "적용 대상", "stage": "단계",
             "source_url": "출처", "verify_level": "확인 수준", "note": "비고"})
-        st.dataframe(cv[["유형", "주체", "내용", "시점", "적용 대상", "단계", "확인 수준", "비고", "출처"]], hide_index=True, width="stretch",
-                     height=min(38 + 35 * len(cv), 420), column_config={
-                         "내용": st.column_config.TextColumn(width="large"),
-                         "출처": st.column_config.LinkColumn(display_text="기사"),
-                         "확인 수준": st.column_config.TextColumn(help="기사 원문 = 원문을 열어 확인 · 검색 요약 = 검색 결과 요약만 확인")})
+        # 높이는 행 수만큼 다 편다(표 안 세로 스크롤이 페이지 휠을 가로챈다). 확인 수준 · 출처가 잘리지 않게 폭을 정하고 남는 폭은 비고가 받는다
+        st.dataframe(cv[["유형", "주체", "내용", "시점", "적용 대상", "단계", "확인 수준", "출처", "비고"]], hide_index=True, width="stretch",
+                     height=40 + 35 * len(cv), column_config={
+                         "유형": st.column_config.TextColumn(width=150),
+                         "주체": st.column_config.TextColumn(width=150),
+                         "내용": st.column_config.TextColumn(width=330),
+                         "시점": st.column_config.TextColumn(width=90),
+                         "적용 대상": st.column_config.TextColumn(width=180),
+                         "단계": st.column_config.TextColumn(width=100),
+                         "출처": st.column_config.LinkColumn(display_text="기사", width=55),
+                         "비고": st.column_config.TextColumn(width=135),
+                         "확인 수준": st.column_config.TextColumn(width=100, help="기사 원문 = 원문을 열어 확인 · 검색 요약 = 검색 결과 요약만 확인")})
 
         # 4-3. 공공 팹 지도 | 국가별 시장점유율
         c1, c2 = st.columns([1, 1.15], gap="medium")

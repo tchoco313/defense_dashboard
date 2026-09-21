@@ -1,12 +1,13 @@
-"""② 부품 → 무기체계 — 전자 군급(FSG 58·59)의 방위사업청 국외 조달계획과 국산화 완료 이력을 군급(FSC) 축으로 나란히 본다.
+"""② 부품 → 무기체계 — 전자 군급(FSG 58·59·60)의 방위사업청 국외 조달계획과 국산화 완료 이력을 군급(FSC) 축으로 나란히 본다.
 
 데이터 판정: docs/report/data-usage-decision-2026-09-18.md §1 핵심(국외 조달계획 API · 군급 기준표 · B2).
-- 조달계획: raw_dapa_overseas_plan_api 중 재고번호(NSN) 13자리 · 앞 2자리 58·59 행. **정제본(clean) 전 원본 기준 = 잠정**
-  (정제 담당 P3). 금액 열은 통화 미검증이라 쓰지 않고 건수만 센다. 적용장비명 '*'는 자리표시라 뺀다.
-- 국산화 이력: clean_dapa_localized_item(B2, 지상 28개 사업의 완료 부품 목록). 부품 수 = part_mgmt_no 고유. 국산화율 아님.
+- 조달계획: clean_dapa_overseas_plan_api 중 is_elec = 1 행(FSG 58·59·60, NSN 13자 숫자·영숫자 모두 인정 — data-cleaning-rules.md §2-6).
+  전자 판정은 팀 확인 전 **잠정**(team-report-2026-09-19.md §4 #1). 금액 열은 통화 미검증이라 쓰지 않고 건수(행 = 조달요구번호 × 품목순번)만 센다.
+  raw 와 다른 자료형·값: 요구연도 demand_year 는 정수(raw 는 문자열), 소요군 army_std 는 표준값(육군/해군/공군/해병대/국직/미확인),
+  적용장비 결측은 is_equipment_missing 플래그(raw 의 ''·'*' 판정 대신).
+- 국산화 이력: clean_dapa_localized_item(B2, 지상 사업의 완료 부품 목록, is_electronic_group = 1). 부품 수 = part_mgmt_no 고유. 국산화율 아님.
 - HS 품목군과 군급은 연결하지 않는다(대응표 미확정, CLAUDE.md). 표의 「관련 품목군」은 ref_hs_whitelist.related_fsc 후보값.
 - 특정 무기체계의 취약 부품을 지목하지 않도록 적용장비는 이름 없이 종류 수만 보인다(docs/idea-review.md §3-10).
-- FSG 60(광섬유)은 전자 플래그 수정 전이라 넣지 않는다.
 """
 from __future__ import annotations
 
@@ -18,11 +19,13 @@ import plotly.graph_objects as go
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from db import db_ready, query  # noqa: E402
-from ui import ACCENT, BG, SHORT, kpi, style_fig, zone  # noqa: E402
+from db import data_stamp, db_ready, query  # noqa: E402
+from ui import ACCENT, BG, SHORT, csv_header, kpi, style_fig, zone  # noqa: E402
 
 PLAN_C, B2_C = ACCENT, "#2ec4b6"            # 국외 조달계획 파랑 · 국산화 완료 청록
-ARMY_C = {"육군": "#5b9bff", "해군": "#2ec4b6", "공군": "#f2b33d", "해병": "#b07cff"}
+# army_std ENUM 값 전부(schema.sql clean_dapa_overseas_plan_api). 키가 빠지면 그 군은 필터·차트에서 조용히 사라진다
+ARMY_C = {"육군": "#5b9bff", "해군": "#2ec4b6", "공군": "#f2b33d", "해병대": "#b07cff", "국직": "#9aa5b1", "미확인": "#4a5570"}
+FSGS = ["58", "59", "60"]                    # clean.is_elec = fsg2 IN (58, 59, 60) — 잠정
 
 if not db_ready():
     st.stop()
@@ -30,27 +33,27 @@ if not db_ready():
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load() -> dict:
-    plan = query(r"""
-        SELECT LEFT(stock_no, 4) AS fsc4, LEFT(stock_no, 2) AS fsg, army_name, demand_year_req AS year,
-               NULLIF(NULLIF(equipment_name, ''), '*') AS equipment
-        FROM raw_dapa_overseas_plan_api
-        WHERE stock_no REGEXP '^[0-9]{13}$' AND LEFT(stock_no, 2) IN ('58', '59')
+    plan = query("""
+        SELECT fsc4, fsg2 AS fsg, army_std AS army_name, demand_year AS year,
+               CASE WHEN is_equipment_missing = 0 THEN equipment_name END AS equipment
+        FROM clean_dapa_overseas_plan_api WHERE is_elec = 1
     """)
+    plan["year"] = plan["year"].astype("int64")          # SMALLINT → 정수(raw 시절 문자열 비교 코드가 남지 않게 명시)
     b2 = query("""
         SELECT fsc4, fsc2 AS fsg, COUNT(DISTINCT part_mgmt_no) AS parts, COUNT(DISTINCT project_name) AS projects
-        FROM clean_dapa_localized_item WHERE fsc2 IN ('58', '59') GROUP BY fsc4, fsc2
+        FROM clean_dapa_localized_item WHERE is_electronic_group = 1 GROUP BY fsc4, fsc2
     """)
     all_projects = int(query("SELECT COUNT(DISTINCT project_name) AS n FROM clean_dapa_localized_item").iloc[0]["n"])
     fsc = query("SELECT fsc4, name_ko FROM ref_fsc")
-    fsg = query("SELECT fsg_code, name_ko FROM ref_fsg WHERE fsg_code IN ('58', '59')")
+    fsg = query("SELECT fsg_code, name_ko FROM ref_fsg WHERE fsg_code IN :g", {"g": FSGS})
     wl = query("SELECT hs6, name_ko, related_fsc FROM ref_hs_whitelist WHERE evidence_basis = 'rule' AND related_fsc IS NOT NULL")
     return dict(plan=plan, b2=b2, all_projects=all_projects, fsc=fsc, fsg=fsg, wl=wl)
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def b2_projects(fsgs: tuple[str, ...]) -> int:
-    return int(query("SELECT COUNT(DISTINCT project_name) AS n FROM clean_dapa_localized_item WHERE fsc2 IN :g",
-                     {"g": list(fsgs)}).iloc[0]["n"])
+    return int(query("SELECT COUNT(DISTINCT project_name) AS n FROM clean_dapa_localized_item "
+                     "WHERE is_electronic_group = 1 AND fsc2 IN :g", {"g": list(fsgs)}).iloc[0]["n"])
 
 
 d = load()
@@ -62,33 +65,39 @@ for r in d["wl"].itertuples():
         hs_of_fsc.setdefault(f.strip(), []).append(SHORT.get(r.hs6, r.name_ko))
 
 st.html('<div class="page-h">② 부품 → 무기체계</div>'
-        '<div class="note">전자 군급(FSG 58 통신·탐지 · 59 전기·전자 구성품)을 기준으로, 방위사업청이 해외에서 조달하려는 품목과 '
-        '국산화 개발을 마친 부품을 군급(FSC)별로 나란히 봅니다.</div>')
+        '<div class="note">전자 군급(FSG 58 통신·탐지 · 59 전기·전자 구성품 · 60 광섬유 — 전자 판정은 팀 확인 전 잠정)을 기준으로, '
+        '방위사업청이 해외에서 조달하려는 품목과 국산화 개발을 마친 부품을 군급(FSC)별로 나란히 봅니다. '
+        'HS 품목군과는 연결하지 않으며(대응표 없음) 두 자료는 병렬로만 놓습니다.</div>')
 
 # ── 조건 ────────────────────────────────────────────────────────────────────
 with zone("p2_top", "조건"):
     c1, c2, c3 = st.columns([2, 2, 1], vertical_alignment="bottom")
-    g_pick = c1.pills("군급 그룹(FSG)", ["58", "59"], selection_mode="multi", default=["58", "59"], key="p2_fsg",
-                      format_func=lambda g: f"{g} {fsg_name.get(g, '')}") or ["58", "59"]
+    g_pick = c1.pills("군급 그룹(FSG)", FSGS, selection_mode="multi", default=FSGS, key="p2_fsg",
+                      format_func=lambda g: f"{g} {fsg_name.get(g, '')}") or FSGS
     armies = [a for a in ARMY_C if a in set(d["plan"]["army_name"])]
     a_pick = c2.pills("소요군", armies, selection_mode="multi", default=armies, key="p2_army") or armies
     top_n = int(c3.number_input("표시할 군급 수", 5, 30, 15, step=5))
 
 plan = d["plan"][d["plan"]["fsg"].isin(g_pick) & d["plan"]["army_name"].isin(a_pick)]
 b2 = d["b2"][d["b2"]["fsg"].isin(g_pick)]
-years = sorted(plan["year"].dropna().unique())
+years = [int(y) for y in sorted(plan["year"].dropna().unique())]   # 정수 연도(빈 필터면 [])
 
 by_fsc = (plan.groupby("fsc4").agg(plan_n=("fsc4", "size"), eq_n=("equipment", "nunique")).reset_index()
           .merge(b2[["fsc4", "parts", "projects"]], on="fsc4", how="outer")
           .fillna({"plan_n": 0, "eq_n": 0, "parts": 0, "projects": 0}))
 by_fsc["name"] = by_fsc["fsc4"].map(lambda f: fsc_name.get(f, "—"))
 by_fsc["hs"] = by_fsc["fsc4"].map(lambda f: " · ".join(hs_of_fsc.get(f, [])) or "—")
+if by_fsc.empty:   # 조건에 맞는 행이 양쪽 자료 모두 0 (예: FSG 60 × 해병대) — 「자료에 없음」이지 오류가 아니다
+    st.info("고른 군급 그룹 · 소요군 조합에는 국외 조달계획 행도 국산화 완료 부품도 없습니다. 조건을 바꿔 보세요.")
+    st.stop()
 
 # ── 요약 ────────────────────────────────────────────────────────────────────
 with zone("p2_sum", "요약"):
     st.html('<div class="kpis k4">'
-            + kpi("국외 조달계획 품목", f"{len(plan):,}", "건", f"NSN 기준 · 요구연도 {years[0]}~{years[-1]}" if years else "—", "잠정")
-            + kpi("적용장비", f"{plan['equipment'].nunique():,}", "종", "조달계획에 적힌 적용장비명 고유 수")
+            + kpi("국외 조달계획 품목", f"{len(plan):,}", "건",
+                  (f"clean 전자 판정(FSG {' · '.join(g_pick)}) · 요구연도 {years[0]}~{years[-1]}" if years
+                   else "이 조건에는 조달계획 행이 없음(0건)"), "잠정")
+            + kpi("적용장비", f"{plan['equipment'].nunique():,}", "종", "조달계획에 적힌 적용장비명 고유 수(결측 행 제외)")
             + kpi("해당 군급(FSC)", f"{plan['fsc4'].nunique()}", "개", f"FSG {' · '.join(g_pick)} · 조달계획 기준")
             + kpi("국산화 완료 부품", f"{int(b2['parts'].sum()):,}", "개",
                   f"B2 지상 {d['all_projects']}개 사업 중 {b2_projects(tuple(g_pick))}개 사업 · 국산화율 아님")
@@ -120,10 +129,10 @@ with zone("p2_pair", "군급별 국외 조달계획 · 국산화 완료"):
 # ── 연도 · 소요군 ────────────────────────────────────────────────────────────
 with zone("p2_year", "요구연도 · 소요군별 조달계획"):
     c1, c2 = st.columns([1.6, 1], gap="medium")
-    yr = plan.groupby(["year", "army_name"]).size().unstack(fill_value=0)
+    yr = plan.groupby(["year", "army_name"]).size().unstack(fill_value=0)   # index = 정수 연도
     fig2 = go.Figure()
     for a in [a for a in ARMY_C if a in yr.columns]:
-        fig2.add_trace(go.Bar(x=yr.index, y=yr[a], name=a, marker=dict(color=ARMY_C[a], line=dict(color=BG, width=1)),
+        fig2.add_trace(go.Bar(x=yr.index.astype(str), y=yr[a], name=a, marker=dict(color=ARMY_C[a], line=dict(color=BG, width=1)),
                               hovertemplate=f"%{{x}}년 {a} %{{y}}건<extra></extra>"))
     fig2.update_layout(barmode="stack", title="요구연도별 계획 품목(건)", xaxis=dict(type="category"),
                        legend=dict(orientation="h", y=-0.15, title=None), margin=dict(t=50, b=30))
@@ -135,12 +144,14 @@ with zone("p2_year", "요구연도 · 소요군별 조달계획"):
                             hovertemplate="%{x} %{y:,}건 · 적용장비 %{customdata:,}종<extra></extra>"))
     fig3.update_layout(title="소요군별 계획 품목(건)", showlegend=False, margin=dict(t=50, b=30))
     c2.plotly_chart(style_fig(fig3, 340), width="stretch", theme=None)
-    missing = [str(y) for y in range(int(years[0]), int(years[-1]) + 1) if str(y) not in yr.index] if years else []
-    thin = [y for y in yr.index if yr.loc[y].sum() < 10]
+    missing = [str(y) for y in range(years[0], years[-1] + 1) if y not in yr.index] if years else []   # 정수끼리 비교
+    thin = [str(y) for y in yr.index if yr.loc[y].sum() < 10]
     st.html('<div class="note">· 요구연도 = API 호출 기준 연도(demandYear). '
             + (f"{', '.join(missing)}년은 전자 군급 행이 없고 " if missing else "")
-            + (f"{', '.join(thin)}년은 10건 미만입니다 — 수집 공백일 수 있어 「조달 없음 · 감소」로 읽지 않습니다" if thin or missing else "")
-            + '<br>· 금액 열은 통화가 검증되지 않아 쓰지 않고 건수만 셉니다</div>')
+            + (f"{', '.join(thin)}년은 10건 미만입니다 — " if thin else "")
+            + ("원자료 자체가 2018~2020년에 비어 있는 구간(전체 13,615행 중 2018 1 · 2019 0 · 2020 11건)이라 「조달 없음 · 감소」로 읽지 않습니다"
+               if thin or missing else "")
+            + '<br>· 금액 열은 통화가 검증되지 않아 쓰지 않고 건수만 셉니다 · 건수 = 조달요구번호 × 품목순번 행 수(고유 NSN 수 아님)</div>')
 
 # ── 군급 표 ─────────────────────────────────────────────────────────────────
 with zone("p2_table", "군급(FSC) 표"):
@@ -150,11 +161,17 @@ with zone("p2_table", "군급(FSC) 표"):
                          "국산화 사업 수": tbl["projects"].astype(int), "관련 품목군(후보)": tbl["hs"]})
     st.dataframe(view, hide_index=True, width="stretch", height=min(38 + 35 * len(view), 520), column_config={
         "관련 품목군(후보)": st.column_config.TextColumn(help="HS6↔FSC4 공식 연계표가 없어 확정하지 않은 후보값(③ 표와 같은 값)")})
-    st.download_button("⬇ 표 CSV 내려받기(엑셀)",
-                       ("# 조건: FSG " + ",".join(g_pick) + " · 소요군 " + ",".join(a_pick) + "\n"
-                        "# 출처: 방위사업청 국외 조달계획 OpenAPI(15158418, 원본 · 잠정) · 국방전자조달 국산화개발품목(15119899)\n"
-                        + view.to_csv(index=False)).encode("utf-8-sig"),
-                       file_name="부품_무기체계_군급표.csv", mime="text/csv")
+    head = csv_header(
+        f"FSG {','.join(g_pick)} · 소요군 {','.join(a_pick)}",
+        "방위사업청 국외 조달계획 OpenAPI(15158418) → clean_dapa_overseas_plan_api(is_elec=1, 전자 판정 잠정) · "
+        "국방전자조달 국산화개발품목(15119899) → clean_dapa_localized_item(is_electronic_group=1)",
+        [("국외 조달계획", data_stamp("dapa_overseas_plan_api", "clean_dapa_overseas_plan_api"),
+          f"요구연도 {years[0]}~{years[-1]}(원자료 2018~2020 공백)" if years else None),
+         ("국산화개발품목", data_stamp("dapa_localized_item", "clean_dapa_localized_item"), None)],
+        extra="건수 = 조달계획 행 수(조달요구번호 × 품목순번) · 부품 수 = part_mgmt_no 고유 · 두 자료는 합산·비교하지 않음")
+    st.download_button("⬇ 표 CSV 내려받기(엑셀)", (head + view.to_csv(index=False)).encode("utf-8-sig"),
+                       file_name=f"부품_무기체계_군급표_FSG{'-'.join(g_pick)}_{years[0]}-{years[-1]}.csv" if years
+                       else f"부품_무기체계_군급표_FSG{'-'.join(g_pick)}.csv", mime="text/csv")
 
-st.html('<div class="caption">출처: 방위사업청 국외 조달계획 OpenAPI(15158418) 원본 → raw_dapa_overseas_plan_api (정제 전 · 잠정) · '
+st.html('<div class="caption">출처: 방위사업청 국외 조달계획 OpenAPI(15158418) → clean_dapa_overseas_plan_api(is_elec=1 · 전자 판정 잠정) · '
         '국방전자조달시스템 국산화개발품목(15119899) → clean_dapa_localized_item · 군급분류집 → ref_fsc · ref_fsg</div>')

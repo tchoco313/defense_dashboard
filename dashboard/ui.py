@@ -4,9 +4,12 @@
 """
 from __future__ import annotations
 
+from datetime import date
 from html import escape
 
 import streamlit as st
+
+from metrics import period_years
 
 # ── 색 토큰(common.css) ─────────────────────────────────────────────────────
 BG, PANEL, PANEL2, LINE = "#0e1320", "#161c2a", "#1c2436", "#2a3347"
@@ -109,19 +112,50 @@ def kpi(label: str, value: str, unit: str, sub: str, tag: str = "") -> str:
             f'<div class="v">{value}<small>{unit}</small></div><div class="s">{sub}</div></div>')
 
 
-def period_control(df, note: str) -> tuple[list[int], str]:
+def period_options(full_years) -> dict[str, list[int]]:
+    """홈·③ 기간 선택지 라벨 → 연도 목록(완결 연도만). 빈 입력 → {}."""
+    p = period_years(full_years)
+    if not p:
+        return {}
+    y1, y0 = p["base"][0], p["all"][0]
+    return {f"{y1} 기준 연도": p["base"], "최근 5년": p["recent5"], f"전체 {y0}~": p["all"]}
+
+
+def period_control(df, note: str, key: str = "period") -> tuple[list[int], str]:
     """기간 기준 버튼(기준 연도 / 최근 5년 / 전체). df 는 year·is_partial_year 열을 가진 연도 집계.
-    부분연도는 선택지에서 뺀다. 돌려주는 값: (연도 목록, 표시 라벨)."""
-    full = sorted(df.loc[df["is_partial_year"] == 0, "year"].unique())
-    y1, y0 = int(full[-1]), int(full[0])
-    opts = {f"{y1} 기준 연도": [y1], "최근 5년": list(range(y1 - 4, y1 + 1)), f"전체 {y0}~": list(range(y0, y1 + 1))}
+    부분연도는 선택지에서 뺀다(연속 범위가 아니라 실제 있는 완결 연도만). 완결 연도가 없으면 안내 후 ([], "") —
+    호출부는 `if not years: st.stop()`. 페이지마다 다른 key 를 준다(라벨이 자료 범위에 따라 달라 세션값이 섞이지 않게).
+    돌려주는 값: (연도 목록, 표시 라벨)."""
+    full = df.loc[df["is_partial_year"] == 0, "year"].unique().tolist() if not df.empty else []
+    opts = period_options(full)
+    if not opts:
+        st.info("완결 연도(부분연도 제외) 실적이 없어 기간 기준을 만들 수 없습니다.")
+        return [], ""
     c_note, c_seg = st.columns([3, 2], vertical_alignment="center")
     c_note.html(f'<div class="note">{escape(note)}</div>')
     with c_seg:
-        choice = st.segmented_control("기간 기준", list(opts), default=list(opts)[0], key="period",
+        choice = st.segmented_control("기간 기준", list(opts), default=list(opts)[0], key=key,
                                       label_visibility="collapsed", width="stretch") or list(opts)[0]
     years = opts[choice]
     return years, (f"{years[0]}년" if len(years) == 1 else f"{years[0]}~{years[-1]}")
+
+
+def csv_header(cond: str, source: str, stamps: list[tuple[str, dict, str | None]], extra: str = "") -> str:
+    """내려받는 CSV 머리줄. stamps = [(데이터 이름, db.data_stamp(...), 기간 문구 재정의|None), …].
+    「기준일」 하나로 뭉치지 않고 데이터별 자료 기간(원천)·DB 적재일과, 내려받은 날(파일 생성일)을 따로 적는다.
+    조회 실패한 데이터는 기간·적재일을 「—(조회 실패)」로 적는다."""
+    lines = [f"# 조건: {cond}", f"# 출처: {source}"]
+    today = None
+    for name, s, period in stamps:
+        today = today or s.get("today")
+        if s.get("error") and not s.get("loaded") and not s.get("has_period"):
+            lines.append(f"# 자료 기간({name}): —(조회 실패) · DB 적재 —")
+            continue
+        lines.append(f"# 자료 기간({name}): {period or s.get('period') or '—'} · DB 적재 {s.get('loaded') or '—'}")
+    lines.append(f"# 내려받은 날: {today or date.today().isoformat()}")
+    if extra:
+        lines.append(f"# {extra}")
+    return "\n".join(lines) + "\n"
 
 
 def inject_css() -> None:
@@ -130,7 +164,9 @@ def inject_css() -> None:
 
 def zone(key: str, tag: str):
     """점선 구역. 태그 글자는 CSS attr() 로 못 넘기므로 구역마다 규칙을 하나 더 넣는다."""
-    st.html(f'<style>.st-key-zone_{key}::before{{content:"{escape(tag)}"}}</style>')
+    # <style> 안은 HTML 엔티티를 풀지 않는다(escape 를 쓰면 & 가 &amp; 그대로 보인다) — CSS 문자열 규칙으로 막는다
+    css_tag = tag.replace("\\", "\\\\").replace('"', '\\"').replace("<", "\\3C ").replace("\n", " ")
+    st.html(f'<style>.st-key-zone_{key}::before{{content:"{css_tag}"}}</style>')
     return st.container(key=f"zone_{key}")
 
 

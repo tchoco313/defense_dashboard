@@ -1,10 +1,13 @@
 """홈 — 한눈에 보는 KPI · 어디서 들어오나(지도 · 1위 공급국 점유율) · 안내와 한계.
 
 디자인: docs/report/mockup-2026-09-18/main.html. 데이터 판정: docs/report/data-usage-decision-2026-09-18.md §4.
-- 분석 대상 = ref_hs_whitelist 중 evidence_basis='rule'(19개). 수입액은 국가 전체 수입(민수 포함).
+- 분석 대상 = ref_hs_whitelist 중 evidence_basis='rule'(priority 1·2). 수입액은 국가 전체 수입(민수 포함).
+  선정 근거는 공식 분류표·통제 목록에 팀 규칙 R1~R4 를 적용한 것이며, R3∧R4 로만 진입한 품목군은 R4 잠정(metrics.r4_provisional).
 - 기간 기준(기준 연도 / 최근 5년 / 전체)은 KPI 1~3과 지도·막대에만 적용. 부분연도(예: 2026.01~08)는 빼고 센다.
-- KPI 4(국외 조달계획)는 정제 전 raw 에서 NSN 13자리 · FSG 58·59 행만 센 잠정값. KPI 5는 B2 정제본 스냅샷.
-  둘 다 기간 기준과 무관하며, 테이블이 없으면 「—」로 비운다.
+  점유율·HHI 계산은 metrics.concentration(③·🔎 KPI 와 같은 산식: 선택 연도 합산 → 국가 점유율, 수입 실적>0 국가만).
+- KPI 4(국외 조달계획)는 clean_dapa_overseas_plan_api 의 is_elec=1(FSG 58·59·60, 영숫자 NSN 포함) 행 수 — 전자 판정은
+  팀 확인 전 「잠정」. KPI 5는 B2 정제본(is_electronic_group=1) 스냅샷. 둘 다 기간 기준과 무관.
+- KPI 4·5·규칙 건수는 캐시 밖에서 try_query 로 읽어 「조회 실패 / 적재 0건 / n」을 구분한다(실패값이 캐시에 남지 않게).
 """
 from __future__ import annotations
 
@@ -18,8 +21,9 @@ import plotly.graph_objects as go
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from db import db_ready, query, safe_query  # noqa: E402
-from ui import BG, MUTED, SHORT, TEXT, country_colors, kpi, period_control, zone  # noqa: E402
+from db import db_ready, query, try_query  # noqa: E402
+from metrics import concentration, count_state, r4_provisional  # noqa: E402
+from ui import BG, MUTED, PANEL2, SHORT, TEXT, country_colors, kpi, period_control, zone  # noqa: E402
 
 # 지도 라벨 위치(목업과 같게 — 동아시아 원이 겹치지 않도록). 없으면 아래 가운데
 LABEL_POS = {"TW": "middle right", "MY": "middle left", "US": "top center", "CN": "top left", "SG": "bottom center", "VN": "middle left",
@@ -31,66 +35,88 @@ if not db_ready():
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load() -> dict:
-    wl = query("SELECT hs6, name_ko FROM ref_hs_whitelist WHERE evidence_basis = 'rule'")
+    wl = query("SELECT hs6, name_ko, evidence FROM ref_hs_whitelist WHERE evidence_basis = 'rule'")
     imp = query("""
         SELECT hs6, year, stat_cd, imp_dlr, is_partial_year
         FROM v_import_hs6_year WHERE hs6 IN :hs AND imp_dlr > 0
     """, {"hs": wl["hs6"].tolist()})
     ctry = query("SELECT stat_cd, name_ko, lat, lon FROM ref_country")
-    rule = safe_query("SELECT COUNT(*) AS n FROM ref_hs_rule_flag")
-    plan = safe_query(r"""
-        SELECT COUNT(*) AS n,
-               COUNT(DISTINCT CASE WHEN equipment_name <> '' AND equipment_name NOT LIKE '%*%' THEN equipment_name END) AS eq,
-               MIN(demand_year_req) AS y0, MAX(demand_year_req) AS y1
-        FROM raw_dapa_overseas_plan_api
-        WHERE stock_no REGEXP '^[0-9]{13}$' AND LEFT(stock_no, 2) IN ('58', '59')
-    """)
-    b2 = safe_query("""
-        SELECT COUNT(DISTINCT part_mgmt_no) AS n, COUNT(DISTINCT project_name) AS p,
-               (SELECT COUNT(DISTINCT project_name) FROM clean_dapa_localized_item) AS p_all
-        FROM clean_dapa_localized_item WHERE is_electronic_group = 1
-    """)
-    return dict(wl=wl, imp=imp, ctry=ctry, rule=rule, plan=plan, b2=b2)
+    return dict(wl=wl, imp=imp, ctry=ctry)
 
 
-def first_val(df: pd.DataFrame | None, col: str):
-    """safe_query 결과의 첫 값. 테이블 없음·0건이면 None."""
-    if df is None or df.empty or pd.isna(df.iloc[0][col]) or df.iloc[0][col] == 0:
-        return None
-    return df.iloc[0][col]
+# 건수 KPI 3개 — 캐시 밖(try_query): 실패는 「조회 실패(클래스)」, 0행은 「적재 0건」, 그 외 n. 기대값은 문서(data-cleaning-rules §2-6)에만 둔다.
+PLAN_SQL = """
+    SELECT SUM(is_elec = 1) AS n, COUNT(*) AS n_all,
+           COUNT(DISTINCT CASE WHEN is_elec = 1 AND is_equipment_missing = 0 THEN equipment_name END) AS eq,
+           MIN(CASE WHEN is_elec = 1 THEN demand_year END) AS y0, MAX(CASE WHEN is_elec = 1 THEN demand_year END) AS y1
+    FROM clean_dapa_overseas_plan_api
+"""
+B2_SQL = """
+    SELECT COUNT(DISTINCT CASE WHEN is_electronic_group = 1 THEN part_mgmt_no END) AS n, COUNT(*) AS n_all,
+           COUNT(DISTINCT CASE WHEN is_electronic_group = 1 THEN project_name END) AS p,
+           COUNT(DISTINCT project_name) AS p_all
+    FROM clean_dapa_localized_item
+"""
+
+
+def kpi_num(state: str, n: int | None, unit: str, sub_ok: str, err: str | None, sub_zero: str) -> tuple[str, str, str]:
+    """count_state 결과 → (값, 단위, 설명).
+    failed 「—」/조회 실패(<클래스>) · unloaded 「—」/미적재(0행) · zero 「0」/<sub_zero>(실제 0) · ok n/<sub_ok>."""
+    if state == "failed":
+        return "—", "", f"조회 실패({err}) — 아래 「다시 조회」"
+    if state == "unloaded":
+        return "—", "", "미적재(표에 0행)"
+    if state == "zero":
+        return "0", unit, sub_zero
+    return f"{n:,}", unit, sub_ok
 
 
 with st.spinner("팀 DB 조회 중…"):
     d = load()
+    rule_df, rule_err = try_query("SELECT COUNT(*) AS n FROM ref_hs_rule_flag")
+    plan_df, plan_err = try_query(PLAN_SQL)
+    b2_df, b2_err = try_query(B2_SQL)
 wl, imp, ctry = d["wl"], d["imp"], d["ctry"]
 names = {r.hs6: SHORT.get(r.hs6, r.name_ko) for r in wl.itertuples()}
 cname = dict(zip(ctry["stat_cd"], ctry["name_ko"]))
+n_r4 = int(wl["evidence"].map(r4_provisional).sum())   # R3∧R4 로만 진입(R4 잠정) 품목군 수
 
 # ── KPI ─────────────────────────────────────────────────────────────────────
 with zone("kpi", "한눈에 보는 KPI"):
-    years, y_label = period_control(imp, "기간 기준을 바꾸면 KPI 1~3 · 지도 · 점유율 막대가 같은 기준으로 다시 계산됩니다")
+    years, y_label = period_control(imp, "기간 기준을 바꾸면 KPI 1~3 · 지도 · 점유율 막대가 같은 기준으로 다시 계산됩니다",
+                                    key="period_home")
+    if not years:
+        st.stop()
 
     sel = imp[imp["year"].isin(years)]
-    by_c = sel.groupby(["hs6", "stat_cd"], as_index=False)["imp_dlr"].sum()
-    by_c["share"] = by_c["imp_dlr"] / by_c.groupby("hs6")["imp_dlr"].transform("sum")
-    top1 = by_c.sort_values("share", ascending=False).drop_duplicates("hs6")
-    total = float(sel["imp_dlr"].sum())
+    conc = concentration(sel, "imp_dlr")                 # hs6 별 합계·1위국·점유율·HHI·수입국 수(③·🔎 와 같은 산식)
+    top1 = conc.rename(columns={"top1_stat_cd": "stat_cd", "top1_share": "share"})
+    total = float(conc["total"].sum())
 
-    n_rule = first_val(d["rule"], "n")
-    plan_n, plan_eq = first_val(d["plan"], "n"), first_val(d["plan"], "eq")
-    b2_n, b2_p = first_val(d["b2"], "n"), first_val(d["b2"], "p")
-    plan_sub = (f"적용장비 {plan_eq or 0:,}종 · NSN 기준 FSG 58·59 · {d['plan'].iloc[0]['y0']}~{d['plan'].iloc[0]['y1']}"
-                if plan_n else "조달계획 API 적재 후 표시")
+    st_rule, n_rule = count_state(rule_df, rule_err, "n")
+    st_plan, plan_n = count_state(plan_df, plan_err, "n", total_col="n_all")
+    st_b2, b2_n = count_state(b2_df, b2_err, "n", total_col="n_all")
+    rule_sub = (f"HS6 {n_rule:,}개에 " if st_rule == "ok" else "") + f"공식 분류·통제표 + 팀 규칙 R1~R4 · {n_r4}개는 R4 잠정"
+    plan_sub = b2_sub = ""
+    if st_plan == "ok":
+        r = plan_df.iloc[0]
+        yr_txt = f"{int(r['y0'])}~{int(r['y1'])}" if pd.notna(r["y0"]) and pd.notna(r["y1"]) else "—"
+        plan_sub = f"적용장비 {int(r['eq']):,}종 · FSG 58·59·60 · 요구연도 {yr_txt} · 전자 판정 잠정(팀 확인 전)"
+    if st_b2 == "ok":
+        r = b2_df.iloc[0]
+        b2_sub = f"전자 군급(is_electronic_group) · 지상 {int(r['p_all'])}개 사업 중 {int(r['p'])}개 · 국산화율 아님"
 
     st.html('<div class="kpis">'
-            + kpi("분석 대상 품목군", f"{len(wl)}", "개",
-                  f"HS6 {n_rule:,}개 → 규칙 2단계 선정" if n_rule else "법령·분류코드 규칙으로 선정")
+            + kpi("분석 대상 품목군", f"{len(wl)}", "개", rule_sub)
             + kpi(f"{y_label} 수입액 ({len(wl)}개 합)", f"{total / 1e8:,.0f}", "억 달러", "국가 전체 수입 · 민수 포함")
             + kpi("특정국 50% 이상 품목군", f"{int((top1['share'] >= 0.5).sum())}", "개", f"1위 공급국 점유율 기준 · {y_label}")
-            + kpi("전자 군급 국외 조달계획", f"{plan_n:,}" if plan_n else "—", "건" if plan_n else "", plan_sub, "잠정")
-            + kpi("국산화개발 전자 부품", f"{b2_n:,}" if b2_n else "—", "개" if b2_n else "",
-                  f"FSG 58·59 · 지상 {first_val(d['b2'], 'p_all')}개 사업 중 {b2_p}개" if b2_n else "B2 정제본 적재 후 표시")
+            + kpi("전자 군급 국외 조달계획", *kpi_num(st_plan, plan_n, "건", plan_sub, plan_err, "전자 군급(FSG 58·59·60) 행 0건"), "잠정")
+            + kpi("국산화개발 전자 부품", *kpi_num(st_b2, b2_n, "개", b2_sub, b2_err, "전자 군급 부품 0개"))
             + "</div>")
+    if "failed" in (st_rule, st_plan, st_b2):
+        if st.button("다시 조회", key="kpi_retry"):   # try_query 는 캐시되지 않으므로 rerun 이 곧 재시도. 캐시된 조회도 함께 비운다
+            query.clear()
+            st.rerun()
 
 # ── 어디서 들어오나 ─────────────────────────────────────────────────────────
 first_year = imp.groupby("hs6")["year"].min()
@@ -145,27 +171,36 @@ with zone("where", "어디서 들어오나"):
 <div class="bars">{rows}</div><div class="legend" style="margin-top:10px">{legend}</div>{foot}</div>""")
 
 # ── 안내와 한계 ─────────────────────────────────────────────────────────────
+TABS = [("pages/1_수출입_현황.py", "①", "품목군별 국가 구성·집중도 추이, 수입자 지역(군 직접 하한)"),
+        ("pages/2_부품_무기체계.py", "②", "전자 군급별 국외 조달계획 · 국산화 이력"),
+        ("pages/3_품목군_현황표.py", "③", f"{len(wl)}개 품목군 한 표 비교 · CSV 내려받기"),
+        ("pages/4_정책_산업_배경.py", "④", "예산 · 국외조달 · 국내 생산 기반"),
+        ("pages/6_조회.py", "🔎", "조건을 골라 표·차트로 조회 · PNG/엑셀 저장")]
+
 with zone("guide", "안내와 한계"):
-    st.html(f"""
-<style>.tabs li{{list-style:none;font-size:12px;color:{MUTED};line-height:1.9}}
-.tabs li b{{color:{TEXT};font-weight:600;margin-right:6px}}</style>
-<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:12px">
- <div class="card"><div class="h">탭 안내</div><ul class="tabs" style="padding:0;margin:0">
-  <li><b>①</b>품목군별 국가 구성·집중도 추이, 수입자 지역(군 직접 하한)</li>
-  <li><b>②</b>전자 군급별 국외 조달계획 · 국산화 이력</li>
-  <li><b>③</b>{len(wl)}개 품목군 한 표 비교 · CSV 내려받기</li>
-  <li><b>④</b>예산 · 국외조달 · 국내 생산 기반</li>
-  <li><b>🔎</b>조건을 골라 표·차트로 조회 · PNG/엑셀 저장</li></ul></div>
- <div class="card"><div class="h">읽는 법</div><div class="note">
+    st.html(f"""<style>
+.st-key-card_tabs [data-testid="stPageLink"] a{{padding:1px 6px;margin-left:-6px;border-radius:6px;background:transparent}}
+.st-key-card_tabs [data-testid="stPageLink"] a:hover{{background:{PANEL2}}}
+.st-key-card_tabs [data-testid="stPageLink"] a p{{font-size:12px;color:{MUTED}}}
+.st-key-card_tabs [data-testid="stPageLink"] a p strong{{color:{TEXT};font-weight:600;margin-right:4px}}
+.st-key-card_tabs [data-testid="stVerticalBlock"]{{gap:2px}}</style>""")
+    c_tabs, c_read, c_src = st.columns([1.2, 1, 1], gap="small")
+    with c_tabs.container(border=True, key="card_tabs", height="stretch"):
+        st.html('<div class="h">탭 안내 <span class="sub">누르면 그 화면으로 갑니다</span></div>')
+        for path, no, text in TABS:
+            st.page_link(path, label=f"**{no}** {text}", width="stretch")
+    with c_read.container(border=True, key="card_read", height="stretch"):
+        st.html("""<div class="h">읽는 법</div><div class="note">
   · 「수입 의존도」 = 품목군 수입액 중 특정국 비중(점유율·HHI)<br>
   · 국가 전체 수입으로 <b>민수가 포함</b>됩니다<br>
-  · 군 직접 수입(과천)은 수입자 소재지 기반 <b>추정 하한</b><br>
-  · 조달계획 ≠ 계약, 국산화개발 부품 수 ≠ 국산화율</div></div>
- <div class="card"><div class="h">출처</div><div class="note">
-  관세청 품목별 국가별 수출입실적 · 시군구별 수출입실적<br>
+  · 군수 몫은 관세 통계로 나뉘지 않습니다 — 과천시 소재 수입자 비중은 <b>추정</b>이며 DB 미적재(⑤ 참고)<br>
+  · 조달계획 ≠ 계약, 국산화개발 부품 수 ≠ 국산화율</div>""")
+    with c_src.container(border=True, key="card_src", height="stretch"):
+        st.html("""<div class="h">출처</div><div class="note">
+  관세청 품목별 국가별 수출입실적 · 시군구별 수출입실적(미적재)<br>
   방위사업청 국외 조달계획 · 국산화개발품목 · 군급분류집<br>
   열린재정 예산 · KOSIS 방산 가동률 · 광공업생산지수<br>
-  <span style="color:#6f7890">모든 수치에 기준일·산식 표시 · 상세는 ⑤ DATA INFO</span></div></div>
-</div>""")
+  <span style="color:#6f7890">모든 수치에 기준일·산식 표시 · 상세는 ⑤ DATA INFO</span></div>""")
 
-st.html('<div class="caption">「잠정」 = 정제·산출식 확정 전 값. 수입액은 관세청 품목별 국가별 수출입실적(USD) 합계이며 군수 수요 비중이 아닙니다.</div>')
+st.html('<div class="caption">「잠정」 = 정제·산출식 팀 확정 전 값(국외 조달계획 전자 판정 FSG 58·59·60). '
+        '수입액은 관세청 품목별 국가별 수출입실적(USD) 합계이며 군수 수요 비중이 아닙니다. 선정 근거는 공식 자료에 팀 규칙을 적용한 것입니다.</div>')

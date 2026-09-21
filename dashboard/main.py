@@ -13,7 +13,7 @@ import streamlit as st
 
 APP = Path(__file__).resolve().parent
 sys.path.insert(0, str(APP))
-from db import safe_query  # noqa: E402
+from db import data_stamp  # noqa: E402
 from ui import inject_css, top_bar  # noqa: E402
 
 st.set_page_config(page_title="방산 전자부품 수입 의존도 · 국산화 현황", page_icon="🛰️", layout="wide")
@@ -29,15 +29,12 @@ p6 = st.Page(APP / "pages" / "6_조회.py", title="🔎 조회", url_path="searc
 pg = st.navigation([home, p1, p2, p3, p4, p5, p6], position="hidden")
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
 def stamp() -> str:
-    cov = safe_query("SELECT MIN(yyyymm) AS s, MAX(yyyymm) AS e FROM fact_customs_monthly")
-    if cov is None or cov.empty or cov.iloc[0]["e"] is None:
-        return "데이터 기준일 —"
-    s, e = cov.iloc[0]["s"], cov.iloc[0]["e"]
-    loaded = safe_query("SELECT DATE(MAX(measured_at)) AS d FROM meta_load_log")
-    d = loaded.iloc[0]["d"] if loaded is not None and not loaded.empty else None
-    return f"데이터 기준일 {d or '—'}<br>관세청 {s[:4]}.{s[4:]}~{e[:4]}.{e[4:]}"
+    """상단바 — 관세청 자료 기간과 fact 표 적재일(db.data_stamp, 비캐시: 실패 문구가 1시간 고정되지 않게). CSV 머리줄도 같은 값."""
+    s = data_stamp("customs_all", "fact_customs_monthly")
+    if not s["has_period"]:
+        return "관세청 자료 —<br>DB 적재 —"
+    return f"관세청 자료 {s['period']}<br>DB 적재 {s['loaded'] or '—'}"
 
 
 top_bar([(home, "홈"), (p1, "① 수입 의존도"), (p2, "② 부품→무기체계"), (p3, "③ 품목군 현황표"),
