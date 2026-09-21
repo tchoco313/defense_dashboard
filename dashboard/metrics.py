@@ -3,7 +3,7 @@
 - concentration: 홈·③·🔎 KPI 가 같은 단위(hs6 × 국가, 선택 연도 합산 뒤 점유율)로 쓰는 집중도 계산.
   ①은 DB 뷰(v_hhi_hs6_year, 단일 연도)를 그대로 읽으므로 여기를 쓰지 않는다 — 여러 해 합산 HHI 와 연도별 HHI 는 다른 지표.
 - period_years: 기간 선택지(기준 연도 / 최근 5년 / 전체)의 연도 목록. 완결 연도만 받는다(부분연도는 호출부에서 뺀다).
-- count_state: safe/try_query 결과를 「조회 실패 / 0건 / n」 세 상태로 나눈다(실제 0 과 조회 실패를 구분).
+- count_state: safe/try_query 결과를 「조회 실패 / 미적재 / 실제 0 / n」 네 상태(failed/unloaded/zero/ok)로 나눈다(실제 0 과 미적재·조회 실패를 구분).
 - r4_provisional: R3∧R4 로만 진입한 품목군(R4 잠정) 판정 — docs/reference/hs-whitelist-definition.md §8-2.
 """
 from __future__ import annotations
