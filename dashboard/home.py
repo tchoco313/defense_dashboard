@@ -11,26 +11,21 @@
 """
 from __future__ import annotations
 
-import sys
 from html import escape
 from math import sqrt
-from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from db import db_ready, query, try_query  # noqa: E402
-from metrics import concentration, count_state  # noqa: E402
-from ui import BG, MUTED, PANEL2, SHORT, TEXT, country_colors, kpi, period_control, zone  # noqa: E402
+from db import query, try_query
+from metrics import concentration, count_state
+from nav import page
+from ui import BG, MUTED, PANEL2, SHORT, TEXT, country_colors, kpi, period_control, zone
 
 # 지도 라벨 위치(목업과 같게 — 동아시아 원이 겹치지 않도록). 없으면 아래 가운데
 LABEL_POS = {"TW": "middle right", "MY": "middle left", "US": "top center", "CN": "top left", "SG": "bottom center", "VN": "middle left",
              "JP": "top right", "KR": "top right"}
-
-if not db_ready():
-    st.stop()
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -170,11 +165,11 @@ with zone("where", "어디서 들어오나"):
 <div class="bars">{rows}</div><div class="legend" style="margin-top:10px">{legend}</div>{foot}</div>""")
 
 # ── 안내와 한계 ─────────────────────────────────────────────────────────────
-TABS = [("pages/1_수출입_현황.py", "①", "품목군별 수입·수출 국가 구성 · 집중도 추이 · 지도"),
-        ("pages/2_부품_무기체계.py", "②", "전자 군급별 국외 조달계획 · 국산화 이력"),
-        ("pages/3_품목군_현황표.py", "③", f"{len(wl)}개 품목군 한 표 비교 · CSV 내려받기"),
-        ("pages/4_정책_산업_배경.py", "④", "예산 · 국외조달 · 국내 생산 기반"),
-        ("pages/6_조회.py", "🔎", "조건을 골라 표·차트로 조회 · PNG/엑셀 저장")]
+TABS = [("trade", "①", "품목군별 수입·수출 국가 구성 · 집중도 추이 · 지도"),       # 키는 nav.PAGE_SPECS
+        ("parts", "②", "전자 군급별 국외 조달계획 · 국산화 이력"),
+        ("table", "③", f"{len(wl)}개 품목군 한 표 비교 · CSV 내려받기"),
+        ("background", "④", "예산 · 국외조달 · 국내 생산 기반"),
+        ("search", "🔎", "조건을 골라 표·차트로 조회 · PNG/엑셀 저장")]
 
 with zone("guide", "안내와 한계"):
     st.html(f"""<style>
@@ -186,8 +181,8 @@ with zone("guide", "안내와 한계"):
     c_tabs, c_read, c_src = st.columns([1.2, 1, 1], gap="small")
     with c_tabs.container(border=True, key="card_tabs", height="stretch"):
         st.html('<div class="h">탭 안내 <span class="sub">누르면 그 화면으로 갑니다</span></div>')
-        for path, no, text in TABS:
-            st.page_link(path, label=f"**{no}** {text}", width="stretch")
+        for key, no, text in TABS:
+            st.page_link(page(key), label=f"**{no}** {text}", width="stretch")
     with c_read.container(border=True, key="card_read", height="stretch"):
         st.html("""<div class="h">읽는 법</div><div class="note">
   · 「수입 집중도」 = 품목군 수입액 중 특정국 비중(1위 점유율·HHI)<br>

@@ -11,24 +11,17 @@
 """
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from db import data_stamp, db_ready, query  # noqa: E402
-from ui import ACCENT, BG, SHORT, csv_header, kpi, style_fig, zone  # noqa: E402
+from db import data_stamp, query
+from ui import ACCENT, BG, SHORT, csv_header, kpi, style_fig, zone
 
 PLAN_C, B2_C = ACCENT, "#2ec4b6"            # 국외 조달계획 파랑 · 국산화 완료 청록
 # army_std ENUM 값 전부(schema.sql clean_dapa_overseas_plan_api). 키가 빠지면 그 군은 필터·차트에서 조용히 사라진다
 ARMY_C = {"육군": "#5b9bff", "해군": "#2ec4b6", "공군": "#f2b33d", "해병대": "#b07cff", "국직": "#9aa5b1", "미확인": "#4a5570"}
 FSGS = ["58", "59", "60"]                    # clean.is_elec = fsg2 IN (58, 59, 60) — 2026-09-21 M4 확정
-
-if not db_ready():
-    st.stop()
 
 
 @st.cache_data(ttl=3600, show_spinner=False)

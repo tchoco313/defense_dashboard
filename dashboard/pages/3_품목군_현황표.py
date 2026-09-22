@@ -12,26 +12,19 @@
 """
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from db import data_stamp, db_ready, query  # noqa: E402
-from metrics import concentration  # noqa: E402
-from ui import (ACCENT, BG, MUTED, PANEL, PANEL2, SHORT, TEXT, country_colors, csv_header,  # noqa: E402
+from db import data_stamp, query
+from metrics import concentration
+from ui import (ACCENT, BG, MUTED, PANEL, PANEL2, SHORT, TEXT, country_colors, csv_header,
                 period_control, style_fig, zone)
 
 # evidence 키 → 규칙(docs/reference/hs-whitelist-definition.md §8-2)
 RULES = [("HSK-군용", "R1 군용전용"), ("HSK-항공/항행", "R2 항공·항행"), ("전략물자-DU", "R3 이중용도(참고)")]   # R4 제외(2026-09-21 M5)
 SOURCE = "관세청 품목별 국가별 수출입실적(15100475) · 국가 전체 수입·수출(민수 포함) · USD"
-
-if not db_ready():
-    st.stop()
 
 
 @st.cache_data(ttl=3600, show_spinner=False)

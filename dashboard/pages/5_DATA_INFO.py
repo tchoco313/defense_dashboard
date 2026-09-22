@@ -11,19 +11,12 @@
 """
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import pandas as pd
 import streamlit as st
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from db import db_ready, safe_query, try_query  # noqa: E402
-from metrics import count_state  # noqa: E402
-from ui import MUTED, SHORT, zone  # noqa: E402
-
-if not db_ready():
-    st.stop()
+from db import safe_query, try_query
+from metrics import count_state
+from ui import MUTED, SHORT, zone
 
 # 건수 3종 — 캐시 밖(try_query): 실패해도 페이지는 그리고 숫자만 뺀다
 rule_df, rule_err = try_query("SELECT COUNT(*) AS n FROM ref_hs_rule_flag")

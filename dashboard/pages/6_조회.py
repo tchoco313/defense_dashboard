@@ -7,25 +7,18 @@
 """
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from db import data_stamp, db_ready, query, safe_query  # noqa: E402
-from metrics import concentration, period_years  # noqa: E402
-from ui import BG, ETC, IMP, MUTED, SHORT, country_colors, csv_header, kpi, style_fig, zone  # noqa: E402
+from db import data_stamp, query, safe_query
+from metrics import concentration, period_years
+from ui import BG, ETC, IMP, MUTED, SHORT, country_colors, csv_header, kpi, style_fig, zone
 
 ALL = "__all__"
 SOURCE = "관세청 품목별 국가별 수출입실적(15100475) · 국가 전체 수입(민수 포함) · USD"
 CHARTS = ["국가 구성 100% 누적막대", "수입액 추이(선)", "1위국 점유율 · HHI 추이"]
 KEYS = ("q_hs6", "q_hs10", "q_period", "q_ctry", "q_chart")
-
-if not db_ready():
-    st.stop()
 
 
 @st.cache_data(ttl=3600, show_spinner=False)

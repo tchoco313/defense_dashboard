@@ -6,17 +6,13 @@ fact_customs_monthly(월별·HS10 세부), ref_hs_whitelist·ref_country·raw_hs
 """
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from db import db_ready, query  # noqa: E402
-from ui import (BG, ETC, EXP, EXP_DIM, IMP, IMP_DIM, PANEL2, SHORT, TEXT, country_colors,  # noqa: E402
+from db import query
+from ui import (BG, ETC, EXP, EXP_DIM, IMP, IMP_DIM, PANEL2, SHORT, TEXT, country_colors,
                 dark_geo, kpi, style_fig, zone)
 
 # 색·레이아웃은 ui.py(다크 테마 · 목업 common.css). 국가 색은 홈과 같은 country_colors — 같은 나라 = 같은 색
@@ -91,10 +87,7 @@ def yoy(cur: float, prev: float) -> str | None:
     return f"{(cur / prev - 1) * 100:+.1f}% vs 전년"
 
 
-# ── 접속 확인 ───────────────────────────────────────────────────────────────
-if not db_ready():
-    st.stop()
-
+# ── 데이터 ─────────────────────────────────────────────────────────────────
 with st.spinner("팀 DB에서 관세청 집계를 읽는 중…"):
     trade, wl = load_base()
 

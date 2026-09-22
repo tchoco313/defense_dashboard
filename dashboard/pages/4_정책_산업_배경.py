@@ -13,27 +13,21 @@
 """
 from __future__ import annotations
 
-import sys
+from html import escape
 from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from db import db_ready, query  # noqa: E402
-from html import escape  # noqa: E402
-
-from ui import ACCENT, BG, ETC, MUTED, PANEL2, TEXT, dark_geo, kpi, style_fig, zone  # noqa: E402
+from db import query
+from ui import ACCENT, BG, ETC, MUTED, PANEL2, TEXT, dark_geo, kpi, style_fig, zone
 
 SERIES = ["#5b9bff", "#f2b33d", "#2ec4b6", "#b07cff", "#ff8fab"]
 HIGHLIGHT = "통신전자"   # 방산 분야 중 전자부품과 가장 가까운 분야 — 강조색, 나머지는 회색
 DIM = "#3a4560"
 REF = Path(__file__).resolve().parents[2] / "data" / "reference"   # 수작업 참조표(semi_*.csv)
 SEMI_FILES = ("chip_type", "strategy_task", "public_fab", "market_share", "policy_timeline", "domestic_case")
-
-if not db_ready():
-    st.stop()
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
