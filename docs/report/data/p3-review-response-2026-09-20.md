@@ -27,7 +27,7 @@ P3(방사청 국외조달, 담당 강지수) 담당이 보낸 검수 SQL(6묶음
 | 키 중복 0 확인 | 입찰결과 완전 중복만 확인 | △ — 업무키(계약번호, 조달요구번호+품목순번) 고유성 미확인 |
 | 스키마 변경은 `db/alter_<날짜>_<주제>.sql` | ad-hoc `ALTER`·`DROP COLUMN` | ✕ — CLAUDE.md 구조 규칙(스키마 관리자 Claude, `db/schema.sql` 직접 실행 금지) |
 
-검수 자체의 장점: 열별 결측률·상위 30개 값 빈도·길이 분포·정규식 형식 검사·범주값 분포를 **모든 표에 같은 틀로** 돌렸다. 이 틀은 `docs/report/null-profile-2026-09-19.md`와 같은 목적이라 재사용 가치가 있다(§5).
+검수 자체의 장점: 열별 결측률·상위 30개 값 빈도·길이 분포·정규식 형식 검사·범주값 분포를 **모든 표에 같은 틀로** 돌렸다. 이 틀은 `docs/report/data/null-profile-2026-09-19.md`와 같은 목적이라 재사용 가치가 있다(§5).
 
 ## 2. 항목별 판정
 
@@ -68,7 +68,7 @@ P3(방사청 국외조달, 담당 강지수) 담당이 보낸 검수 SQL(6묶음
 | 1 | `opening_datetime` 텍스트 → `MODIFY COLUMN DATETIME`(무효값 수 확인 결과는 미기재) | clean `opening_at DATETIME` + `opening_date`·`opening_ym`, 파싱 실패 0(09-19) | 이미 반영 |
 | 2 | `unit_price_type`·`prequalification` 전 행 `해당없음` → 삭제 | clean에 없음(단일값 2열 제외, alter §4) | 이미 반영 |
 | 3 | 완전 중복 없음 | 09-19: 4열 조합 UNIQUE, PK `raw_row_id` | 일치 |
-| 4 | **`ordering_agency`·`contract_method`·`bid_method`·`award_method` 4열 삭제**(99.8% 동일, 5건만 함께 변함) | 실측 동일: 2,489행 `국제확정전력운영계약팀/일반경쟁/단가제/최저가격제` + **5행 `화력총괄계약팀/2단계경쟁(동시)/총액제/최저가격제`**. 5행은 실제 변이이고, `v_overseas_bid_chain`이 `MAX(b.ordering_agency)`를 읽는다(`alter_2026-09-19_views_to_clean.sql:304`) | **기각** — 열 유지. 정보량이 적다는 것과 정보가 없다는 것은 다르며, 삭제하면 뷰가 깨진다 |
+| 4 | **`ordering_agency`·`contract_method`·`bid_method`·`award_method` 4열 삭제**(99.8% 동일, 5건만 함께 변함) | 실측 동일: 2,489행 `국제확정전력운영계약팀/일반경쟁/단가제/최저가격제` + **5행 `화력총괄계약팀/2단계경쟁(동시)/총액제/최저가격제`**. 5행은 실제 변이이고, `v_overseas_bid_chain`이 `MAX(b.ordering_agency)`를 읽는다(`alter_2026-09-19_views_to_clean.sql:304`) | ~~기각(09-20)~~ → **채택(2026-09-21 사용자 결정)** — clean_은 분석용 표이고 raw에 원본이 그대로 있으므로 저분산 원본 속성 열은 뺀다(규칙 #13). `v_overseas_bid_chain`에서 `ordering_agency` 제거 후 4열 DROP: `db/alter_2026-09-21_drop_low_variance.sql`(같은 기준으로 clean 5표 20열) |
 | 5 | `budget_amount_usd` 숫자 형식·음수 없음 | clean `DECIMAL(18,2)` | 이미 반영 |
 | 6 | 공고번호·판단번호 길이·형식 정상 | — | 일치 |
 

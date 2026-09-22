@@ -1,6 +1,6 @@
 # 다음 할 일
 
-갱신: 2026-09-21. 끝난 항목은 지우고 현재 남은 것만 둔다(이력은 git 로그). 일정 기준: 데이터 제출 2026-10-02, 발표 2026-10-06.
+갱신: 2026-09-22. 끝난 항목은 지우고 현재 남은 것만 둔다(이력은 git 로그). 일정 기준: 데이터 제출 2026-10-02, 발표 2026-10-06.
 
 ## 지금 상태
 
@@ -19,6 +19,3 @@
 | 7 | 산출물 7종 마감(`PROJECT.md`) — 명세서·기획서·PPT는 specs·open-decisions 결정을 그대로 옮긴다 | 팀 | 10-01~10-05 |
 | 8 | 발표 후 AWS 정리(RDS·보안 그룹·스냅샷 삭제, 켜 둔 삭제 방지 해제) | 사용자 | `docs/runbook/aws-rds-setup.md` |
 
-## 열린 것
-
-- 작업 트리에 다른 세션 변경분(`docs/install-log/INSTALLED.md`, `docs/runbook/aws-rds-setup.md`, `docs/runbook/rds-access-registry.md`, `docs/runbook/dbeaver/`)이 미커밋 상태 — 그 세션에서 마무리.

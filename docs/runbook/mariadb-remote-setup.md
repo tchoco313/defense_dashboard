@@ -99,7 +99,7 @@ MARIADB_DATABASE=defense_dashboard
 - 국가 참조표: pandas로 다룰 때 `keep_default_na=False` — `"NA"`(나미비아)가 결측으로 사라진다(`schema-design.md` §7-1).
 - `LOAD DATA LOCAL INFILE`은 **클라이언트 쪽 파일**을 읽으므로 원격에서도 된다. 서버 `local_infile=1`(§1-1) + 클라이언트 옵션(`mysql --local-infile=1`, pymysql `local_infile=True`) 둘 다 필요.
 - 원본 테이블(`dapa_contract_raw` 등)은 CSV 그대로, 정제 결과는 별도 테이블(`*_clean`). 원본 테이블은 적재 후 수정하지 않는다(CLAUDE.md 데이터 검증 규칙).
-- 적재 후 `SELECT COUNT(*)`를 파서 기준 원본 건수(`docs/data-sources.md`, `docs/report/data-feasibility-check-2026-09-13.md`)와 대조해 기록한다. 물리 줄 수와 다를 수 있다.
+- 적재 후 `SELECT COUNT(*)`를 파서 기준 원본 건수(`docs/data-sources.md`, `docs/report/data/data-feasibility-check-2026-09-13.md`)와 대조해 기록한다. 물리 줄 수와 다를 수 있다.
 - 관세청 `customs_all_*.csv`는 utf-8. 총계행(`is_total`) 포함 그대로 적재.
 
 ## 4. 하지 말 것

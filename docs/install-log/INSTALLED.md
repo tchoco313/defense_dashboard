@@ -77,8 +77,17 @@
 
 ## 2026-09-20 (openpyxl 재설치)
 
-- `openpyxl` 3.1.5 (pip, `.venv`, 의존성 `et-xmlfile` 2.0.0) — 2026-09-16 설치 기록과 `requirements.txt`에는 있으나 `.venv`에 없어(`pip show` 미발견, 원인 미확인) `load_db.py`의 XLSX 2표 파서가 실패. 파일 정리 검증 중 발견해 재설치(`docs/report/file-cleanup-audit-2026-09-20.md` §5-4).
+- `openpyxl` 3.1.5 (pip, `.venv`, 의존성 `et-xmlfile` 2.0.0) — 2026-09-16 설치 기록과 `requirements.txt`에는 있으나 `.venv`에 없어(`pip show` 미발견, 원인 미확인) `load_db.py`의 XLSX 2표 파서가 실패. 파일 정리 검증 중 발견해 재설치(`docs/report/data/file-cleanup-audit-2026-09-20.md` §5-4).
+
+## 2026-09-21 (AWS CLI)
+
+- `AWS CLI` 2.36.49 (winget `Amazon.AWSCLI`, 공식 MSI, 사용자 전역 `C:\Program Files\Amazon\AWSCLIV2\`) — 터미널에서 SSO 임시 토큰으로 AWS 조회하려고 설치. **미구성**: IAM Identity Center(조직 인스턴스) 활성화 화면에서 "조직을 생성하면 무료 플랜이 종량제 유료 플랜으로 전환되고 크레딧이 즉시 만료" 경고를 확인해 중단(아무것도 생성 안 함). `~/.aws` 없음, 액세스 키 없음. AWS CLI는 계속 CloudShell(브라우저 루트 세션)에서만 쓴다. 발표 후 계정 정리·유료 전환 시에만 재검토.
+
 
 ## 2026-09-21 (minimalist-ui 스킬)
 
 - `minimalist-ui` 프로젝트 스킬 (`.claude/skills/minimalist-ui/SKILL.md`, 10,342 B) — 출처 https://github.com/Leonxlnx/taste-skill `skills/minimalist-skill/SKILL.md`(MIT, blob `44ead27e`, ⭐88.9k, 마지막 push 2026-09-20), 원문 그대로 복사 + §9 프로젝트 오버라이드(밀도·모션 끔·의미색·한글 폰트·표현 경계, HTML 목업 단계 전용). 설치는 `npx skills add` 대신 GitHub API로 파일 1개 내려받아 저장. 페이지 목업 품질용 — 공식 `frontend-design`(방향)·내장 `dataviz`(차트)와 역할 분리.
+
+## 2026-09-21 (Jupyter MCP)
+
+- `jupyterlab` 4.6.3 · `jupyter-collaboration` 5.0.4 · `jupyter-mcp-server` 2.2.2 (pip, `.venv`; 의존 `mcp` 2.2.0) — Claude Code가 실행 중인 JupyterLab 커널에 셀을 실행·읽기 위한 MCP. 서버는 `.venv\Scripts\jupyter.exe lab --no-browser --port 8888 --ServerApp.root_dir=C:\Defense_Dashboard --IdentityProvider.token=<토큰>`로 띄우고(토큰은 `.jupyter/token.env`, gitignore), MCP는 `claude mcp add jupyter --scope local`(stdio, `jupyter mcp start --transport stdio`, env `JUPYTER_URL`·`JUPYTER_TOKEN`) — `~/.claude.json`의 이 프로젝트 항목에만 저장. `requirements.txt`에는 넣지 않음(앱 배포와 무관한 로컬 도구).

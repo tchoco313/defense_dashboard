@@ -1,0 +1,37 @@
+{
+  "folders": {},
+  "connections": {
+    "mysql8-defense-dashboard-rds": {
+      "provider": "mysql",
+      "driver": "mysql8",
+      "name": "defense_dashboard (AWS RDS)",
+      "save-password": false,
+      "read-only": false,
+      "configuration": {
+        "host": "defense-dashboard.cja24us8a444.ap-northeast-2.rds.amazonaws.com",
+        "port": "3306",
+        "database": "defense_dashboard",
+        "url": "jdbc:mysql://defense-dashboard.cja24us8a444.ap-northeast-2.rds.amazonaws.com:3306/defense_dashboard",
+        "type": "dev",
+        "auth-model": "native",
+        "user": "dev_jisu",
+        "handlers": {
+          "mysql_ssl": {
+            "type": "config",
+            "enabled": true,
+            "save-password": false,
+            "properties": {
+              "ssl.ca.cert": "${workspace}/certs/rds-global-bundle.pem",
+              "ssl.require": "true",
+              "ssl.verify.server": "true"
+            }
+          }
+        },
+        "properties": {
+          "characterEncoding": "utf8",
+          "connectTimeout": "20000"
+        }
+      }
+    }
+  }
+}
