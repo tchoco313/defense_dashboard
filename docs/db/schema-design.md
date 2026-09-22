@@ -7,29 +7,24 @@
 ## 1. 한눈에
 
 ```
-ref_   참조표 9      hs_whitelist(24 = 21 + 09-16 규칙 신규 3, 17열 — 09-15 정의 열 4개 + 09-16 civil_mix 3열 + evidence_basis·evidence_note) · country(238) · category_map(17, 확정 안 함) · sido_map(45) · fsc(676) · fsg(80, 09-16)
-                     [2026-09-16] hs_indicator(89행 — 품목군별 정량 지표, 라벨의 수치 근거. 09-19 hsk_control_* 48행 추가) · hs_rule_flag(R1~R4 판정 스냅샷, 84·85·88·90류 HS6 1,003행) · [2026-09-19] equipment_alias(843, 적용장비명 표기 통일)
-raw_   원본 보존 22  customs_trade(294,420 — 24개, 09-16) · dapa_contract(43,112) · dapa_localized_item(33,965) · krit_task(96, 09-18)
-                     dapa_bid_notice(10,842) · dapa_bid_result(7,405) · dapa_defense_company(84)
-                     kosis_utilization(81) · kosis_production_index(1,016) · customs_progress(264)
-                     [A7, 2026-09-15] dapa_overseas_plan(3,029) · dapa_overseas_contract(6,333) · dapa_overseas_bid_result(2,494)
-                     dapa_domestic_plan(35,859) · dapa_contract_exec_by_service(40)
-                     [2026-09-16 적재] hsk_control(무역안보관리원 HSK 연계표 15034135, 2,161) · hs_code_master(관세청 HS부호 15049722, 12,469) · hs_unit_name(단위별 품목명 15130660, 17,072)
-                     [2026-09-16/17] dapa_overseas_plan_api(13,615) · dapa_fsc_catalog(756) · openfiscal_program_budget(2,860) · kdsis_nsn(228,027)
-meta_  기록 3        dataset(출처·해시·건수, 25행) · load_log(단계별 건수, 119행 · log_id 1~129) · column_dict(849행 = RDS BASE TABLE 56표 전부, 2026-09-19 §7-29)
-dim_/fact_  정형 2   hs10(211) · customs_monthly(294,174 = 총계행 246 제외, 24개)
-clean_ 정제 20       (2026-09-19 RDS 실측, 0행 없음) dapa_contract(43,105) · dapa_localized_item(25,025) · krit_task(96) · company(14,836) · company_name_link(491) · dapa_overseas_plan(3,023) · kdsis_nsn(135,864) · ~~kdsis_nsn_ref(225,635)~~(2026-09-19 삭제 — §7-29, `report-views.md` §3)
-                     [2026-09-19 P2] openfiscal_program_budget(2,860) · openfiscal_program_link(22, 세부사업명 개편 연결표 — alter_2026-09-19_krit_budget_clean.sql)
-                     [2026-09-18 P4, 09-19 적재] excluded_row(5, 공용 제외 행) · dapa_bid_notice(10,840) · dapa_bid_result(7,403) · dapa_domestic_plan(35,859) · dapa_contract_exec_by_service(40) — alter_2026-09-18_p4_clean.sql
-                     [2026-09-19 P3] dapa_overseas_plan_api(13,615) · dapa_overseas_contract(6,333) · dapa_overseas_bid_result(2,494) · [P1] hsk_control(10,104) · [P5-5] kosis_utilization(81) · kosis_production_index(1,016)
-v_     뷰 32         import_hs6_year · import_share_hs6_year · hhi_hs6_year · review_list · contract_monthly · overseas_plan_yearly
-                     [2026-09-16] hs10_use_share · defense_relevance_b2 · civil_mix_rule (정량 지표 계산·라벨 도출)
-                     [2026-09-16] hs10_use_tag_all · hsk_control_by_hs6 · hs6_candidate_rule · hs6_candidate_vs_whitelist · hs_whitelist_rule (HS6 선정 규칙 — 로컬 대조 후 2026-09-16 팀 서버 적용, RDS 이관. 09-19 hsk_control_by_hs6는 clean 전환 §7-27)
-                     [2026-09-16] b2_fsg_summary (B2 × FSG 2자리 라벨, ref_fsg 80행 — 팀 서버 적용)
-                     [2026-09-17] contract_private_reason · contract_reason_group_yearly · bid_result_summary · bid_notice_monthly · bid_notice_result_link · overseas_bid_chain · domestic_plan_yearly · overseas_contract_yearly · defense_company_sector (국내 축 확장 — 조달 보조 6종 raw 직접 집계 + 계약정보 수의계약 사유, 팀 서버 적용. FSC·HS6 축 아님. **2026-09-19 defense_company_sector 제외 전부 clean 기준으로 전환·RDS 적용, §7-27**)
-                     [2026-09-16/17] overseas_plan_api_fsc · budget_rnd_yearly (국외 조달계획 API·열린재정) · overseas_plan_api_kdsis · b2_localized_kdsis · kdsis_link_summary (KDSIS NSN 보조)
-                     [2026-09-17] export_share_hs6_year · hhi_export_hs6_year (수출 점유율·HHI — 수입 뷰와 같은 구조, 팀 서버 적용)
+ref_    참조표 8    hs_whitelist(HS6 24, priority 1·2 = 분석 대상 13) · country · sido_map · fsc · fsg · equipment_alias · hs_indicator · hs_rule_flag
+raw_    원본 보존 23 customs_trade · customs_region · customs_progress · hs_code_master · hs_unit_name · hsk_control
+                    dapa_contract · dapa_localized_item · dapa_bid_notice · dapa_bid_result · dapa_defense_company · dapa_domestic_plan · dapa_contract_exec_by_service
+                    dapa_overseas_plan · dapa_overseas_contract · dapa_overseas_bid_result · dapa_overseas_plan_api · dapa_fsc_catalog
+                    krit_task · openfiscal_program_budget · kosis_utilization · kosis_production_index · kdsis_nsn
+meta_   기록 3      dataset · load_log · column_dict
+dim_/fact_ 정형 2   hs10 · customs_monthly
+clean_  정제 20     dapa_contract · company · company_name_link · dapa_bid_notice · dapa_bid_result · dapa_domestic_plan · dapa_contract_exec_by_service · excluded_row
+                    dapa_overseas_plan · dapa_overseas_contract · dapa_overseas_bid_result · dapa_overseas_plan_api · dapa_localized_item · kdsis_nsn
+                    krit_task · openfiscal_program_budget · openfiscal_program_link · hsk_control · kosis_utilization · kosis_production_index
+v_      뷰 31       ① import_hs6_year · import_share_hs6_year · hhi_hs6_year · export_share_hs6_year · hhi_export_hs6_year · customs_region_gwacheon_year · review_list
+                    HS6 규칙: hs10_use_share · hs10_use_tag_all · hsk_control_by_hs6 · hs6_candidate_rule · hs6_candidate_vs_whitelist · hs_whitelist_rule · civil_mix_rule
+                    ② 국내: contract_monthly · contract_private_reason · contract_reason_group_yearly · bid_result_summary · bid_notice_monthly · bid_notice_result_link · domestic_plan_yearly · defense_company_sector
+                    ② 국외·NSN: overseas_plan_yearly · overseas_contract_yearly · overseas_bid_chain · overseas_plan_api_fsc · overseas_plan_api_kdsis · b2_fsg_summary · b2_localized_kdsis · kdsis_link_summary
+                    ⓪ 배경: budget_rnd_yearly
 ```
+
+행 수·PK·전체 열은 `docs/db/table-catalog.md`(생성물), 관계도는 `docs/db/erd.md`. 2026-09-21 폐기·삭제: `ref_category_map`, `v_defense_relevance_b2`, `ref_hs_whitelist.b2_scope`(#36·#37).
 
 적재 순서: `ref_`·`meta_dataset`·`meta_column_dict`(`load_db.py --ref`) → `raw_`(`--raw`, `meta_load_log` 자동) → `dim_`/`fact_`(`--fact`) → `clean_`(사용자 노트북) → 뷰는 DDL에 포함(데이터 없어도 생성됨). **팀 서버 적용·적재 완료 2026-09-15(§6)**, RDS 전환 2026-09-18. `clean_` 표에 0행은 없다(2026-09-19: P4 8표 · P3 4표 · P5-4 `clean_krit_task` 96 · P2-6 열린재정 2표 적재 §6).
 
@@ -66,7 +61,6 @@ v_     뷰 32         import_hs6_year · import_share_hs6_year · hhi_hs6_year �
 | ------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ref_hs_whitelist`              | `hs6`                                                  | `data/reference/hs_whitelist.csv` 24행(2026-09-16)                                                | 원본 15열(8열 + 2026-09-15 정의 열 `system_family`·`defense_use_ko`·`related_fsc`·`evidence` + 2026-09-16 `civil_mix`·`civil_mix_basis`·`civil_mix_note`(민수 혼합 정도 — `v_civil_mix_rule` 규칙 도출값 스냅샷, 정량 지표 없으면 NULL·판단불가; `db/alter_2026-09-16_indicator.sql`), `docs/reference/hs-whitelist-definition.md`) + `b2_scope`(ENUM `대응 가능`/`B2 범위 밖`, 팀 확정 후 UPDATE — 항공·함정·유도 841191·880730·901420은 `B2 범위 밖`) |
 | `ref_country`                   | `stat_cd`                                              | `data/reference/country_ref.csv`                                                                  | `lat/lon` NULL 허용(`ZZ` 기타국). 238행(`NA` 나미비아는 2026-09-15 추가, §7-1)                                                                                                                                                                                                                                                                                                                                                                          |
-| ~~`ref_category_map`~~              | — | — | **2026-09-21 삭제**(`db/alter_2026-09-21_drop_category_map.sql`, §7 #36) |
 | `ref_sido_map`                  | `token`                                                | 수작업                                                                                            | 주소 첫 토큰 → 시도(보조 ⑤)                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `ref_fsg` (2026-09-16)          | `fsg_code`                                             | `data/reference/fsg_master.csv` 80행(`db/seed_ref.sql` / `alter_2026-09-16_fsg.sql`)              | FSG 2자리 라벨(영문·국문)·`is_historical`(21·33)·`is_electronic_group`(58·59·60). 팀원 공유 DLA 표 77행 + 95·96·99(GSA PSC Manual 2025-04로 확인, DLA 원문은 국내 403이라 미대조). FSC가 있는 B2·국방표준종합·사전의향서에만 엮이고 계약정보·조달계획·입찰 CSV와는 무관                                                                                                                                                                                    |
 | `ref_fsc`                       | `fsc4`                                                 | 수작업(선택)                                                                                      | FSC 4자리 라벨·`is_electronic_group`(58xx·59xx·60xx) — 군급분류집(A8, 2026-09-16 적재) **676행**, 전자군 46(2026-09-18 실측; 2자리는 `ref_fsg` 80행)                                                                                                                                                                                                                                                                                                         |
@@ -140,7 +134,6 @@ v_     뷰 32         import_hs6_year · import_share_hs6_year · hhi_hs6_year �
 | `v_contract_monthly`                                                                              | 월 = 계약번호별 **최초 체결월**(`MIN(contract_date)`, 차수 00 없는 계약 있음), 건수 = 계약번호당 1(`is_latest_seq=1`), 금액 = 최종 차수 `total_contract_amount`(물품/용역·5분류)                                                                                                                                                                                                                        | 조달 금액 ≠ 방산 매출. 변경계약은 최초 월에 최종 금액으로 잡힘. 변경일 기준 추이는 `contract_date` 직접 집계                                                                                                                                                                                                      |
 | `v_hs10_use_share` (2026-09-16)                                                                   | HS6 × HS10 용도 태그(`dim_hs10.name_ko` REGEXP: 군용전용 `9301\|9306` / 항공기용 `항공기용\|항공용\|우주항행` / 자동차용 / 기타)별 수입액·비중, 2021~2025 완결 연도                                                                                                                                                                                                                                     | 군용전용 비중은 **하한선**(일반 코드 신고 가능), 항공기용은 **민항 포함**                                                                                                                                                                                                                                         |
 | `v_b2_fsg_summary` (2026-09-16)                                                                   | `raw_dapa_localized_item` × `ref_fsg`(`LEFT(fsc,2)`) → FSG별 행 수·고유 부품 수·사업 수·FSC4 수                                                                                                                                                                                                                                                                                                         | 핵심 ② ⓐ·ⓑ 라벨용. raw 기준. 미대응(공란·`0`) 18행은 name NULL                                                                                                                                                                                                                                                    |
-| ~~`v_defense_relevance_b2`~~ (2026-09-16 → 2026-09-21 삭제) | 카테고리 맵 폐기로 DROP. `v_hs6_candidate_rule`은 R4 항 없이 재정의(§7 #36) |
 | `v_hs10_use_tag_all` (2026-09-16)                                                                 | `raw_hs_code_master` HSK10 전체에 용도 태그(군용전용 / 항공기용 / 무인기 / 레이더 / 항행 / 자동차용 / 기타, CASE 순서 우선)                                                                                                                                                                                                                                                                             | `v_hs10_use_share`(수집된 197개)와 같은 규칙을 마스터로 넓힌 것 — "21개 밖에서 걸리는 HS6" 탐색용                                                                                                                                                                                                                 |
 | `v_hsk_control_by_hs6` (2026-09-16)                                                               | `raw_hsk_control` → HS6별 통제 HSK10 수, ML 수(`control_no` REGEXP `^ML`), 이중용도 3·5·6·7부 수(`^[3567][A-E]`), 통제번호 목록. `hsk10`은 숫자만 남겨 6자리 절단                                                                                                                                                                                                                                       | 통제번호 형식은 추론(yestrade 제도개요) — 적재 후 확인                                                                                                                                                                                                                                                            |
 | `v_hs6_candidate_rule` (2026-09-16)                                                               | 84·85·88·90류 HS6마다 R1 군용전용 HSK / R2 항공기용·항행·레이더·무인기 HSK 또는 HS6 명칭 용도어 / R3 이중용도 3·5·6·7부 통제 / R4 B2 FSC → 09-16 잠정식 진입 = R1 OR R2 OR (R3 AND R4)(스냅샷, 확정 진입식은 R1 OR R2 — 2026-09-21 M5 #35), `priority_rule`(1/2/3)·`control_ratio_pct`·`evidence_rule`·`evidence_note`                                                                                                                                                   | `ref_hs_whitelist` evidence 3열의 스냅샷 원본. 규칙·법령 근거 `docs/reference/hs-whitelist-definition.md` §8                                                                                                                                                                                                      |
@@ -154,27 +147,7 @@ v_     뷰 32         import_hs6_year · import_share_hs6_year · hhi_hs6_year �
 
 ## 4. ERD
 
-```mermaid
-erDiagram
-  ref_hs_whitelist ||--o{ dim_hs10 : hs6
-  ref_hs_whitelist ||--o{ fact_customs_monthly : hs6
-  ref_country      ||--o{ fact_customs_monthly : stat_cd
-  dim_hs10         ||--o{ fact_customs_monthly : hs10
-  raw_customs_trade ||--o| fact_customs_monthly : "raw_row_id (FK, UNIQUE)"
-  ref_hs_whitelist ||--o{ ref_category_map : hs6
-  raw_dapa_contract ||--o| clean_dapa_contract : "raw_row_id (FK, UNIQUE; 충돌 원본 행은 미연결)"
-  raw_dapa_localized_item }o..|| clean_dapa_localized_item : "project_name, part_mgmt_no (논리)"
-  raw_krit_task    ||--o| clean_krit_task : "raw_row_id (FK)"
-  clean_company    ||--o{ clean_company_name_link : "biz_reg_no (FK)"
-  raw_dapa_overseas_plan ||--o| clean_dapa_overseas_plan : "first_raw_row_id (FK)"
-  raw_dapa_overseas_plan }o..o{ raw_dapa_overseas_bid_result : "decision_no (논리, 교집합 83)"
-  meta_dataset     ||--o{ meta_load_log : dataset_key
-  ref_category_map }o..o{ clean_dapa_localized_item : "fsc4 (품목군 수준)"
-  ref_category_map }o..o{ clean_dapa_contract : "contract_group (품목군 수준)"
-  ref_category_map }o..o{ clean_krit_task : "krit_task (품목군 수준)"
-```
-
-실선은 실제 FK(12개 — 2026-09-15 A7 `fk_cop_raw` 추가, `information_schema.REFERENTIAL_CONSTRAINTS`로 확인), 점선은 FK가 아닌 논리 연결(품목군 대응표, B2 raw→clean의 완전 중복 축약). `clean_dapa_contract`·`clean_dapa_localized_item`의 `category`는 FK 없이 문자열로 두어 미연결(NULL)을 허용한다.
+`docs/db/erd.md` — PK·FK 22선과 뷰가 JOIN하는 논리 키를 도메인 5개(관세청 / 국내조달·업체 / 국외조달·NSN / KRIT·예산·KOSIS / 메타·계보)로 나눠 그렸고, 점선 라벨은 RDS 실측 연결률이다(재실측 `db/query_erd_link_rates.sql`, 정적 페이지 `docs/db/erd.html`은 `scripts/gen_erd_html.py`로 생성). `raw_ → clean_` 계보 FK 17쌍은 마지막 그림에 한 쌍으로 대표한다.
 
 ## 5. 적재 시 주의 (2026-09-15 검증에서 확인)
 
@@ -232,7 +205,6 @@ MySQL 8.4 팀 서버에서는 문법 미실행. 사용한 문법(ENUM, CHECK 없
 ## 7. 미확정·후속
 
 1. ~~`country_ref.csv`에 `NA`(나미비아) 누락~~ **해결(2026-09-15)** — 관세청 상세행 국가코드는 238개였고 참조표 237개는 pandas가 `"NA"`를 결측 처리한 결과였다. `NA,Namibia,나미비아,-22.95764,18.49041,google_dspl_countries.csv` 1행 추가(238행, 17,690 bytes, SHA-256 `be7f3db1…9b66`). 같은 원인으로 잘못 셌던 값도 정정: 국가 수 237→238, 2025년 191→192개국, **2025 HS6 집계 10,896→10,904행**, HS6×국가×연 1,553→1,557, `data-sources.md` 파일별 국가 수 11개 파일 +1. 상위국 점유율(TW 34.1% / 18 HS 45.4%)은 변화 없음(나미비아 수입액 비중 0.0%). 반영 문서: `data-sources.md`, `idea-review.md`, `dashboard-scope`, `csv-inventory`, `csv-capability-map`.
-2. `ref_category_map` 시드 — idea-review §2 B2 대응 후보(5961/5962→8541·8542, 5820/5895/5985→852560·852990, 5840→852610, 5825→852691·901480, 5855/5860→901380)를 팀이 확인해 `link_status`를 `확정`으로 바꿔야 `v_review_list.b2_completed_count`가 채워진다.
 3. ~~`ref_hs_whitelist.b2_scope`~~ — 2026-09-21 삭제(카테고리 맵 폐기 후속, #37).
 4. ~~`clean_dapa_contract` 충돌 키 처리 방식~~ **확정(2026-09-15 리뷰 반영)** — PK 유지, 대표 행 1 + `seq_conflict_flag`·`conflict_raw_row_ids`(§3-5). 남은 것은 대표 행 선택 기준을 정제 노트북에서 정해 `evidence`에 적는 일.
 5. `계약금액` vs `총계약금액` — `data-sources.md`는 "차수 계약액 / 전체 계약액"으로 확인했으나 합산 전 표본으로 재확인.
