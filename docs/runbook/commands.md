@@ -102,6 +102,7 @@ cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" ... defense_dashboard < 
 | `db/alter_2026-09-21_elec_fsg60.sql` | 전자 판정 플래그 FSG 60 기준 통일: `clean_kdsis_nsn.is_electronic_group` fsg2='60' 0→1 + 두 표(`clean_kdsis_nsn`·`clean_dapa_localized_item`) 열 COMMENT·열 사전 2행을 「58·59·60, 잠정」으로. 근거 `open-decisions-2026-09-21.md` D5 | **2026-09-21 적용**(`apply_alter.py --twice`, 2회 exit 0. 1회째 UPDATE 317·0·1·1, 2회째 전부 0. 실측: kdsis 60 317/317, 전자군 합 33,577 → **33,894**, `clean_dapa_localized_item` 2,717 불변. 경고는 1681 display width뿐) |
 | `db/alter_2026-09-21_hhi_views.sql` | HHI 뷰 4개 정정(`open-decisions-2026-09-21.md` D6·D7): `v_import_share_hs6_year`·`v_export_share_hs6_year` `share`를 `CAST(… AS DOUBLE)`(DECIMAL 4자리 반올림 제거 → 뷰 HHI = pandas HHI), `v_hhi_hs6_year`·`v_hhi_export_hs6_year` `country_count`를 `CAST(SUM(imp_dlr>0) AS UNSIGNED)`(실적 있는 국가 수). 09-20 제안 파일 `alter_2026-09-20_country_count.sql` 대체·삭제. `schema.sql`·`table_dict.csv`·카탈로그 동기 | **2026-09-21 적용**(`apply_alter.py --twice`, 5문 × 2회 exit 0). DBHub 실측 2025 `country_count` 847180 127→**73** · 854231 86→**68** · 852692 104→**50** · 851762 144→**86**(수출 118·69·92·138), `v_review_list` 동일, hhi 정수 자리·top1 불변(5276.18→5276.11 등 소수만), 열 타입 `share`·`top1_share`·`hhi` double, 246행 |
 | `db/alter_2026-09-21_drop_customs_copies.sql` | 사전 밖 표 2개 DROP(`clean_customs_trade` 294,420·`clean_customs_progress` 264 — 09-20 밤 생성된 raw 복사본, `open-decisions-2026-09-21.md` D14) | **2026-09-21 적용**(`apply_alter.py --twice`, 2회 exit 0, 2회째 Note 1051뿐). 실측: BASE TABLE 58 → **56**, `clean_customs%` 0, raw 2표 294,420·264 불변 |
+| `db/alter_2026-09-22_drop_clean_copies.sql` | 사전 밖 표 4개 DROP — 09-21 DROP한 `clean_customs_trade`(294,420)·`clean_customs_progress`(264)가 09-21 16:12·18:03 재생성되고 `clean_hs_unit_name`(17,072)·`clean_hs_code_master`(12,469)가 09-22 00:29·00:33 추가(raw 1:1, 사전·로그 0건, 만든 계정 미확인). `open-decisions-2026-09-21.md` D14 재발 항목 | **2026-09-22 적용**(`apply_alter.py --twice`, 5문 × 2회 exit 0, 2회째 Note 1051뿐). DBHub 실측(`ip-10-7-0-61`): BASE TABLE 60 → **56**, 뷰 31, `clean_customs%`·`clean_hs_%` 잔여는 사전 등재 표 `clean_hsk_control`뿐, raw 4표 294,420·264·17,072·12,469 불변, `fact_customs_monthly` 294,174·`dim_hs10` 211·`ref_hs_rule_flag` 1,003 불변. `gen_table_catalog.py` 객체 87(사전 누락 0·RDS 누락 0) |
 | `db/alter_2026-09-21_meta_dataset_ids.sql` | `meta_dataset` UPDATE 4문(표·뷰 변경 없음): 팀원 공유 파일 3건 `dataset_id`·`url`·포털 등록/수정일(15050919·15050925·15050923, D10) + 군별 계약집행 note 라벨 「국내·국외 구분 없는 총액」(D11) | **2026-09-21 적용**(`apply_alter.py --twice`, 1회차 rows 1·1·1·1, 2회차 0). `dataset_id` NULL 0 |
 | `db/alter_2026-09-21_gwacheon_view.sql` | `v_customs_region_gwacheon_year` 신설(D1 ⑤): HS6 × 연도 전국 수입액·과천시 수입액·비중·건수·시군구 수(금액 천 달러). 화면 반영은 M7 결정 후 | **2026-09-21 적용**(`apply_alter.py --twice`, 2문 × 2회 exit 0). DBHub 실측: 246행, 2025 880730 0.3009(224,248/745,179) · 901490 0.2700 · 852560 0.2015 · 841191 0.0948 · 854231 0.0016 — `data-sources.md` 검증값과 일치. 뷰 31 → **32** |
 | `db/alter_2026-09-21_customs_region.sql` | 관세청 시군구별 수출입실적(15134343) raw 표 `raw_customs_region` 신설(13열 + 적재 열, `utf8mb4_unicode_ci`) + 열 사전 13행 + `meta_dataset` `customs_region` 1행. clean·뷰 없음 — 화면 채택 여부는 팀 결정(`open-decisions-2026-09-21.md` D1). **금액 단위 천 달러** | **2026-09-21 적용**(조장 맥에 admin 계정이 없어 CREATE 권한이 있는 `dev_taeho`로 `apply_alter.apply` 2회, exit 0 — 1회째 rows 0·13·1, 2회째 전부 0, 경고는 1287·1050뿐). 이어서 `load_db.py --raw --tables raw_customs_region` 24파일 **273,586행 [일치]** 37.3s. 실측: 파일 24 · HS6 24 · 시군구 234 · 2016.01~2026.08 · NULL 0 · 키(`stat_ym`,`sgg_name`,`hs_cd`) 중복 0 · 880730 2025 수입 합 745,179(천$) · 2025 상위 5개 HS6 합이 `fact_customs_monthly`÷1,000 과 100.00% · `meta_column_dict` 849 → 862 · BASE TABLE 56 → 57 |
@@ -184,21 +185,6 @@ python -m jupyter nbconvert --to notebook --execute --inplace --ExecutePreproces
 
 - 재적재: `TRUNCATE clean_x` 후 노트북 재실행(clean_은 raw를 참조만 하므로 FK 문제 없음). raw는 건드리지 않는다.
 - 판단 속성(`category_link_status='확정'`, `electronics_review_status='확정'/'오탐'`)은 노트북이 만들지 않는다 — 팀 결정·표본 검수 후 UPDATE.
-
-## 6-2. EDA 도구 — PyGWalker (`.venv`, 2026-09-22)
-
-DataFrame이나 RDS 뷰를 노트북 안에서 Tableau식 드래그&드롭으로 탐색한다(설치 기록 `docs/install-log/INSTALLED.md`). 커널은 `defense-dashboard`(= `.venv`). 데이터 EDA용이며 **ERD·PK/FK 구조는 보여주지 않는다**(구조는 DBeaver ER Diagram — `docs/runbook/dbeaver/README.md` — 또는 `docs/db/table-catalog.md`).
-
-```python
-import sys; sys.path.insert(0, "../scripts")   # 노트북이 notebooks/ 에 있을 때
-import pandas as pd, sqlalchemy as sa, pygwalker as pyg, dbconf
-eng = sa.create_engine(dbconf.sqlalchemy_url(), connect_args=dbconf.sqlalchemy_connect_args())  # .env etl_rw
-pyg.walk(pd.read_sql("SELECT * FROM v_import_share_hs6_year", eng))            # ① DataFrame 경로(수만 행까지)
-# ② 큰 표는 계산을 DB로 넘긴다 — URL은 비밀번호를 가리지 않게 render
-from pygwalker.data_parsers.database_parser import Connector
-pyg.walk(Connector(dbconf.sqlalchemy_url().render_as_string(hide_password=False),
-                   "SELECT * FROM clean_dapa_contract", engine_params={"connect_args": dbconf.sqlalchemy_connect_args()}))
-```
 
 ## 7. Markdown 문서 → PDF (`scripts/md_to_pdf.py`)
 

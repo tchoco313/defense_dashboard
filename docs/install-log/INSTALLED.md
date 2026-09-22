@@ -92,6 +92,6 @@
 
 - `jupyterlab` 4.6.3 · `jupyter-collaboration` 5.0.4 · `jupyter-mcp-server` 2.2.2 (pip, `.venv`; 의존 `mcp` 2.2.0) — Claude Code가 실행 중인 JupyterLab 커널에 셀을 실행·읽기 위한 MCP. 서버는 `.venv\Scripts\jupyter.exe lab --no-browser --port 8888 --ServerApp.root_dir=C:\Defense_Dashboard --IdentityProvider.token=<토큰>`로 띄우고(토큰은 `.jupyter/token.env`, gitignore), MCP는 `claude mcp add jupyter --scope local`(stdio, `jupyter mcp start --transport stdio`, env `JUPYTER_URL`·`JUPYTER_TOKEN`) — `~/.claude.json`의 이 프로젝트 항목에만 저장. `requirements.txt`에는 넣지 않음(앱 배포와 무관한 로컬 도구).
 
-## 2026-09-22 (PyGWalker — 노트북 EDA)
+## 2026-09-22 (PyGWalker — 설치 후 같은 날 제거)
 
-- `pygwalker` 0.5.0.1 (pip, `.venv`; 의존 `duckdb` 1.5.5, `ipywidgets` 8.1.9, `anywidget` 0.11.0, `sqlglot`, `segment-analytics-python` 등 20개) — DataFrame·RDS 뷰를 Tableau식 드래그&드롭 차트로 탐색하는 EDA 도구. Python 3.14.7 + pandas 3.0.5에서 `to_html` 실동작 확인(관세청 CSV 1개·`v_import_share_hs6_year` 18,250행, 브라우저 렌더 확인). 원격 통계 전송은 `pygwalker config --set privacy=offline`으로 껐음(설정 파일 `%LOCALAPPDATA%\pygwalker\pygwalker\config.json`). `requirements.txt`에는 넣지 않음(로컬 EDA 도구, 앱 배포 무관 — jupyterlab 선례). 사용법은 `docs/runbook/commands.md` §6-2. 후보였던 `ydata-profiling`은 pandas<3.0·Python<3.14 고정이라 설치 불가.
+- `pygwalker` 0.5.0.1과 함께 들어온 19개(`duckdb`·`ipywidgets`·`anywidget`·`sqlglot` 등)를 `.venv`에서 제거(`pip check` 이상 없음, 설정 폴더 `%LOCALAPPDATA%\pygwalker` 삭제). Python 3.14.7 + pandas 3.0.5에서 동작은 확인됐으나 EDA는 노트북 코드로 하기로 해 쓰지 않음. `ydata-profiling`은 pandas<3.0·Python<3.14 고정이라 애초에 설치 불가.
