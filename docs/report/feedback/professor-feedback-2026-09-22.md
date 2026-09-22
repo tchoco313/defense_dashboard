@@ -56,4 +56,4 @@
 
 **사용처 감사(보고만)**: 남은 37표 중 뷰·앱이 직접 읽지 않는 표 8개 — `clean_company`·`clean_company_name_link`(업체 축, 노트북 산출), `clean_dapa_contract_exec_by_service`(KPI 카드 예정), `clean_krit_task`(화면 ② 예정), `clean_openfiscal_program_link`(예산 연속성), `ref_equipment_alias`(노트북이 `equipment_std` 채움), `ref_sido_map`(시도 백필), `meta_column_dict`(기록·명세서). 모두 `table_dict.used_by`가 채워져 있고 노트북·스크립트가 쓴다. 화면 구현 후에도 안 쓰이면 그때 정리 대상.
 
-**남은 것**: ① `raw_customs_region` 원본 CSV 24개를 맥에서 이 PC `data/raw/customs/`로 복사(명세서 예시값·`--fact` 재현) ② `clean_p1_customs_hs.ipynb` §6 priority 기대값을 13개 기준(8/5/11)으로 갱신(이번 변경과 무관한 기존 상태).
+**남은 것**: ① `raw_customs_region` 원본 CSV 24개를 맥에서 이 PC `data/raw/customs/`로 복사(명세서 예시값·`--fact` 재현) (② `clean_p1_customs_hs.ipynb` §6 priority 기대값 8/5/11 갱신은 같은 날 저녁 완료 — 재실행 전 항목 일치.)
