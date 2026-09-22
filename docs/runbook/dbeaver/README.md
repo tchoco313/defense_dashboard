@@ -22,3 +22,11 @@
 계정은 `REQUIRE SSL`이라 SSL을 끄면 1045/1251로 실패한다. 오류가 "Communications link failure"·시간 초과면 IP 미허용, "Access denied"면 계정·비밀번호·SSL 문제.
 
 권한: `defense_dashboard` 안에서 SELECT·INSERT·UPDATE·DELETE·CREATE·ALTER·DROP·CREATE VIEW. 스키마 변경은 `db/schema.sql` 직접 실행 금지, `db/alter_<날짜>_<주제>.sql` 규칙(CLAUDE.md). 대장: `docs/runbook/rds-access-registry.md`.
+
+## ER 다이어그램 (PK·FK 구조 보기)
+
+1. 연결 트리에서 `defense_dashboard` 스키마를 더블클릭(또는 우클릭 › **View Diagram**) › 상단 **ER Diagram** 탭 — 테이블 56개와 FK 선이 한 화면에 그려진다.
+2. 표가 많으면 툴바 검색·**Show/Hide entities**로 `raw_*`·`ref_*`를 숨기고 `clean_*`만 남긴다. 배치는 **Layout › Auto layout**, 저장은 툴바 **Export diagram**(PNG·SVG).
+3. 선택한 표만 그리려면 트리의 **Diagrams › New ER diagram** › 표를 끌어다 놓는다. 이 다이어그램은 DBeaver 프로젝트에만 저장되고 DB는 바뀌지 않는다.
+
+**한계**: DB의 FK 제약은 22개뿐이라(주로 `clean_ → raw_ 원본행`, `→ ref_hs_whitelist`, `→ ref_country`) 선이 그만큼만 나온다. `clean_` 표끼리의 실제 연결 키(HS6·판단번호·업체명 등)는 FK가 아니며 `docs/reference/clean-conversion-spec-2026-09-18.md` §7·`docs/db/table-guide.md` §2에 있다. 다이어그램에 그 선을 넣으려면 표 › Properties › **Foreign Keys › New virtual foreign key**로 가상 FK를 추가한다(DBeaver 로컬 설정, DB 미변경).

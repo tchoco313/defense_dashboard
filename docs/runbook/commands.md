@@ -185,6 +185,21 @@ python -m jupyter nbconvert --to notebook --execute --inplace --ExecutePreproces
 - 재적재: `TRUNCATE clean_x` 후 노트북 재실행(clean_은 raw를 참조만 하므로 FK 문제 없음). raw는 건드리지 않는다.
 - 판단 속성(`category_link_status='확정'`, `electronics_review_status='확정'/'오탐'`)은 노트북이 만들지 않는다 — 팀 결정·표본 검수 후 UPDATE.
 
+## 6-2. EDA 도구 — PyGWalker (`.venv`, 2026-09-22)
+
+DataFrame이나 RDS 뷰를 노트북 안에서 Tableau식 드래그&드롭으로 탐색한다(설치 기록 `docs/install-log/INSTALLED.md`). 커널은 `defense-dashboard`(= `.venv`). 데이터 EDA용이며 **ERD·PK/FK 구조는 보여주지 않는다**(구조는 DBeaver ER Diagram — `docs/runbook/dbeaver/README.md` — 또는 `docs/db/table-catalog.md`).
+
+```python
+import sys; sys.path.insert(0, "../scripts")   # 노트북이 notebooks/ 에 있을 때
+import pandas as pd, sqlalchemy as sa, pygwalker as pyg, dbconf
+eng = sa.create_engine(dbconf.sqlalchemy_url(), connect_args=dbconf.sqlalchemy_connect_args())  # .env etl_rw
+pyg.walk(pd.read_sql("SELECT * FROM v_import_share_hs6_year", eng))            # ① DataFrame 경로(수만 행까지)
+# ② 큰 표는 계산을 DB로 넘긴다 — URL은 비밀번호를 가리지 않게 render
+from pygwalker.data_parsers.database_parser import Connector
+pyg.walk(Connector(dbconf.sqlalchemy_url().render_as_string(hide_password=False),
+                   "SELECT * FROM clean_dapa_contract", engine_params={"connect_args": dbconf.sqlalchemy_connect_args()}))
+```
+
 ## 7. Markdown 문서 → PDF (`scripts/md_to_pdf.py`)
 
 설계 문서·보고서를 제출·공유용 A4 PDF로 만든다. reportlab + 나눔고딕(`C:\Windows\Fonts\NanumGothic*.ttf`) 임베드. 제목·표·목록·코드 블록·인라인 코드를 옮기고, Mermaid `erDiagram`은 관계 목록 표로 바꾼다. `##`/`###` 제목이 목차와 PDF 북마크가 된다.
@@ -251,3 +266,18 @@ python scripts/gen_table_catalog.py               # docs/db/table-catalog.md 덮
 python scripts/gen_table_catalog.py --no-count    # 행 수 생략(빠름)
 ```
 
+### ERD 정적 페이지 생성 (`scripts/gen_erd_html.py`, 2026-09-22)
+
+`docs/db/erd.md`의 Mermaid 5개를 담은 독립 페이지 `docs/db/erd.html`을 만든다(mermaid는 cdnjs 로드). GitHub 저장소 화면에서는 `erd.md`가 바로 그려지므로 html은 로컬 더블클릭·GitHub Pages용. `erd.md`를 고친 뒤 실행해 둘을 맞춘다.
+
+```bash
+.venv/Scripts/python.exe scripts/gen_erd_html.py
+```
+
+### 시도 경계 GeoJSON 생성 (`scripts/build_sido_geojson.py`, 2026-09-22)
+
+```
+.venv/Scripts/python.exe scripts/build_sido_geojson.py
+```
+
+southkorea-maps 통계청 2018 시도 TopoJSON(단순화본)을 내려받아 GeoJSON으로 디코딩하고 `sido_code`(행정표준 2자리)를 붙여 `data/reference/sido_boundary.geojson`(17 feature, 640 KB)을 만든다. 네트워크만 필요, 추가 의존성 없음. 재실행하면 같은 파일을 덮어쓴다. 앱에서는 `json.load` 후 `px.choropleth(geojson=..., locations="sido_code", featureidkey="id")`.

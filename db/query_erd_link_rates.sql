@@ -1,0 +1,18 @@
+-- 용도: docs/db/erd.md 점선(논리 키) 라벨의 연결률 재실측. app_ro로 실행, 결과 n_match/n_all을 라벨에 옮긴다. (2026-09-22 작성)
+SELECT 'notice↔result (bid_notice_no+seq)' k, (SELECT COUNT(*) FROM clean_dapa_bid_result) n_all,
+       (SELECT COUNT(*) FROM clean_dapa_bid_result r JOIN clean_dapa_bid_notice n ON n.bid_notice_no=r.bid_notice_no AND n.bid_notice_seq_norm=r.bid_notice_seq_norm) n_match
+UNION ALL SELECT 'contract.vendor_biz_reg_no→company', (SELECT COUNT(*) FROM clean_dapa_contract WHERE vendor_biz_reg_no IS NOT NULL), (SELECT COUNT(*) FROM clean_dapa_contract c JOIN clean_company p ON p.biz_reg_no=c.vendor_biz_reg_no)
+UNION ALL SELECT 'bid_result.winner_biz_reg_no→company', (SELECT COUNT(*) FROM clean_dapa_bid_result WHERE winner_biz_reg_no IS NOT NULL), (SELECT COUNT(*) FROM clean_dapa_bid_result r JOIN clean_company p ON p.biz_reg_no=r.winner_biz_reg_no)
+UNION ALL SELECT 'overseas_bid_result.decision_no→overseas_plan', (SELECT COUNT(*) FROM clean_dapa_overseas_bid_result WHERE decision_no IS NOT NULL), (SELECT COUNT(*) FROM clean_dapa_overseas_bid_result b JOIN clean_dapa_overseas_plan p ON p.decision_no=b.decision_no)
+UNION ALL SELECT 'overseas_plan_api.nsn→kdsis', (SELECT COUNT(*) FROM clean_dapa_overseas_plan_api WHERE nsn IS NOT NULL), (SELECT COUNT(*) FROM clean_dapa_overseas_plan_api a JOIN clean_kdsis_nsn k ON k.nsn=a.nsn)
+UNION ALL SELECT 'localized_item.fsc4+nsn→kdsis', (SELECT COUNT(*) FROM clean_dapa_localized_item WHERE nsn IS NOT NULL), (SELECT COUNT(*) FROM clean_dapa_localized_item b JOIN clean_kdsis_nsn k ON k.nsn=CONCAT(b.fsc4,b.nsn))
+UNION ALL SELECT 'overseas_plan_api.fsc4→ref_fsc', (SELECT COUNT(*) FROM clean_dapa_overseas_plan_api WHERE fsc4 IS NOT NULL), (SELECT COUNT(*) FROM clean_dapa_overseas_plan_api a JOIN ref_fsc f ON f.fsc4=a.fsc4)
+UNION ALL SELECT 'localized_item.fsc2→ref_fsg', (SELECT COUNT(*) FROM clean_dapa_localized_item WHERE fsc2 IS NOT NULL), (SELECT COUNT(*) FROM clean_dapa_localized_item b JOIN ref_fsg g ON g.fsg_code=b.fsc2)
+UNION ALL SELECT 'kdsis.fsc4→ref_fsc', (SELECT COUNT(*) FROM clean_kdsis_nsn WHERE fsc4 IS NOT NULL), (SELECT COUNT(*) FROM clean_kdsis_nsn k JOIN ref_fsc f ON f.fsc4=k.fsc4)
+UNION ALL SELECT 'hsk_control.hs6→whitelist', (SELECT COUNT(*) FROM clean_hsk_control WHERE hs6 IS NOT NULL), (SELECT COUNT(*) FROM clean_hsk_control h JOIN ref_hs_whitelist w ON w.hs6=h.hs6)
+UNION ALL SELECT 'rule_flag.hs6→whitelist', (SELECT COUNT(*) FROM ref_hs_rule_flag), (SELECT COUNT(*) FROM ref_hs_rule_flag r JOIN ref_hs_whitelist w ON w.hs6=r.hs6)
+UNION ALL SELECT 'budget.sub_program_name↔link.from/to', (SELECT COUNT(*) FROM clean_openfiscal_program_link), (SELECT COUNT(*) FROM clean_openfiscal_program_link l WHERE EXISTS (SELECT 1 FROM clean_openfiscal_program_budget b WHERE b.sub_program_name=l.from_sub_program_name) AND EXISTS (SELECT 1 FROM clean_openfiscal_program_budget b WHERE b.sub_program_name=l.to_sub_program_name))
+UNION ALL SELECT 'equipment_alias.name_norm↔plan_api.equipment_name_norm', (SELECT COUNT(*) FROM ref_equipment_alias), (SELECT COUNT(*) FROM ref_equipment_alias a WHERE EXISTS (SELECT 1 FROM clean_dapa_overseas_plan_api p WHERE p.equipment_name_norm=a.name_norm))
+UNION ALL SELECT 'company.sido_code↔ref_sido_map', (SELECT COUNT(*) FROM clean_company WHERE sido_code IS NOT NULL), (SELECT COUNT(*) FROM clean_company c WHERE EXISTS (SELECT 1 FROM ref_sido_map m WHERE m.sido_code=c.sido_code))
+UNION ALL SELECT 'excluded_row 행 / 표 수', (SELECT COUNT(*) FROM clean_excluded_row), (SELECT COUNT(DISTINCT table_name) FROM clean_excluded_row)
+UNION ALL SELECT 'load_log.dataset_key→meta_dataset', (SELECT COUNT(*) FROM meta_load_log), (SELECT COUNT(*) FROM meta_load_log l JOIN meta_dataset d ON d.dataset_key=l.dataset_key);
