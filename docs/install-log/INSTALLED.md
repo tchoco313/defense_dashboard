@@ -92,6 +92,14 @@
 
 - `jupyterlab` 4.6.3 · `jupyter-collaboration` 5.0.4 · `jupyter-mcp-server` 2.2.2 (pip, `.venv`; 의존 `mcp` 2.2.0) — Claude Code가 실행 중인 JupyterLab 커널에 셀을 실행·읽기 위한 MCP. 서버는 `.venv\Scripts\jupyter.exe lab --no-browser --port 8888 --ServerApp.root_dir=C:\Defense_Dashboard --IdentityProvider.token=<토큰>`로 띄우고(토큰은 `.jupyter/token.env`, gitignore), MCP는 `claude mcp add jupyter --scope local`(stdio, `jupyter mcp start --transport stdio`, env `JUPYTER_URL`·`JUPYTER_TOKEN`) — `~/.claude.json`의 이 프로젝트 항목에만 저장. `requirements.txt`에는 넣지 않음(앱 배포와 무관한 로컬 도구).
 
+## 2026-09-22 (nbclient·nbformat)
+
+- `nbclient` 0.11.0 · `nbformat` 5.11.1 (pip, `.venv`) — `notebooks/eda_customs.ipynb`를 분석 대상 13개 기준으로 **비대화식 재실행**하려고 설치(`NotebookClient(nb, kernel_name="python3", resources={"metadata":{"path":"notebooks/"}}).execute()`). 기존 `ipykernel` 7.3.0·`jupyter_client` 8.10.0만으로는 노트북 파일 단위 실행이 안 됨. 재실행 4~6초, 오류 0. `requirements.txt`에는 넣지 않음(앱 배포와 무관한 로컬 도구 — Jupyter MCP와 같은 취급).
+
 ## 2026-09-22 (PyGWalker — 설치 후 같은 날 제거)
 
 - `pygwalker` 0.5.0.1과 함께 들어온 19개(`duckdb`·`ipywidgets`·`anywidget`·`sqlglot` 등)를 `.venv`에서 제거(`pip check` 이상 없음, 설정 폴더 `%LOCALAPPDATA%\pygwalker` 삭제). Python 3.14.7 + pandas 3.0.5에서 동작은 확인됐으나 EDA는 노트북 코드로 하기로 해 쓰지 않음. `ydata-profiling`은 pandas<3.0·Python<3.14 고정이라 애초에 설치 불가.
+
+## 2026-09-22 (중간 발표 PPTX 재생성)
+
+- `pptxgenjs` 4.0.1 (npm, `docs/report/plan-docx-build/node_modules` — gitignore) — `make_midterm.js`로 중간 발표 PPTX를 다시 만들기 위해 `npm install`. 생성: `node make_midterm.js <출력 경로.pptx>`. 결과물 `*.pptx`도 gitignore.

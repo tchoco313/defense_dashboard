@@ -1,0 +1,49 @@
+raw_table,raw_column,clean_table,clean_target,verified,note
+raw_customs_trade,cnty_name_ko,fact_customs_monthly,ref_country.name_ko,확인,국가명은 fact 에 두지 않고 참조표 ref_country 로 분리
+raw_customs_trade,hs_cd,fact_customs_monthly,hs10 + hs6,확인,"HS10 그대로 + LEFT(hs10,6) 을 화이트리스트 키 hs6 로 파생"
+raw_customs_trade,item_name_ko,fact_customs_monthly,dim_hs10.name_ko,확인,품명은 fact 에 두지 않고 차원표 dim_hs10 으로 분리
+raw_customs_trade,req_year,fact_customs_monthly,is_partial_year,확인,요청 연도 자체는 싣지 않고 부분연도 판정 플래그로 대체(2026 = 1)
+raw_customs_trade,row_id,fact_customs_monthly,raw_row_id,확인,"원본 행 추적(1:1). 총계행 246 제외로 294,420 → 294,174"
+raw_customs_trade,stat_ym,fact_customs_monthly,yyyymm + year + month,확인,"raw `YYYY.MM` 에서 점 제거 → yyyymm, 앞 4·뒤 2자리를 year·month 로 분해"
+raw_dapa_bid_notice,allocated_budget_amount,clean_dapa_bid_notice,allocated_budget_amount_krw,확인,
+raw_dapa_bid_notice,bid_notice_seq,clean_dapa_bid_notice,bid_notice_seq_norm,확인,
+raw_dapa_bid_notice,bid_notice_status_name,clean_dapa_bid_notice,bid_notice_status,확인,
+raw_dapa_bid_notice,biz_type_name,clean_dapa_bid_notice,biz_type,확인,
+raw_dapa_bid_notice,budget_amount,clean_dapa_bid_notice,budget_amount_krw,확인,
+raw_dapa_bid_notice,license_limit_group1,clean_dapa_bid_notice,license_limit_groups + license_limit_group_count,확인,
+raw_dapa_bid_notice,license_limit_group2,clean_dapa_bid_notice,license_limit_groups + license_limit_group_count,확인,
+raw_dapa_bid_notice,license_limit_group3,clean_dapa_bid_notice,license_limit_groups + license_limit_group_count,확인,
+raw_dapa_bid_notice,license_limit_group4,clean_dapa_bid_notice,license_limit_groups + license_limit_group_count,확인,
+raw_dapa_bid_notice,license_limit_group5,clean_dapa_bid_notice,license_limit_groups + license_limit_group_count,확인,
+raw_dapa_bid_notice,license_limit_group6,clean_dapa_bid_notice,license_limit_groups + license_limit_group_count,확인,
+raw_dapa_bid_notice,license_limit_group7,clean_dapa_bid_notice,license_limit_groups + license_limit_group_count,확인,
+raw_dapa_bid_notice,license_limit_group8,clean_dapa_bid_notice,license_limit_groups + license_limit_group_count,확인,
+raw_dapa_bid_notice,ref_notice_seq,clean_dapa_bid_notice,ref_notice_seq_norm,확인,
+raw_dapa_bid_result,base_amount,clean_dapa_bid_result,base_amount_krw,확인,
+raw_dapa_bid_result,bid_notice_seq,clean_dapa_bid_result,bid_notice_seq_norm,확인,
+raw_dapa_bid_result,biz_type_name,clean_dapa_bid_result,biz_type,확인,
+raw_dapa_bid_result,estimated_price,clean_dapa_bid_result,estimated_price_krw,확인,
+raw_dapa_bid_result,final_award_amount,clean_dapa_bid_result,final_award_amount_krw,확인,
+raw_dapa_bid_result,opening_result_name,clean_dapa_bid_result,opening_result,확인,
+raw_dapa_bid_result,reserve_price,clean_dapa_bid_result,reserve_price_krw,확인,
+raw_dapa_contract,biz_type_name,clean_dapa_contract,biz_type,확인,
+raw_dapa_contract,contract_period,clean_dapa_contract,period_start + period_end + period_anomaly_flag,확인,
+raw_dapa_contract,contract_seq,clean_dapa_contract,contract_seq_norm,확인,
+raw_dapa_domestic_plan,budget_amount,clean_dapa_domestic_plan,budget_krw,확인,
+raw_dapa_localized_item,fsc,clean_dapa_localized_item,fsc4 + fsc2,확인,
+raw_dapa_overseas_bid_result,bid_result,clean_dapa_overseas_bid_result,bid_result_std + is_awarded,확인,
+raw_dapa_overseas_bid_result,opening_datetime,clean_dapa_overseas_bid_result,opening_at + opening_date + opening_ym,확인,
+raw_dapa_overseas_contract,contract_period,clean_dapa_overseas_contract,period_start + period_end + is_open_ended,확인,
+raw_dapa_overseas_plan,budget_amount,clean_dapa_overseas_plan,budget_krw,확인,
+raw_dapa_overseas_plan_api,army_name,clean_dapa_overseas_plan_api,army_name_raw + army_std,확인,
+raw_dapa_overseas_plan_api,budget_amount,clean_dapa_overseas_plan_api,budget_amount_num + amount_unverified,확인,
+raw_dapa_overseas_plan_api,demand_year_req,clean_dapa_overseas_plan_api,demand_year,확인,
+raw_dapa_overseas_plan_api,stock_no,clean_dapa_overseas_plan_api,stock_no_raw + nsn + nsn_format + is_placeholder_nsn + fsc4 + fsg2 + is_elec + kdsis_link_status,확인,
+raw_dapa_overseas_plan_api,unit_price,clean_dapa_overseas_plan_api,unit_price_num + amount_unverified,확인,
+raw_kdsis_nsn,cage_code,clean_kdsis_nsn,cage_count,확인,건수만 남김 — 원 표기는 clean_kdsis_nsn_ref 에 풀 예정이었으나 그 표는 2026-09-19 폐기(alter_2026-09-19_drop_unused.sql)
+raw_kdsis_nsn,iin_serial,clean_kdsis_nsn,niin (ncb_code와 결합),확인,
+raw_kdsis_nsn,origin_file,clean_kdsis_nsn,origin_files,확인,
+raw_kdsis_nsn,ref_no,clean_kdsis_nsn,ref_count,확인,건수만 남김 — 원 표기는 clean_kdsis_nsn_ref 에 풀 예정이었으나 그 표는 2026-09-19 폐기
+raw_kosis_production_index,stat_ym,clean_kosis_production_index,stat_month + is_month_restored,확인,
+raw_krit_task,round_label,clean_krit_task,round_id + round_year + round_seq,확인,
+raw_krit_task,task_seq,clean_krit_task,task_no + task_seq_text,확인,

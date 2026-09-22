@@ -1,6 +1,6 @@
 # ERD — 테이블 관계도 (도메인별)
 
-`db/schema.sql`(테이블 56·뷰 31)의 PK·FK와, 뷰가 실제로 JOIN하는 논리 키를 도메인별로 나눠 그린다. `raw_` 23표는 `clean_ ← raw_row_id` 계보선만 있어 §5에 한 번만 표시한다. 연결률은 RDS 실측(2026-09-22, `app_ro`).
+`db/schema.sql`(테이블 37·뷰 31)의 PK·FK와, 뷰가 실제로 JOIN하는 논리 키를 도메인별로 나눠 그린다. 원본은 DB 밖 파일(`data/raw/`, 2026-09-22 raw_ 표 삭제)이며 `clean_*.raw_row_id`는 파일 파서 순번(`load_db.read_raw`)으로 원본 행을 가리킨다 — §5에 한 번만 표시한다. 연결률은 RDS 실측(2026-09-22, `app_ro`).
 
 **범례** — 실선 `||--o{` = DB에 선언된 FK · 점선 `||..o{` = FK는 아니지만 뷰·문서가 쓰는 논리 키(라벨의 `일치/전체`는 실측 행 수) · 선 없는 표 = 단독 집계표.
 
@@ -230,12 +230,12 @@ erDiagram
     varchar column_name PK
     varchar original_name
   }
-  raw_X {
-    int row_id PK
-    text source_cols "원본 열 그대로"
+  raw_file_X {
+    string source_file "원본 파일(data/raw/, DB 밖)"
+    int row_id "파서 순번 = read_raw"
   }
   clean_X {
-    int raw_row_id FK
+    int raw_row_id "파서 순번(FK 없음)"
   }
   clean_excluded_row {
     int excl_id PK
@@ -244,11 +244,11 @@ erDiagram
     varchar reason_code
   }
   meta_dataset ||--o{ meta_load_log : "dataset_key 149/149"
-  raw_X ||--o| clean_X : "raw_row_id (FK 17쌍)"
-  raw_X ||..o{ clean_excluded_row : "table_name+raw_row_id 17행/4표"
+  raw_file_X ||..o| clean_X : "raw_row_id = 파서 순번(16표)"
+  raw_file_X ||..o{ clean_excluded_row : "table_name+raw_row_id 17행/4표"
 ```
 
-`raw_X ||--o| clean_X`가 대신하는 FK 17쌍: `clean_dapa_contract`·`_bid_notice`·`_bid_result`·`_domestic_plan`·`_contract_exec_by_service`·`_overseas_plan`(first_raw_row_id)·`_overseas_plan_api`·`_overseas_contract`·`_overseas_bid_result`·`clean_krit_task`·`clean_openfiscal_program_budget`·`clean_hsk_control`·`clean_kosis_utilization`·`clean_kosis_production_index` → 각자의 `raw_` 표, `fact_customs_monthly` → `raw_customs_trade`. FK 없이 계보만 문서로 두는 표: `clean_company`·`clean_company_name_link`·`clean_kdsis_nsn`·`clean_dapa_localized_item`(first_raw_row_id, FK 아님)·`clean_openfiscal_program_link`.
+`raw_file_X ||..o| clean_X`가 대신하는 계보 16표(전부 점선 — RDS raw_ 표가 없어 FK 아님): `clean_dapa_contract`·`_bid_notice`·`_bid_result`·`_domestic_plan`·`_contract_exec_by_service`·`_overseas_plan`(first_raw_row_id)·`_overseas_plan_api`·`_overseas_contract`·`_overseas_bid_result`·`_defense_company`·`clean_krit_task`·`clean_openfiscal_program_budget`·`clean_hsk_control`·`clean_kosis_utilization`·`clean_kosis_production_index`·`clean_dapa_localized_item`(first_raw_row_id) → 원본 파일 데이터셋(`raw_X` 키, `scripts/load_db.py RAW_TABLES`). `fact_customs_monthly`·`clean_customs_region`은 자연키(hs10·국가·월 / hs6·시군구·월)와 파일명(`customs_all_<HS6>.csv`·`customs_region_<HS6>.csv`)으로 추적하며 `raw_row_id` 열이 없다. 계보를 문서로만 두는 표: `clean_company`·`clean_company_name_link`·`clean_kdsis_nsn`(first_raw_row_id)·`clean_openfiscal_program_link`. 기준표 `ref_hs_code_master`·`ref_hs6_name`은 원본 파일(HS 마스터·단위별 품목명)에서 `load_db.py --ref`가 만든다.
 
 ## 6. 갱신
 

@@ -1,7 +1,7 @@
 """드라이브 `2_데이터수집_저장` 폴더를 data/raw/ 표준 구조로 옮긴다 (2026-09-17, 1회용).
 
 - 내용은 바꾸지 않는다. 이동(rename)만 하고, 이동 전후 SHA-256 앞 16자리를 대조한다.
-- 파일명은 scripts/load_db.py 의 DATASETS 경로(= DB source_file)에 맞춘다. 대응표: docs/report/raw-inventory-2026-09-17.md
+- 파일명은 scripts/load_db.py 의 DATASETS 경로(= DB source_file)에 맞춘다. 대응표: docs/report/data/raw-inventory-2026-09-17.md
 - 목적지에 같은 이름이 이미 있으면 건너뛰고 보고한다(덮어쓰지 않음).
 
 실행:

@@ -4,35 +4,35 @@
 
 **⚠ `db/schema.sql`을 팀 서버에 연결한 상태로 실행하지 말 것.** 이 파일은 첫 부분이 전체 DROP이라 적재된 데이터가 전부 지워진다(2026-09-15 15:12 실제로 한 번 지워져 재적재함). ERD 도구에 넣을 때는 파일만 열거나 빈 로컬 DB를 쓴다. 지금은 안전장치가 있어 데이터가 있는 DB에서는 오류로 멈추지만, 그래도 서버에서 실행할 이유가 없다.
 
-## 1. 한 장 요약 — 접두사 6개만 알면 된다
+## 1. 한 장 요약 — 접두사 5개 + 원본 파일
 
 | 접두사 | 뜻 | 테이블 수 | 누가 채우나 | 손대도 되나 |
 |---|---|---|---|---|
-| `ref_` | 참조표. HS 화이트리스트·국가코드·품목군 대응표·규칙 판정 스냅샷 같은 기준값 | 9(2026-09-19 RDS 실측) | 팀(수작업)·`load_db.py` | 팀 합의 후 UPDATE만 |
-| `raw_` | **원본 CSV 그대로**. 전 열 문자열, 중복도 그대로, 행마다 어느 파일 몇 번째 줄인지 기록 | 22 | `load_db.py` | **수정 금지** (다시 넣을 땐 `reset_data.sql`) |
+| `ref_` | 참조표. HS 화이트리스트·국가코드·규칙 판정 스냅샷·HS 마스터/HS6 명칭 같은 기준값 | 10(2026-09-22 RDS 실측) | 팀(수작업)·`load_db.py --ref` | 팀 합의 후 UPDATE만 |
+| (원본 파일) | **DB 밖.** `data/raw/` 파일이 유일한 원본(2026-09-22 교수 피드백으로 RDS `raw_` 표 23개 삭제). `scripts/load_db.py read_raw(<데이터셋 키 raw_…>)`가 파일을 읽고 파서 순번 `row_id`를 붙인다 | 23종(파일) | 수집 스크립트·다운로드 | **수정 금지**(훅·읽기 전용). 위치·SHA-256·건수는 `meta_dataset` |
 | `meta_` | 기록. 출처·해시·건수, 단계별 건수, 열 사전 | 3 | `load_db.py` + 노트북 | 기록 추가만 |
 | `dim_` `fact_` | 관세청 자료를 숫자·연월로 정리한 정형 테이블 | 2 | `load_db.py --fact` | 재생성만 |
-| `clean_` | **정제 결과**. 형 변환·차수 정리·5분류·국산화 상태 같은 판단 속성 | 20(2026-09-19 RDS 실측, `clean_kdsis_nsn_ref` 삭제 후. BASE TABLE 합계 56) | **정제 노트북(팀원)** | 노트북으로 다시 채움 |
+| `clean_` | **정제 결과**. 형 변환·차수 정리·5분류·국산화 상태 같은 판단 속성 | 22(2026-09-22 RDS 실측. BASE TABLE 합계 37) | **정제 노트북(팀원)**·`load_db.py --fact`(customs_region) | 노트북으로 다시 채운다(입력은 원본 파일) |
 | `v_` | 화면용 뷰 + 규칙 도출 뷰. Streamlit이 읽는 집계, 라벨·화이트리스트 근거 도출 | 31 | DDL(자동) | 뷰 정의는 `schema.sql`에서 |
 
-흐름: `CSV → raw_(원본 보존) → clean_(노트북 정제) → v_(화면)`. 관세청 자료만 규칙이 확정돼 `raw_ → fact_ → v_`까지 이미 이어져 있다.
+흐름(수집 → 전처리 → DB 저장 → 활용): `원본 파일(data/raw/) → read_raw → 노트북 정제 → clean_(DB) → v_(화면)`. 관세청 자료는 `load_db.py --fact`가 `read_raw` → pandas 로 `dim_`·`fact_`·`clean_customs_region`을 만든다. 각 표의 사용처는 `db/table_dict.csv used_by`(비어 있는 표는 두지 않는다).
 
 ## 2. 화면 ↔ 테이블 대응
 
 | 화면 (idea-review §4) | 읽는 뷰·테이블 | 그 원천 | 지금 상태 |
 |---|---|---|---|
-| 배경 ⓪ 국외조달 예산 추이 | `v_overseas_plan_yearly` | `clean_dapa_overseas_plan` ← `raw_dapa_overseas_plan` | **사용 가능(2026-09-17 적재, 3,023행)**. 판단번호 단위라 원본 3,029행 합과 6행(23.6억+2.5억 원) 다름 — 원본 전체 합(18.26조)은 §5 SQL 4. 전자 후보는 `미검수`(잠정) |
+| 배경 ⓪ 국외조달 예산 추이 | `v_overseas_plan_yearly` | `clean_dapa_overseas_plan` ← 원본 파일 `raw_dapa_overseas_plan` | **사용 가능(2026-09-17 적재, 3,023행)**. 판단번호 단위라 원본 3,029행 합과 6행(23.6억+2.5억 원) 다름 — 원본 전체 합(18.26조)은 §5 SQL 4. 전자 후보는 `미검수`(잠정) |
 | 핵심 ① 수출입 현황(품목군별, 수입·수출 동등 배치 — 2026-09-17) | 수입: `v_import_hs6_year` · `v_import_share_hs6_year` · `v_hhi_hs6_year` / 수출: `v_import_hs6_year.exp_dlr` · `v_export_share_hs6_year` · `v_hhi_export_hs6_year` | `fact_customs_monthly` ← `raw_customs_trade` | 수입 뷰 **바로 사용 가능**. 수출 뷰 2개는 `db/alter_2026-09-17_export.sql` **2026-09-17 팀 서버 적용 완료** |
-| 핵심 ② 관련 조달·국산화 근거 | `v_contract_monthly` · `clean_krit_task`(B1) · `clean_dapa_localized_item`(B2) | `raw_dapa_contract` · `raw_krit_task` · `raw_dapa_localized_item` | B2는 **적재 완료(2026-09-17, 25,025행)**. 계약정보는 **적재 완료(2026-09-19, `clean_dapa_contract` 43,105행 / 계약 단위 37,602, `v_contract_monthly` 28행 — `class5`는 전부 `판단 보류`; 같은 날 저녁 테스트 업체 6행 제외로 43,111→43,105)**. B1은 **적재 완료(2026-09-19, `clean_krit_task` 96행 / 차수별 과제 수 `is_latest=1` 73)** — `hs6`는 대응표 미확정이라 전부 NULL |
+| 핵심 ② 관련 조달·국산화 근거 | `v_contract_monthly` · `clean_krit_task`(B1) · `clean_dapa_localized_item`(B2) | 원본 파일 `raw_dapa_contract` · `raw_krit_task` · `raw_dapa_localized_item` | B2는 **적재 완료(2026-09-17, 25,025행)**. 계약정보는 **적재 완료(2026-09-19, `clean_dapa_contract` 43,105행 / 계약 단위 37,602, `v_contract_monthly` 28행 — `class5`는 전부 `판단 보류`; 같은 날 저녁 테스트 업체 6행 제외로 43,111→43,105)**. B1은 **적재 완료(2026-09-19, `clean_krit_task` 96행 / 차수별 과제 수 `is_latest=1` 73)** — `hs6`는 대응표 미확정이라 전부 NULL |
 | 핵심 ② 보강 — FSC별 국외조달 계획(API) | `v_overseas_plan_api_fsc`(2026-09-19 clean 전환) · **`clean_dapa_overseas_plan_api`**(2026-09-19 적재 13,615행) | `raw_dapa_overseas_plan_api` ← 국외 조달계획 OpenAPI 13,615행 | **사용 가능**. B2(국산화 완료, 지상 28개 사업)와 같은 FSC4 축으로 대칭 막대·사용처 표. **건수만**(금액은 통화 미검증). 전자 판정은 뷰·clean 모두 `is_elec`(FSG 58·59·60) = 2,267행(뷰 전환 전 58·59 = 1,819), 모집단은 clean NSN 전체 13,236(전환 전 숫자13 9,970), 뷰 2,566행(전환 전 2,321) — 2026-09-19 뷰 clean 전환 RDS 적용·실측(잠정 결정, `schema-design.md` §7-27) |
 | 핵심 ② 보조 — 국외조달 계약·입찰(배경) | `v_overseas_contract_yearly` · `v_overseas_bid_chain` · **`clean_dapa_overseas_contract`**(6,327 — 09-20 테스트 계약 6행 제외) · **`clean_dapa_overseas_bid_result`**(2,494) | `raw_dapa_overseas_contract` · `raw_dapa_overseas_bid_result` | **적재 완료(2026-09-19)**. 계약은 금액·국가 열이 없어 건수·업체 수만, 입찰결과는 개찰 2025-03~09 **부분연도** 라벨 필수 |
-| 과천시 소재 수입자 비중(추정) — 채택은 M7 | `v_customs_region_gwacheon_year` | `raw_customs_region`(시군구 × 월 × HS6, 천 달러) | **사용 가능(2026-09-21, 246행)**. HS6 × 연도 전국 대비 과천 수입액·비중. 「군 직접 수입 하한」 표현 금지, 화면 수치 반영은 팀 결정 후 |
+| 과천시 소재 수입자 비중(추정) — 채택은 M7 | `v_customs_region_gwacheon_year` | `clean_customs_region`(HS6 × 시군구 × 월, 천 달러 — 2026-09-22 raw 대체) | **사용 가능(2026-09-21, 246행)**. HS6 × 연도 전국 대비 과천 수입액·비중. 「군 직접 수입 하한」 표현 금지, 화면 수치 반영은 팀 결정 후 |
 | 핵심 ③ 추가 검토 목록·시나리오 | `v_review_list` | 위 전부(화이트리스트 × 연도별 HHI + B1 열) | 무역 열은 동작. B2 열은 **2026-09-21 카테고리 맵 폐기로 뷰에서 제거**(`alter_2026-09-21_drop_category_map.sql`). B1 열은 `clean_krit_task.hs6`가 전부 NULL이라 0. 화면 코드는 이 뷰 대신 `metrics.concentration`(기간 합산) 사용 |
 | 핵심 ① 규칙 근거 — HSK 통제 품목 | `v_hsk_control_by_hs6`(2026-09-19 clean 전환) · **`clean_hsk_control`**(2026-09-19 적재 10,104행, HSK10 2,161 × 통제번호 세로형, 부 3·5·6·7 = R3) | `raw_hsk_control` ← 무역안보관리원 HSK 연계표 | **사용 가능**. `hsk_control_hs10_ratio`·`hsk_control_imp_share` 지표 각 24행이 `ref_hs_indicator`에 들어갔고 HS6 24개 판정은 바뀌지 않음(유지 19·신규 후보 39·강등 검토 5). ML(군용물자) 0건은 "자료에 없음" |
 | 핵심 ② 보강 — 적용장비명 표기 통일 | **`ref_equipment_alias`**(2026-09-19, 원문 843종) | `clean_dapa_overseas_plan_api.equipment_name` | 표준명 `후보` 40종(관측된 표기 변이 20묶음)만 채웠고 803종은 `미확인`(NULL). 장비코드로 묶지 않음. 화면에서 원문 대신 표준명을 쓰려면 후보 확정 후 |
-| 보조 ④ 수출·생산 추세 | `v_import_hs6_year`(수출 열) · **`clean_kosis_utilization`**(81) · **`clean_kosis_production_index`**(1,016) | KOSIS 2종 ← `raw_kosis_utilization` · `raw_kosis_production_index` | **적재 완료(2026-09-19, `db/alter_2026-09-19_kosis_clean.sql` + `notebooks/clean_p5_kosis.ipynb` — 실측 81 / 1,016, 제외 0, `stat_month` 127개월, `meta_load_log` 126~129)**. 화면에 쓰면 `in_scope=1`(통신전자)·`scope_grade='★'`(전국×C26·C261×계절조정)만, 2026은 부분연도·잠정(`is_provisional` 16행 = 2026-06·07) 라벨. raw `stat_ym='p)'` 결함 16행은 clean 이 `source_col_no`로 월 복원(`is_month_restored`). 지수·가동률은 금액과 합산·비율 금지 |
-| 보조 ⑤ 국내 지도 | `clean_dapa_contract.sido_code` + `ref_sido_map` | `raw_dapa_contract.vendor_address` | **사용 가능(2026-09-19 적재, `sido_code` NULL 2행 — `**`·`1`)**. 첫 토큰 시도 커버리지 99.95%(2026-09-18 실측). 09-19 저녁 P2 검수 반영: `충남대전시` 16행 →30 백필, `광주`·`광주시` 토큰은 둘째 토큰 규칙(29/41), 용산구 2행은 테스트 업체로 제외(`db/alter_2026-09-19_sido_backfill_test_vendor.sql`) |
-| KPI 카드 | `raw_dapa_contract_exec_by_service`(군별 계약집행) · `raw_dapa_defense_company` | A7 · 방산업체 지정현황 | 사용 가능 |
+| 보조 ④ 수출·생산 추세 | `v_import_hs6_year`(수출 열) · **`clean_kosis_utilization`**(81) · **`clean_kosis_production_index`**(1,016) | KOSIS 2종 ← 원본 파일 `raw_kosis_utilization` · `raw_kosis_production_index` | **적재 완료(2026-09-19, `db/alter_2026-09-19_kosis_clean.sql` + `notebooks/clean_p5_kosis.ipynb` — 실측 81 / 1,016, 제외 0, `stat_month` 127개월, `meta_load_log` 126~129)**. 화면에 쓰면 `in_scope=1`(통신전자)·`scope_grade='★'`(전국×C26·C261×계절조정)만, 2026은 부분연도·잠정(`is_provisional` 16행 = 2026-06·07) 라벨. raw `stat_ym='p)'` 결함 16행은 clean 이 `source_col_no`로 월 복원(`is_month_restored`). 지수·가동률은 금액과 합산·비율 금지 |
+| 보조 ⑤ 국내 지도 | `clean_dapa_contract.sido_code` + `ref_sido_map` | 원본 파일 `raw_dapa_contract.vendor_address` | **사용 가능(2026-09-19 적재, `sido_code` NULL 2행 — `**`·`1`)**. 첫 토큰 시도 커버리지 99.95%(2026-09-18 실측). 09-19 저녁 P2 검수 반영: `충남대전시` 16행 →30 백필, `광주`·`광주시` 토큰은 둘째 토큰 규칙(29/41), 용산구 2행은 테스트 업체로 제외(`db/alter_2026-09-19_sido_backfill_test_vendor.sql`) |
+| KPI 카드 | `clean_dapa_contract_exec_by_service`(군별 계약집행) · `clean_dapa_defense_company`(2026-09-22 신설) · `v_defense_company_sector` | A7 · 방산업체 지정현황 원본 파일 | 사용 가능 |
 | 배경 ④ 예산 흐름(기획안 v8) | `v_budget_rnd_yearly`(2026-09-19 clean 전환) · **`clean_openfiscal_program_budget`**(2026-09-19 적재 2,860행, 억원 환산 열·2027 정부안 `is_unconfirmed` 268·3선 후보 `budget_group_candidate` 93) · **`clean_openfiscal_program_link`**(세부사업 개편 연결표 22행) | `raw_openfiscal_program_budget` ← 열린재정 12파일 | **사용 가능(2026-09-16 적재)**. 국방기술개발 2020 10,053억 → 2027 30,741억(정부안), 국방반도체 2027 565.1억 신설. clean 연도 합계는 뷰와 차이 0(2026-09-19 대조). 3선 후보는 서로 겹쳐 **합산 금지**. 뷰는 2026-09-19 clean 정수 열로 전환(§7-26⑦ 종결) |
 | `v_contract_private_reason` | (2026-09-17, 2026-09-19 `clean_dapa_contract` 기준으로 전환) 계약정보 계약번호당 1행(37,602 — 09-19 저녁 테스트 업체 6행 제외 전 37,608) → 연도×계약방법×업무구분×수의계약 사유(조문 원문 `reason_text`)×팀 그룹 `reason_group` 건수·최종 차수 총계약금액·`amount_missing_count`(2026-09-20) | 그룹 10개(소액·소기업 / 경쟁실패 후 수의 / 단일공급·호환성·특허 / 기관 간·위탁 / 우수·혁신·인증제품 / 사회적 배려 / 방위사업법 특례 / 사유 미기재 / 해당 없음(경쟁계약) / 기타)는 팀 그룹핑, 조문은 원문 병기. 2026-09-20 `해당 없음(경쟁계약)` 10,734를 `사유 미기재`에서 분리(남은 미기재 = 수의계약 9건, 규칙 #9 결측 어휘). 관리규정 §23 개발부품 수의 코드는 원본에 없음. "국산화 필요 근거"라 쓰지 않는다 |
 | `v_contract_reason_group_yearly` | (2026-09-17) 위를 연도×그룹으로 접고 그 해 전체 계약 대비 비중 | 카드용. 2024는 11~12월. 2026-09-20 그룹 분리로 18→20행 |
@@ -65,14 +65,14 @@
 | `ref_fsc` | FSC 군급분류 **4자리** 라벨 | `raw_dapa_fsc_catalog`(군급분류집 15119907)에서 `INSERT…SELECT`(`db/alter_2026-09-16_api_budget.sql` §3, 그룹행 xx00 제외) | 676 | 적재 완료(2026-09-16). 58/59군 46, 폐지(`status='C'`) 22. **2026-09-19: `fsc2='60'` 24행 `is_electronic_group` 0→1**(그중 폐지 13) | `fsc4` · `fsc2` · `name_ko` · `status` · `is_electronic_group`(58·59·60) |
 | `ref_equipment_alias` | (2026-09-19) 국외 조달계획 API **적용장비명 표기 통일 사전**. 원문 1종 = 1행. `name_norm`은 기계적 정규화(판단 없음), `name_std`는 표기 변이가 자료에 실제로 나타난 묶음에만 채운 **잠정** 값 | `raw_dapa_overseas_plan_api.equipment_name`(`notebooks/clean_p3_overseas.ipynb` §2) | 843 | 적재 완료. `후보` 40종(표준명 있음) · `미확인` 803종(표준명 NULL). 전자 범위 365종 | `name_raw` PK(`utf8mb4_bin`) · `name_norm` · `variant_key` · `name_std` · `link_status`(후보/확정/미확인) · `in_elec_scope` · `row_count`/`elec_row_count`/`code_count` |
 
-### 3-2. `raw_` 원본 보존 (전 열 문자열, `row_id` 대리키, `source_file`·`source_row_no`·`loaded_at` 공통)
+### 3-2. 원본 파일 계층 (DB 밖 — 2026-09-22 RDS `raw_` 표 삭제. 데이터셋 키는 옛 표 이름 그대로, `read_raw`가 `row_id`·`source_file`·`source_row_no` 를 붙인다)
 
-| 테이블 | 역할 | 원본 파일 | 행 | 등급 | 핵심 열 |
+| 데이터셋 키 | 역할 | 원본 파일 | 행(파서) | 등급 | 핵심 열 |
 |---|---|---|---|---|---|
 | `raw_customs_trade` | 관세청 HS10×국가×월 수출입실적. 연간 총계행(`is_total=1`) 246행 포함(24개 기준; 21개 시절 213) | `customs_all_<HS6>.csv` ×24 | 294,420 (2026-09-19 RDS 실측, 24개 파일 = 상세 294,174 + 총계 246; 구 21개 수집분 268,909) | 핵심 1 | `stat_ym`(YYYY.MM) · `stat_cd` · `hs_cd`(HS10) · `imp_dlr` · `exp_dlr` · `is_total` |
 | `raw_customs_region` | 관세청 **시군구별** HS6×시군구×월 수출입실적(15134343). 수입 = 납세의무자 주소지 기준. **금액 천 달러**(`raw_customs_trade`는 달러). clean·뷰 없음 — 화면 채택 여부 팀 결정 | `customs_region_<HS6>.csv` ×24 | 273,586 (2026-09-21 RDS 적재·실측) | 보조 | `stat_ym` · `sgg_name`(명칭만, 코드 없음) · `hs_cd`(HS6) · `imp_usd_amt` · `exp_usd_amt` |
 | `raw_customs_progress` | 관세청 호출별 반환 행수(재현성 증빙) | `progress_all.csv` | 264(2026-09-19 RDS 실측, 24개; 21개 시절 231) | 메타 | `hs` · `year` · `row_count` |
-| `raw_dapa_contract` | 방사청 국내조달 계약정보. **1만 건 요건**(원본 전체 기준) | `dapa_domestic_contract_20251231.csv` | 43,112 | 핵심 2 | `contract_no`+`contract_seq`(차수, 0/00 혼재) · `contract_name` · `contract_date` · `contract_amount`(차수) · `total_contract_amount`(전체) · `biz_type_name`(물품/용역) |
+| `raw_dapa_contract` | 방사청 국내조달 계약정보. **부록**(09-21 M2 — 요건 2종은 관세청 + 국산화개발품목) | `dapa_domestic_contract_20251231.csv` | 43,112 | 핵심 2 | `contract_no`+`contract_seq`(차수, 0/00 혼재) · `contract_name` · `contract_date` · `contract_amount`(차수) · `total_contract_amount`(전체) · `biz_type_name`(물품/용역) |
 | `raw_dapa_localized_item` | 국산화개발품목(B2, 지상체계 한정). 완전 중복 8,940행 포함 | `dapa_localized_items_20260509.csv` | 33,965 | 핵심 2 보강 | `project_name` · `part_mgmt_no` · `fsc` · `item_name` · `contractor_name` |
 | `raw_krit_task` | KRIT 부품국산화 공고 과제 목록(B1). (2026-09-18) 원문 7건 12파일 — 23-4차 본공고 18 / 24-1차 예비 11 / 25-1차 수정 22 · 재공고 3 / 26-1차 본공고 2 / 26-2차 예비RFP 20 · 본공고(hwp) 20. **예비→본→재공고는 별개 문서라 합산 금지**(`is_counted`는 `clean_krit_task`) | `data/raw/krit/*_t*.csv` | 96 | 핵심 2 | `round_label` · `notice_type`(예비/본공고/수정/재공고, 파일명에서) · `task_name` · `gov_fund_text`(단위는 원문 헤더 — 26-2차 예비는 백만원, `extra_json["원본열명"]`) · `dev_period_text` · `extra_json["구분(표제목)"]`(핵심부품/수출연계/전략부품) |
 | `raw_dapa_bid_notice` | 국내조달 경쟁 입찰공고 | `dapa_domestic_bid_notice_20251231.csv` | 10,842 | 보조 | `ref_notice_no`+`ref_notice_seq`(유일키, 초과 0) · `bid_notice_name` · `bid_notice_date` · `budget_amount`. `bid_notice_no`+`bid_notice_seq`는 **비유일(초과 356행)**, 입찰결과 연결용 |
@@ -93,7 +93,7 @@
 | `raw_kdsis_nsn` | (2026-09-17) **국방표준종합서비스(KDSIS) NSN 목록** 팀원 정리본 — 원본 .txt 172,692 + 2016.csv 55,335 합본(`origin_file`·`origin_row_no`에 원본 파일·행 보존) | `new_data/raw_kdsis_nsn.csv`(gitignore) | 228,027(적재 완료 09-17) | **보조 조회 전용**(NSN → FSC·품명·CAGE·참조번호). 위험도·국산화율 지표 미사용. 숫자 13자리 NSN 227,444행(고유 135,331), 그 외 583행은 검토 대상 | `nsn` · `fsc4` · `cage_code` · `ref_no` · `item_name_ko` |
 | `raw_openfiscal_program_budget` | (2026-09-16) **열린재정** 세출/지출 세부사업 예산편성현황(총액), 방위사업청·일반회계, 회계연도 2016~2027 12파일 | `data/raw/budget/openfiscal_dapa_program_budget_<연도>.csv` | 2,860(적재 완료 09-16; 2020~2027 1,981 + 2016~2019 879) | 배경 ④ 예산 흐름 전용, 1만 건 무관. 천원·쉼표 문자열, 2027은 정부안(국회확정 0) | `fiscal_year` · `unit_program_name` · `sub_program_name` · `gov_plan_krw_k` |
 
-담당자명·대표자명·연락처는 개인정보다. 국내 계약·입찰 파일은 raw에 원문이 있으니 `clean_`·화면으로 올리지 말고, A7 5개는 적재 때 이미 NULL로 비웠다.
+담당자명·대표자명·연락처는 개인정보다. 원본 파일에만 있고 `read_raw`가 A7 5개의 담당자 열을 NULL로 읽으며(`null_cols`), 국내 계약·입찰의 대표자명도 `clean_`·화면으로 올리지 않는다. HS 마스터·단위별 품목명은 기준표 `ref_hs_code_master`(10자리 11,327)·`ref_hs6_name`(06시트 6자리 2,254)으로, 시군구 실적은 `clean_customs_region`으로, 방산업체 지정현황은 `clean_dapa_defense_company`로 DB에 있다(2026-09-22).
 
 ### 3-3. `meta_` 기록
 
@@ -101,7 +101,7 @@
 |---|---|---|---|
 | `meta_dataset` | 데이터셋 1건 = 1행. 제공기관·ID·URL·확보일·기간·SHA-256·파서 건수·포털 표시 건수 | 25(2026-09-19 RDS 실측; 09-15 당시 17) | `dataset_key` PK · `dataset_id` · `acquired_on` · `raw_row_count` · `portal_row_count` · `note` |
 | `meta_load_log` | 단계별 건수(원본 전체 → 선택 연도 → 중복 처리 후 → 관련 후보 → 검증된 분석 대상). 보고서 표를 여기서 SELECT | 119(2026-09-19 RDS 실측, `log_id` 1~129 — 삭제·재적재로 생긴 빈 번호 포함; 09-15 당시 37) | `dataset_key` · `table_name` · `stage` · `row_count` · `exclusion_reason` |
-| `meta_column_dict` | 원본 한글 헤더 ↔ DB 영문 열명 ↔ 타입 | **849**(`db/column_dict.csv` = RDS, 2026-09-19 실측 BASE TABLE 56표 전부·누락 0. 같은 날 `column_dict_11tables` +135 → 681, P3 +82 · P5/P2 +43 → 806, P1 +21 → 827, KOSIS +26 → 853, 뷰 전환 +2 → 855, `clean_kdsis_nsn_ref` 삭제 −6 → 849) | `table_name` · `column_name` · `original_name` |
+| `meta_column_dict` | 원본 한글 헤더 ↔ DB 영문 열명 ↔ 타입. DB 표 37개 + **원본 파일 데이터셋 23종의 열 사전**(raw_ 행 319 — 파서 헤더 대조·명세서 원천) | **858**(`db/column_dict.csv` = RDS, 2026-09-22 실측) | `load_db.py --ref` | 열을 더하거나 바꾸면 CSV 먼저 |
 
 ### 3-4. `dim_` / `fact_` 관세청 정형
 
@@ -168,7 +168,7 @@
 | `v_import_share_hs6_year` | 국가 점유율 `share`·순위 `rnk` | ZZ 기타국 포함 |
 | `v_export_share_hs6_year` · `v_hhi_export_hs6_year` | 수출 기준 점유율·순위, 수출 HHI(`hhi_export`)·상위 1국 | "국가 전체 수출(민수 포함)". 검토 목록 관문에는 쓰지 않음. 2026-09-17 팀 서버 적용. 2025 수출 HHI: 852990 5,038(CN 69.3%) · 854239 1,945 · 854231 1,788 |
 | `v_hhi_hs6_year` | HHI = Σ(점유율×100)², 상위 1국·점유율·국가 수 | "전체 수입 중" HHI (방산 수입 HHI 아님) |
-| `v_customs_region_gwacheon_year` | `raw_customs_region`을 HS6 × 연도로 접어 전국 수입액·과천시(`sgg_name='경기도 과천시'`) 수입액·비중·건수·시군구 수. 금액 천 달러, 분모 전국 | 「과천시 소재 수입자 비중(방위사업청 소재지), 추정」으로만. 2025 880730 30.1% 등 `data-sources.md` 검증값 재현 |
+| `v_customs_region_gwacheon_year` | `clean_customs_region`을 HS6 × 연도로 접어 전국 수입액·과천시(`sgg_name='경기도 과천시'`) 수입액·비중·건수·시군구 수. 금액 천 달러, 분모 전국 | 「과천시 소재 수입자 비중(방위사업청 소재지), 추정」으로만. 2025 880730 30.1% 등 `data-sources.md` 검증값 재현 |
 | `v_review_list` | 화이트리스트 × 연도별 HHI + B1 과제 수 + B2 완료 부품 수 | B1·B2는 `확정` 연결만 센다. NULL = 미확인, 0 = 확인된 없음. `b1_status`·`b2_status`에 사유 |
 | `v_contract_monthly` | 계약번호별 최초 체결월 기준 월별 건수·최종 금액(물품/용역·5분류)·`amount_missing_count`(2026-09-20, 합 1) | 조달 금액 ≠ 방산 매출. 28행·37,602(2026-09-20 실측) |
 | `v_overseas_plan_yearly` | 연도×집행유형 건수·예산 합·전자 후보 건수 | 예산은 계획(집행 예정액). 관세청 수입액과 합산·비교 금지 |
@@ -188,7 +188,7 @@
 
 ## 4. 꼭 지킬 규칙 5개
 
-1. **`raw_`는 수정·삭제하지 않는다.** 잘못 넣었으면 `db/reset_data.sql`(데이터 계층 전체) 또는 `DELETE … WHERE source_file='…'`(한 파일) 후 다시 적재.
+1. **원본 파일(`data/raw/`)은 수정·삭제하지 않고 DB에 넣지 않는다.** 정제 표를 다시 만들 때는 그 `clean_`만 TRUNCATE 하고 노트북(입력 `read_raw`)을 재실행한다(`db/reset_data.sql`은 데이터 계층 전체).
 2. **NULL은 "미확인"이지 0이 아니다.** 뷰의 B1·B2 건수가 NULL이면 `b1_status`·`b2_status`를 보고 라벨로 보여 준다. 차트에서 0으로 그리지 않는다. 화면 어휘는 열 사전 `description`의 「→ 화면 「…」, 집계 …」 구절을 따른다(2026-09-20 확정, 규칙 #9: 미기재 / 판단 보류 / 해당 없음 / 표시 안 함). 금액 합을 내는 뷰는 `*_missing_count` 열로 미기재 건수를 병기한다(`v_bid_notice_monthly`·`v_contract_monthly`·`v_domestic_plan_yearly`·`v_contract_private_reason`).
 3. **조달 금액 ≠ 방산 매출, 국외조달 예산 = 집행 예정액.** 관세청 수입액(달러, 실적)과 방사청 예산(원, 계획)은 합산·직접 비교하지 않는다.
 4. **모든 무역 값은 "국가 전체 수입(민수 포함)"**이다. 방산 수입만 뽑은 게 아니라고 화면에 라벨을 단다.
@@ -206,13 +206,11 @@ SELECT r.hs6, w.name_ko, r.top1_stat_cd, ROUND(r.top1_share*100,1) AS top1_pct, 
 FROM v_hhi_hs6_year r JOIN ref_hs_whitelist w ON w.hs6=r.hs6
 WHERE r.year=2025 ORDER BY r.hhi DESC;
 
--- 3) 계약정보 월별 건수 (clean_ 채우기 전 raw 직접 집계 — 차수 행 포함이므로 "계약 건수"가 아니라 "계약 행 수")
-SELECT LEFT(contract_date,7) AS ym, biz_type_name, COUNT(*) AS rows_cnt
-FROM raw_dapa_contract GROUP BY ym, biz_type_name ORDER BY ym;
+-- 3) 계약정보 월별 건수 (계약 단위 = 최종 차수 1행 — 차수 행을 세지 않는다)
+SELECT yyyymm, biz_type, class5, contract_count, total_contract_amount FROM v_contract_monthly ORDER BY yyyymm, biz_type;
 
--- 4) 국외조달 조달계획 연도별 예산 (clean_ 채우기 전 raw 직접 집계, 판단번호 중복 5쌍 포함)
-SELECT LEFT(plan_month,4) AS plan_year, exec_type, COUNT(*) AS n, SUM(CAST(budget_amount AS UNSIGNED)) AS budget_krw
-FROM raw_dapa_overseas_plan GROUP BY plan_year, exec_type ORDER BY plan_year, budget_krw DESC;
+-- 4) 국외조달 조달계획 연도별 예산 (판단번호 단위 정제본)
+SELECT plan_year, exec_type, plan_count, budget_krw FROM v_overseas_plan_yearly ORDER BY plan_year, budget_krw DESC;
 
 -- 5) 원본 건수 보고표 (데이터셋별 단계)
 SELECT dataset_key, table_name, stage, stage_detail, row_count, exclusion_reason
@@ -246,7 +244,7 @@ FROM v_overseas_bid_chain GROUP BY plan_exec_type, final_result ORDER BY units D
 
 ## 6. 관계도
 
-실선 = 실제 FK 12개, 점선 = FK 없이 논리적으로만 잇는 관계(품목군 수준 대응, 완전 중복 축약). PK·FK·열까지 그린 그림이 필요하면 **DBeaver/Workbench로 서버에 접속해 ER Diagram 생성(리버스 엔지니어링)** 하거나, dbdiagram.io에 `db/schema.sql`을 **텍스트로 붙여 넣는다**. "스크립트 실행"·"Forward Engineer"처럼 서버에 SQL을 보내는 기능은 쓰지 않는다(위 경고).
+실선 = 실제 FK(2026-09-22 raw_ 참조 FK 15개 삭제 후 `ref_`·`dim_`·`clean_company` 관계만), 점선 = FK 없이 논리적으로만 잇는 관계(원본 파일 파서 순번 `raw_row_id`, 완전 중복 축약). 도메인별 상세는 `docs/db/erd.md`. PK·FK·열까지 그린 그림이 필요하면 **DBeaver/Workbench로 서버에 접속해 ER Diagram 생성(리버스 엔지니어링)** 하거나, dbdiagram.io에 `db/schema.sql`을 **텍스트로 붙여 넣는다**. "스크립트 실행"·"Forward Engineer"처럼 서버에 SQL을 보내는 기능은 쓰지 않는다(위 경고).
 
 ```mermaid
 erDiagram
@@ -254,13 +252,10 @@ erDiagram
   ref_hs_whitelist ||--o{ fact_customs_monthly : hs6
   ref_country      ||--o{ fact_customs_monthly : stat_cd
   dim_hs10         ||--o{ fact_customs_monthly : hs10
-  raw_customs_trade ||--o| fact_customs_monthly : "raw_row_id (FK, UNIQUE)"
-  raw_dapa_contract ||--o| clean_dapa_contract : "raw_row_id (FK, UNIQUE)"
-  raw_dapa_localized_item }o..|| clean_dapa_localized_item : "project_name, part_mgmt_no (논리)"
-  raw_krit_task    ||--o| clean_krit_task : "raw_row_id (FK)"
+  ref_hs_whitelist ||--o{ clean_customs_region : hs6
+  raw_file_X       ||..o| clean_X : "raw_row_id = 파서 순번(FK 없음, 원본은 data/raw/ 파일)"
   clean_company    ||--o{ clean_company_name_link : "biz_reg_no (FK)"
-  raw_dapa_overseas_plan ||--o| clean_dapa_overseas_plan : "first_raw_row_id (FK)"
-  raw_dapa_overseas_plan }o..o{ raw_dapa_overseas_bid_result : "decision_no (논리, 교집합 83)"
+  clean_dapa_overseas_plan }o..o{ clean_dapa_overseas_bid_result : "decision_no (논리, 교집합 83)"
   meta_dataset     ||--o{ meta_load_log : dataset_key
 ```
 

@@ -1,18 +1,22 @@
-"""운영 DB(AWS RDS defense_dashboard, 2026-09-18부터) 적재 스크립트 — ref_ / meta_ / raw_ / dim_·fact_ 계층.
+"""운영 DB(AWS RDS defense_dashboard) 적재 스크립트 — ref_ / meta_ / dim_·fact_ 계층 + 원본 파일 읽기(read_raw).
+
+원본은 DB에 넣지 않는다(2026-09-22 교수 피드백 — docs/report/feedback/professor-feedback-2026-09-22.md). data/raw/ 파일이 원본이며,
+정제 노트북과 --fact 는 read_raw(<데이터셋 키>) 로 파일을 pandas DataFrame 으로 읽는다. RAW_TABLES 의 키(raw_…)는 옛 raw_ 표 이름을
+그대로 물려받은 **원본 파일 데이터셋 키**로, meta_dataset.target_table · clean_excluded_row.table_name · db/column_dict.csv(원본 파일
+열 사전) 와 같은 값이다. read_raw 가 매기는 row_id(파일명 정렬 × 파일 내 행 순, 1부터)가 clean_*.raw_row_id 의 정의다.
 
 접속은 scripts/dbconf.py(.env 의 MARIADB_*, 기본 계정 etl_rw, TLS). LOAD DATA LOCAL 은 쓰지 않고 pymysql executemany 로 넣는다.
-열 매핑은 db/column_dict.csv 의 (table_name, ordinal, column_name, original_name) 을 기준으로 CSV 헤더를 순서 대조한 뒤 적재한다.
-clean_ 계층은 다루지 않는다(정제 규칙은 사용자 노트북 영역).
+열 매핑은 db/column_dict.csv 의 (table_name, ordinal, column_name, original_name) 을 기준으로 CSV 헤더를 순서 대조한다.
+clean_ 계층은 다루지 않는다(정제 규칙은 노트북 영역, notebooks/clean_*.ipynb).
 
 사용:
-  python scripts/load_db.py --dry-run                 # 파일 파싱·헤더 대조·건수만 (DB 접속 없음)
+  python scripts/load_db.py --dry-run                 # 원본 파일 파싱·헤더 대조·건수만 (DB 접속 없음)
+  python scripts/load_db.py --dry-run --tables raw_dapa_contract raw_krit_task
   python scripts/load_db.py --ref                     # ref_hs_whitelist·ref_country·meta_column_dict·meta_dataset + db/seed_ref.sql
-  python scripts/load_db.py --raw                     # raw_ 18개 전부 (파일 없는 테이블은 SKIP)
-  python scripts/load_db.py --raw --tables raw_dapa_contract raw_krit_task
-  python scripts/load_db.py --fact                    # dim_hs10·fact_customs_monthly 채우기 (schema.sql §4)
+  python scripts/load_db.py --fact                    # dim_hs10·fact_customs_monthly 를 관세청 원본 파일에서 pandas 로 만들어 적재
   python scripts/load_db.py --verify                  # 건수 대조표만 출력
 
-재적재는 하지 않는다: 대상 테이블이 비어 있지 않으면 중단한다. 먼저 db/reset_data.sql 또는 DELETE … WHERE source_file=… 로 비운다.
+재적재는 하지 않는다: 대상 테이블이 비어 있지 않으면 건너뛴다. 먼저 db/reset_data.sql 로 비운다.
 """
 from __future__ import annotations
 
@@ -44,10 +48,11 @@ BATCH = 2000
 SCRIPT_TAG = "scripts/load_db.py"
 
 # ---------------------------------------------------------------------------
-# 테이블별 원본 파일·인코딩·기대 건수 (docs/db/schema-design.md §3-2)
+# 원본 파일 데이터셋별 파일·인코딩·기대 건수 (docs/db/schema-design.md §3-2 원본 파일 계층)
+#   키          는 원본 파일 데이터셋 키(옛 raw_ 표 이름 그대로) — column_dict.csv 의 table_name 과 같다
 #   dataset_key 는 meta_dataset.dataset_key (meta_load_log FK)
-#   null_cols   는 개인정보 열 → 적재 시 NULL
-#   int_cols    는 raw 중 유일한 정수 열
+#   null_cols   는 개인정보 열 → 읽을 때 NULL
+#   int_cols    는 원본 중 유일한 정수 열
 # ---------------------------------------------------------------------------
 RAW_TABLES: dict[str, dict] = {
     "raw_customs_trade": dict(
@@ -56,6 +61,9 @@ RAW_TABLES: dict[str, dict] = {
     "raw_customs_progress": dict(
         files="data/raw/customs/progress_all.csv", encoding="utf-8", expected=264,   # 231 + 33
         dataset_key="customs_progress", int_cols={"row_count"}, tier="메타"),
+    "raw_customs_region": dict(
+        files="data/raw/customs/customs_region_*.csv", encoding="utf-8", expected=273_586,   # 2026-09-18 수집 24개(시군구별 15134343). 금액 천 달러
+        dataset_key="customs_region", tier="보조"),
     "raw_dapa_contract": dict(
         files="data/raw/dapa/dapa_domestic_contract_20251231.csv", encoding="cp949", expected=43_112,
         dataset_key="dapa_contract", tier="핵심"),
@@ -129,7 +137,7 @@ RAW_TABLES: dict[str, dict] = {
         dataset_key="kdsis_nsn", int_cols={"origin_row_no"}, tier="보조"),
 }
 
-REF_EXPECTED = {"ref_hs_whitelist": 24, "ref_country": 238, "meta_column_dict": 849}  # 849 = column_dict.csv (2026-09-19 clean_kdsis_nsn_ref 6행 삭제 후. 이전 855 · 853 · 827 · 806 · 681 · 546 · 489 · 388 · 337)
+REF_EXPECTED = {"ref_hs_whitelist": 24, "ref_country": 238, "meta_column_dict": 858}  # 858 = column_dict.csv (2026-09-22 raw_ 계층 제거: 후속 표 4개 +28, fact raw_row_id -1. 이전 831 · 823 · 842 · 862 · 849 · 855 · 853 · 827 · 806 · 681 · 546 · 489 · 388 · 337)
 
 
 # ---------------------------------------------------------------------------
@@ -357,11 +365,57 @@ def resolve_files(spec: dict) -> list[Path]:
 
 
 # ---------------------------------------------------------------------------
+# 원본 파일 → DataFrame (정제 노트북·--fact 의 입력. 2026-09-22 raw_ 표 삭제 후 유일한 원본 읽기 경로)
+# ---------------------------------------------------------------------------
+_DICT_CACHE: dict[str, list[tuple[int, str, str]]] | None = None
+
+
+def read_raw(table: str, *, check_expected: bool = True) -> pd.DataFrame:
+    """원본 파일 데이터셋 `table`(RAW_TABLES 키) 을 파서(FRAMERS)로 읽어 DataFrame 으로 돌려준다.
+
+    열 = row_id + 파서 열(사전 순 영문 열 + source_file·source_row_no[·source_col_no]). 값은 전부 문자열 또는 None(빈 셀).
+    row_id 는 파일명 정렬 순 × 파일 내 행 순으로 1부터 매긴 **파서 순번** — clean_*.raw_row_id · clean_excluded_row.raw_row_id 의 정의.
+    check_expected=True 면 총 행 수가 RAW_TABLES.expected 와 다를 때 ValueError(원본 파일이 바뀌었거나 빠졌다는 뜻)."""
+    global _DICT_CACHE
+    if table not in RAW_TABLES:
+        raise KeyError(f"알 수 없는 원본 데이터셋: {table} (RAW_TABLES 키 중 하나여야 함)")
+    if _DICT_CACHE is None:
+        _DICT_CACHE = read_column_dict()
+    spec = RAW_TABLES[table]
+    files = resolve_files(spec)
+    if not files:
+        raise FileNotFoundError(f"{table}: 원본 파일 없음 — {spec['files']}")
+    cols: list[str] | None = None
+    parts: list[pd.DataFrame] = []
+    for p in files:
+        c, rows = FRAMERS[spec.get("special")](p, spec, _DICT_CACHE.get(table, []))
+        if cols is None:
+            cols = c
+        elif c != cols:
+            raise ValueError(f"{table}: 파일마다 열이 다름 {p.name}: {c} vs {cols}")
+        parts.append(pd.DataFrame(rows, columns=cols))
+    df = pd.concat(parts, ignore_index=True) if len(parts) > 1 else parts[0]
+    df = df.astype(object).where(pd.notna(df), None)          # NaN → None (문자열 열이라 NaN 은 빈 셀뿐)
+    df.insert(0, "row_id", range(1, len(df) + 1))
+    exp = spec["expected"]
+    if check_expected and exp is not None and len(df) != exp:
+        raise ValueError(f"{table}: 행 수 {len(df):,} ≠ 기대 {exp:,} (파일 {len(files)}개: {[p.name for p in files][:5]}…)")
+    return df
+
+
+def log_raw_stage(cur, table: str, df: pd.DataFrame, measured_by: str, note: str = "") -> None:
+    """read_raw 결과를 meta_load_log `원본 전체` 단계로 파일별 기록(옛 do_raw 가 하던 일을 노트북이 한다)."""
+    spec = RAW_TABLES[table]
+    for fname, n in df.groupby("source_file", sort=True).size().items():
+        log_stage(cur, spec["dataset_key"], table, "원본 전체", fname, int(n), None,
+                  f"{SCRIPT_TAG} read_raw({table!r}) — 파일 {fname} 파서 행 수{(' · ' + note) if note else ''}", measured_by)
+
+
+# ---------------------------------------------------------------------------
 # 단계별 실행
 # ---------------------------------------------------------------------------
 def do_dry_run(tables: list[str]):
-    cd = read_column_dict()
-    print(f"{'테이블':36} {'파일':3} {'행':>8} {'기대':>8}  판정")
+    print(f"{'데이터셋':36} {'파일':3} {'행':>8} {'기대':>8}  판정")
     ok = True
     for t in tables:
         spec = RAW_TABLES[t]
@@ -370,18 +424,18 @@ def do_dry_run(tables: list[str]):
             print(f"{t:36} {0:3} {'-':>8} {str(spec['expected'] or '-'):>8}  SKIP(파일 없음: {spec['files']})")
             ok = False
             continue
-        total = 0
         try:
-            for p in files:
-                _, rows = FRAMERS[spec.get("special")](p, spec, cd.get(t, []))
-                total += len(rows)
+            df = read_raw(t, check_expected=False)
         except Exception as e:  # noqa: BLE001
             print(f"{t:36} {len(files):3} {'-':>8} {str(spec['expected'] or '-'):>8}  오류: {e}")
             ok = False
             continue
         exp = spec["expected"]
+        total = len(df)
         verdict = "일치" if exp is None or exp == total else f"불일치(차이 {total - exp:+})"
         print(f"{t:36} {len(files):3} {total:8,} {str(exp or '-'):>8}  {verdict}")
+        if exp is not None and exp != total:
+            ok = False
     return ok
 
 
@@ -412,7 +466,7 @@ def do_ref(conn):
         conn.commit()
         exp = REF_EXPECTED.get(table)
         print(f"  {table}: {n:,}행 적재" + (f" (기대 {exp}: {'일치' if exp == n else '불일치'})" if exp else ""))
-    # 수작업 시드 (ref_sido_map · ref_category_map 후보)
+    # 수작업 시드 (ref_sido_map · ref_fsg) — ref_category_map 시드는 2026-09-21 폐기
     if SEED_SQL.exists():
         # 주석 행을 먼저 걷어낸 뒤 ";\n" 로 문장을 나눈다(문자열 안의 ';' 는 줄 끝에 오지 않는다)
         body_all = "\n".join(l for l in SEED_SQL.read_text(encoding="utf-8").splitlines() if not l.strip().startswith("--"))
@@ -420,7 +474,21 @@ def do_ref(conn):
         for s in stmts:
             cur.execute(s)
         conn.commit()
-        print(f"  seed_ref.sql: {len(stmts)}문 실행 → ref_sido_map {table_count(cur,'ref_sido_map')} · ref_category_map {table_count(cur,'ref_category_map')}")
+        print(f"  seed_ref.sql: {len(stmts)}문 실행 → ref_sido_map {table_count(cur,'ref_sido_map')} · ref_fsg {table_count(cur,'ref_fsg')}")
+    # 관세청 HS 기준표 2종 — 원본 파일(read_raw)에서 만든다(2026-09-22 raw_ 표 삭제 후속. 첫 적재는 alter_2026-09-22_raw_successors.sql 이 raw_ 에서 했다)
+    for table, src, builder, exp in [("ref_hs_code_master", "raw_hs_code_master", build_hs_code_master, 11_327),
+                                     ("ref_hs6_name", "raw_hs_unit_name", build_hs6_name, 2_254)]:
+        if table_count(cur, table) > 0:
+            print(f"  {table}: 비어 있지 않아 건너뜀({table_count(cur, table)}행)")
+            continue
+        try:
+            df = builder(read_raw(src))
+        except FileNotFoundError as e:
+            print(f"  {table}: SKIP({e})")
+            continue
+        n = insert_rows(cur, table, list(df.columns), _rows(df))
+        conn.commit()
+        print(f"  {table}: {n:,}행 적재 (기대 {exp:,}: {'일치' if n == exp else '불일치'})")
     print(f"  (measured_by={user})")
 
 
@@ -442,150 +510,158 @@ def current_user(cur) -> str:
     return cur.fetchone()[0]
 
 
-def do_raw(conn, tables: list[str]) -> bool:
-    cd = read_column_dict()
+def build_hs_code_master(df: pd.DataFrame) -> pd.DataFrame:
+    """read_raw('raw_hs_code_master') → ref_hs_code_master (2026 현행 HSK10 11,327행: 10자리만, 이름·적용기간 5열)."""
+    d = df[df["hs_code"].fillna("").str.fullmatch(r"[0-9]{10}")]
+    return pd.DataFrame({"hs10": d["hs_code"], "name_ko": d["name_ko"], "name_en": d["name_en"],
+                         "apply_start": pd.to_datetime(d["apply_start"].str[:10], errors="coerce").dt.date,
+                         "apply_end": pd.to_datetime(d["apply_end"].str[:10], errors="coerce").dt.date}).reset_index(drop=True)
+
+
+def build_hs6_name(df: pd.DataFrame) -> pd.DataFrame:
+    """read_raw('raw_hs_unit_name') → ref_hs6_name (06시트 6자리 2,254행. 10시트는 ref_hs_code_master 와 코드·품명이 같아 두지 않는다)."""
+    d = df[(df["hs_unit"] == "06") & df["hs_code"].fillna("").str.fullmatch(r"[0-9]{6}")]
+    return d[["hs_code", "name_ko", "name_en"]].rename(columns={"hs_code": "hs6"}).reset_index(drop=True)
+
+
+def build_customs_region(df: pd.DataFrame) -> pd.DataFrame:
+    """read_raw('raw_customs_region') → clean_customs_region (HS6 × 시군구 × 월, 금액 천 달러, 쉼표 제거·정수)."""
+    n = lambda s: pd.to_numeric(s.str.replace(",", "", regex=False), errors="coerce").astype("Int64")
+    out = pd.DataFrame({
+        "hs6": df["req_hs"], "sido_code": df["req_sido"], "sgg_name": df["sgg_name"],
+        "yyyymm": df["stat_ym"].str[:4] + df["stat_ym"].str[-2:],
+        "year": df["stat_ym"].str[:4].astype(int), "month": df["stat_ym"].str[-2:].astype(int),
+        "exp_cnt": n(df["exp_cnt"]), "exp_kusd": n(df["exp_usd_amt"]), "imp_cnt": n(df["imp_cnt"]),
+        "imp_kusd": n(df["imp_usd_amt"]), "trade_balance_kusd": n(df["trade_balance_amt"])})
+    out["is_partial_year"] = (out["year"] == 2026).astype(int)
+    return out
+
+
+def build_customs_dim_fact(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """관세청 원본(read_raw('raw_customs_trade'))에서 dim_hs10 · fact_customs_monthly 행을 만든다(schema.sql §4 규칙).
+
+    총계행(is_total='1') 제외, hs6 = LEFT(hs10,6), yyyymm = 'YYYY.MM' → 'YYYYMM', 금액·중량은 정수, 2026 = 부분연도.
+    dim.name_ko 는 HS10 별 가장 최근 stat_ym 의 품명(동률이면 row_id 큰 쪽). MAX(item_name_ko)는 문자열 최댓값이라 쓰지 않는다."""
+    d = df[df["is_total"] == "0"].copy()
+    d["hs6"] = d["hs_cd"].str[:6]
+    d["year"] = d["stat_ym"].str[:4].astype(int)
+    d["month"] = d["stat_ym"].str[-2:].astype(int)
+    d["yyyymm"] = d["stat_ym"].str[:4] + d["stat_ym"].str[-2:]
+    for c in ("imp_dlr", "exp_dlr", "imp_wgt", "exp_wgt", "bal_payments"):
+        d[c] = pd.to_numeric(d[c], errors="raise").astype("Int64")
+    d["is_partial_year"] = (d["year"] == 2026).astype(int)
+    fact = d[["hs_cd", "stat_cd", "yyyymm", "hs6", "year", "month", "imp_dlr", "exp_dlr", "imp_wgt", "exp_wgt",
+              "bal_payments", "is_partial_year"]].rename(columns={"hs_cd": "hs10"})
+    latest = d.sort_values(["hs_cd", "stat_ym", "row_id"]).drop_duplicates("hs_cd", keep="last")
+    dim = latest[["hs_cd", "hs6", "item_name_ko"]].rename(columns={"hs_cd": "hs10", "item_name_ko": "name_ko"})
+    return dim.reset_index(drop=True), fact.reset_index(drop=True)
+
+
+def _rows(df: pd.DataFrame) -> list[tuple]:
+    return [tuple(None if (v is None or (isinstance(v, float) and pd.isna(v)) or v is pd.NA) else
+                  (int(v) if hasattr(v, "__index__") and not isinstance(v, bool) else v) for v in rec)
+            for rec in df.itertuples(index=False, name=None)]
+
+
+def do_region(conn) -> bool:
+    """clean_customs_region ← read_raw('raw_customs_region') (시군구별 15134343, 273,586행 기대). 파일 없으면 SKIP."""
     cur = conn.cursor()
     user = current_user(cur)
-    all_ok = True
-    for t in tables:
-        spec = RAW_TABLES[t]
-        files = resolve_files(spec)
-        if not files:
-            print(f"- {t}: SKIP(파일 없음: {spec['files']})")
-            all_ok = False
-            continue
-        if (n0 := table_count(cur, t)) > 0:
-            print(f"- {t}: 비어 있지 않음({n0:,}행) → 건너뜀. 재적재는 reset_data.sql 또는 DELETE … WHERE source_file 후")
-            all_ok = False
-            continue
-        t0 = time.time()
-        total = 0
-        try:
-            for p in files:
-                cols, rows = FRAMERS[spec.get("special")](p, spec, cd.get(t, []))
-                n = insert_rows(cur, t, cols, rows)
-                log_stage(cur, spec["dataset_key"], t, "원본 전체", p.name, n, None,
-                          f"{SCRIPT_TAG} --raw ({p.name}, pandas {'read_excel' if p.suffix.lower() == '.xlsx' else 'read_csv'} dtype=str)", user)
-                conn.commit()
-                total += n
-                print(f"    {p.name}: {n:,}행")
-        except Exception as e:  # noqa: BLE001
-            conn.rollback()
-            print(f"- {t}: 오류 → 롤백. {e}")
-            all_ok = False
-            continue
-        # meta_dataset 의 크기·해시가 비어 있으면(--ref 시점에 파일이 없던 A7 등) 단일 파일일 때 채운다
-        if len(files) == 1:
-            cur.execute("UPDATE meta_dataset SET file_bytes=%s, sha256=%s WHERE dataset_key=%s AND sha256 IS NULL",
-                        (files[0].stat().st_size, sha256_of(files[0]), spec["dataset_key"]))
-            conn.commit()
-        cnt = table_count(cur, t)
-        exp = spec["expected"]
-        verdict = "일치" if exp is None or exp == cnt else f"불일치(기대 {exp:,})"
-        print(f"- {t}: {len(files)}파일 {cnt:,}행 [{verdict}] {time.time()-t0:.1f}s")
-        if exp is not None and exp != cnt:
-            all_ok = False
-    return all_ok
-
-
-DIM_SQL = """
-INSERT INTO dim_hs10 (hs10, hs6, name_ko)
-  SELECT hs_cd, LEFT(hs_cd,6), item_name_ko
-  FROM (SELECT hs_cd, item_name_ko,
-               ROW_NUMBER() OVER (PARTITION BY hs_cd ORDER BY stat_ym DESC, row_id DESC) AS rn
-        FROM raw_customs_trade WHERE is_total='0') t
-  WHERE rn = 1
-"""
-FACT_SQL = """
-INSERT INTO fact_customs_monthly
-  (hs10, stat_cd, yyyymm, hs6, year, month, imp_dlr, exp_dlr, imp_wgt, exp_wgt, bal_payments, is_partial_year, raw_row_id)
-  SELECT hs_cd, stat_cd, CONCAT(LEFT(stat_ym,4), RIGHT(stat_ym,2)), LEFT(hs_cd,6),
-         CAST(LEFT(stat_ym,4) AS SIGNED), CAST(RIGHT(stat_ym,2) AS SIGNED),
-         CAST(imp_dlr AS SIGNED), CAST(exp_dlr AS SIGNED), CAST(imp_wgt AS SIGNED), CAST(exp_wgt AS SIGNED),
-         CAST(bal_payments AS SIGNED), IF(LEFT(stat_ym,4)='2026',1,0), row_id
-  FROM raw_customs_trade WHERE is_total='0'
-"""
+    if table_count(cur, "clean_customs_region") > 0:
+        print(f"- clean_customs_region 비어 있지 않음({table_count(cur, 'clean_customs_region'):,}행) → 건너뜀")
+        return True
+    try:
+        raw = read_raw("raw_customs_region")
+    except FileNotFoundError as e:
+        print(f"- clean_customs_region: SKIP({e})")
+        return False
+    df = build_customs_region(raw)
+    n = insert_rows(cur, "clean_customs_region", list(df.columns), _rows(df))
+    log_raw_stage(cur, "raw_customs_region", raw, user)
+    log_stage(cur, "customs_region", "clean_customs_region", "중복 처리 후", "HS6 × 시군구 × 월(형 변환, 제외 0)", n, None,
+              f"{SCRIPT_TAG} --fact (read_raw → build_customs_region, pandas)", user)
+    conn.commit()
+    print(f"- clean_customs_region {n:,}행 (기대 273,586: {'일치' if n == 273_586 else '불일치'})")
+    return n == 273_586
 
 
 def do_fact(conn) -> bool:
     cur = conn.cursor()
     user = current_user(cur)
-    if table_count(cur, "raw_customs_trade") == 0:
-        print("- raw_customs_trade 가 비어 있음 → --raw 먼저")
-        return False
+    ok_region = do_region(conn)
     if table_count(cur, "fact_customs_monthly") > 0 or table_count(cur, "dim_hs10") > 0:
         print("- dim_hs10/fact_customs_monthly 가 비어 있지 않음 → 건너뜀")
-        return False
-    cur.execute("SELECT DISTINCT r.stat_cd FROM raw_customs_trade r LEFT JOIN ref_country c ON c.stat_cd=r.stat_cd"
-                " WHERE r.is_total='0' AND c.stat_cd IS NULL")
-    missing = [r[0] for r in cur.fetchall()]
+        return ok_region
+    t0 = time.time()
+    raw = read_raw("raw_customs_trade")
+    dim, fact = build_customs_dim_fact(raw)
+    cur.execute("SELECT stat_cd FROM ref_country")
+    known = {r[0] for r in cur.fetchall()}
+    missing = sorted(set(fact["stat_cd"]) - known)
     if missing:
         print(f"- ref_country 에 없는 stat_cd {len(missing)}개: {missing[:20]} → 중단")
         return False
-    cur.execute("SELECT DISTINCT LEFT(hs_cd,6) FROM raw_customs_trade r WHERE is_total='0'"
-                " AND NOT EXISTS (SELECT 1 FROM ref_hs_whitelist w WHERE w.hs6=LEFT(r.hs_cd,6))")
-    miss_hs = [r[0] for r in cur.fetchall()]
+    cur.execute("SELECT hs6 FROM ref_hs_whitelist")
+    wl = {r[0] for r in cur.fetchall()}
+    miss_hs = sorted(set(fact["hs6"]) - wl)
     if miss_hs:
         print(f"- ref_hs_whitelist 에 없는 hs6 {miss_hs} → 중단")
         return False
-    t0 = time.time()
-    n_dim = cur.execute(DIM_SQL)
-    n_fact = cur.execute(FACT_SQL)
-    cur.execute("SHOW WARNINGS")
-    warns = cur.fetchall()
-    cur.execute("SELECT COUNT(*) FROM fact_customs_monthly WHERE year=2025")
-    n2025 = cur.fetchone()[0]
+    n_dim = insert_rows(cur, "dim_hs10", list(dim.columns), _rows(dim))
+    n_fact = insert_rows(cur, "fact_customs_monthly", list(fact.columns), _rows(fact))
+    n2025 = int((fact["year"] == 2025).sum())
+    n_total = int((raw["is_total"] == "1").sum())
+    log_raw_stage(cur, "raw_customs_trade", raw, user, "총계행 포함")
     log_stage(cur, "customs_all", "fact_customs_monthly", "원본 전체", "총계행 제외 월별 상세", n_fact,
-              "연간 총계행(is_total=1) 213행 제외", f"{SCRIPT_TAG} --fact (schema.sql §4 INSERT…SELECT)", user)
+              f"연간 총계행(is_total=1) {n_total}행 제외", f"{SCRIPT_TAG} --fact (read_raw → build_customs_dim_fact, pandas)", user)
     log_stage(cur, "customs_all", "fact_customs_monthly", "선택 연도 원본", "2025", n2025,
-              "2025년 외 연도 제외", "SELECT COUNT(*) FROM fact_customs_monthly WHERE year=2025", user)
+              "2025년 외 연도 제외", "fact['year'] == 2025 (pandas)", user)
     conn.commit()
     print(f"- dim_hs10 {n_dim:,}행 · fact_customs_monthly {n_fact:,}행 (기대 294,174: {'일치' if n_fact==294_174 else '불일치'})"
-          f" · 2025 {n2025:,}행 (기대 26,211: {'일치' if n2025==26_211 else '불일치'}) · 경고 {len(warns)} · {time.time()-t0:.1f}s")
-    for w in warns[:10]:
-        print("    ", w)
+          f" · 2025 {n2025:,}행 (기대 26,211: {'일치' if n2025==26_211 else '불일치'}) · {time.time()-t0:.1f}s")
     return n_fact == 294_174
 
 
 def do_verify(conn):
+    """DB 건수 대조(ref·meta·dim/fact·clean) + 원본 파일 파서 건수(read_raw, 파일 쪽)."""
     cur = conn.cursor()
+    cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema=DATABASE() AND table_type='BASE TABLE'"
+                " AND table_name LIKE 'clean%' ORDER BY table_name")
+    clean_tables = [r[0] for r in cur.fetchall()]
     print(f"{'테이블':36} {'건수':>10} {'기대':>10}  판정")
-    for t, exp in list(REF_EXPECTED.items()) + [(t, s["expected"]) for t, s in RAW_TABLES.items()] + \
-            [("dim_hs10", None), ("fact_customs_monthly", 294_174), ("meta_dataset", None), ("meta_load_log", None),
-             ("ref_category_map", None), ("ref_sido_map", None)]:
+    for t, exp in list(REF_EXPECTED.items()) + [("dim_hs10", None), ("fact_customs_monthly", 294_174), ("meta_dataset", None), ("meta_load_log", None),
+             ("ref_sido_map", None)] + [(t, None) for t in clean_tables]:
         n = table_count(cur, t)
         v = "-" if exp is None else ("일치" if n == exp else f"불일치({n-exp:+})")
         print(f"{t:36} {n:10,} {str(exp or '-'):>10}  {v}")
+    print("\n[원본 파일] read_raw 파서 건수 (DB 아님)")
+    do_dry_run(list(RAW_TABLES))
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--ref", action="store_true")
-    ap.add_argument("--raw", action="store_true")
     ap.add_argument("--fact", action="store_true")
     ap.add_argument("--verify", action="store_true")
-    ap.add_argument("--tables", nargs="*", default=None, help="raw_ 테이블 이름(생략 시 전부)")
+    ap.add_argument("--tables", nargs="*", default=None, help="--dry-run 대상 원본 데이터셋 키(RAW_TABLES, 생략 시 전부)")
     a = ap.parse_args()
     tables = a.tables or list(RAW_TABLES)
     bad = [t for t in tables if t not in RAW_TABLES]
     if bad:
-        sys.exit(f"알 수 없는 테이블: {bad}")
-    if not any([a.dry_run, a.ref, a.raw, a.fact, a.verify]):
+        sys.exit(f"알 수 없는 원본 데이터셋: {bad}")
+    if not any([a.dry_run, a.ref, a.fact, a.verify]):
         ap.print_help()
         return
     rc = 0
     if a.dry_run:
         rc |= 0 if do_dry_run(tables) else 1
-    if a.ref or a.raw or a.fact or a.verify:
+    if a.ref or a.fact or a.verify:
         conn = connect()
         try:
             if a.ref:
                 print("[ref/meta]")
                 do_ref(conn)
-            if a.raw:
-                print("[raw]")
-                rc |= 0 if do_raw(conn, tables) else 1
             if a.fact:
                 print("[dim/fact]")
                 rc |= 0 if do_fact(conn) else 1

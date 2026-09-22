@@ -132,7 +132,7 @@
 
 ### 원본 확보 기록 — 관세청 HS 코드표·무역안보관리원 HSK 연계표 (2026-09-16, Claude in Chrome로 data.go.kr에서 다운로드)
 
-HS6 선정 규칙(`docs/reference/hs-whitelist-definition.md` §8)의 원본. 로그인 없이 "다운로드" 버튼으로 받았고, 행 수는 pandas(read_excel openpyxl / csv) 레코드 수(헤더 제외), SHA-256은 내려받은 파일 기준. **저장 위치는 아직 `~/Downloads`** — 사용자가 아래 경로로 옮긴 뒤 `load_db.py --raw`(Claude는 `data/raw/` 쓰기 차단 훅).
+HS6 선정 규칙(`docs/reference/hs-whitelist-definition.md` §8)의 원본. 로그인 없이 "다운로드" 버튼으로 받았고, 행 수는 pandas(read_excel openpyxl / csv) 레코드 수(헤더 제외), SHA-256은 내려받은 파일 기준. **저장 위치는 아직 `~/Downloads`** — 사용자가 아래 경로로 옮기면 `load_db.py --dry-run`·정제 노트북이 `read_raw`로 읽는다(2026-09-22부터 RDS raw_ 표 없음. Claude는 `data/raw/` 쓰기 차단 훅).
 
 | 원 파일명(`~/Downloads/`) | 이동 후 경로 | 데이터셋 ID | 크기(bytes) | SHA-256 | 행×열 | 등록·수정 | 역할 |
 |---|---|---|---|---|---|---|---|

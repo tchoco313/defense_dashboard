@@ -1,17 +1,17 @@
 # 테이블 카탈로그 — 역할·키·주요 열 (RDS `defense_dashboard` 실측 2026-09-22)
 
-`scripts/gen_table_catalog.py`가 `db/table_dict.csv`(역할·원천·한 행·쓰는 곳·주의) + `db/column_dict.csv`(열 설명) + RDS(행 수·PK·뷰 열)로 만든다. **손으로 고치지 말고 두 CSV를 고친 뒤 재생성.** 테이블 56 · 뷰 31. 화면↔테이블 대응·SQL 예시는 `docs/db/table-guide.md`, DDL은 `db/schema.sql`.
+`scripts/gen_table_catalog.py`가 `db/table_dict.csv`(역할·원천·한 행·쓰는 곳·주의) + `db/column_dict.csv`(열 설명) + RDS(행 수·PK·뷰 열)로 만든다. **손으로 고치지 말고 두 CSV를 고친 뒤 재생성.** 테이블 37 · 뷰 31 · 원본 파일 데이터셋 23(DB 밖). 화면↔테이블 대응·SQL 예시는 `docs/db/table-guide.md`, DDL은 `db/schema.sql`.
 
-읽는 법: 행 수는 실측 `COUNT(*)`. `raw_`는 공통 4열(`row_id`·`source_file`·`source_row_no`·`loaded_at`)을 표에서 뺐다. PK 열은 굵게. 뷰 열은 열 사전 대상이 아니라(설계 원칙) 이름·타입만 싣는다.
+읽는 법: 행 수는 실측 `COUNT(*)`(원본 파일은 파서 기대 건수). `raw_`는 원본 파일 데이터셋 키이며 열은 원본 파일 열 사전(`column_dict.csv`)이고 파서가 붙이는 `source_file`·`source_row_no`는 표에서 뺐다. PK 열은 굵게. 뷰 열은 열 사전 대상이 아니라(설계 원칙) 이름·타입만 싣는다.
 
 ## 목차
 
-- **ref_** 참조표 — 기준·라벨: `ref_country`, `ref_equipment_alias`, `ref_fsc`, `ref_fsg`, `ref_hs_indicator`, `ref_hs_rule_flag`, `ref_hs_whitelist`, `ref_sido_map`
-- **raw_** 원본 보존 — 전 열 문자열, 수정하지 않음: `raw_customs_progress`, `raw_customs_region`, `raw_customs_trade`, `raw_dapa_bid_notice`, `raw_dapa_bid_result`, `raw_dapa_contract`, `raw_dapa_contract_exec_by_service`, `raw_dapa_defense_company`, `raw_dapa_domestic_plan`, `raw_dapa_fsc_catalog`, `raw_dapa_localized_item`, `raw_dapa_overseas_bid_result`, `raw_dapa_overseas_contract`, `raw_dapa_overseas_plan`, `raw_dapa_overseas_plan_api`, `raw_hs_code_master`, `raw_hs_unit_name`, `raw_hsk_control`, `raw_kdsis_nsn`, `raw_kosis_production_index`, `raw_kosis_utilization`, `raw_krit_task`, `raw_openfiscal_program_budget`
+- **ref_** 참조표 — 기준·라벨: `ref_country`, `ref_equipment_alias`, `ref_fsc`, `ref_fsg`, `ref_hs6_name`, `ref_hs_code_master`, `ref_hs_indicator`, `ref_hs_rule_flag`, `ref_hs_whitelist`, `ref_sido_map`
+- **raw_** 원본 파일 — DB 밖(data/raw/, read_raw 로 읽음. RDS raw_ 표는 2026-09-22 삭제): `raw_customs_progress`, `raw_customs_region`, `raw_customs_trade`, `raw_dapa_bid_notice`, `raw_dapa_bid_result`, `raw_dapa_contract`, `raw_dapa_contract_exec_by_service`, `raw_dapa_defense_company`, `raw_dapa_domestic_plan`, `raw_dapa_fsc_catalog`, `raw_dapa_localized_item`, `raw_dapa_overseas_bid_result`, `raw_dapa_overseas_contract`, `raw_dapa_overseas_plan`, `raw_dapa_overseas_plan_api`, `raw_hs_code_master`, `raw_hs_unit_name`, `raw_hsk_control`, `raw_kdsis_nsn`, `raw_kosis_production_index`, `raw_kosis_utilization`, `raw_krit_task`, `raw_openfiscal_program_budget`
 - **meta_** 기록 — 출처·적재 단계·열 사전: `meta_column_dict`, `meta_dataset`, `meta_load_log`
 - **dim_** 차원 — 관세청 HS10: `dim_hs10`
 - **fact_** 사실 — 관세청 월별 수출입: `fact_customs_monthly`
-- **clean_** 정제 — 노트북이 채움, 화면·뷰의 원천: `clean_company`, `clean_company_name_link`, `clean_dapa_bid_notice`, `clean_dapa_bid_result`, `clean_dapa_contract`, `clean_dapa_contract_exec_by_service`, `clean_dapa_domestic_plan`, `clean_dapa_localized_item`, `clean_dapa_overseas_bid_result`, `clean_dapa_overseas_contract`, `clean_dapa_overseas_plan`, `clean_dapa_overseas_plan_api`, `clean_excluded_row`, `clean_hsk_control`, `clean_kdsis_nsn`, `clean_kosis_production_index`, `clean_kosis_utilization`, `clean_krit_task`, `clean_openfiscal_program_budget`, `clean_openfiscal_program_link`
+- **clean_** 정제 — 노트북이 채움, 화면·뷰의 원천: `clean_company`, `clean_company_name_link`, `clean_customs_region`, `clean_dapa_bid_notice`, `clean_dapa_bid_result`, `clean_dapa_contract`, `clean_dapa_contract_exec_by_service`, `clean_dapa_defense_company`, `clean_dapa_domestic_plan`, `clean_dapa_localized_item`, `clean_dapa_overseas_bid_result`, `clean_dapa_overseas_contract`, `clean_dapa_overseas_plan`, `clean_dapa_overseas_plan_api`, `clean_excluded_row`, `clean_hsk_control`, `clean_kdsis_nsn`, `clean_kosis_production_index`, `clean_kosis_utilization`, `clean_krit_task`, `clean_openfiscal_program_budget`, `clean_openfiscal_program_link`
 - **v_** 뷰 — 화면이 읽는 집계: `v_b2_fsg_summary`, `v_b2_localized_kdsis`, `v_bid_notice_monthly`, `v_bid_notice_result_link`, `v_bid_result_summary`, `v_budget_rnd_yearly`, `v_civil_mix_rule`, `v_contract_monthly`, `v_contract_private_reason`, `v_contract_reason_group_yearly`, `v_customs_region_gwacheon_year`, `v_defense_company_sector`, `v_domestic_plan_yearly`, `v_export_share_hs6_year`, `v_hhi_export_hs6_year`, `v_hhi_hs6_year`, `v_hs10_use_share`, `v_hs10_use_tag_all`, `v_hs6_candidate_rule`, `v_hs6_candidate_vs_whitelist`, `v_hs_whitelist_rule`, `v_hsk_control_by_hs6`, `v_import_hs6_year`, `v_import_share_hs6_year`, `v_kdsis_link_summary`, `v_overseas_bid_chain`, `v_overseas_contract_yearly`, `v_overseas_plan_api_fsc`, `v_overseas_plan_api_kdsis`, `v_overseas_plan_yearly`, `v_review_list`
 
 ## ref_ — 참조표 — 기준·라벨
@@ -57,7 +57,7 @@
 ### `ref_fsc`
 
 - **역할**: FSC 군급분류 4자리 라벨(폐지 여부·전자군 플래그)
-- **원천**: raw_dapa_fsc_catalog에서 파생 · **한 행**: FSC4 1개 · **PK**: `fsc4` · **행 수**: 676
+- **원천**: 원본 파일 raw_dapa_fsc_catalog에서 파생 · **한 행**: FSC4 1개 · **PK**: `fsc4` · **행 수**: 676
 - **쓰는 곳**: v_overseas_plan_api_fsc, B2 라벨
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -85,6 +85,34 @@
 | `is_electronic_group` | TINYINT(1) | (파생) | 58·59·60 = 1. 핵심 ② 기본 필터(기준 확정 2026-09-21 M4) |
 | `note_ko` | VARCHAR(300) | note_ko | 보완 3행(95·96·99) 출처·미대조 사유 |
 | `source_url` | VARCHAR(300) | source_url | DLA ZSMT_FSG.txt / GSA PSC Manual 2025-04 |
+
+### `ref_hs6_name`
+
+- **역할**: HS6 공식 명칭 2,254개(기준표)
+- **원천**: 원본 파일 raw_hs_unit_name 06시트 중 6자리(load_db.py --ref, read_raw) · **한 행**: HS6 1개 · **PK**: `hs6` · **행 수**: 2,254
+- **쓰는 곳**: v_hs6_candidate_rule(R2 용도어), ref_hs_rule_flag.hs6_name_ko(clean_p1 §4)
+- **주의**: 5자리 중간 수준(one-dash) 1,024은 제외. 세분되지 않는 HS6(예 852692)는 이 표에 없어 ref_hs_code_master 단일 자식 이름으로 보정
+
+| 열 | 타입 | 원본 열명 | 설명 |
+|---|---|---|---|
+| **`hs6`** | CHAR(6) | HS6단위 | HS 6자리. PK. 원본 파일 raw_hs_unit_name 06시트 중 6자리 2,254(5자리 중간 수준 제외) |
+| `name_ko` | VARCHAR(700) | 한글품목명 | 한글품목명(관세청 HS부호 단위별 품목명 15130660) |
+| `name_en` | VARCHAR(800) | 영문품목명 | 영문품목명 |
+
+### `ref_hs_code_master`
+
+- **역할**: 관세청 HS부호 마스터 중 2026 현행 HSK10 11,327개 — 코드·한글/영문 품명·적용기간(기준표)
+- **원천**: 원본 파일 raw_hs_code_master 12,469행 중 10자리(load_db.py --ref, read_raw) · **한 행**: HS10 1개 · **PK**: `hs10` · **행 수**: 11,327
+- **쓰는 곳**: 화면 ①·조회 HS10 품명 라벨, dim_hs10 보강(clean_p1 §3), v_hs10_use_tag_all(HS6 선정 규칙 R1·R2)
+- **주의**: 7~9자리 중간 수준 1,142·규격/단위 열은 사용처 없어 넣지 않음(원본 파일에만)
+
+| 열 | 타입 | 원본 열명 | 설명 |
+|---|---|---|---|
+| **`hs10`** | CHAR(10) | HS부호 | HSK 10자리(2026-01-01 현행). PK. 원본 파일 raw_hs_code_master 12,469행 중 10자리 11,327 |
+| `name_ko` | VARCHAR(500) | 한글품목명 | 한글품목명(관세청 HS부호 마스터 15049722) |
+| `name_en` | VARCHAR(600) | 영문품목명 | 영문품목명 |
+| `apply_start` | DATE | 적용시작일자 | 적용시작일자 |
+| `apply_end` | DATE | 적용종료일자 | 적용종료일자(현행 코드는 전부 2026-12-31) |
 
 ### `ref_hs_indicator`
 
@@ -171,7 +199,7 @@
 | `axis` | ENUM('import','export','both') | axis |  |
 | `system_family` | VARCHAR(30) | system_family | 무기체계 계열(2026-09-15 추가) |
 | `defense_use_ko` | VARCHAR(300) | defense_use_ko | 국방 용도 1문장(팀 판단) |
-| `evidence` | VARCHAR(50) | evidence | 근거 키 A6;B2-FSC;KRIT;A7;팀판단 |
+| `evidence` | VARCHAR(120) | evidence | 근거 키 A6;B2-FSC;KRIT;A7;팀판단 |
 | `civil_mix` | ENUM('높음','중간','낮음') | civil_mix | 민수 혼합 정도 — v_civil_mix_rule 규칙 도출값(2026-09-16). 정량 지표 없으면 NULL. docs/reference/hs-whitelist-definition.md §7 |
 | `civil_mix_basis` | ENUM('hs10','hsk','판단불가') | civil_mix_basis | civil_mix를 정한 지표 종류(2026-09-16) |
 | `civil_mix_note` | VARCHAR(200) | civil_mix_note | 근거 수치 요약. 원값은 ref_hs_indicator |
@@ -191,13 +219,13 @@
 | `sido_code` | CHAR(2) | (수작업) | 행정표준코드 앞 2자리(11 서울 … 50 제주) |
 | `sido_name` | VARCHAR(20) | (수작업) | 표준 시도명 |
 
-## raw_ — 원본 보존 — 전 열 문자열, 수정하지 않음
+## raw_ — 원본 파일 — DB 밖(data/raw/, read_raw 로 읽음. RDS raw_ 표는 2026-09-22 삭제)
 
 ### `raw_customs_progress`
 
 - **역할**: 관세청 API 호출별 반환 행수(재현성 증빙)
-- **원천**: progress_all.csv · **한 행**: HS6 × 연도 호출 1건 · **PK**: `row_id` · **행 수**: 264
-- **쓰는 곳**: 검산
+- **원천**: progress_all.csv · **한 행**: HS6 × 연도 호출 1건 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 264(파서 기대)
+- **쓰는 곳**: clean_p1_customs_hs.ipynb §2 검산(read_raw)
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -210,9 +238,9 @@
 ### `raw_customs_region`
 
 - **역할**: 관세청 시군구별 HS6×시군구×월 수출입실적 원본(수입 = 납세의무자 주소지 기준)
-- **원천**: customs_region_<HS6>.csv ×24 · **한 행**: HS6 × 시군구 × 월 · **PK**: `row_id` · **행 수**: 273,586
-- **쓰는 곳**: (없음 — 화면 채택 여부 팀 결정)
-- **주의**: 금액 단위 천 달러(raw_customs_trade 는 달러). 시군구 코드 없이 명칭만
+- **원천**: customs_region_<HS6>.csv ×24 · **한 행**: HS6 × 시군구 × 월 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 273,586(파서 기대)
+- **쓰는 곳**: clean_customs_region(load_db.py --fact, read_raw)
+- **주의**: 금액 단위 천 달러(raw_customs_trade 는 달러). 시군구 코드 없이 명칭만. 원본 CSV 24개는 맥에 있음(2026-09-18 수집) — 이 PC 미보유
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -233,8 +261,8 @@
 ### `raw_customs_trade`
 
 - **역할**: 관세청 HS10×국가×월 수출입실적 원본(연간 총계행 포함)
-- **원천**: customs_all_<HS6>.csv ×24 · **한 행**: HS10 × 국가 × 월(총계행 별도) · **PK**: `row_id` · **행 수**: 294,420
-- **쓰는 곳**: fact_customs_monthly, dim_hs10
+- **원천**: customs_all_<HS6>.csv ×24 · **한 행**: HS10 × 국가 × 월(총계행 별도) · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 294,420(파서 기대)
+- **쓰는 곳**: fact_customs_monthly·dim_hs10(load_db.py --fact, read_raw)
 - **주의**: 총계행(is_total=1)은 집계에서 제외
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -258,7 +286,7 @@
 ### `raw_dapa_bid_notice`
 
 - **역할**: 국내조달 경쟁 입찰공고 원본
-- **원천**: dapa_domestic_bid_notice_20251231.csv · **한 행**: 참조공고번호 × 차수 · **PK**: `row_id` · **행 수**: 10,842
+- **원천**: dapa_domestic_bid_notice_20251231.csv · **한 행**: 참조공고번호 × 차수 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 10,842(파서 기대)
 - **쓰는 곳**: clean_dapa_bid_notice
 - **주의**: bid_notice_no+seq는 비유일(입찰결과 연결용)
 
@@ -315,7 +343,7 @@
 ### `raw_dapa_bid_result`
 
 - **역할**: 국내조달 입찰결과(낙찰업체·낙찰률) 원본
-- **원천**: dapa_domestic_bid_result_20251231.csv · **한 행**: 공고번호 × 차수 × 결과행 · **PK**: `row_id` · **행 수**: 7,405
+- **원천**: dapa_domestic_bid_result_20251231.csv · **한 행**: 공고번호 × 차수 × 결과행 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 7,405(파서 기대)
 - **쓰는 곳**: clean_dapa_bid_result
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -350,8 +378,8 @@
 
 ### `raw_dapa_contract`
 
-- **역할**: 방사청 국내조달 계약정보 원본 — 1만 건 요건 데이터(43,112행)
-- **원천**: dapa_domestic_contract_20251231.csv · **한 행**: 계약번호 × 차수 · **PK**: `row_id` · **행 수**: 43,112
+- **역할**: 방사청 국내조달 계약정보 원본 — 부록(43,112행, 09-21 M2로 1만 건 요건 2종에서 제외)
+- **원천**: dapa_domestic_contract_20251231.csv · **한 행**: 계약번호 × 차수 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 43,112(파서 기대)
 - **쓰는 곳**: clean_dapa_contract
 - **주의**: '전자부품 1만 건' 아님 — 전 계약
 
@@ -389,7 +417,7 @@
 ### `raw_dapa_contract_exec_by_service`
 
 - **역할**: 군별 계약집행 현황 2015~2024(KPI)
-- **원천**: dapa_contract_exec_by_service_20241231.csv · **한 행**: 연도 × 군 · **PK**: `row_id` · **행 수**: 40
+- **원천**: dapa_contract_exec_by_service_20241231.csv · **한 행**: 연도 × 군 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 40(파서 기대)
 - **쓰는 곳**: clean_dapa_contract_exec_by_service
 - **주의**: 라벨 「계약집행액(억원) — 국내·국외 구분 없는 총액」(포털 설명에 구분 없음, 추론 — open-decisions D11)
 
@@ -402,9 +430,8 @@
 ### `raw_dapa_defense_company`
 
 - **역할**: 방산업체 지정현황 84개(주소·사업자번호 없음)
-- **원천**: dapa_defense_company_20260831.csv · **한 행**: 업체 1개 · **PK**: `row_id` · **행 수**: 84
-- **쓰는 곳**: v_defense_company_sector, clean_company_name_link
-- **주의**: clean 없음(raw 직독)
+- **원천**: dapa_defense_company_20260831.csv · **한 행**: 업체 1개 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 84(파서 기대)
+- **쓰는 곳**: clean_dapa_defense_company(clean_p4_domestic.ipynb §6)
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -417,7 +444,7 @@
 ### `raw_dapa_domestic_plan`
 
 - **역할**: 국내조달 조달계획 2024~2025 원본
-- **원천**: dapa_domestic_plan_20251231.csv · **한 행**: 계획 행(판단번호 비유일) · **PK**: `row_id` · **행 수**: 35,859
+- **원천**: dapa_domestic_plan_20251231.csv · **한 행**: 계획 행(판단번호 비유일) · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 35,859(파서 기대)
 - **쓰는 곳**: clean_dapa_domestic_plan
 - **주의**: 2024는 불완전(4,545행)
 
@@ -438,8 +465,8 @@
 ### `raw_dapa_fsc_catalog`
 
 - **역할**: 방사청 군급분류집(FSC 4자리 명칭·주석·포함·제외)
-- **원천**: 파일데이터 15119907 · **한 행**: 군급 1개 · **PK**: `row_id` · **행 수**: 756
-- **쓰는 곳**: ref_fsc 시드
+- **원천**: 파일데이터 15119907 · **한 행**: 군급 1개 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 756(파서 기대)
+- **쓰는 곳**: ref_fsc 시드(alter_2026-09-16_api_budget.sql, raw_ 표가 있던 시점)
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -457,7 +484,7 @@
 ### `raw_dapa_localized_item`
 
 - **역할**: 국산화개발품목(B2, 지상체계) 원본. 완전 중복 8,940행 포함
-- **원천**: dapa_localized_items_20260509.csv · **한 행**: 사업 × 부품(중복 있음) · **PK**: `row_id` · **행 수**: 33,965
+- **원천**: dapa_localized_items_20260509.csv · **한 행**: 사업 × 부품(중복 있음) · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 33,965(파서 기대)
 - **쓰는 곳**: clean_dapa_localized_item
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -476,7 +503,7 @@
 ### `raw_dapa_overseas_bid_result`
 
 - **역할**: 국외조달 입찰결과 2025-01~09 원본(부분연도)
-- **원천**: dapa_overseas_bid_result_20250915.csv · **한 행**: 공고 × 판단번호 × 항목 · **PK**: `row_id` · **행 수**: 2,494
+- **원천**: dapa_overseas_bid_result_20250915.csv · **한 행**: 공고 × 판단번호 × 항목 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 2,494(파서 기대)
 - **쓰는 곳**: clean_dapa_overseas_bid_result
 - **주의**: 달러 — 원화와 합산 금지
 
@@ -499,7 +526,7 @@
 ### `raw_dapa_overseas_contract`
 
 - **역할**: 국외조달 계약정보 원본(금액·국가 없음)
-- **원천**: dapa_overseas_contract_20251231.csv · **한 행**: 계약번호 · **PK**: `row_id` · **행 수**: 6,333
+- **원천**: dapa_overseas_contract_20251231.csv · **한 행**: 계약번호 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 6,333(파서 기대)
 - **쓰는 곳**: clean_dapa_overseas_contract
 - **주의**: 건수만 쓴다
 
@@ -523,7 +550,7 @@
 ### `raw_dapa_overseas_plan`
 
 - **역할**: 국외조달 조달계획 2017~2025 원본(사업 단위, 원화 집행 예정액)
-- **원천**: dapa_overseas_plan_20251231.csv · **한 행**: 판단번호(중복 5쌍) · **PK**: `row_id` · **행 수**: 3,029
+- **원천**: dapa_overseas_plan_20251231.csv · **한 행**: 판단번호(중복 5쌍) · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 3,029(파서 기대)
 - **쓰는 곳**: clean_dapa_overseas_plan
 - **주의**: 예산은 집행 예정액, 국가 없음
 
@@ -543,7 +570,7 @@
 ### `raw_dapa_overseas_plan_api`
 
 - **역할**: 방사청 국외 조달계획 OpenAPI 품목 단위 원본(요구연도 2016~2026, NSN·FSC·적용장비명)
-- **원천**: OpenAPI 15158418 · **한 행**: 조달요구번호 × 품목순번 · **PK**: `row_id` · **행 수**: 13,615
+- **원천**: OpenAPI 15158418 · **한 행**: 조달요구번호 × 품목순번 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 13,615(파서 기대)
 - **쓰는 곳**: clean_dapa_overseas_plan_api
 - **주의**: 파일판 raw_dapa_overseas_plan과 다른 표 — 합산 금지. 금액 통화 미검증
 
@@ -577,8 +604,8 @@
 ### `raw_hs_code_master`
 
 - **역할**: 관세청 HS부호 마스터 — HSK 10자리 전체(2026 현행)
-- **원천**: hs_code_master_15049722.xlsx · **한 행**: HS10 1개 · **PK**: `row_id` · **행 수**: 12,469
-- **쓰는 곳**: dim_hs10 대조, HS6 선정 규칙 R1·R2
+- **원천**: hs_code_master_15049722.xlsx · **한 행**: HS10 1개 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 12,469(파서 기대)
+- **쓰는 곳**: ref_hs_code_master(load_db.py --ref, 10자리만)
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -606,8 +633,8 @@
 ### `raw_hs_unit_name`
 
 - **역할**: 관세청 HS부호 단위별 품목명(2·4·6·8·10단위)
-- **원천**: hs_unit_name_15130660.xlsx · **한 행**: HS코드 × 단위 · **PK**: `row_id` · **행 수**: 17,072
-- **쓰는 곳**: HS6 공식 명칭
+- **원천**: hs_unit_name_15130660.xlsx · **한 행**: HS코드 × 단위 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 17,072(파서 기대)
+- **쓰는 곳**: ref_hs6_name(load_db.py --ref, 06시트 6자리만). 10시트는 ref_hs_code_master 와 동일해 두지 않음
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -619,7 +646,7 @@
 ### `raw_hsk_control`
 
 - **역할**: 무역안보관리원 전략물자 HSK 연계표 원본(HSK10 ↔ 통제번호 목록)
-- **원천**: data/raw/kosti/hsk_control_15034135.csv · **한 행**: HSK10 1개(통제번호는 쉼표 목록) · **PK**: `row_id` · **행 수**: 2,161
+- **원천**: data/raw/kosti/hsk_control_15034135.csv · **한 행**: HSK10 1개(통제번호는 쉼표 목록) · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 2,161(파서 기대)
 - **쓰는 곳**: clean_hsk_control
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -632,7 +659,7 @@
 ### `raw_kdsis_nsn`
 
 - **역할**: 국방표준종합서비스(KDSIS) NSN 목록 팀원 정리본(.txt + 2016.csv 합본)
-- **원천**: 팀원 공유 파일 2개 · **한 행**: NSN 행(원본 파일·행 보존) · **PK**: `row_id` · **행 수**: 228,027
+- **원천**: 팀원 공유 파일 2개 · **한 행**: NSN 행(원본 파일·행 보존) · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 228,027(파서 기대)
 - **쓰는 곳**: clean_kdsis_nsn
 - **주의**: NSN 등록 = 표준화 사실, 사용·조달·재고 아님
 
@@ -664,7 +691,7 @@
 ### `raw_kosis_production_index`
 
 - **역할**: KOSIS 광공업생산지수 C26 계열 월별 2016.01~2026.07(세로형 변환본)
-- **원천**: kosis_101_*.csv · **한 행**: 산업 × 항목 × 월 · **PK**: `row_id` · **행 수**: 1,016
+- **원천**: kosis_101_*.csv · **한 행**: 산업 × 항목 × 월 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 1,016(파서 기대)
 - **쓰는 곳**: clean_kosis_production_index
 - **주의**: stat_ym 'p)' 결함 16행은 clean에서 복원
 
@@ -675,11 +702,12 @@
 | `stat_ym` | VARCHAR(10) | (1행 헤더 `M201601 2016.01`) | 광폭 열 헤더 → 행 |
 | `item_name` | VARCHAR(50) | (2행 헤더 `T10 생산지수(원지수)`) | 원지수/계절조정 |
 | `value_text` | VARCHAR(20) | (셀 값) | 2020=100 |
+| `source_col_no` | SMALLINT | (셀 위치) | 광폭 원본의 열 번호(1부터). stat_ym 이 `p)` 인 결함 16행(253~256)의 월 복원 근거(clean is_month_restored) |
 
 ### `raw_kosis_utilization`
 
 - **역할**: KOSIS 방산업체 분야별 평균가동률 2016~2024(세로형 변환본)
-- **원천**: kosis_409_*.csv · **한 행**: 분야 × 연도 · **PK**: `row_id` · **행 수**: 81
+- **원천**: kosis_409_*.csv · **한 행**: 분야 × 연도 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 81(파서 기대)
 - **쓰는 곳**: clean_kosis_utilization
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -687,11 +715,12 @@
 | `sector_name` | VARCHAR(20) | 분야별 | 평균·항공유도·화력·탄약·기동·통신전자·함정·화생방·기타 |
 | `year` | CHAR(4) | (연도 열 헤더 2016~2024) | 광폭 열 헤더 → 행 |
 | `value_text` | VARCHAR(20) | (셀 값) | 평균가동률 % |
+| `source_col_no` | SMALLINT | (셀 위치) | 광폭 원본의 열 번호(1부터). 세로형 변환 전 위치 추적(source_row_no 와 짝) |
 
 ### `raw_krit_task`
 
 - **역할**: KRIT 부품국산화 공고 과제 목록(B1) 원본 — 차수·공고유형별 표
-- **원천**: data/raw/krit/*_t*.csv · **한 행**: 차수 × 공고유형 × 과제 · **PK**: `row_id` · **행 수**: 96
+- **원천**: data/raw/krit/*_t*.csv · **한 행**: 차수 × 공고유형 × 과제 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 96(파서 기대)
 - **쓰는 곳**: clean_krit_task
 - **주의**: 예비→본→재공고는 별개 문서라 합산 금지
 
@@ -702,11 +731,16 @@
 | `gov_fund_text` | VARCHAR(30) | 정부지원\n연구개발비 | 원문(`23.67억`) |
 | `dev_period_text` | VARCHAR(30) | 개발\n기간 | 원문(`30개월`) |
 | `note` | VARCHAR(300) | 비고 |  |
+| `round_label` | VARCHAR(20) | (파일명) | 차수 원문(예 `26-1차`). parse_krit.py 가 파일명에서 부여 |
+| `notice_type` | VARCHAR(20) | (파일명) | 예비 / 본공고 / 재공고 / 수정 — 파일명 토큰. 사업 구분(핵심·전략·수출연계)은 extra_json["구분(표제목)"] |
+| `extra_json` | TEXT | (차수별 추가 열) | 표마다 다른 열을 {"원본열명": "값"} JSON 문자열로 보존(총과제비·구분(표제목) 등) |
+| `table_index` | SMALLINT | (파생) | 문서 내 표 번호(parse_krit.py _tN). pdf 는 쪽 내 번호, 쪽은 source_file 의 _p<쪽> |
+| `source_url` | VARCHAR(300) | (파생) | 원문 공고 URL(방위사업청 공지 미러). 원문 8건 URL·SHA-256 은 docs/data-sources.md KRIT 표 |
 
 ### `raw_openfiscal_program_budget`
 
 - **역할**: 열린재정 세출/지출 세부사업 예산편성현황 — 방위사업청·일반회계 2016~2027(12파일)
-- **원천**: 열린재정 12파일 · **한 행**: 회계연도 × 세부사업 · **PK**: `row_id` · **행 수**: 2,860
+- **원천**: 열린재정 12파일 · **한 행**: 회계연도 × 세부사업 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 2,860(파서 기대)
 - **쓰는 곳**: clean_openfiscal_program_budget
 - **주의**: 관세청 수입액·조달계획과 합산 금지
 
@@ -732,7 +766,7 @@
 ### `meta_column_dict`
 
 - **역할**: 원본 한글 헤더 ↔ DB 영문 열명 ↔ 타입 ↔ 설명(= db/column_dict.csv)
-- **원천**: db/column_dict.csv · **한 행**: 테이블 × 열 · **PK**: `table_name,column_name` · **행 수**: 870
+- **원천**: db/column_dict.csv · **한 행**: 테이블 × 열 · **PK**: `table_name,column_name` · **행 수**: 858
 - **쓰는 곳**: 데이터 명세서
 - **주의**: 뷰 열은 등재하지 않음
 
@@ -802,7 +836,7 @@
 ### `dim_hs10`
 
 - **역할**: HS10 → HS6·품명(가장 최근 연월 기준) + 2026 현행 마스터 대조
-- **원천**: raw_customs_trade + raw_hs_code_master · **한 행**: HS10 1개 · **PK**: `hs10` · **행 수**: 211
+- **원천**: 원본 파일 raw_customs_trade(load_db.py --fact) + ref_hs_code_master(clean_p1 §3) · **한 행**: HS10 1개 · **PK**: `hs10` · **행 수**: 211
 - **쓰는 곳**: 화면 ① HS10 드릴다운, v_hs10_use_*
 - **주의**: 마스터에 없는 코드 = HS 2022 개정 전 폐지 코드(화면 '폐지 코드(구 명칭)')
 
@@ -821,7 +855,7 @@
 ### `fact_customs_monthly`
 
 - **역할**: HS10×국가×월 수입·수출액(숫자형, 총계행 제외) — 화면 ①의 사실 표
-- **원천**: raw_customs_trade · **한 행**: HS10 × 국가 × 월 · **PK**: `hs10,stat_cd,yyyymm` · **행 수**: 294,174
+- **원천**: 원본 파일 raw_customs_trade(load_db.py --fact, read_raw → pandas) · **한 행**: HS10 × 국가 × 월 · **PK**: `hs10,stat_cd,yyyymm` · **행 수**: 294,174
 - **쓰는 곳**: v_import_hs6_year 등 무역 뷰 전부, 화면 ① 월별
 - **주의**: 2026은 is_partial_year=1
 
@@ -839,7 +873,6 @@
 | `exp_wgt` | BIGINT | expWgt | 수출중량 kg(참고값) |
 | `bal_payments` | BIGINT | balPayments | 무역수지(USD) = exp_dlr − imp_dlr |
 | `is_partial_year` | TINYINT(1) | (파생) | 2026(1~8월) = 1. 연간 실적처럼 쓰지 않음(부분연도 판정의 유일 기준) |
-| `raw_row_id` | BIGINT UNSIGNED | (파생) | → raw_customs_trade.row_id (1:1). 294,420 → 294,174(총계행 246 제외) |
 
 ## clean_ — 정제 — 노트북이 채움, 화면·뷰의 원천
 
@@ -862,7 +895,7 @@
 ### `clean_company_name_link`
 
 - **역할**: 사업자번호 없는 출처(방산업체 지정현황·B2 계약업체)의 업체명 → clean_company 연결 결과
-- **원천**: raw_dapa_defense_company, clean_dapa_localized_item · **한 행**: 출처 × 업체명 · **PK**: `link_id` · **행 수**: 491
+- **원천**: clean_dapa_defense_company, clean_dapa_localized_item · **한 행**: 출처 × 업체명 · **PK**: `link_id` · **행 수**: 491
 - **쓰는 곳**: 업체 축 보강
 - **주의**: none·multi는 미연결로 둔다
 
@@ -877,6 +910,28 @@
 | `match_count` | SMALLINT | (파생) | name_norm 일치 clean_company 건수 |
 | `note` | VARCHAR(200) | (파생) | 연결 메모(multi만 기록). NULL = 구조적 477행(match_type≠multi, 예외 0) → 화면 표시 안 함, 집계 무시 |
 
+### `clean_customs_region`
+
+- **역할**: 관세청 시군구별 수출입실적 정제 — HS6 × 시군구 × 월, 건수·금액 숫자형(천 달러), 부분연도 플래그
+- **원천**: 원본 파일 raw_customs_region(load_db.py --fact, read_raw → pandas; 첫 적재는 alter_2026-09-22_raw_successors.sql) · **한 행**: HS6 × 시군구 × 월 · **PK**: `hs6,sgg_name,yyyymm` · **행 수**: 273,586
+- **쓰는 곳**: v_customs_region_gwacheon_year(화면 24 과천시 비중 KPI, M7)
+- **주의**: 금액 천 달러(fact_customs_monthly 는 달러) — 합산 금지. 수입은 납세의무자 주소지 기준이라 「군 직접 수입」이 아님
+
+| 열 | 타입 | 원본 열명 | 설명 |
+|---|---|---|---|
+| **`hs6`** | CHAR(6) | hsSgn | 요청 HS6(원본 req_hs = hs_cd). PK 1/3 |
+| `sido_code` | CHAR(2) | sidoCd | 요청 시도코드 17개 |
+| **`sgg_name`** | VARCHAR(50) | sggNm | 시도 + 시군구명(예 경기도 과천시). PK 2/3 |
+| **`yyyymm`** | CHAR(6) | priodTitle | YYYY.MM → YYYYMM. PK 3/3 |
+| `year` | SMALLINT | (파생) | yyyymm 앞 4자리 |
+| `month` | TINYINT | (파생) | yyyymm 뒤 2자리 |
+| `exp_cnt` | INT | expCnt | 수출 건수(쉼표 제거·정수) |
+| `exp_kusd` | BIGINT | expUsdAmt | 수출액 천 달러 |
+| `imp_cnt` | INT | impCnt | 수입 건수 |
+| `imp_kusd` | BIGINT | impUsdAmt | 수입액 천 달러 — 납세의무자 주소지 기준 |
+| `trade_balance_kusd` | BIGINT | cmtrBlncAmt | 무역수지 천 달러 |
+| `is_partial_year` | TINYINT(1) | (파생) | 2026(1~8월) = 1 |
+
 ### `clean_dapa_bid_notice`
 
 - **역할**: 국내 입찰공고 정제 — 참조공고번호+차수 키, 날짜·금액 형 변환, 면허제한 결합
@@ -888,7 +943,7 @@
 |---|---|---|---|
 | **`ref_notice_no`** | VARCHAR(30) | 참조공고번호 | PK 1. 실제 고유 키(raw 고유 10,842) |
 | **`ref_notice_seq_norm`** | CHAR(2) | 참조공고차수 | PK 2. 차수 2자리 정규화 |
-| `raw_row_id` | BIGINT UNSIGNED | (파생) | 원본 행 추적(UNIQUE, FK) |
+| `raw_row_id` | BIGINT UNSIGNED | (파생) | 원본 파일 파서 순번(read_raw raw_dapa_bid_notice.row_id, UNIQUE) |
 | `bid_notice_no` | VARCHAR(20) | 입찰공고번호 | 비유일(고유 10,486). 입찰결과 연결용 |
 | `bid_notice_seq_norm` | CHAR(2) | 입찰공고차수 | 차수 2자리 정규화 |
 | `bid_notice_name` | VARCHAR(500) | 입찰공고명 | 공고 제목 |
@@ -927,7 +982,7 @@
 | **`bid_notice_no`** | VARCHAR(20) | 입찰공고번호 | PK 1. 공고번호(연도 미포함) |
 | **`bid_notice_seq_norm`** | CHAR(2) | 입찰공고차수 | PK 2. 차수 2자리 정규화 |
 | **`result_seq`** | TINYINT | (파생) | PK 3. 같은 키 안 순번(row_id 순) |
-| `raw_row_id` | BIGINT UNSIGNED | (파생) | 원본 행 추적(UNIQUE, FK) |
+| `raw_row_id` | BIGINT UNSIGNED | (파생) | 원본 파일 파서 순번(read_raw raw_dapa_bid_result.row_id, UNIQUE) |
 | `key_row_count` | SMALLINT | (파생) | 같은 키의 행 수(1이면 단일) |
 | `dup_kind` | ENUM | (파생) | 중복 키 성격: 단일 / 복수 낙찰(결과 같고 낙찰자 여럿, 108키) / 결과 상이(개찰결과 값 다름, 73키) / 동일 결과 반복(결과·낙찰자 같음, 재개찰 16키+같은 날 기초금액 상이 2키, 18키) / 미확인 |
 | `is_key_representative` | TINYINT(1) | (파생) | 키 기준 집계용 대표 행(키당 정확히 1행) |
@@ -970,7 +1025,7 @@
 |---|---|---|---|
 | **`contract_no`** | VARCHAR(20) | 계약번호 | PK 1. 계약번호 |
 | **`contract_seq_norm`** | CHAR(2) | 계약차수 | PK 2. 차수 2자리 정규화(0 → 00). raw 혼재 0 837 / 00 34,365 |
-| `raw_row_id` | BIGINT UNSIGNED | (파생) | 원본 행 추적(UNIQUE, FK → raw_dapa_contract.row_id) |
+| `raw_row_id` | BIGINT UNSIGNED | (파생) | 원본 파일 파서 순번(read_raw raw_dapa_contract.row_id, UNIQUE) |
 | `contract_name` | VARCHAR(500) | 계약명 | 계약명(5분류·속성의 원천 텍스트) |
 | `biz_type` | ENUM('물품','용역') | 업무구분명 | 업무구분 |
 | `contract_method_name` | VARCHAR(50) | 계약체결방법명 | 계약체결방법(수의/경쟁) |
@@ -989,7 +1044,7 @@
 | `contract_type` | VARCHAR(50) | 계약유형 | 계약유형 |
 | `is_latest_seq` | TINYINT(1) | (파생) | 계약번호별 최종 차수=1(집계 기준). 계약번호당 정확히 1행 |
 | `seq_conflict_flag` | TINYINT(1) | (파생) | 같은 키에 원본 여러 행(2024UMM1504-01) → 대표 행 1개만 적재하고 1 |
-| `conflict_raw_row_ids` | VARCHAR(100) | (파생) | seq_conflict_flag=1일 때 적재하지 않은 나머지 원본 row_id(쉼표 구분). NULL = 구조적 43,104행(seq_conflict_flag=0, 충돌 1행과 1:1) → 화면 표시 안 함, 집계 무시 |
+| `conflict_raw_row_ids` | VARCHAR(100) | (파생) | seq_conflict_flag=1일 때 적재하지 않은 나머지 원본 행 파서 순번(read_raw row_id)(쉼표 구분). NULL = 구조적 43,104행(seq_conflict_flag=0, 충돌 1행과 1:1) → 화면 표시 안 함, 집계 무시 |
 | `class5` | ENUM | (파생) | 5분류: 방산 장비·부품 후보 / 정비·기술지원 / 일반 군수물자 / 일반 행정·운영 / 판단 보류(기본) |
 | `is_electronic` | ENUM('예','아니오','미확인') | (파생) | 전자 관련성(기본 미확인) |
 | `is_part` | ENUM('예','아니오','미확인') | (파생) | 부품 여부(완제품·전산장비·용역과 구분) |
@@ -1015,9 +1070,27 @@
 | **`year`** | SMALLINT | 년도 | PK 1. 연도 |
 | **`service_branch`** | ENUM | 군구분 | PK 2. 군 구분 표준값 |
 | `contract_amount_100m_krw` | DECIMAL(14,1) | 계약금액(억원) | 계약금액(억원) |
-| `raw_row_id` | BIGINT UNSIGNED | (파생) | 원본 행 추적(UNIQUE, FK) |
+| `raw_row_id` | BIGINT UNSIGNED | (파생) | 원본 파일 파서 순번(read_raw raw_dapa_contract_exec_by_service.row_id, UNIQUE) |
 | `cleaned_at` | DATETIME | (파생) | 정제 시각 |
 | `cleaned_by` | VARCHAR(50) | (파생) | 정제 담당 |
+
+### `clean_dapa_defense_company`
+
+- **역할**: 방산업체 지정현황 84개 정제 — 지정일 DATE, 분야 공란 NULL
+- **원천**: 원본 파일 raw_dapa_defense_company(notebooks/clean_p4_domestic.ipynb §6; 첫 적재는 alter_2026-09-22_raw_successors.sql) · **한 행**: 업체 1개 · **PK**: `seq_no` · **행 수**: 84
+- **쓰는 곳**: v_defense_company_sector(화면 ④ 배경), clean_company_name_link
+- **주의**: 주소·사업자번호 없음. 분야 미기재 3
+
+| 열 | 타입 | 원본 열명 | 설명 |
+|---|---|---|---|
+| **`seq_no`** | SMALLINT | 순번 | 원본 순번. PK |
+| `company_name` | VARCHAR(200) | 업체명 | 업체명(UNIQUE) |
+| `sector` | VARCHAR(20) | 분야 | 분야. 공란 3 = NULL → 뷰 「미기재」 |
+| `designated_date` | DATE | 지정일자 | 지정일자 |
+| `note` | VARCHAR(300) | 비고 | 비고 |
+| `raw_row_id` | BIGINT UNSIGNED | (파생) | 원본 파일 파서 순번(read_raw raw_dapa_defense_company) |
+| `cleaned_at` | DATETIME | (파생) | 정제 시각 |
+| `cleaned_by` | VARCHAR(50) | (파생) | 정제 계정 |
 
 ### `clean_dapa_domestic_plan`
 
@@ -1028,7 +1101,7 @@
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
-| **`raw_row_id`** | BIGINT UNSIGNED | (파생) | PK. 원본 행 추적(FK) |
+| **`raw_row_id`** | BIGINT UNSIGNED | (파생) | PK. 원본 파일 파서 순번(read_raw raw_dapa_domestic_plan.row_id) |
 | `decision_no` | VARCHAR(20) | 판단번호 | 판단번호(고유성 확인 전) |
 | `decision_row_count` | SMALLINT | (파생) | 같은 판단번호의 행 수 |
 | `plan_month` | DATE | 집행예정월 | 집행예정월(매월 1일) |
@@ -1065,7 +1138,7 @@
 | `last_modified_date` | DATE | 최종수정일 | 포털 스냅샷 수정일. 연도 축으로 쓰지 않음. NULL = 원본 결측 18,160행(raw 공란, 72.6%) → 화면 표시 안 함, 집계 무시. 편중 확인(09-20 stats-advisor, null-profile §6): MAR, 사업별 V=0.33, 값은 2021-06~07 일괄갱신 창, MNAR 배제 불가 |
 | `dup_count` | SMALLINT | (파생) | 원본 완전 중복 행 수(원본 규모 재현용) |
 | `is_electronic_group` | TINYINT(1) | (파생) | fsc2 IN (58,59,60) = 1. 전자 여부 속성(기본 필터), 기준 확정 2026-09-21(M4). 60은 2026-09-21 기준 통일(해당 행 0) |
-| `first_raw_row_id` | BIGINT UNSIGNED | (파생) | 대표 원본 행 → raw_dapa_localized_item.row_id |
+| `first_raw_row_id` | BIGINT UNSIGNED | (파생) | 대표 원본 행의 파서 순번(read_raw raw_dapa_localized_item.row_id) |
 | `cleaned_at` | DATETIME | (파생) | 정제 시각 |
 
 ### `clean_dapa_overseas_bid_result`
@@ -1077,7 +1150,7 @@
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
-| **`raw_row_id`** | BIGINT UNSIGNED | (파생) | PK. 원본 행 추적(FK) — 업무 식별자 단독 고유성 없음 |
+| **`raw_row_id`** | BIGINT UNSIGNED | (파생) | PK. 원본 파일 파서 순번(read_raw raw_dapa_overseas_bid_result.row_id) — 업무 식별자 단독 고유성 없음 |
 | `bid_notice_no` | VARCHAR(20) | 공고번호 | 공고번호 원문(공고번호-차수) |
 | `notice_no_base` | VARCHAR(20) | (파생) | 공고번호 앞부분 |
 | `notice_seq` | VARCHAR(4) | (파생) | 공고 차수 |
@@ -1105,7 +1178,7 @@
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
 | **`contract_no`** | VARCHAR(20) | 계약번호 | PK. 계약번호(raw 고유 6,333) |
-| `raw_row_id` | BIGINT UNSIGNED | (파생) | 원본 행 추적(UNIQUE, FK) |
+| `raw_row_id` | BIGINT UNSIGNED | (파생) | 원본 파일 파서 순번(read_raw raw_dapa_overseas_contract.row_id, UNIQUE) |
 | `contract_name` | VARCHAR(500) | 계약명 | 계약명 |
 | `contract_form_name` | VARCHAR(50) | 계약체결형태명 | 계약체결형태 |
 | `contract_method_name` | VARCHAR(50) | 계약체결방법명 | 계약체결방법 |
@@ -1143,7 +1216,7 @@
 | `system_family_hint` | VARCHAR(30) | (파생) | 레이더/통신/항법/전자광학/음탐 등 키워드 계열 라벨(품목군 대응 아님, 집계 축 아님). NULL = 구조적 2,631행(is_electronics_candidate=0, 예외 0) → 화면 표시 안 함, 집계 무시 |
 | `dup_count` | SMALLINT | (파생) | 같은 판단번호 원본 행 수 |
 | `has_conflict` | TINYINT(1) | (파생) | 같은 판단번호에 다른 내용 = 1(기록만, 삭제하지 않음) |
-| `first_raw_row_id` | BIGINT UNSIGNED | (파생) | 대표 원본 행 → raw_dapa_overseas_plan.row_id |
+| `first_raw_row_id` | BIGINT UNSIGNED | (파생) | 대표 원본 행의 파서 순번(read_raw raw_dapa_overseas_plan.row_id) |
 | `cleaned_at` | DATETIME | (파생) | 정제 시각 |
 
 ### `clean_dapa_overseas_plan_api`
@@ -1157,7 +1230,7 @@
 |---|---|---|---|
 | **`procure_demand_no`** | VARCHAR(20) | prcureDemandNo | PK 1. 조달요구번호 |
 | **`item_seq`** | VARCHAR(10) | iemNo | PK 2. 품목순번. '' = 원본 결측 842행(PK라 NULL 불가, is_item_seq_missing=1) → 화면 「미기재」, 집계 건수 포함(행 고유) |
-| `raw_row_id` | BIGINT UNSIGNED | (파생) | 원본 행 추적(UNIQUE, FK) |
+| `raw_row_id` | BIGINT UNSIGNED | (파생) | 원본 파일 파서 순번(read_raw raw_dapa_overseas_plan_api.row_id, UNIQUE) |
 | `is_item_seq_missing` | TINYINT(1) | (파생) | 품목순번 원본 공란 1/0 |
 | `demand_year` | SMALLINT | _demandYear_req | 요구연도(연도 축). 2018·2020 은 원자료 공백 구간 |
 | `army_name_raw` | VARCHAR(20) | armySe | 소요군·부대명 원문 |
@@ -1201,7 +1274,7 @@
 |---|---|---|---|
 | **`excl_id`** | INT UNSIGNED | (파생) | PK |
 | `table_name` | VARCHAR(64) | (파생) | 제외한 raw 테이블명 |
-| `raw_row_id` | BIGINT UNSIGNED | (파생) | 제외한 raw 행의 row_id |
+| `raw_row_id` | BIGINT UNSIGNED | (파생) | 제외한 원본 행의 파서 순번(read_raw <table_name>.row_id — 파일명 정렬 × 행 순) |
 | `reason_code` | ENUM | (파생) | 제외 사유 코드: DUP_EXACT 완전 중복 / COL_SHIFT 열 밀림 / PLACEHOLDER 자리표시 / OUT_OF_SCOPE 범위 밖 / KEY_CONFLICT 키 충돌 / OTHER |
 | `note` | VARCHAR(300) | (파생) | 제외 근거 메모(어느 열이 어떻게 이상한지) |
 | `excluded_by` | VARCHAR(50) | (파생) | 기록자 |
@@ -1217,7 +1290,7 @@
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
 | **`hsk_ctrl_id`** | INT UNSIGNED | (파생) | PK AUTO_INCREMENT |
-| `raw_row_id` | BIGINT UNSIGNED | (파생) | → raw_hsk_control.row_id (1 raw 행 = N 통제번호) |
+| `raw_row_id` | BIGINT UNSIGNED | (파생) | 원본 파일 파서 순번(read_raw raw_hsk_control.row_id — 1 원본 행 = N 통제번호) |
 | `hsk10` | CHAR(10) | 품목번호 | HSK 10자리(원본 고유 2,161) |
 | `hs6` | CHAR(6) | (파생) | LEFT(hsk10,6). 화이트리스트 밖 HS6 도 들어와 FK 없음 |
 | `hs2` | CHAR(2) | (파생) | LEFT(hsk10,2) 류 |
@@ -1264,7 +1337,8 @@
 | `cage_count` | INT UNSIGNED | (파생) | CAGE 고유 수(공란 제외) |
 | `origin_files` | VARCHAR(100) | (파생) | 나온 원본 파일 목록 |
 | `has_attr_conflict` | TINYINT(1) | (파생) | 같은 NSN에 기본정보 조합 2개 이상이면 1(기대 0) |
-| `first_raw_row_id` | BIGINT UNSIGNED | (파생) | 대표 원본 행 |
+| `first_raw_row_id` | BIGINT UNSIGNED | (파생) | 대표 원본 행의 파서 순번(read_raw raw_kdsis_nsn.row_id) |
+| `cleaned_at` | DATETIME | (파생) | 정제 시각 |
 
 ### `clean_kosis_production_index`
 
@@ -1275,7 +1349,7 @@
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
-| **`raw_row_id`** | BIGINT UNSIGNED | (파생) | PK. 원본 행 추적(FK, raw 1:1) |
+| **`raw_row_id`** | BIGINT UNSIGNED | (파생) | PK. 원본 파일 파서 순번(read_raw raw_kosis_production_index.row_id, 원본 1:1) |
 | `region_name` | VARCHAR(30) | A 시도별 | 시도 원문(00 전국) |
 | `industry_code` | VARCHAR(5) | B 산업별 | KSIC 코드 = 원문 앞 토큰(C26 / C261 / C262 / C264) |
 | `industry_name` | VARCHAR(100) | B 산업별 | 산업명(코드 뒤 원문) |
@@ -1301,7 +1375,7 @@
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
-| **`raw_row_id`** | BIGINT UNSIGNED | (파생) | PK. 원본 행 추적(FK, raw 1:1) |
+| **`raw_row_id`** | BIGINT UNSIGNED | (파생) | PK. 원본 파일 파서 순번(read_raw raw_kosis_utilization.row_id, 원본 1:1) |
 | `sector_name` | VARCHAR(20) | 분야별 | 분야(평균·항공유도·화력·탄약·기동·통신전자·함정·화생방·기타). 원문 공백 제거 |
 | `is_avg_row` | TINYINT(1) | (파생) | 1 = 「평균」 행(KOSIS 전 분야 평균). 분야 값으로 다시 평균 내지 않음 |
 | `in_scope` | TINYINT(1) | (파생) | 1 = 통신전자(§2-11 ★). 나머지 0(스코프 밖, 배경 비교용) |
@@ -1315,7 +1389,7 @@
 ### `clean_krit_task`
 
 - **역할**: B1 KRIT 부품국산화 과제 — 차수·공고유형·과제번호 단위, 최신 차수 플래그
-- **원천**: raw_krit_task (notebooks/clean_p5_krit.ipynb) · **한 행**: 차수 × 공고유형 × 과제번호 · **PK**: `round_id,notice_type,task_no` · **행 수**: 96
+- **원천**: raw_krit_task (notebooks/clean_p5_krit_p2_budget.ipynb) · **한 행**: 차수 × 공고유형 × 과제번호 · **PK**: `round_id,notice_type,task_no` · **행 수**: 96
 - **쓰는 곳**: 화면 ②
 - **주의**: 정부지원금 단위가 차수마다 달라 합산 금지. hs6·category·category_link_status 열은 09-21 삭제(HS6와 잇지 않음)
 
@@ -1331,7 +1405,7 @@
 | `gov_fund_100m_krw` | DECIMAL(10,2) | 정부지원\n연구개발비 | 정부지원 연구개발비(억원). 원문 23.67억 → 숫자 변환. NULL = 원본 결측 11행(24-1차 예비 공고는 정부지원금 열 자체 없음, gov_fund_unit_text=없음, 규칙 §2-4) → 화면 「미기재」, 집계 지원금 합 분모 제외 + 미기재 건수 병기 |
 | `dev_period_months` | SMALLINT | 개발\n기간 | 개발 기간(개월). 원문 30개월 → 숫자 변환 |
 | `is_counted` | TINYINT(1) | (파생) | 같은 차수 중복 공고(예비→본공고) 중 집계에 쓰는 1건 = 1. 공고 수와 과제 수 구분용 |
-| `raw_row_id` | BIGINT UNSIGNED | (파생) | → raw_krit_task.row_id |
+| `raw_row_id` | BIGINT UNSIGNED | (파생) | 원본 파일 파서 순번(read_raw raw_krit_task.row_id — 파일명 정렬 × 행 순. 2026-09-22 재번호) |
 | `source_file` | VARCHAR(200) | (파생) | 추출 CSV 파일명(raw 그대로) |
 | `cleaned_at` | DATETIME | (파생) | 정제 시각 |
 | `task_seq_text` | VARCHAR(10) | 순 | 원문 순번(표마다 1부터. 24-1차 예비는 구분값 핵심/수출) |
@@ -1347,13 +1421,13 @@
 ### `clean_openfiscal_program_budget`
 
 - **역할**: 열린재정 방위사업청 세부사업 예산(raw 1:1) — 천원·억원 두 벌, 정부안/확정 구분, 3선 후보 태그
-- **원천**: raw_openfiscal_program_budget (notebooks/clean_p2_budget.ipynb) · **한 행**: 회계연도 × 세부사업 · **PK**: `raw_row_id` · **행 수**: 2,860
+- **원천**: raw_openfiscal_program_budget (notebooks/clean_p5_krit_p2_budget.ipynb) · **한 행**: 회계연도 × 세부사업 · **PK**: `raw_row_id` · **행 수**: 2,860
 - **쓰는 곳**: 화면 ④(배경), v_budget_rnd_yearly
 - **주의**: 3선 후보는 겹치므로 합산 금지. 배경 ④ 전용. 09-21 경비구분·지출구분 열 제거(주요사업비·일반지출 외 인건비·기본경비·내부거래 72행 = 금액 0.6%, 합계에 포함 — raw에 보존)
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
-| **`raw_row_id`** | BIGINT UNSIGNED | (파생) | PK. 원본 행 추적(FK, raw 1:1) |
+| **`raw_row_id`** | BIGINT UNSIGNED | (파생) | PK. 원본 파일 파서 순번(read_raw raw_openfiscal_program_budget.row_id, 원본 1:1) |
 | `fiscal_year` | SMALLINT | 회계연도 | 회계연도 2016~2027(편성 연도) |
 | `program_name` | VARCHAR(100) | 프로그램명 | 프로그램명(2018년 개칭 — 기준축 아님) |
 | `unit_program_name` | VARCHAR(100) | 단위사업명 | 단위사업명. 시계열 대표 축은 국방기술개발 |
@@ -1582,25 +1656,25 @@
 ### `v_customs_region_gwacheon_year`
 
 - **역할**: 과천시 소재 수입자 비중(방위사업청 소재지, 추정) — 전국 대비 과천 수입액·건수·시군구 수
-- **원천**: raw_customs_region · **한 행**: HS6 × 연도 · **PK**: `없음(뷰)` · **행 수**: 246
+- **원천**: clean_customs_region · **한 행**: HS6 × 연도 · **PK**: `없음(뷰)` · **행 수**: 246
 - **쓰는 곳**: ⑤ 참고, 화면 반영은 팀 결정(M7)
 - **주의**: 「군 직접 수입 하한」 표현 금지
 
 | 열 | 타입 |
 |---|---|
 | `hs6` | char(6) |
-| `year` | bigint unsigned |
-| `imp_kusd_total` | decimal(43,0) |
-| `imp_kusd_gwacheon` | decimal(43,0) |
+| `year` | smallint |
+| `imp_kusd_total` | decimal(41,0) |
+| `imp_kusd_gwacheon` | decimal(41,0) |
 | `gwacheon_share` | double |
-| `imp_cnt_gwacheon` | decimal(43,0) |
+| `imp_cnt_gwacheon` | decimal(32,0) |
 | `sgg_count` | bigint |
-| `is_partial_year` | bigint |
+| `is_partial_year` | tinyint(1) |
 
 ### `v_defense_company_sector`
 
 - **역할**: 방산업체 분야별 업체 수·지정연도 범위
-- **원천**: raw_dapa_defense_company · **한 행**: 분야 1개 · **PK**: `없음(뷰)` · **행 수**: 10
+- **원천**: clean_dapa_defense_company · **한 행**: 분야 1개 · **PK**: `없음(뷰)` · **행 수**: 10
 - **쓰는 곳**: 화면 ⓪ 보조
 - **주의**: 미기재 3
 
@@ -1608,8 +1682,8 @@
 |---|---|
 | `sector` | varchar(20) |
 | `company_count` | bigint |
-| `first_designated_year` | varchar(4) |
-| `last_designated_year` | varchar(4) |
+| `first_designated_year` | bigint unsigned |
+| `last_designated_year` | bigint unsigned |
 
 ### `v_domestic_plan_yearly`
 
@@ -1701,13 +1775,13 @@
 ### `v_hs10_use_tag_all`
 
 - **역할**: 관세청 HSK 전체에 용도 태그(군용전용/항공기용/무인기/레이더/항행/자동차용/기타)
-- **원천**: raw_hs_code_master + dim_hs10 · **한 행**: HS10 1개 · **PK**: `없음(뷰)` · **행 수**: 11,431
+- **원천**: ref_hs_code_master + dim_hs10 · **한 행**: HS10 1개 · **PK**: `없음(뷰)` · **행 수**: 11,431
 - **쓰는 곳**: HS6 선정 규칙
 
 | 열 | 타입 |
 |---|---|
 | `hs6` | varchar(6) |
-| `hs10` | varchar(12) |
+| `hs10` | char(10) |
 | `name_ko` | varchar(500) |
 | `src` | varchar(11) |
 | `use_tag` | varchar(4) |

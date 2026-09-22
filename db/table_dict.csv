@@ -5,41 +5,43 @@ ref_hs_rule_flag,table,ref,"84·85·88·90류 HS6 1,003개 전부의 선정 규�
 ref_country,table,ref,관세청 국가코드 → 한글명·좌표,Google DSPL + 수기,국가코드 1개,화면 ① 국가 라벨·지도,ZZ(기타국) 좌표 NULL
 ref_sido_map,table,ref,주소 첫 토큰 → 17개 시도 코드,수작업 시드,토큰 1개,"clean_dapa_contract.sido_code 백필, 화면 ⑤",광주는 둘째 토큰 규칙
 ref_fsg,table,ref,FSG 군급 2자리 라벨(전자군 58·59·60 플래그),data/reference/fsg_master.csv,FSG 1개,"v_b2_fsg_summary, v_overseas_plan_api_fsc",
-ref_fsc,table,ref,FSC 군급분류 4자리 라벨(폐지 여부·전자군 플래그),raw_dapa_fsc_catalog에서 파생,FSC4 1개,"v_overseas_plan_api_fsc, B2 라벨",
+ref_fsc,table,ref,FSC 군급분류 4자리 라벨(폐지 여부·전자군 플래그),원본 파일 raw_dapa_fsc_catalog에서 파생,FSC4 1개,"v_overseas_plan_api_fsc, B2 라벨",
 ref_equipment_alias,table,ref,국외 조달계획 API 적용장비명 표기 통일 사전(원문 → 정규화 → 잠정 표준명),raw_dapa_overseas_plan_api.equipment_name,원문 표기 1종,clean_dapa_overseas_plan_api.equipment_std,"표준명은 후보 40종만, 803종 미확인(NULL)"
-raw_customs_trade,table,raw,관세청 HS10×국가×월 수출입실적 원본(연간 총계행 포함),customs_all_<HS6>.csv ×24,HS10 × 국가 × 월(총계행 별도),"fact_customs_monthly, dim_hs10",총계행(is_total=1)은 집계에서 제외
-raw_customs_progress,table,raw,관세청 API 호출별 반환 행수(재현성 증빙),progress_all.csv,HS6 × 연도 호출 1건,검산,
-raw_customs_region,table,raw,관세청 시군구별 HS6×시군구×월 수출입실적 원본(수입 = 납세의무자 주소지 기준),customs_region_<HS6>.csv ×24,HS6 × 시군구 × 월,(없음 — 화면 채택 여부 팀 결정),금액 단위 천 달러(raw_customs_trade 는 달러). 시군구 코드 없이 명칭만
-raw_dapa_contract,table,raw,"방사청 국내조달 계약정보 원본 — 1만 건 요건 데이터(43,112행)",dapa_domestic_contract_20251231.csv,계약번호 × 차수,clean_dapa_contract,'전자부품 1만 건' 아님 — 전 계약
-raw_dapa_localized_item,table,raw,"국산화개발품목(B2, 지상체계) 원본. 완전 중복 8,940행 포함",dapa_localized_items_20260509.csv,사업 × 부품(중복 있음),clean_dapa_localized_item,
-raw_krit_task,table,raw,KRIT 부품국산화 공고 과제 목록(B1) 원본 — 차수·공고유형별 표,data/raw/krit/*_t*.csv,차수 × 공고유형 × 과제,clean_krit_task,예비→본→재공고는 별개 문서라 합산 금지
-raw_dapa_bid_notice,table,raw,국내조달 경쟁 입찰공고 원본,dapa_domestic_bid_notice_20251231.csv,참조공고번호 × 차수,clean_dapa_bid_notice,bid_notice_no+seq는 비유일(입찰결과 연결용)
-raw_dapa_bid_result,table,raw,국내조달 입찰결과(낙찰업체·낙찰률) 원본,dapa_domestic_bid_result_20251231.csv,공고번호 × 차수 × 결과행,clean_dapa_bid_result,
-raw_dapa_defense_company,table,raw,방산업체 지정현황 84개(주소·사업자번호 없음),dapa_defense_company_20260831.csv,업체 1개,"v_defense_company_sector, clean_company_name_link",clean 없음(raw 직독)
-raw_kosis_utilization,table,raw,KOSIS 방산업체 분야별 평균가동률 2016~2024(세로형 변환본),kosis_409_*.csv,분야 × 연도,clean_kosis_utilization,
-raw_kosis_production_index,table,raw,KOSIS 광공업생산지수 C26 계열 월별 2016.01~2026.07(세로형 변환본),kosis_101_*.csv,산업 × 항목 × 월,clean_kosis_production_index,stat_ym 'p)' 결함 16행은 clean에서 복원
-raw_dapa_overseas_plan,table,raw,"국외조달 조달계획 2017~2025 원본(사업 단위, 원화 집행 예정액)",dapa_overseas_plan_20251231.csv,판단번호(중복 5쌍),clean_dapa_overseas_plan,"예산은 집행 예정액, 국가 없음"
-raw_dapa_overseas_contract,table,raw,국외조달 계약정보 원본(금액·국가 없음),dapa_overseas_contract_20251231.csv,계약번호,clean_dapa_overseas_contract,건수만 쓴다
-raw_dapa_overseas_bid_result,table,raw,국외조달 입찰결과 2025-01~09 원본(부분연도),dapa_overseas_bid_result_20250915.csv,공고 × 판단번호 × 항목,clean_dapa_overseas_bid_result,달러 — 원화와 합산 금지
-raw_dapa_domestic_plan,table,raw,국내조달 조달계획 2024~2025 원본,dapa_domestic_plan_20251231.csv,계획 행(판단번호 비유일),clean_dapa_domestic_plan,"2024는 불완전(4,545행)"
-raw_dapa_contract_exec_by_service,table,raw,군별 계약집행 현황 2015~2024(KPI),dapa_contract_exec_by_service_20241231.csv,연도 × 군,clean_dapa_contract_exec_by_service,"라벨 「계약집행액(억원) — 국내·국외 구분 없는 총액」(포털 설명에 구분 없음, 추론 — open-decisions D11)"
-raw_hsk_control,table,raw,무역안보관리원 전략물자 HSK 연계표 원본(HSK10 ↔ 통제번호 목록),data/raw/kosti/hsk_control_15034135.csv,HSK10 1개(통제번호는 쉼표 목록),clean_hsk_control,
-raw_hs_code_master,table,raw,관세청 HS부호 마스터 — HSK 10자리 전체(2026 현행),hs_code_master_15049722.xlsx,HS10 1개,"dim_hs10 대조, HS6 선정 규칙 R1·R2",
-raw_hs_unit_name,table,raw,관세청 HS부호 단위별 품목명(2·4·6·8·10단위),hs_unit_name_15130660.xlsx,HS코드 × 단위,HS6 공식 명칭,
-raw_dapa_overseas_plan_api,table,raw,"방사청 국외 조달계획 OpenAPI 품목 단위 원본(요구연도 2016~2026, NSN·FSC·적용장비명)",OpenAPI 15158418,조달요구번호 × 품목순번,clean_dapa_overseas_plan_api,파일판 raw_dapa_overseas_plan과 다른 표 — 합산 금지. 금액 통화 미검증
-raw_dapa_fsc_catalog,table,raw,방사청 군급분류집(FSC 4자리 명칭·주석·포함·제외),파일데이터 15119907,군급 1개,ref_fsc 시드,
-raw_kdsis_nsn,table,raw,국방표준종합서비스(KDSIS) NSN 목록 팀원 정리본(.txt + 2016.csv 합본),팀원 공유 파일 2개,NSN 행(원본 파일·행 보존),clean_kdsis_nsn,"NSN 등록 = 표준화 사실, 사용·조달·재고 아님"
-raw_openfiscal_program_budget,table,raw,열린재정 세출/지출 세부사업 예산편성현황 — 방위사업청·일반회계 2016~2027(12파일),열린재정 12파일,회계연도 × 세부사업,clean_openfiscal_program_budget,관세청 수입액·조달계획과 합산 금지
+ref_hs_code_master,table,ref,"관세청 HS부호 마스터 중 2026 현행 HSK10 11,327개 — 코드·한글/영문 품명·적용기간(기준표)","원본 파일 raw_hs_code_master 12,469행 중 10자리(load_db.py --ref, read_raw)",HS10 1개,"화면 ①·조회 HS10 품명 라벨, dim_hs10 보강(clean_p1 §3), v_hs10_use_tag_all(HS6 선정 규칙 R1·R2)","7~9자리 중간 수준 1,142·규격/단위 열은 사용처 없어 넣지 않음(원본 파일에만)"
+ref_hs6_name,table,ref,"HS6 공식 명칭 2,254개(기준표)","원본 파일 raw_hs_unit_name 06시트 중 6자리(load_db.py --ref, read_raw)",HS6 1개,"v_hs6_candidate_rule(R2 용도어), ref_hs_rule_flag.hs6_name_ko(clean_p1 §4)","5자리 중간 수준(one-dash) 1,024은 제외. 세분되지 않는 HS6(예 852692)는 이 표에 없어 ref_hs_code_master 단일 자식 이름으로 보정"
+raw_customs_trade,file,raw,관세청 HS10×국가×월 수출입실적 원본(연간 총계행 포함),customs_all_<HS6>.csv ×24,HS10 × 국가 × 월(총계행 별도),"fact_customs_monthly·dim_hs10(load_db.py --fact, read_raw)",총계행(is_total=1)은 집계에서 제외
+raw_customs_progress,file,raw,관세청 API 호출별 반환 행수(재현성 증빙),progress_all.csv,HS6 × 연도 호출 1건,clean_p1_customs_hs.ipynb §2 검산(read_raw),
+raw_customs_region,file,raw,관세청 시군구별 HS6×시군구×월 수출입실적 원본(수입 = 납세의무자 주소지 기준),customs_region_<HS6>.csv ×24,HS6 × 시군구 × 월,"clean_customs_region(load_db.py --fact, read_raw)",금액 단위 천 달러(raw_customs_trade 는 달러). 시군구 코드 없이 명칭만. 원본 CSV 24개는 맥에 있음(2026-09-18 수집) — 이 PC 미보유
+raw_dapa_contract,file,raw,"방사청 국내조달 계약정보 원본 — 부록(43,112행, 09-21 M2로 1만 건 요건 2종에서 제외)",dapa_domestic_contract_20251231.csv,계약번호 × 차수,clean_dapa_contract,'전자부품 1만 건' 아님 — 전 계약
+raw_dapa_localized_item,file,raw,"국산화개발품목(B2, 지상체계) 원본. 완전 중복 8,940행 포함",dapa_localized_items_20260509.csv,사업 × 부품(중복 있음),clean_dapa_localized_item,
+raw_krit_task,file,raw,KRIT 부품국산화 공고 과제 목록(B1) 원본 — 차수·공고유형별 표,data/raw/krit/*_t*.csv,차수 × 공고유형 × 과제,clean_krit_task,예비→본→재공고는 별개 문서라 합산 금지
+raw_dapa_bid_notice,file,raw,국내조달 경쟁 입찰공고 원본,dapa_domestic_bid_notice_20251231.csv,참조공고번호 × 차수,clean_dapa_bid_notice,bid_notice_no+seq는 비유일(입찰결과 연결용)
+raw_dapa_bid_result,file,raw,국내조달 입찰결과(낙찰업체·낙찰률) 원본,dapa_domestic_bid_result_20251231.csv,공고번호 × 차수 × 결과행,clean_dapa_bid_result,
+raw_dapa_defense_company,file,raw,방산업체 지정현황 84개(주소·사업자번호 없음),dapa_defense_company_20260831.csv,업체 1개,clean_dapa_defense_company(clean_p4_domestic.ipynb §6),
+raw_kosis_utilization,file,raw,KOSIS 방산업체 분야별 평균가동률 2016~2024(세로형 변환본),kosis_409_*.csv,분야 × 연도,clean_kosis_utilization,
+raw_kosis_production_index,file,raw,KOSIS 광공업생산지수 C26 계열 월별 2016.01~2026.07(세로형 변환본),kosis_101_*.csv,산업 × 항목 × 월,clean_kosis_production_index,stat_ym 'p)' 결함 16행은 clean에서 복원
+raw_dapa_overseas_plan,file,raw,"국외조달 조달계획 2017~2025 원본(사업 단위, 원화 집행 예정액)",dapa_overseas_plan_20251231.csv,판단번호(중복 5쌍),clean_dapa_overseas_plan,"예산은 집행 예정액, 국가 없음"
+raw_dapa_overseas_contract,file,raw,국외조달 계약정보 원본(금액·국가 없음),dapa_overseas_contract_20251231.csv,계약번호,clean_dapa_overseas_contract,건수만 쓴다
+raw_dapa_overseas_bid_result,file,raw,국외조달 입찰결과 2025-01~09 원본(부분연도),dapa_overseas_bid_result_20250915.csv,공고 × 판단번호 × 항목,clean_dapa_overseas_bid_result,달러 — 원화와 합산 금지
+raw_dapa_domestic_plan,file,raw,국내조달 조달계획 2024~2025 원본,dapa_domestic_plan_20251231.csv,계획 행(판단번호 비유일),clean_dapa_domestic_plan,"2024는 불완전(4,545행)"
+raw_dapa_contract_exec_by_service,file,raw,군별 계약집행 현황 2015~2024(KPI),dapa_contract_exec_by_service_20241231.csv,연도 × 군,clean_dapa_contract_exec_by_service,"라벨 「계약집행액(억원) — 국내·국외 구분 없는 총액」(포털 설명에 구분 없음, 추론 — open-decisions D11)"
+raw_hsk_control,file,raw,무역안보관리원 전략물자 HSK 연계표 원본(HSK10 ↔ 통제번호 목록),data/raw/kosti/hsk_control_15034135.csv,HSK10 1개(통제번호는 쉼표 목록),clean_hsk_control,
+raw_hs_code_master,file,raw,관세청 HS부호 마스터 — HSK 10자리 전체(2026 현행),hs_code_master_15049722.xlsx,HS10 1개,"ref_hs_code_master(load_db.py --ref, 10자리만)",
+raw_hs_unit_name,file,raw,관세청 HS부호 단위별 품목명(2·4·6·8·10단위),hs_unit_name_15130660.xlsx,HS코드 × 단위,"ref_hs6_name(load_db.py --ref, 06시트 6자리만). 10시트는 ref_hs_code_master 와 동일해 두지 않음",
+raw_dapa_overseas_plan_api,file,raw,"방사청 국외 조달계획 OpenAPI 품목 단위 원본(요구연도 2016~2026, NSN·FSC·적용장비명)",OpenAPI 15158418,조달요구번호 × 품목순번,clean_dapa_overseas_plan_api,파일판 raw_dapa_overseas_plan과 다른 표 — 합산 금지. 금액 통화 미검증
+raw_dapa_fsc_catalog,file,raw,방사청 군급분류집(FSC 4자리 명칭·주석·포함·제외),파일데이터 15119907,군급 1개,"ref_fsc 시드(alter_2026-09-16_api_budget.sql, raw_ 표가 있던 시점)",
+raw_kdsis_nsn,file,raw,국방표준종합서비스(KDSIS) NSN 목록 팀원 정리본(.txt + 2016.csv 합본),팀원 공유 파일 2개,NSN 행(원본 파일·행 보존),clean_kdsis_nsn,"NSN 등록 = 표준화 사실, 사용·조달·재고 아님"
+raw_openfiscal_program_budget,file,raw,열린재정 세출/지출 세부사업 예산편성현황 — 방위사업청·일반회계 2016~2027(12파일),열린재정 12파일,회계연도 × 세부사업,clean_openfiscal_program_budget,관세청 수입액·조달계획과 합산 금지
 meta_dataset,table,meta,데이터셋 1건 = 1행 — 제공기관·ID·URL·확보일·기간·SHA-256·파서 건수·포털 표시 건수,수기 + 스크립트,데이터셋 1개,"출처 표, 보고서",A7 5행 dataset_id NULL(조장 확인 대기)
 meta_load_log,table,meta,정제 단계별 건수 기록(원본 전체 → 선택 연도 → 중복 처리 후 → 관련 후보 → 검증된 분석 대상),노트북·load_db.py,적재 1회 × 단계,보고서 5단계 표,
 meta_column_dict,table,meta,원본 한글 헤더 ↔ DB 영문 열명 ↔ 타입 ↔ 설명(= db/column_dict.csv),db/column_dict.csv,테이블 × 열,데이터 명세서,뷰 열은 등재하지 않음
-dim_hs10,table,dim,HS10 → HS6·품명(가장 최근 연월 기준) + 2026 현행 마스터 대조,raw_customs_trade + raw_hs_code_master,HS10 1개,"화면 ① HS10 드릴다운, v_hs10_use_*",마스터에 없는 코드 = HS 2022 개정 전 폐지 코드(화면 '폐지 코드(구 명칭)')
-fact_customs_monthly,table,fact,"HS10×국가×월 수입·수출액(숫자형, 총계행 제외) — 화면 ①의 사실 표",raw_customs_trade,HS10 × 국가 × 월,"v_import_hs6_year 등 무역 뷰 전부, 화면 ① 월별",2026은 is_partial_year=1
+dim_hs10,table,dim,HS10 → HS6·품명(가장 최근 연월 기준) + 2026 현행 마스터 대조,원본 파일 raw_customs_trade(load_db.py --fact) + ref_hs_code_master(clean_p1 §3),HS10 1개,"화면 ① HS10 드릴다운, v_hs10_use_*",마스터에 없는 코드 = HS 2022 개정 전 폐지 코드(화면 '폐지 코드(구 명칭)')
+fact_customs_monthly,table,fact,"HS10×국가×월 수입·수출액(숫자형, 총계행 제외) — 화면 ①의 사실 표","원본 파일 raw_customs_trade(load_db.py --fact, read_raw → pandas)",HS10 × 국가 × 월,"v_import_hs6_year 등 무역 뷰 전부, 화면 ① 월별",2026은 is_partial_year=1
 clean_dapa_contract,table,clean,"국내조달 계약정보 정제 — 차수 정규화, 날짜·금액 형 변환, 계약 5분류(class5)·전자/부품/방산 속성, 수의계약 사유, 시도 코드",raw_dapa_contract (notebooks/clean_p4_domestic.ipynb),계약번호 × 정규화 차수(계약 단위는 is_latest_seq=1),"화면 ②⑤, v_contract_monthly, v_contract_private_reason, clean_company","class5는 전행 '판단 보류'(표본 검수 전). 금액 합산은 최종 차수만. 09-21 저분산 3열 제거(계약체결형태 97.4% 총액계약, 수요기관명=계약기관명 전 행 동일, 공동계약 1.4% — raw에 보존). contract_org_name은 금액 59.2%가 방위사업청이라 유지"
 clean_dapa_localized_item,table,clean,B2 국산화개발품목 — 완전 중복 제거한 사업×부품(dup_count 보존),raw_dapa_localized_item (notebooks/clean_b2_a7.ipynb),사업 × 부품관리번호,"화면 ②(FSC 축), v_b2_fsg_summary, v_b2_localized_kdsis",HS6 대응 없음(09-21 카테고리 맵 폐기 — category·category_link_status 열 삭제). FSC 축에서만
-clean_krit_task,table,clean,"B1 KRIT 부품국산화 과제 — 차수·공고유형·과제번호 단위, 최신 차수 플래그",raw_krit_task (notebooks/clean_p5_krit.ipynb),차수 × 공고유형 × 과제번호,"화면 ②",정부지원금 단위가 차수마다 달라 합산 금지. hs6·category·category_link_status 열은 09-21 삭제(HS6와 잇지 않음)
+clean_krit_task,table,clean,"B1 KRIT 부품국산화 과제 — 차수·공고유형·과제번호 단위, 최신 차수 플래그",raw_krit_task (notebooks/clean_p5_krit_p2_budget.ipynb),차수 × 공고유형 × 과제번호,화면 ②,정부지원금 단위가 차수마다 달라 합산 금지. hs6·category·category_link_status 열은 09-21 삭제(HS6와 잇지 않음)
 clean_company,table,clean,사업자번호 기준 업체 마스터(계약정보 + 낙찰업체),"clean_dapa_contract, clean_dapa_bid_result",사업자번호 1개,"업체 축 집계, clean_company_name_link",테스트 업체 제외
-clean_company_name_link,table,clean,사업자번호 없는 출처(방산업체 지정현황·B2 계약업체)의 업체명 → clean_company 연결 결과,"raw_dapa_defense_company, clean_dapa_localized_item",출처 × 업체명,업체 축 보강,none·multi는 미연결로 둔다
+clean_company_name_link,table,clean,사업자번호 없는 출처(방산업체 지정현황·B2 계약업체)의 업체명 → clean_company 연결 결과,"clean_dapa_defense_company, clean_dapa_localized_item",출처 × 업체명,업체 축 보강,none·multi는 미연결로 둔다
 clean_dapa_overseas_plan,table,clean,국외조달 조달계획(파일판) 판단번호 단위 — 집행유형·예산·전자 후보·검수 상태,raw_dapa_overseas_plan (notebooks/clean_b2_a7.ipynb),판단번호 1개,"화면 ⓪, v_overseas_plan_yearly, v_overseas_bid_chain",전자 후보는 미검수(잠정)
 clean_kdsis_nsn,table,clean,KDSIS NSN 기본정보 — NSN별 1행(FSC·NIIN·품명·부여일·참조번호 수). 연결 키 전용,raw_kdsis_nsn,NSN 1개,"v_overseas_plan_api_kdsis, v_b2_localized_kdsis",NSN 등록은 수요 근거가 아님
 clean_excluded_row,table,clean,clean으로 옮기지 않은 raw 행 + 사유 코드(공용),각 정제 노트북,제외 행 1개,검산 raw = clean + excluded,
@@ -47,7 +49,7 @@ clean_dapa_bid_notice,table,clean,"국내 입찰공고 정제 — 참조공고�
 clean_dapa_bid_result,table,clean,국내 입찰결과 정제 — 중복 키는 행 보존(result_seq)·대표 행 플래그,raw_dapa_bid_result (notebooks/clean_p4_domestic.ipynb),공고번호 × 차수 × 결과 순번,"v_bid_result_summary, v_bid_notice_result_link, clean_company",낙찰금액 ≠ 계약금액
 clean_dapa_domestic_plan,table,clean,"국내 조달계획 정제(raw 1:1) — 집행유형 표준값, 예산 숫자화, 계약완료 여부",raw_dapa_domestic_plan,raw 행 1개,v_domestic_plan_yearly,"2024 불완전, 예산 NULL 4,965는 0이 아님. 09-21 입찰방법 열 제거(98.4% 총액제 — raw에 보존)"
 clean_dapa_contract_exec_by_service,table,clean,군별 계약집행 연도×군(억원 DECIMAL),raw_dapa_contract_exec_by_service,연도 × 군,KPI 카드,
-clean_openfiscal_program_budget,table,clean,"열린재정 방위사업청 세부사업 예산(raw 1:1) — 천원·억원 두 벌, 정부안/확정 구분, 3선 후보 태그",raw_openfiscal_program_budget (notebooks/clean_p2_budget.ipynb),회계연도 × 세부사업,"화면 ④(배경), v_budget_rnd_yearly","3선 후보는 겹치므로 합산 금지. 배경 ④ 전용. 09-21 경비구분·지출구분 열 제거(주요사업비·일반지출 외 인건비·기본경비·내부거래 72행 = 금액 0.6%, 합계에 포함 — raw에 보존)"
+clean_openfiscal_program_budget,table,clean,"열린재정 방위사업청 세부사업 예산(raw 1:1) — 천원·억원 두 벌, 정부안/확정 구분, 3선 후보 태그",raw_openfiscal_program_budget (notebooks/clean_p5_krit_p2_budget.ipynb),회계연도 × 세부사업,"화면 ④(배경), v_budget_rnd_yearly","3선 후보는 겹치므로 합산 금지. 배경 ④ 전용. 09-21 경비구분·지출구분 열 제거(주요사업비·일반지출 외 인건비·기본경비·내부거래 72행 = 금액 0.6%, 합계에 포함 — raw에 보존)"
 clean_openfiscal_program_link,table,clean,세부사업명 개편 연결표(표기변경 확정 / 승계 후보 / 신설 미확인),clean_openfiscal_program_budget,연결 1건,예산 추이 연속성,
 clean_dapa_overseas_plan_api,table,clean,"국외 조달계획 OpenAPI 품목 단위 정제 — NSN 판별, FSC4/FSG2, 전자 플래그(58·59·60), KDSIS 연결 상태, 적용장비 표준명",raw_dapa_overseas_plan_api (notebooks/clean_p3_overseas.ipynb),조달요구번호 × 품목순번,"화면 ② 국외조달 FSC 축, v_overseas_plan_api_fsc, v_overseas_plan_api_kdsis",금액 통화 미검증 — 건수만 쓴다
 clean_dapa_overseas_contract,table,clean,"국외조달 계약정보 정제 — 계약기간 분리·연도 파생, 담당자·단일값 열 제외",raw_dapa_overseas_contract (notebooks/clean_p3_overseas.ipynb),계약번호 1개,v_overseas_contract_yearly,업체명으로 국가 추정 금지. 테스트 계약 6행 제외
@@ -55,12 +57,14 @@ clean_dapa_overseas_bid_result,table,clean,국외조달 입찰결과 정제(2025
 clean_hsk_control,table,clean,"전략물자 HSK 연계표 세로형 — HSK10 × 통제번호 1개, 부·군 코드·이중용도 전자 플래그 파생",raw_hsk_control (notebooks/clean_p1_customs_hs.ipynb),HSK10 × 통제번호,"v_hsk_control_by_hs6, ref_hs_indicator",ML(군용물자) 0건 = 자료에 없음
 clean_kosis_utilization,table,clean,"방산업체 분야별 평균가동률(raw 1:1) — 숫자화, 범위 플래그",raw_kosis_utilization (notebooks/clean_p5_kosis.ipynb),분야 × 연도,화면 ④,%를 금액과 합산·비율 계산 금지
 clean_kosis_production_index,table,clean,"광공업생산지수 C26 계열 월별(raw 1:1) — 코드 분리, 월 복원, 잠정·부분연도·범위 등급",raw_kosis_production_index (notebooks/clean_p5_kosis.ipynb),산업 × 항목 × 월,화면 ④,지수는 금액과 합산 금지. 화면은 ★만
+clean_customs_region,table,clean,"관세청 시군구별 수출입실적 정제 — HS6 × 시군구 × 월, 건수·금액 숫자형(천 달러), 부분연도 플래그","원본 파일 raw_customs_region(load_db.py --fact, read_raw → pandas; 첫 적재는 alter_2026-09-22_raw_successors.sql)",HS6 × 시군구 × 월,"v_customs_region_gwacheon_year(화면 24 과천시 비중 KPI, M7)",금액 천 달러(fact_customs_monthly 는 달러) — 합산 금지. 수입은 납세의무자 주소지 기준이라 「군 직접 수입」이 아님
+clean_dapa_defense_company,table,clean,"방산업체 지정현황 84개 정제 — 지정일 DATE, 분야 공란 NULL",원본 파일 raw_dapa_defense_company(notebooks/clean_p4_domestic.ipynb §6; 첫 적재는 alter_2026-09-22_raw_successors.sql),업체 1개,"v_defense_company_sector(화면 ④ 배경), clean_company_name_link",주소·사업자번호 없음. 분야 미기재 3
 v_import_hs6_year,view,v,HS6 × 연도 × 국가 수입·수출액 합(월 수·부분연도 플래그),fact_customs_monthly,HS6 × 연도 × 국가,화면 ①,
 v_import_share_hs6_year,view,v,수입 국가 점유율·순위,v_import_hs6_year,HS6 × 연도 × 국가,화면 ①,
 v_export_share_hs6_year,view,v,수출 국가 점유율·순위,v_import_hs6_year,HS6 × 연도 × 국가,화면 ①,
 v_hhi_hs6_year,view,v,"수입 집중도 HHI = Σ(점유율×100)²(share DOUBLE 정밀), 상위 1국·점유율·수입 실적(>0) 국가 수",v_import_share_hs6_year,HS6 × 연도,"화면 ①③, v_review_list",검토 목록 정렬 기준(HHI↓)
 v_hhi_export_hs6_year,view,v,"수출 집중도 HHI(수입과 동일 정의), 수출 실적(>0) 국가 수",v_export_share_hs6_year,HS6 × 연도,화면 ①,
-v_customs_region_gwacheon_year,view,v,"과천시 소재 수입자 비중(방위사업청 소재지, 추정) — 전국 대비 과천 수입액·건수·시군구 수",raw_customs_region,HS6 × 연도,"⑤ 참고, 화면 반영은 팀 결정(M7)",「군 직접 수입 하한」 표현 금지
+v_customs_region_gwacheon_year,view,v,"과천시 소재 수입자 비중(방위사업청 소재지, 추정) — 전국 대비 과천 수입액·건수·시군구 수",clean_customs_region,HS6 × 연도,"⑤ 참고, 화면 반영은 팀 결정(M7)",「군 직접 수입 하한」 표현 금지
 v_review_list,view,v,화이트리스트 × 연도 HHI + B1 과제 수 + B2 완료 부품 수 — 화면 ③ 검토 목록,v_hhi_hs6_year + ref_hs_whitelist + clean_krit_task + ref_category_map,HS6 × 연도,화면 ③,"B2 열은 '대응표 없음'·NULL, B1 hs6 NULL이라 b1_target_count=0 — '대응 근거 없음'으로 표기"
 v_contract_monthly,view,v,계약번호별 최초 체결월 기준 월별 건수·최종 금액(물품/용역 × class5),clean_dapa_contract,월 × 업무구분 × class5,화면 ②,class5 전행 판단 보류
 v_contract_private_reason,view,v,연도 × 계약방법 × 업무구분 × 수의계약 사유(조문 원문) × 사유 그룹 건수·금액,clean_dapa_contract,연도 × 방법 × 구분 × 사유,화면 ②,'국산화 필요 근거'라 쓰지 않는다
@@ -72,7 +76,7 @@ v_overseas_plan_yearly,view,v,국외 조달계획(파일판) 연도 × 집행유
 v_domestic_plan_yearly,view,v,국내 조달계획 연도 × 집행유형 × 계약방법 건수·예산·계약완료(국외와 열 맞춤),clean_dapa_domestic_plan,연도 × 집행유형 × 방법,화면 ⓪ 국내 vs 국외,"2024~2025만, 2024 불완전"
 v_overseas_contract_yearly,view,v,국외 계약 연도 × 계약방법 건수·고유 업체 수,clean_dapa_overseas_contract,연도 × 방법,화면 ⓪ 보조,금액·국가 없음
 v_overseas_bid_chain,view,v,국외 입찰결과를 판단번호 × 항목으로 접고 조달계획과 연결 — 공고 횟수·최종 결과·계획 집행유형,clean_dapa_overseas_bid_result + clean_dapa_overseas_plan,판단번호 × 항목,화면 ⓪ 보강,2025-01~09 부분연도. 달러·원화 합산 금지
-v_defense_company_sector,view,v,방산업체 분야별 업체 수·지정연도 범위,raw_dapa_defense_company,분야 1개,화면 ⓪ 보조,미기재 3
+v_defense_company_sector,view,v,방산업체 분야별 업체 수·지정연도 범위,clean_dapa_defense_company,분야 1개,화면 ⓪ 보조,미기재 3
 v_overseas_plan_api_fsc,view,v,국외 조달계획 API를 FSC4 × 군 × 요구연도로 집계 — 건수·장비명 수·장비 예시,clean_dapa_overseas_plan_api + ref_fsc + ref_fsg,FSC4 × 군 × 연도,화면 ② 국외조달 FSC 축,건수만(금액 통화 미검증)
 v_overseas_plan_api_kdsis,view,v,국외 조달계획 API 품목 ← KDSIS NSN 연결(품명·FSC·NIIN·참조번호 수),clean_dapa_overseas_plan_api LEFT JOIN clean_kdsis_nsn,품목 1개,연결 점검,
 v_b2_localized_kdsis,view,v,B2 사업×부품 ← KDSIS NSN 연결(fsc4 + 재고번호9),clean_dapa_localized_item LEFT JOIN clean_kdsis_nsn,사업 × 부품,연결 점검,0 채움 금지
@@ -81,7 +85,7 @@ v_b2_fsg_summary,view,v,B2 국산화개발품목 FSG 2자리 집계 — 행 수�
 v_budget_rnd_yearly,view,v,"열린재정 연도별 합계(억원) — 일반회계 합, 국방기술개발 정부안/확정, 부품국산화·국방반도체·기초연구·공급망",clean_openfiscal_program_budget,회계연도,화면 ④(배경),2027은 정부안. 다른 금액과 합산 금지
 v_hsk_control_by_hs6,view,v,HS6별 전략물자 통제 HSK 수 — ML / 이중용도 3·5·6·7부 / 통제번호 목록,clean_hsk_control,HS6 1개,화면 ① 규칙 근거,
 v_hs10_use_share,view,v,HS6 아래 HS10을 용도(군용전용/항공기용/자동차용/기타)로 태그해 2021~2025 수입액 비중,fact_customs_monthly + dim_hs10,HS6 × 용도,"ref_hs_indicator 계산, 화면 ① 보조",
-v_hs10_use_tag_all,view,v,관세청 HSK 전체에 용도 태그(군용전용/항공기용/무인기/레이더/항행/자동차용/기타),raw_hs_code_master + dim_hs10,HS10 1개,HS6 선정 규칙,
+v_hs10_use_tag_all,view,v,관세청 HSK 전체에 용도 태그(군용전용/항공기용/무인기/레이더/항행/자동차용/기타),ref_hs_code_master + dim_hs10,HS10 1개,HS6 선정 규칙,
 v_hs6_candidate_rule,view,v,84·85·88·90류 HS6마다 규칙 판정(R1 군용전용 / R2 항공·항행·레이더·무인기 / R3 이중용도 / R4 B2) → 후보 여부·우선 규칙·근거,v_hs10_use_tag_all + v_hsk_control_by_hs6 + v_defense_relevance_b2,HS6 1개,ref_hs_rule_flag 물질화 원천,09-16 잠정 진입식 스냅샷. 확정 진입식은 R1 OR R2(2026-09-21 M5) — R4 제외
 v_hs6_candidate_vs_whitelist,view,v,규칙 후보 ↔ 현재 화이트리스트 대조(유지 / 강등·제외 검토 / 신규 후보),v_hs6_candidate_rule + ref_hs_whitelist,HS6 1개,선정 규칙 검토,
 v_hs_whitelist_rule,view,v,화이트리스트 24행 × 최신 rule_version 플래그·근거 수치 한 번에,ref_hs_whitelist + ref_hs_rule_flag,HS6 1개,"화면 ①③ 툴팁, 노트북",
