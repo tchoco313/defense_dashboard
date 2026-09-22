@@ -104,6 +104,7 @@
 | 파일 URL | 미정 |
 | 연동 도구 | `figma-developer-mcp`(`.mcp.json` 등록 완료, 09-21). 각자 `FIGMA_API_KEY` 환경변수 필요 — `01_figma_setup.md` §1 |
 | 방향 | Figma → 읽기 전용. 그리는 것은 사람이 한다 |
+| 기준 | **HTML 대표 화면(①)에서 확정한 공통 규칙 `app/mockup/common.css`가 기준**(09-22 사용자 결정 — M3 보완). Figma 「00 Foundations」는 그 값을 등록하고, 팀원 Figma는 선택 사항 — 안 그린 페이지는 공통 규칙으로 Claude가 확장 |
 | 규칙 | Figma는 표현, md는 사실. Figma 값과 md §2가 어긋나면 md 우선 |
 
 ## 8. 회의 결정 반영표 (2026-09-21 팀 회의, 안건 정의 `docs/report/feedback/open-decisions-2026-09-21.md` §2)
@@ -161,10 +162,13 @@
 ## 9. 미결              기다리는 회의 결정(M#)과 달라지는 부분
 ```
 
-## 11. 일괄 처리 절차 ("specs 처리해줘")
+## 11. 일괄 처리 절차 ("specs 처리해줘") — 대표 화면 1개 → 공통 규칙 → Streamlit 조기 검증 → 확장
 
-0. **각자 Figma → md**(M3): 담당자가 자기 페이지를 Figma로 디자인한 뒤 §0 URL·§3 레이아웃·§4 차트 명세를 직접 적고 상태 줄을 「확정」으로 바꾼다. Claude 초안(§1·§2·§6·§7)은 사실 기준으로 유지.
-1. **읽기**: §9 표에서 상태 「확정」인 md만. Context7 MCP로 Streamlit·Plotly 현재 API 확인(이미 쓰는 `st.page_link`, `width="stretch"`, 컨테이너 `key` 위주 — Context7는 문서 조회용이지 설계 도구가 아니다).
-2. **목업** — §0 Figma 노드 URL이 「미정」인 페이지: md 1개 → HTML 목업 Artifact 1개. 스킬: `frontend-design`(방향) + `dataviz`(차트 색·형식) + `minimalist-ui`(레이아웃·타이포·간격 — 프로젝트 스킬 `.claude/skills/minimalist-ui`, §9 프로젝트 오버라이드 우선). 실제 뷰 값 몇 개를 표본으로 넣는다(DBHub `execute_sql`, app_ro). 링크를 그 md §0 「목업(Artifact) URL」과 §9 표에 기록. 사용자가 §8을 고치면 재생성.
-3. **Figma 연동** — §0에 프레임 URL이 있는 페이지: Figma MCP(figma 플러그인 — 사용자가 켜야 함)로 그 노드를 읽어 §3 레이아웃·§4 차트 명세를 Figma 기준으로 맞추고, HTML 목업은 건너뛰거나 대조용으로만. Figma 값과 md §2가 어긋나면 md 우선(Figma는 표현, md는 사실). §0 「마지막 동기화」에 날짜.
-4. **Streamlit** — 확정된 페이지부터 `app/pages/<키>.py` 수정. `app/db.py`·`app/metrics.py` 데이터 로직은 건드리지 않고 표현만. `minimalist-ui`는 로드하지 않는다(`.streamlit/config.toml` 테마 + `app/ui.py` CSS 범위 안에서 이식). `app/ui.py`에 새 이름을 추가하면 공개 앱 Reboot 필요(benchmark §4). `run` 스킬로 스크린샷 → `dashboard-reviewer` 서브에이전트로 10원칙·표현 경계 검수. 회귀: `.venv\Scripts\python.exe -m unittest discover -s tests -v`.
+순서 근거(09-22 사용자 결정): 목업을 전부 만든 뒤 Streamlit로 옮기면 Streamlit에서 구현되지 않는 디자인을 늦게 발견한다. 대표 화면 하나를 Streamlit까지 먼저 통과시켜 공통 규칙을 굳히고, 그 규칙으로 나머지를 늘린다. 화면별 역할(질문·데이터·지표·필터)은 이미 각 md §1~§5에 있으므로 다시 쓰지 않는다. 「누가 보는가」는 M1 재논의 중이라 §1 주 타겟 행 한 곳에만 둔다.
+
+0. **디자인 방향 하나** — 사용자가 09-20 벤치마크 보드(benchmark §1 링크)에서 **기준 사이트 1개**를 지정한다. 전체 분위기(색·글꼴·간격)는 그 사이트 하나를 따르고, 다른 사이트는 표·필터처럼 필요한 요소만 참고한다(섞지 않음). 지정되면 §2·§3과 `01_figma_setup.md` §3~§4, `minimalist-ui` §9 색 값을 그 방향으로 교체. **지정 전에는 1 이후로 가지 않는다.**
+1. **대표 화면 ①** — `20_trade.md` 하나를 `app/mockup/20_trade.html` + `app/mockup/common.css`로 만든다. 메뉴·필터·KPI 카드·차트·표와 상태(로딩 중 / 데이터 없음 / 조회 실패 / 미적재 / 부분연도 배너)까지 포함. 값은 실제 뷰 표본(DBHub `execute_sql`, app_ro)이고, 가상 값을 쓰면 「가상 데이터」 배너를 붙인다. 스킬: `frontend-design`(방향) + `dataviz`(차트 색·형식) + `minimalist-ui` §9. Context7 MCP로 Streamlit·Plotly 현재 API를 확인해 Streamlit 어휘(`01_figma_setup.md` §6) 밖 요소는 넣지 않는다. Artifact로 게시 → URL을 20 §0 「목업(Artifact) URL」과 §9 표에 기록.
+2. **공통 규칙 확정** — 사용자가 §8 자연어 구상을 고치면 대표 화면을 재생성하며 색·글꼴·간격·카드·버튼·표·필터·상태 표현을 정한다. 확정값은 `common.css`가 정본이고 §2~§5는 그 값의 사본(어긋나면 `common.css` 우선, 데이터 사실은 md 우선).
+3. **Streamlit 조기 검증** — ① 한 페이지만 `app/pages/1_수출입_현황.py`와 `app/ui.py`·`.streamlit/config.toml` 토큰에 이식한다. `app/db.py`·`app/metrics.py` 데이터 로직은 건드리지 않고 표현만. `minimalist-ui`는 로드하지 않는다. `run` 스킬 스크린샷을 HTML과 대조해 **Streamlit에서 안 되는 규칙은 `common.css`에서 빼거나 대안을 §4에 기록**한다. `app/ui.py`에 새 이름을 추가하면 공개 앱 Reboot 필요(benchmark §4).
+4. **확장** — 나머지 md(상태 「확정」 또는 §8이 채워진 것): §0 Figma 노드 URL이 「미정」이면 `common.css` 기반 HTML 목업 1개씩(URL → §0·§9), 있으면 Figma MCP(사용자가 켠 뒤)로 노드를 읽어 §3·§4를 맞추고 목업은 대조용으로만. Figma 값과 md §2가 어긋나면 md 우선. §0 「마지막 동기화」에 날짜.
+5. **Streamlit 나머지 이식** — 3과 같은 규칙으로 `app/pages/<키>.py` 표현만 수정 → `dashboard-reviewer` 서브에이전트로 10원칙·표현 경계 검수 → 회귀 `.venv\Scripts\python.exe -m unittest discover -s tests -v` → 개인·팀 push.

@@ -23,6 +23,8 @@
 
 권한: `defense_dashboard` 안에서 SELECT·INSERT·UPDATE·DELETE·CREATE·ALTER·DROP·CREATE VIEW. 스키마 변경은 `db/schema.sql` 직접 실행 금지, `db/alter_<날짜>_<주제>.sql` 규칙(CLAUDE.md). 대장: `docs/runbook/rds-access-registry.md`.
 
+**새 표를 만들기 전에**: `docs/reference/clean-conversion-spec-2026-09-18.md` §2에 목표 객체가 이미 있으면(예: 관세청 → `fact_customs_monthly`, HS 마스터 → `dim_hs10`·`ref_hs_rule_flag`) 새 표를 만들지 않는다. 필요하면 명세 갱신 → alter 파일 → 열 사전 → `meta_load_log` 순으로 등록한다. 사전 밖 표는 카탈로그 경고가 나고 제출 명세서와 어긋나므로 삭제 대상이다(09-21·09-22 `clean_customs_*`·`clean_hs_*` 4표 DROP 사례).
+
 ## ER 다이어그램 (PK·FK 구조 보기)
 
 1. 연결 트리에서 `defense_dashboard` 스키마를 더블클릭(또는 우클릭 › **View Diagram**) › 상단 **ER Diagram** 탭 — 테이블 56개와 FK 선이 한 화면에 그려진다.

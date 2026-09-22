@@ -1,4 +1,4 @@
-# 테이블 카탈로그 — 역할·키·주요 열 (RDS `defense_dashboard` 실측 2026-09-21)
+# 테이블 카탈로그 — 역할·키·주요 열 (RDS `defense_dashboard` 실측 2026-09-22)
 
 `scripts/gen_table_catalog.py`가 `db/table_dict.csv`(역할·원천·한 행·쓰는 곳·주의) + `db/column_dict.csv`(열 설명) + RDS(행 수·PK·뷰 열)로 만든다. **손으로 고치지 말고 두 CSV를 고친 뒤 재생성.** 테이블 56 · 뷰 31. 화면↔테이블 대응·SQL 예시는 `docs/db/table-guide.md`, DDL은 `db/schema.sql`.
 
@@ -732,7 +732,7 @@
 ### `meta_column_dict`
 
 - **역할**: 원본 한글 헤더 ↔ DB 영문 열명 ↔ 타입 ↔ 설명(= db/column_dict.csv)
-- **원천**: db/column_dict.csv · **한 행**: 테이블 × 열 · **PK**: `table_name,column_name` · **행 수**: 823
+- **원천**: db/column_dict.csv · **한 행**: 테이블 × 열 · **PK**: `table_name,column_name` · **행 수**: 870
 - **쓰는 곳**: 데이터 명세서
 - **주의**: 뷰 열은 등재하지 않음
 

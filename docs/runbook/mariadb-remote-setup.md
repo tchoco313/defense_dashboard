@@ -1,5 +1,7 @@
 # MariaDB 학원 내부망 서버 구축·원격 접속 (2026-09-15 팀 작업용)
 
+> 실측 2026-09-22(`mariadb.exe -h 192.168.100.221`): `@@hostname = DESKTOP-MRPP9MH`, 서버 버전 **MySQL 8.4.11**(문서의 MariaDB 아님), BASE TABLE 54, 이미 삭제된 `ref_category_map`·`test_table` 잔존 = 09-18 이전 스냅샷. 이 서버 수치를 RDS 실측으로 쓰면 안 된다(DBHub는 `~/.claude/dbhub.toml` → RDS `ip-10-7-0-61`).
+
 > **2026-09-18부터 이 서버는 백업·로컬 연습용이다.** 운영 DB는 AWS RDS(`docs/runbook/aws-rds-setup.md`)이며 적재·alter·앱 접속은 전부 RDS로 한다. 이 서버에 새 데이터를 쓰지 않고, 필요할 때 RDS 덤프를 복원해 연습하는 용도로만 남긴다(`aws-rds-setup.md` §6). 아래 내용은 2026-09-15~18 구축 기록이다.
 
 한 팀원 PC에 DB 서버를 두고 나머지가 같은 내부망에서 원격 접속하는 구성. 서버는 **협업 편의 수단**이고, 과제 제출물은 DDL·덤프 파일이다. 서버 PC가 없어도 작업이 멈추지 않도록 §5 덤프 공유를 매일 한다.
