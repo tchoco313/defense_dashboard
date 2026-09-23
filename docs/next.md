@@ -1,6 +1,6 @@
 # 다음 할 일
 
-갱신: 2026-09-22. 끝난 항목은 지우고 현재 남은 것만 둔다(이력은 git 로그). 일정 기준: **데이터·산출물 제출 2026-10-02**, PPT 2026-10-05, 발표 2026-10-06.
+갱신: 2026-09-23. 끝난 항목은 지우고 현재 남은 것만 둔다(이력은 git 로그). 일정 기준: **데이터·산출물 제출 2026-10-02**, PPT 2026-10-05, 발표 2026-10-06.
 
 ## 지금 상태
 
@@ -9,15 +9,13 @@
 - DBHub MCP 를 팀 서버 → **RDS**(`dev_taeho`·readonly)로 교체(2026-09-22). **Claude Code 를 다시 켜야 반영된다.**
 - 회의 안건 M1~M8 결정·반영 완료(2026-09-21, `app/specs/00_common.md` §8). 1만 건 요건 2종(M2) 표기를 기준 문서 전체에 통일 완료(09-22).
 - 화면 명세 `app/specs/` 14개(23·35 폐기) 작성·검증 완료, 팀 저장소 `dashboard/specs/` 동기(09-22).
-- **화면 디자인 기준 확정**(2026-09-22): 기준 사이트 **NABOSTATS**(다크 네이비), 현행 다크 색 유지, 참고 자료는 캡처 대신 URL, 디자인 문서는 `01_figma_setup.md` 재편. 화면 작업 순서·파일 지도는 **`app/roadmap.md`**.
+- **화면 디자인 기준**: 기준 사이트 **재지정 대기**(NABOSTATS 09-23 폐기 — 사용자 URL 3개를 `app/specs/01_design_system.md` §1에 받아 고른다), 현행 다크 색 유지, 참고 자료는 캡처 대신 URL, 디자인 규칙은 `app/specs/01_design_system.md`(09-23 재편, 값은 `common.css`에만). 화면 작업 순서·파일 지도는 **`app/roadmap.md`**.
 - **EDA 3종 완료**: `eda_customs.ipynb`(관세청 — 13개 기준 재실행 09-22) · `eda_localized_item.ipynb`(국산화개발품목 — 신설 09-22) · `eda_contract.ipynb`(국내조달 계약 — 부록). 세 노트북 모두 시각화 5종(비교·구성·관계·추세·공간) + 차이검정 + 상관을 갖췄다.
 
 ## 순서
 
 | # | 할 일 | 누가 | 마감 | 결과물 · 방법 |
 |---|---|---|---|---|
-| 1 | 09-22 작업분 push — `/git 개인` → `/git 팀 app/specs db docs notebooks`(경로 `app/`→`dashboard/` 치환) | 사용자 지시 → Claude | 즉시 | 팀 저장소 동기 |
-| 2 | 디자인 문서 재편 — `app/specs/01_figma_setup.md` → `01_design_system.md`(기준 사이트·참고 URL·Streamlit 어휘). 값은 `common.css`에만 둔다 | Claude | 09-24 | `app/roadmap.md` §2 1단계 |
 | 3 | 대표 화면 ① HTML — `app/mockup/20_trade.html` + `common.css`(메뉴·필터·KPI·차트·표·상태, 값은 DBHub 표본) → Artifact 게시, URL을 20 §0·00 §9에 | Claude | 09-25 | `app/roadmap.md` §2 2단계 |
 | 4 | 공통 규칙 확정 — §8 자연어 구상 수정 ↔ 대표 화면 재생성 반복, 색·글꼴·간격·카드·버튼·표·상태를 `common.css`로 굳힌다 | 사용자 ↔ Claude | 09-26 | `app/roadmap.md` §2 3단계 |
 | 5 | Streamlit 조기 검증 — ① 한 페이지만 `app/pages/1_수출입_현황.py`·`app/ui.py`·`.streamlit/config.toml`에 이식, `run` 스크린샷을 HTML과 대조. 데이터 로직 불변 | Claude | 09-27 | `app/roadmap.md` §2 4단계 |
