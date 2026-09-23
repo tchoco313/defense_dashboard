@@ -8,7 +8,7 @@
 |---|---|---|
 | 제목 | 「주요 방산 전자부품 수출입 및 국산화 현황」(`page_title` 「방산 전자부품 수출입 및 국산화 현황」). 타겟은 중간 발표(09-22) 기준 — 공개 자료로 현황을 확인·인용해야 하는 사람: 정책·예산 / 연구·분석 / 방산 중소·벤처(주·부 순위 없음, 2026-09-23 사용자 확정, `docs/idea-review.md` §4 Who) | `app/ui.py` `top_bar` 브랜드, `app/main.py` `st.set_page_config` |
 | 부제 | 「공식 분류·통제표로 고른 전자부품 품목군 · 공개 데이터 기반 현황 대시보드」 | `app/ui.py` `top_bar` `<small>` |
-| 페이지 제목 | 「홈」 「① 수출입 현황」 「② 부품→무기체계」 「③ 품목군 현황표」 「④ 정책·산업 배경」 「🔎 조회」 「⑤ DATA INFO」 — 이름·순서·묶음은 담당자 Figma 결과로 바뀔 수 있음(M3) | `app/nav.py` `PAGE_SPECS`(제목·URL)·`NAV_ORDER`(순서) |
+| 페이지 제목·순서 | 「홈」 「① 수출입 현황」 「⓪ 국외조달 예산 · 배경」 「② 조달·국산화 근거」 「③ 검토 목록」 「조회」 「⑤ 데이터 정보」(2026-09-23, CLAUDE.md 표시 순서 ① → ⓪ → ② → ③ 반영, 이모지 없음) — 이름·묶음은 담당자 Figma 결과로 바뀔 수 있음(M3) | `app/nav.py` `PAGE_SPECS`(제목·URL)·`NAV_ORDER`(순서) |
 
 「의존도」는 정의를 달아도 화면에 쓰지 않는다(§6).
 
@@ -20,18 +20,18 @@
 | 범주색(국가·품목군·소요군) | `dataviz` 스킬 팔레트 — 목업에서 팔레트를 바꿔도 **수입 = 파랑 계열, 수출 = 주황 계열, 부분연도 = 같은 색의 저채도** 대응은 유지 | `app/ui.py` |
 | 3D·게이지·왜곡 인포그래픽 | 금지 | 원칙 3 |
 
-색 토큰의 이름·역할은 `01_design_system.md` §2, 실제 값은 `app/mockup/common.css`(생기기 전까지 `app/ui.py` 상수·`.streamlit/config.toml`)에만 둔다.
+색·CSS 값은 팀원 디자인 데모를 옮긴 `app/kdesign.py`에만 둔다(`01_design_system.md`).
 
 ## 3. 폰트
 
-텍스트 역할 이름은 `01_design_system.md` §3, 글꼴 계열·크기·굵기 값은 `common.css`(생기기 전까지 `app/ui.py` CSS — 현재 `font-family` 선언 없음, Streamlit 기본).
+글꼴(Pretendard)·크기·굵기는 `app/kdesign.py`(데모 CSS)에 있다.
 
 ## 4. 공통 컴포넌트 (`app/ui.py`·`app/metrics.py`·`app/db.py`)
 
 | 컴포넌트 | 함수 | 규칙 |
 |---|---|---|
 | 현재 조건 줄 | (4단계에서 `ui`에 추가) | 필터 바로 아래 한 줄: 품목 · 기간 · 단위 · 부분연도 여부. 그 아래 KPI·차트·표는 모두 이 조건(`01_design_system.md` §0-2) |
-| 상단바 | `top_bar(pages, current, stamp)` | 브랜드 \| 메뉴 \| 기준일. 기준일 = `db.data_stamp("customs_all","fact_customs_monthly")` → 「관세청 자료 2016.01~2026.08 / DB 적재 YYYY-MM-DD」, 실패 시 「관세청 자료 — / DB 적재 —」 |
+| 사이드바 · 머리띠 | `kdesign.sidebar` · `ui.hero(title, sub, side, side_sub)` | 데모 사이드바(브랜드 · 메뉴 · 자료 기간 · ⓘ 데이터 정보). 머리띠 오른쪽 = 「관세청 자료 기간 / DB 적재일」(`db.data_stamp`), 실패 시 「—」 |
 | KPI 카드 | `kpi(label, value, unit, sub, tag="")` | 여러 장은 `<div class="kpis">`(5열, `.k4` 4열). `tag`는 「잠정」「인용」「정부안」 배지 |
 | 구역 틀 | `zone(key, tag)` | 점선 구역 + 태그. 페이지마다 `p<n>_<이름>` 키 |
 | 기간 기준 | `period_control(df, note, key)` | 버튼 3개: 「YYYY 기준 연도」 / 「최근 5년」 / 「전체 YYYY~」. **완결 연도만**(부분연도 제외). 완결 연도 없으면 `st.info("완결 연도(부분연도 제외) 실적이 없어 기간 기준을 만들 수 없습니다.")` 후 `st.stop()`. 페이지별 key(`period_home`·`period_p3`·`q_period`) |
@@ -87,14 +87,14 @@
 
 ## 7. Figma
 
-디자인 규칙(요소별 참고 URL·색/텍스트 역할·Streamlit 어휘·Figma 담당)은 **`01_design_system.md`**, 실제 값은 `app/mockup/common.css`에 있다. 전원이 그것부터 읽는다.
+디자인 규칙(틀 = 데모 · 겉모양 = 참고 URL · 색 · 넣지 않는 것 · 내려받기)은 **`01_design_system.md`**, 실제 값은 `app/kdesign.py`에 있다. 전원이 그것부터 읽는다.
 
 | 항목 | 값 |
 |---|---|
 | 파일 URL | 미정 |
-| 연동 도구 | `figma-developer-mcp`(`.mcp.json` 등록 완료, 09-21). 각자 `FIGMA_API_KEY` 환경변수 필요 — `01_design_system.md` §6 |
+| 연동 도구 | `figma-developer-mcp`(`.mcp.json` 등록 완료, 09-21). 각자 `FIGMA_API_KEY` 환경변수 필요 — `01_design_system.md` §5 |
 | 방향 | Figma → 읽기 전용. 그리는 것은 사람이 한다 |
-| 기준 | **HTML 대표 화면(①)에서 확정한 공통 규칙 `app/mockup/common.css`가 기준**(09-22 사용자 결정 — M3 보완). Figma 「00 Foundations」는 그 값을 등록하고, 팀원 Figma는 선택 사항 — 안 그린 페이지는 공통 규칙으로 Claude가 확장 |
+| 기준 | **팀원 디자인 데모(`app/kdesign.py`)가 기준**(2026-09-23 사용자 결정). Figma는 선택 사항이며 그릴 때도 데모 화면을 따른다 |
 | 규칙 | Figma는 표현, md는 사실. Figma 값과 md §2가 어긋나면 md 우선 |
 
 ## 8. 회의 결정 반영표 (2026-09-21 팀 회의, 안건 정의 `docs/report/feedback/open-decisions-2026-09-21.md` §2)
@@ -119,9 +119,9 @@
 | 파일 | 페이지 키 | 상태 | 근거(출처·절) | 대응 app 파일 | Figma 노드 URL | 목업 URL |
 |---|---|---|---|---|---|---|
 | `10_home.md` | 홈 | 초안 | `app/home.py` · v7-brief §7 홈 · benchmark §2(탭 안내 링크) | `app/home.py` | 미정 | 미생성 |
-| `20_trade.md` | ① 수출입 현황 | 초안 | idea-review §4 핵심 ① · v7-brief §9(①) · benchmark §2(구역 pills·지도 라벨·클릭) | `app/pages/1_수출입_현황.py` | 미정 | 미생성 |
-| `21_parts_fsc.md` | ② 부품→무기체계(FSC 축) | 초안 | idea-review §4 핵심 ②(B2 국산화 완료 섹션) · v7-brief §7 ② | `app/pages/2_부품_무기체계.py` | 미정 | 미생성 |
-| `22_category_table.md` | ③ 품목군 현황표 · 추가 검토 목록 | 초안 | idea-review §4 핵심 ③(검토 목록) + v7-brief §7 ③(현황표) 합침 · benchmark §2(트리맵) | `app/pages/3_품목군_현황표.py` | 미정 | 미생성 |
+| `20_trade.md` | ① 수출입 현황 | 초안 | idea-review §4 핵심 ① · v7-brief §9(①) · benchmark §2(구역 pills·지도 라벨·클릭) | `app/pages/1_수출입_현황.py` | 미정 | https://claude.ai/artifact/DjFGs42myZF8vQoF1eugck |
+| `21_parts_fsc.md` | ② 조달·국산화 근거(FSC 축) | 초안 | idea-review §4 핵심 ②(B2 국산화 완료 섹션) · v7-brief §7 ② | `app/pages/2_부품_무기체계.py` | 미정 | 미생성 |
+| `22_category_table.md` | ③ 검토 목록 · 품목군 현황표 | 초안 | idea-review §4 핵심 ③(검토 목록) + v7-brief §7 ③(현황표) 합침 · benchmark §2(트리맵) | `app/pages/3_품목군_현황표.py` | 미정 | 미생성 |
 | `23_scenario.md` | 제한률 시나리오 | 폐기(파일 삭제 2026-09-21) | idea-review §4 핵심 ③ 시나리오 · rules #11 · **폐기(2026-09-21 조장)**: 가정 기반 시나리오는 발표 범위에서 뺀다 | — | — | — |
 | `24_gwacheon_share.md` | 과천시 소재 수입자 비중(추정) | 초안 | table-guide §2 과천 행 · v7-brief §7 ① 수입자 지역 · M7 채택(09-21) — 표현은 히트맵 | 신규(또는 10 홈 KPI + 90 ⑤ 카드) | 미정 | 미생성 |
 | `30_overseas_plan_budget.md` | ⓪ 국외조달 예산 추이 | 초안 | idea-review §4 배경 ⓪(+09-17 보강) · ④ 조달계획 구역 | `app/pages/4_정책_산업_배경.py`(일부) | 미정 | 미생성 |
@@ -130,10 +130,10 @@
 | `33_semiconductor_strategy.md` | 국방반도체 발전전략(참조표) | 초안 | v7-brief §7 ④ · ④ 반도체 구역 · policy-pdf-analysis §11·§12 | `app/pages/4_정책_산업_배경.py`(일부) | 미정 | 미생성 |
 | `34_domestic_procurement.md` | 국내 조달(계약·수의계약 사유·입찰) — 부록 | 초안 | idea-review §4 핵심 ② 조달 섹션 ⓓⓔⓕ · table-guide §2 「핵심 ② 조달 섹션」 · M2(09-21: 부록 성격, 근거 아님) · 배경 유지(2026-09-21 조장: 3x 배경 페이지, 핵심 근거 구역에 두지 않음) | 신규(담당자 Figma로 위치 결정) | 미정 | 미생성 |
 | `35_domestic_map.md` | 국내 지도(시도 choropleth) | 폐기(파일 삭제 2026-09-22) | idea-review §4 보조 ⑤ · table-guide §2 보조 ⑤ · **폐기(2026-09-21 조장 → 2026-09-22 사용자 재확인)**: GeoJSON은 확보했으나(`data/reference/sido_boundary.geojson`) 국내 지도 화면은 복구하지 않는다. 시도 축이 필요하면 ① 수출입 현황(20) 안의 구역으로 다루고 별도 페이지는 두지 않는다 | — | — | — |
-| `90_data_info.md` | ⑤ DATA INFO | 초안 | v7-brief §7 ⑤ · benchmark §2(용어 15행) | `app/pages/5_DATA_INFO.py` | 미정 | 미생성 |
-| `91_search.md` | 🔎 조회 | 초안 | v7-brief §7 조회 · mockup search.html | `app/pages/6_조회.py` | 미정 | 미생성 |
+| `90_data_info.md` | ⑤ 데이터 정보 | 초안 | v7-brief §7 ⑤ · benchmark §2(용어 15행) | `app/pages/5_DATA_INFO.py` | 미정 | 미생성 |
+| `91_search.md` | 조회 | 초안 | v7-brief §7 조회 · mockup search.html | `app/pages/6_조회.py` | 미정 | 미생성 |
 
-흡수(별도 md 없음): idea-review 보조 ④ 「수출·생산 추세」 → 수출은 20(수입·수출 동등 배치), 생산은 32. ④ 정책·산업 배경 한 파일은 질문 4개라 30~33으로 나눴다 — 한 페이지로 묶을지는 담당자 Figma 결과에 따른다(M3).
+흡수(별도 md 없음): idea-review 보조 ④ 「수출·생산 추세」 → 수출은 20(수입·수출 동등 배치), 생산은 32. ⓪ 국외조달 예산 · 배경 한 파일은 질문 4개라 30~33으로 나눴다 — 한 페이지로 묶을지는 담당자 Figma 결과에 따른다(M3).
 
 ## 10. 페이지 md 템플릿 (절 이름·번호 고정 — 일괄 처리가 절 이름으로 읽는다)
 
@@ -152,13 +152,12 @@
 ## 9. 미결              기다리는 회의 결정(M#)과 달라지는 부분
 ```
 
-## 11. 일괄 처리 절차 ("specs 처리해줘") — 대표 화면 1개 → 공통 규칙 → Streamlit 조기 검증 → 확장
+## 11. 일괄 처리 절차 ("specs 처리해줘") — 데모 이식 → 내려받기 → 검증
 
-순서 근거(09-22 사용자 결정): 목업을 전부 만든 뒤 Streamlit로 옮기면 Streamlit에서 구현되지 않는 디자인을 늦게 발견한다. 대표 화면 하나를 Streamlit까지 먼저 통과시켜 공통 규칙을 굳히고, 그 규칙으로 나머지를 늘린다. 화면별 역할(질문·데이터·지표·필터)은 이미 각 md §1~§5에 있으므로 다시 쓰지 않는다. 「누가 보는가」는 §1 제목 행과 `idea-review.md` §4 Who 한 곳에만 둔다.
+화면별 역할(질문·데이터·지표·필터)은 이미 각 md §1~§5에 있으므로 다시 쓰지 않는다. 「누가 보는가」는 §1 제목 행과 `idea-review.md` §4 Who 한 곳에만 둔다.
 
-0. **디자인 입력** — 디자인은 **새로 만든다** — 큰 틀은 팀원 화면(URL), UI/UX는 벤치마킹 요소 URL 3개 이상, 색은 대표색 1개에서 파생(수입 파랑·수출 주황은 고정). 입력 칸 A·B·C와 생성 프롬프트는 `01_design_system.md` §1·§7. A1·C가 비어 있으면 1로 가지 않는다(2026-09-23 사용자 결정). Figma는 나중에.
-1. **대표 화면 ①** — `01_design_system.md` §7 생성 프롬프트로 `20_trade.md` 하나를 `app/mockup/20_trade.html` + `app/mockup/common.css`로 만든다. 메뉴·필터·KPI 카드·차트·표와 상태(로딩 중 / 데이터 없음 / 조회 실패 / 미적재 / 부분연도 배너)까지 포함. 값은 실제 뷰 표본(DBHub `execute_sql`, app_ro)이고, 가상 값을 쓰면 「가상 데이터」 배너를 붙인다. 스킬: `frontend-design`(방향) + `dataviz`(차트 색·형식) + `minimalist-ui` §9. Context7 MCP로 Streamlit·Plotly 현재 API를 확인해 Streamlit 어휘(`01_design_system.md` §5) 밖 요소는 넣지 않는다. Artifact로 게시 → URL을 20 §0 「목업(Artifact) URL」과 §9 표에 기록.
-2. **공통 규칙 확정** — 사용자가 §8 자연어 구상을 고치면 대표 화면을 재생성하며 색·글꼴·간격·카드·버튼·표·필터·상태 표현을 정한다. 확정값은 `common.css`에만 두고 md에는 값을 복사하지 않는다(디자인 값은 `common.css` 우선, 데이터 사실은 md 우선).
-3. **Streamlit 조기 검증** — ① 한 페이지만 `app/pages/1_수출입_현황.py`와 `app/ui.py`·`.streamlit/config.toml` 토큰에 이식한다. `app/db.py`·`app/metrics.py` 데이터 로직은 건드리지 않고 표현만. `minimalist-ui`는 로드하지 않는다. `run` 스킬 스크린샷을 HTML과 대조해 **Streamlit에서 안 되는 규칙은 `common.css`에서 빼거나 대안을 §4에 기록**한다. `app/ui.py`에 새 이름을 추가하면 공개 앱 Reboot 필요(benchmark §4).
-4. **확장** — 나머지 md(상태 「확정」 또는 §8이 채워진 것): §0 Figma 노드 URL이 「미정」이면 `common.css` 기반 HTML 목업 1개씩(URL → §0·§9), 있으면 Figma MCP(사용자가 켠 뒤)로 노드를 읽어 §3·§4를 맞추고 목업은 대조용으로만. Figma 값과 md §2가 어긋나면 md 우선. §0 「마지막 동기화」에 날짜.
-5. **Streamlit 나머지 이식** — 3과 같은 규칙으로 `app/pages/<키>.py` 표현만 수정 → `dashboard-reviewer` 서브에이전트로 10원칙·표현 경계 검수 → 회귀 `.venv\Scripts\python.exe -m unittest discover -s tests -v` → 개인·팀 push.
+0. **디자인** — 틀은 팀원 디자인 데모, 겉모양은 참고 URL(Tremor · KOSIS · Datawrapper), 색은 파랑 · 하늘 · 흰색, 흔한 AI 대시보드 티(이모지 · 그라데이션 · 애니메이션)는 뺀다(`01_design_system.md`). Figma는 나중에.
+1. **이식** — 데모의 해당 `page_*` 배치를 페이지 파일로 옮기고, 샘플 값을 그 페이지의 RDS 조회로 바꾼다. DB 에 없는 칸은 빼고 md §9 에 적는다.
+2. **내려받기** — plotly 차트마다 `ui.png_button`, 표마다 CSV(`ui.csv_header`).
+3. **검증** — 데모(8601)와 운영 앱(8501)을 Chrome 으로 비교, 화면 숫자를 DBHub 로 대조, 탭·버튼·필터 클릭과 내려받기 확인. `ui.py`·`kdesign.py`에 새 이름이 생기면 공개 앱 Reboot.
+4. **마무리** — `dashboard-reviewer` 서브에이전트로 10원칙·표현 경계 검수 → 회귀 `.venv\Scripts\python.exe -m unittest discover -s tests -v` → 개인·팀 push.

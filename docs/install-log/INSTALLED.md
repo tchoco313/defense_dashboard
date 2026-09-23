@@ -103,3 +103,7 @@
 ## 2026-09-22 (중간 발표 PPTX 재생성)
 
 - `pptxgenjs` 4.0.1 (npm, `build/pptx/node_modules` — gitignore) — `make_midterm.js`로 중간 발표 PPTX를 다시 만들기 위해 `npm install`. 생성: `node make_midterm.js <출력 경로.pptx>`. 결과물 `*.pptx`도 gitignore.
+
+## 2026-09-23 (데모 디자인 이식 — 정적 점검)
+
+- `pyflakes` (`.venv`, pip) — 데모 코드를 옮긴 `app/kdesign.py`·페이지 파일의 미정의 이름·안 쓰는 import 점검용. 실행: `.venv\Scripts\python.exe -m pyflakes <파일>`. 린터 규칙 도입은 아님(CLAUDE.md 「린터 없음」 유지).

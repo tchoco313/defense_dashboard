@@ -9,18 +9,19 @@
 - DBHub MCP 를 팀 서버 → **RDS**(`dev_taeho`·readonly)로 교체(2026-09-22). **Claude Code 를 다시 켜야 반영된다.**
 - 회의 안건 M1~M8 결정·반영 완료(2026-09-21, `app/specs/00_common.md` §8). 1만 건 요건 2종(M2) 표기를 기준 문서 전체에 통일 완료(09-22).
 - 화면 명세 `app/specs/` 14개(23·35 폐기) 작성·검증 완료, 팀 저장소 `dashboard/specs/` 동기(09-22).
-- **화면 디자인**(09-23): 디자인은 **새로 만든다** — 큰 틀은 팀원 화면(URL), UI/UX는 벤치마킹 요소 URL 3개 이상, 색은 대표색 1개에서 파생(수입 파랑·수출 주황은 고정). 입력 칸 A·B·C와 생성 프롬프트는 `01_design_system.md` §1·§7. 입력 대기(팀, 09-25). Figma는 나중. 화면 작업 순서·파일 지도는 **`app/roadmap.md`**.
-- **EDA 3종 완료**: `eda_customs.ipynb`(관세청 — 13개 기준 재실행 09-22) · `eda_localized_item.ipynb`(국산화개발품목 — 신설 09-22) · `eda_contract.ipynb`(국내조달 계약 — 부록). 세 노트북 모두 시각화 5종(비교·구성·관계·추세·공간) + 차이검정 + 상관을 갖췄다.
+- **화면 디자인**(09-23): 틀 = 팀원 디자인 데모, 겉모양 = 참고 URL(Tremor · KOSIS · Datawrapper), 색 파랑 · 하늘 · 흰색, 데이터는 검증 8색, 차트 제목 결론형 · 출처는 「?」 원 · PNG 에 제목 · 출처 포함 — 7페이지 헤드리스 예외 0 · 제목 숫자 DB 대조 완료(`app/kdesign.py`, 규칙 `app/specs/01_design_system.md`). 반도체 참조표 RDS 적재(`ref_semi_*`). `dashboard-reviewer` 검수 필수 0건 · 개인 저장소 push(09-24). 남은 것: 공개 앱 Reboot.
+- **EDA 4종 · 2차 완료(09-23)**: `eda_customs.ipynb`(관세청 — §11 EDA 2차 A1~A10 추가) · **`eda_overseas_plan.ipynb`(국외 조달계획 — 신설, B1~B8)** · `eda_localized_item.ipynb`(국산화개발품목) · `eda_contract.ipynb`(국내조달 계약 — 부록). 2차 쿼리는 `db/query_eda2_2026-09-23.sql` 18블록(노트북과 화면이 같은 SQL). 기존 검정 · 상관 절에는 「보고서 부록 — 결론 · 발표 · 화면에 쓰지 않음」 머리말. 남은 것: C1(반도체 군급 67건 분포 표) · 산출물 4 보고서로 묶기.
+
+- **09-23 조장 → 훈희 전달**: `docs/report/feedback/handoff-2026-09-23.md`(확정 결정 · 기획안 · EDA 2차 · 확인 요청 4건).
 
 ## 순서
 
 | # | 할 일 | 누가 | 마감 | 결과물 · 방법 |
 |---|---|---|---|---|
-| 3 | 대표 화면 ① HTML — `app/mockup/20_trade.html` + `common.css`(메뉴·필터·KPI·차트·표·상태, 값은 DBHub 표본) → Artifact 게시, URL을 20 §0·00 §9에 | Claude | 09-25 | `app/roadmap.md` §2 2단계 |
-| 4 | 공통 규칙 확정 — §8 자연어 구상 수정 ↔ 대표 화면 재생성 반복, 색·글꼴·간격·카드·버튼·표·상태를 `common.css`로 굳힌다 | 사용자 ↔ Claude | 09-26 | `app/roadmap.md` §2 3단계 |
-| 5 | Streamlit 조기 검증 — ① 한 페이지만 `app/pages/1_수출입_현황.py`·`app/ui.py`·`.streamlit/config.toml`에 이식, `run` 스크린샷을 HTML과 대조. 데이터 로직 불변 | Claude | 09-27 | `app/roadmap.md` §2 4단계 |
-| 6 | 확장·이식 — 나머지 md를 `common.css` 기반 목업 → Streamlit 표현 이식 → `dashboard-reviewer` → unittest → 개인·팀 push. `app/ui.py` 새 이름 추가 시 공개 앱 Reboot | Claude | **09-30** | 배포 앱(산출물 5) · `app/roadmap.md` §2 5단계 |
-| 7 | **시연 동영상 3~4분(산출물 6)** — 화면 구현(#6)이 끝나야 찍을 수 있다. 시나리오(홈 → ① 수출입 → ⓪ 예산 → ② 근거 → ③ 검토 목록 → ⑤ DATA INFO)를 먼저 대본으로 쓰고 한 번에 녹화 | 팀 | **10-01** | mp4 |
+| 1 | **기획안 09-23 수정(산출물 1 중간본)** — 드라이브 `0_훈수안이조_프로젝트_기획서_2026-09-22`(Google Docs)에 `docs/report/plan/plan-revision-2026-09-23.md` §3 반영(검정·상관 삭제, ③ 검토 목록의 「국산화 이력 적은」 삭제, NTIS 완료, raw 문장 교체, 주요 부품 정의를 개요 앞으로, 선정은 수집 장으로, 1,003 구간표 §2-1) | 조장 | **09-23** | Google Docs |
+| 2 | **EDA 2차 — 노트북 완료(09-23)**. 남은 것: C1 · 결정 3건(`eda-plan-2026-09-23.md` §4 — FSG 분모 13,017로 진행 중, 메인 집중 지표, 상관값 0.05/0.06) · 산출물 4 보고서 묶기(10-02) | 팀 | 10-02 | 노트북 → 보고서 |
+| 5 | **공개 앱 Reboot** — 09-24 디자인 재구성 push 후 새 모듈 `kdesign` 을 읽도록 Streamlit Cloud 에서 Manage app → Reboot, 7페이지 확인(첫 접속이 하위 주소면 「Page not found」가 한 번 뜰 수 있음) | 사용자 | push 직후 | `app/specs/01_design_system.md` |
+| 7 | **시연 동영상 3~4분(산출물 6)** — 화면 구현(#6)이 끝나야 찍을 수 있다. 시나리오(홈 → ① 수출입 → ⓪ 예산 → ② 근거 → ③ 검토 목록 → ⑤ 데이터 정보)를 먼저 대본으로 쓰고 한 번에 녹화 | 팀 | **10-01** | mp4 |
 | 8 | **데이터 명세서(산출물 3)** — `docs/report/data/3_데이터수집목록및명세서-2026-09-22.xlsx`(시트 30 = 목록 1 + 수집 데이터셋 26 + 참고 1 + 정제변경 2), `scripts/gen_data_spec_xlsx.py` 로 네 CSV + **원본 파일(read_raw) + RDS 실측**에서 재생성(`--asof` 로 작성일자 지정, 제출 직전 재실행 — 이 PC엔 `raw_customs_region` 파일이 없어 그 시트 예시값이 비므로 맥 또는 파일 복사 후 실행). 09-22 저녁 raw_ 계층 제거 반영 재생성 완료. 남은 것: **팀 검수**(카테고리 6개 묶음·데이터명 표기) | Claude(생성) → 팀 검수 | **10-02** | xlsx |
 | 9 | **회의록·수행일지·WBS(산출물 2)** — 회의 기록은 `docs/report/feedback/`에 md로 있으나 제출 양식(`resource/drive/4_프로젝트 회의록 양식.docx`)의 docx와 **WBS는 아직 없다**. 안건/논의/결정사항/이슈/액션아이템(담당·마감·상태)/다음 일정 칸을 채운다 | 팀 | **10-02** | docx |
 | 10 | **시스템 아키텍처 설계서(산출물 5의 일부)** — 화면 설계는 `app/specs/`, DB 설계는 `docs/db/schema-design.md`·`docs/db/erd.md`로 있으나 **아키텍처 도면이 제출물에 없다**(`aws/architecture-notes.md`는 gitignore·로컬 전용). 순서는 교수 피드백대로 **수집(원본 파일 `data/raw/` + `meta_dataset`) → 전처리(노트북·`load_db.py`, `read_raw`) → DB 저장(RDS `clean_`·`fact_`·`dim_` + `ref_`·`meta_`) → 활용(`v_` 뷰 → Streamlit Cloud)** 1장. raw_ 표는 그리지 않는다 | Claude | **10-02** | 도면 + 설명 |

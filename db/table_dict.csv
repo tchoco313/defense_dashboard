@@ -9,6 +9,13 @@ ref_fsc,table,ref,FSC 군급분류 4자리 라벨(폐지 여부·전자군 플�
 ref_equipment_alias,table,ref,국외 조달계획 API 적용장비명 표기 통일 사전(원문 → 정규화 → 잠정 표준명),raw_dapa_overseas_plan_api.equipment_name,원문 표기 1종,clean_dapa_overseas_plan_api.equipment_std,"표준명은 후보 40종만, 803종 미확인(NULL)"
 ref_hs_code_master,table,ref,"관세청 HS부호 마스터 중 2026 현행 HSK10 11,327개 — 코드·한글/영문 품명·적용기간(기준표)","원본 파일 raw_hs_code_master 12,469행 중 10자리(load_db.py --ref, read_raw)",HS10 1개,"화면 ①·조회 HS10 품명 라벨, dim_hs10 보강(clean_p1 §3), v_hs10_use_tag_all(HS6 선정 규칙 R1·R2)","7~9자리 중간 수준 1,142·규격/단위 열은 사용처 없어 넣지 않음(원본 파일에만)"
 ref_hs6_name,table,ref,"HS6 공식 명칭 2,254개(기준표)","원본 파일 raw_hs_unit_name 06시트 중 6자리(load_db.py --ref, read_raw)",HS6 1개,"v_hs6_candidate_rule(R2 용도어), ref_hs_rule_flag.hs6_name_ko(clean_p1 §4)","5자리 중간 수준(one-dash) 1,024은 제외. 세분되지 않는 HS6(예 852692)는 이 표에 없어 ref_hs_code_master 단일 자식 이름으로 보정"
+ref_semi_chip_type,table,ref,국방반도체 7대 유형(개요·소재·대표 소자·참고 HS6),data/reference/semi_chip_type.csv(발전전략 참고9),유형 1개,화면 ⓪ 반도체 구역 유형별 사례 표,related_hs6 는 팀 참고 표시 — 수입액 연결 키 아님
+ref_semi_domestic_case,table,ref,국방반도체 국내 개발 사례(기관·제목·시점·단계·출처 URL),data/reference/semi_domestic_case.csv(보도자료·기사),사례 1건,화면 ⓪ 핵심기술 과제 KPI·유형별 사례 수,기사 표현 그대로 — 금액 미공시 다수
+ref_semi_market_share,table,ref,국가별 반도체 공급망 점유율(IDM·파운드리 등),data/reference/semi_market_share.csv(발전전략 참고3),국가 × 단계,화면 ⓪ 공급망 점유율 막대,막대그래프에서 읽은 값. 원출처·기준연도 미표기
+ref_semi_policy_timeline,table,ref,국방반도체 발전전략 추진 경과,data/reference/semi_policy_timeline.csv,사건 1건,화면 ⓪ 추진 경과 타임라인,시점 정밀도가 행마다 다름(연·월·일)
+ref_semi_public_fab,table,ref,공공 나노팹 14곳(부처·분야·도시·근사 좌표),data/reference/semi_public_fab.csv(발전전략 참고10),나노팹 1곳,화면 ⓪ 공공 나노팹 지도·KPI,좌표는 도시 단위 근사. 관세청 신고 지역과 무관
+ref_semi_strategy_task,table,ref,국방반도체 발전전략 4방향 12과제,data/reference/semi_strategy_task.csv(발전전략 본문 17-3),과제 1개,화면 ⓪ 12과제 표,
+ref_semi_stat,table,ref,발전전략 본문 인용 수치(해외 도입 98.9% · 미국 85% 이상),data/reference/semi_stat.csv(발전전략 본문 17-1),인용 수치 1개,화면 ⓪ 반도체 구역 KPI 2장,팀 계산값 아님 · 분모 기준 미확인 — 「인용」 배지
 raw_customs_trade,file,raw,관세청 HS10×국가×월 수출입실적 원본(연간 총계행 포함),customs_all_<HS6>.csv ×24,HS10 × 국가 × 월(총계행 별도),"fact_customs_monthly·dim_hs10(load_db.py --fact, read_raw)",총계행(is_total=1)은 집계에서 제외
 raw_customs_progress,file,raw,관세청 API 호출별 반환 행수(재현성 증빙),progress_all.csv,HS6 × 연도 호출 1건,clean_p1_customs_hs.ipynb §2 검산(read_raw),
 raw_customs_region,file,raw,관세청 시군구별 HS6×시군구×월 수출입실적 원본(수입 = 납세의무자 주소지 기준),customs_region_<HS6>.csv ×24,HS6 × 시군구 × 월,"clean_customs_region(load_db.py --fact, read_raw)",금액 단위 천 달러(raw_customs_trade 는 달러). 시군구 코드 없이 명칭만. 원본 CSV 24개는 맥에 있음(2026-09-18 수집) — 이 PC 미보유

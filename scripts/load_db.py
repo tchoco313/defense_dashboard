@@ -137,7 +137,13 @@ RAW_TABLES: dict[str, dict] = {
         dataset_key="kdsis_nsn", int_cols={"origin_row_no"}, tier="보조"),
 }
 
-REF_EXPECTED = {"ref_hs_whitelist": 24, "ref_country": 238, "meta_column_dict": 858}  # 858 = column_dict.csv (2026-09-22 raw_ 계층 제거: 후속 표 4개 +28, fact raw_row_id -1. 이전 831 · 823 · 842 · 862 · 849 · 855 · 853 · 827 · 806 · 681 · 546 · 489 · 388 · 337)
+REF_EXPECTED = {"ref_hs_whitelist": 24, "ref_country": 238, "meta_column_dict": 916}  # 916 = column_dict.csv (2026-09-23 국방반도체 참조표 7개 +58. 이전 858 · 831 · 823 · 842 · 862 · 849 · 855 · 853 · 827 · 806 · 681 · 546 · 489 · 388 · 337)
+# 국방반도체 발전전략 참조표(db/alter_2026-09-23_semi_ref.sql) — (표, data/reference 파일, 기대 행 수). CSV 의 date 열은 event_date 로,
+# 추진 경과는 CSV 행 순서를 row_no 로 붙인다. 표가 비어 있을 때만 채운다(다시 넣으려면 그 표를 비운다)
+SEMI_REF = [("ref_semi_chip_type", "semi_chip_type.csv", 7), ("ref_semi_domestic_case", "semi_domestic_case.csv", 13),
+            ("ref_semi_market_share", "semi_market_share.csv", 16), ("ref_semi_policy_timeline", "semi_policy_timeline.csv", 12),
+            ("ref_semi_public_fab", "semi_public_fab.csv", 14), ("ref_semi_strategy_task", "semi_strategy_task.csv", 12),
+            ("ref_semi_stat", "semi_stat.csv", 2)]
 
 
 # ---------------------------------------------------------------------------
@@ -489,6 +495,16 @@ def do_ref(conn):
         n = insert_rows(cur, table, list(df.columns), _rows(df))
         conn.commit()
         print(f"  {table}: {n:,}행 적재 (기대 {exp:,}: {'일치' if n == exp else '불일치'})")
+    for table, fname, exp in SEMI_REF:
+        if table_count(cur, table) > 0:
+            print(f"  {table}: 비어 있지 않아 건너뜀({table_count(cur, table)}행)")
+            continue
+        df = read_csv_str(ROOT / "data/reference" / fname, "utf-8").rename(columns={"date": "event_date"})
+        if table == "ref_semi_policy_timeline":
+            df.insert(0, "row_no", [str(i) for i in range(1, len(df) + 1)])
+        n = insert_rows(cur, table, list(df.columns), [tuple(nz(v) for v in rec) for rec in df.itertuples(index=False, name=None)])
+        conn.commit()
+        print(f"  {table}: {n:,}행 적재 (기대 {exp}: {'일치' if n == exp else '불일치'})")
     print(f"  (measured_by={user})")
 
 
@@ -630,7 +646,7 @@ def do_verify(conn):
     clean_tables = [r[0] for r in cur.fetchall()]
     print(f"{'테이블':36} {'건수':>10} {'기대':>10}  판정")
     for t, exp in list(REF_EXPECTED.items()) + [("dim_hs10", None), ("fact_customs_monthly", 294_174), ("meta_dataset", None), ("meta_load_log", None),
-             ("ref_sido_map", None)] + [(t, None) for t in clean_tables]:
+             ("ref_sido_map", None)] + [(t, e) for t, _, e in SEMI_REF] + [(t, None) for t in clean_tables]:
         n = table_count(cur, t)
         v = "-" if exp is None else ("일치" if n == exp else f"불일치({n-exp:+})")
         print(f"{t:36} {n:10,} {str(exp or '-'):>10}  {v}")

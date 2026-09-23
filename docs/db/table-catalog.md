@@ -1,12 +1,12 @@
-# 테이블 카탈로그 — 역할·키·주요 열 (RDS `defense_dashboard` 실측 2026-09-22)
+# 테이블 카탈로그 — 역할·키·주요 열 (RDS `defense_dashboard` 실측 2026-09-23)
 
-`scripts/gen_table_catalog.py`가 `db/table_dict.csv`(역할·원천·한 행·쓰는 곳·주의) + `db/column_dict.csv`(열 설명) + RDS(행 수·PK·뷰 열)로 만든다. **손으로 고치지 말고 두 CSV를 고친 뒤 재생성.** 테이블 37 · 뷰 31 · 원본 파일 데이터셋 23(DB 밖). 화면↔테이블 대응·SQL 예시는 `docs/db/table-guide.md`, DDL은 `db/schema.sql`.
+`scripts/gen_table_catalog.py`가 `db/table_dict.csv`(역할·원천·한 행·쓰는 곳·주의) + `db/column_dict.csv`(열 설명) + RDS(행 수·PK·뷰 열)로 만든다. **손으로 고치지 말고 두 CSV를 고친 뒤 재생성.** 테이블 44 · 뷰 31 · 원본 파일 데이터셋 23(DB 밖). 화면↔테이블 대응·SQL 예시는 `docs/db/table-guide.md`, DDL은 `db/schema.sql`.
 
 읽는 법: 행 수는 실측 `COUNT(*)`(원본 파일은 파서 기대 건수). `raw_`는 원본 파일 데이터셋 키이며 열은 원본 파일 열 사전(`column_dict.csv`)이고 파서가 붙이는 `source_file`·`source_row_no`는 표에서 뺐다. PK 열은 굵게. 뷰 열은 열 사전 대상이 아니라(설계 원칙) 이름·타입만 싣는다.
 
 ## 목차
 
-- **ref_** 참조표 — 기준·라벨: `ref_country`, `ref_equipment_alias`, `ref_fsc`, `ref_fsg`, `ref_hs6_name`, `ref_hs_code_master`, `ref_hs_indicator`, `ref_hs_rule_flag`, `ref_hs_whitelist`, `ref_sido_map`
+- **ref_** 참조표 — 기준·라벨: `ref_country`, `ref_equipment_alias`, `ref_fsc`, `ref_fsg`, `ref_hs6_name`, `ref_hs_code_master`, `ref_hs_indicator`, `ref_hs_rule_flag`, `ref_hs_whitelist`, `ref_semi_chip_type`, `ref_semi_domestic_case`, `ref_semi_market_share`, `ref_semi_policy_timeline`, `ref_semi_public_fab`, `ref_semi_stat`, `ref_semi_strategy_task`, `ref_sido_map`
 - **raw_** 원본 파일 — DB 밖(data/raw/, read_raw 로 읽음. RDS raw_ 표는 2026-09-22 삭제): `raw_customs_progress`, `raw_customs_region`, `raw_customs_trade`, `raw_dapa_bid_notice`, `raw_dapa_bid_result`, `raw_dapa_contract`, `raw_dapa_contract_exec_by_service`, `raw_dapa_defense_company`, `raw_dapa_domestic_plan`, `raw_dapa_fsc_catalog`, `raw_dapa_localized_item`, `raw_dapa_overseas_bid_result`, `raw_dapa_overseas_contract`, `raw_dapa_overseas_plan`, `raw_dapa_overseas_plan_api`, `raw_hs_code_master`, `raw_hs_unit_name`, `raw_hsk_control`, `raw_kdsis_nsn`, `raw_kosis_production_index`, `raw_kosis_utilization`, `raw_krit_task`, `raw_openfiscal_program_budget`
 - **meta_** 기록 — 출처·적재 단계·열 사전: `meta_column_dict`, `meta_dataset`, `meta_load_log`
 - **dim_** 차원 — 관세청 HS10: `dim_hs10`
@@ -205,6 +205,133 @@
 | `civil_mix_note` | VARCHAR(200) | civil_mix_note | 근거 수치 요약. 원값은 ref_hs_indicator |
 | `evidence_basis` | ENUM('rule','팀판단') | evidence_basis | evidence를 정한 방식(2026-09-16): rule=공식 자료 규칙 도출 / 팀판단=09-15 기획 단계 |
 | `evidence_note` | VARCHAR(300) | evidence_note | 규칙 근거 수치 요약. 원값은 v_hs6_candidate_rule |
+
+### `ref_semi_chip_type`
+
+- **역할**: 국방반도체 7대 유형(개요·소재·대표 소자·참고 HS6)
+- **원천**: data/reference/semi_chip_type.csv(발전전략 참고9) · **한 행**: 유형 1개 · **PK**: `type_no` · **행 수**: 7
+- **쓰는 곳**: 화면 ⓪ 반도체 구역 유형별 사례 표
+- **주의**: related_hs6 는 팀 참고 표시 — 수입액 연결 키 아님
+
+| 열 | 타입 | 원본 열명 | 설명 |
+|---|---|---|---|
+| **`type_no`** | TINYINT UNSIGNED | type_no | PK. 국방반도체 7대 유형 번호(발전전략 참고9) |
+| `name_ko` | VARCHAR(50) | name_ko | 유형명 |
+| `summary` | VARCHAR(200) | summary | 유형 개요(참고9 요약) |
+| `material_process` | VARCHAR(50) | material_process | 소재·공정 |
+| `example_devices` | VARCHAR(100) | example_devices | 대표 소자 |
+| `related_hs6` | VARCHAR(60) | related_hs6 | 팀이 붙인 참고 HS6(세미콜론 구분). 수입액 연결 키 아님. 없으면 NULL |
+| `hs_basis` | VARCHAR(10) | hs_basis | related_hs6 근거(team = 팀 표시) |
+| `source` | VARCHAR(100) | source | 출처(발전전략 참고9) |
+
+### `ref_semi_domestic_case`
+
+- **역할**: 국방반도체 국내 개발 사례(기관·제목·시점·단계·출처 URL)
+- **원천**: data/reference/semi_domestic_case.csv(보도자료·기사) · **한 행**: 사례 1건 · **PK**: `case_no` · **행 수**: 13
+- **쓰는 곳**: 화면 ⓪ 핵심기술 과제 KPI·유형별 사례 수
+- **주의**: 기사 표현 그대로 — 금액 미공시 다수
+
+| 열 | 타입 | 원본 열명 | 설명 |
+|---|---|---|---|
+| **`case_no`** | SMALLINT UNSIGNED | case_no | PK. 사례 번호 |
+| `type_no` | TINYINT UNSIGNED | type_no | FK ref_semi_chip_type.type_no |
+| `org` | VARCHAR(60) | org | 기관·기업(공동이면 · 로 연결) |
+| `title` | VARCHAR(150) | title | 사례 제목(기사·보도자료 표현) |
+| `event_date` | VARCHAR(10) | date | 발표·보도일(YYYY-MM-DD 또는 YYYY-MM). 미기재 NULL |
+| `target_system` | VARCHAR(80) | target_system | 적용 대상 체계(기사 표현). 미기재 NULL |
+| `stage` | VARCHAR(30) | stage | 단계(양산 · 개발 착수 등 기사 표현) |
+| `source_title` | VARCHAR(50) | source_title | 출처 매체·문서명 |
+| `source_url` | VARCHAR(255) | source_url | 출처 URL |
+| `verify_level` | VARCHAR(20) | verify_level | 확인 수준(기사 원문 · 보도자료 등) |
+| `note` | VARCHAR(120) | note | 비고. 없으면 NULL |
+| `dapa_2025_task` | TINYINT(1) | dapa_2025_task | 1 = 방위사업청 2025 국방반도체 핵심기술 과제(2025-05-19 보도자료) |
+
+### `ref_semi_market_share`
+
+- **역할**: 국가별 반도체 공급망 점유율(IDM·파운드리 등)
+- **원천**: data/reference/semi_market_share.csv(발전전략 참고3) · **한 행**: 국가 × 단계 · **PK**: `country,segment` · **행 수**: 16
+- **쓰는 곳**: 화면 ⓪ 공급망 점유율 막대
+- **주의**: 막대그래프에서 읽은 값. 원출처·기준연도 미표기
+
+| 열 | 타입 | 원본 열명 | 설명 |
+|---|---|---|---|
+| **`country`** | VARCHAR(20) | country | PK1. 국가 |
+| **`segment`** | VARCHAR(20) | segment | PK2. 공급망 단계(IDM · 파운드리 · 팹리스 등) |
+| `share_pct` | DECIMAL(5,1) | share_pct | 점유율(%) — 발전전략 참고3 막대그래프에서 읽은 값 |
+| `source` | VARCHAR(100) | source | 출처(발전전략 참고3) |
+| `caveat` | VARCHAR(100) | caveat | 한계(원출처·기준연도 미표기 등) |
+
+### `ref_semi_policy_timeline`
+
+- **역할**: 국방반도체 발전전략 추진 경과
+- **원천**: data/reference/semi_policy_timeline.csv · **한 행**: 사건 1건 · **PK**: `row_no` · **행 수**: 12
+- **쓰는 곳**: 화면 ⓪ 추진 경과 타임라인
+- **주의**: 시점 정밀도가 행마다 다름(연·월·일)
+
+| 열 | 타입 | 원본 열명 | 설명 |
+|---|---|---|---|
+| **`row_no`** | SMALLINT UNSIGNED | (행 순서) | PK. CSV 행 순서(시간순, 1부터) — 적재 때 붙인다 |
+| `event_date` | VARCHAR(10) | date | 시점(YYYY · YYYY-MM · YYYY-MM-DD 원문) |
+| `category` | VARCHAR(10) | category | 구분(논의 · 조사 · 전략 등) |
+| `event` | VARCHAR(100) | event | 사건 |
+| `detail` | VARCHAR(150) | detail | 내용 |
+| `source_title` | VARCHAR(100) | source_title | 출처 문서·매체 |
+| `source_url` | VARCHAR(255) | source_url | 출처 URL. PDF 원문은 NULL |
+| `verify_level` | VARCHAR(20) | verify_level | 확인 수준 |
+
+### `ref_semi_public_fab`
+
+- **역할**: 공공 나노팹 14곳(부처·분야·도시·근사 좌표)
+- **원천**: data/reference/semi_public_fab.csv(발전전략 참고10) · **한 행**: 나노팹 1곳 · **PK**: `fab_no` · **행 수**: 14
+- **쓰는 곳**: 화면 ⓪ 공공 나노팹 지도·KPI
+- **주의**: 좌표는 도시 단위 근사. 관세청 신고 지역과 무관
+
+| 열 | 타입 | 원본 열명 | 설명 |
+|---|---|---|---|
+| **`fab_no`** | TINYINT UNSIGNED | fab_no | PK. 나노팹 번호(참고10 순서) |
+| `name_ko` | VARCHAR(40) | name_ko | 기관명 |
+| `abbr` | VARCHAR(10) | abbr | 약칭. 없으면 NULL |
+| `parent_org` | VARCHAR(30) | parent_org | 소속 기관. 없으면 NULL |
+| `ministry` | VARCHAR(10) | ministry | 소관 부처 |
+| `field` | VARCHAR(60) | field | 분야 |
+| `field_group` | VARCHAR(10) | field_group | 분야 묶음(실리콘 · 화합물 등) |
+| `city` | VARCHAR(10) | city | 도시 |
+| `lat` | DECIMAL(9,6) | lat | 위도 — 도시 단위 근사 |
+| `lon` | DECIMAL(9,6) | lon | 경도 — 도시 단위 근사 |
+| `coord_basis` | VARCHAR(10) | coord_basis | 좌표 근거(approx = 도시 단위 근사) |
+| `source` | VARCHAR(100) | source | 출처(발전전략 참고10) |
+
+### `ref_semi_stat`
+
+- **역할**: 발전전략 본문 인용 수치(해외 도입 98.9% · 미국 85% 이상)
+- **원천**: data/reference/semi_stat.csv(발전전략 본문 17-1) · **한 행**: 인용 수치 1개 · **PK**: `stat_key` · **행 수**: 2
+- **쓰는 곳**: 화면 ⓪ 반도체 구역 KPI 2장
+- **주의**: 팀 계산값 아님 · 분모 기준 미확인 — 「인용」 배지
+
+| 열 | 타입 | 원본 열명 | 설명 |
+|---|---|---|---|
+| **`stat_key`** | VARCHAR(40) | stat_key | PK. 인용 수치 키(overseas_share · us_share_min) |
+| `label` | VARCHAR(60) | label | 화면 라벨 |
+| `value_num` | DECIMAL(6,1) | value_num | 인용 값 |
+| `unit_txt` | VARCHAR(20) | unit_txt | 원문 단위 표현(% · % 이상) |
+| `note` | VARCHAR(200) | note | 조사 범위·한계(분모 기준 미확인 등). 팀 계산값 아님 |
+| `source` | VARCHAR(100) | source | 출처(발전전략 본문 17-1) |
+
+### `ref_semi_strategy_task`
+
+- **역할**: 국방반도체 발전전략 4방향 12과제
+- **원천**: data/reference/semi_strategy_task.csv(발전전략 본문 17-3) · **한 행**: 과제 1개 · **PK**: `task_no` · **행 수**: 12
+- **쓰는 곳**: 화면 ⓪ 12과제 표
+
+| 열 | 타입 | 원본 열명 | 설명 |
+|---|---|---|---|
+| **`task_no`** | TINYINT UNSIGNED | task_no | PK. 과제 번호(1~12) |
+| `direction_no` | TINYINT UNSIGNED | direction_no | 추진 방향 번호(1~4) |
+| `direction_key` | VARCHAR(10) | direction_key | 방향 약칭(설계 · 생산 등) |
+| `direction_name` | VARCHAR(60) | direction_name | 추진 방향명 |
+| `sub_no` | TINYINT UNSIGNED | sub_no | 방향 안 과제 순번 |
+| `task_name` | VARCHAR(80) | task_name | 과제명 |
+| `source` | VARCHAR(100) | source | 출처(발전전략 본문 17-3) |
 
 ### `ref_sido_map`
 
@@ -766,7 +893,7 @@
 ### `meta_column_dict`
 
 - **역할**: 원본 한글 헤더 ↔ DB 영문 열명 ↔ 타입 ↔ 설명(= db/column_dict.csv)
-- **원천**: db/column_dict.csv · **한 행**: 테이블 × 열 · **PK**: `table_name,column_name` · **행 수**: 858
+- **원천**: db/column_dict.csv · **한 행**: 테이블 × 열 · **PK**: `table_name,column_name` · **행 수**: 916
 - **쓰는 곳**: 데이터 명세서
 - **주의**: 뷰 열은 등재하지 않음
 
@@ -782,7 +909,7 @@
 ### `meta_dataset`
 
 - **역할**: 데이터셋 1건 = 1행 — 제공기관·ID·URL·확보일·기간·SHA-256·파서 건수·포털 표시 건수
-- **원천**: 수기 + 스크립트 · **한 행**: 데이터셋 1개 · **PK**: `dataset_key` · **행 수**: 26
+- **원천**: 수기 + 스크립트 · **한 행**: 데이터셋 1개 · **PK**: `dataset_key` · **행 수**: 27
 - **쓰는 곳**: 출처 표, 보고서
 - **주의**: A7 5행 dataset_id NULL(조장 확인 대기)
 

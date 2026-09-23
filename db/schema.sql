@@ -55,6 +55,7 @@ DROP TABLE IF EXISTS clean_dapa_defense_company, clean_customs_region, clean_kos
   clean_kdsis_nsn, clean_dapa_overseas_plan, clean_company_name_link, clean_company, clean_krit_task, clean_dapa_localized_item, clean_dapa_contract;
 DROP TABLE IF EXISTS fact_customs_monthly, dim_hs10;
 DROP TABLE IF EXISTS meta_load_log, meta_column_dict, meta_dataset;
+DROP TABLE IF EXISTS ref_semi_domestic_case, ref_semi_chip_type, ref_semi_market_share, ref_semi_policy_timeline, ref_semi_public_fab, ref_semi_strategy_task, ref_semi_stat;
 DROP TABLE IF EXISTS ref_hs6_name, ref_hs_code_master, ref_equipment_alias, ref_hs_rule_flag, ref_hs_indicator, ref_fsg, ref_fsc, ref_sido_map, ref_country, ref_hs_whitelist;
 
 SET FOREIGN_KEY_CHECKS = 1;
@@ -253,6 +254,96 @@ CREATE TABLE ref_hs6_name (
   PRIMARY KEY (hs6)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='HS6 공식 명칭 2,254행 — v_hs6_candidate_rule R2 용도어 · ref_hs_rule_flag.hs6_name_ko. 원본 파일 raw_hs_unit_name 5시트 17,072행 중 06시트 6자리만(5자리 중간 수준 1,024 제외, 10시트 11,327은 ref_hs_code_master 와 코드·품명 동일)';
+
+-- 국방반도체 발전전략 참조표 7개(alter_2026-09-23_semi_ref.sql). data/reference/semi_*.csv 를 load_db.py --ref 로 적재.
+-- ⓪ 배경 화면 반도체 구역 전용 — 관세청 수입액과 합산·비교하지 않는다. related_hs6 는 팀 참고 표시(연결 키 아님).
+CREATE TABLE ref_semi_chip_type (
+  type_no          TINYINT UNSIGNED NOT NULL COMMENT '국방반도체 7대 유형 번호(참고9)',
+  name_ko          VARCHAR(50)  NOT NULL,
+  summary          VARCHAR(200) NOT NULL COMMENT '유형 개요(참고9 요약)',
+  material_process VARCHAR(50)  NOT NULL COMMENT '소재·공정(화합물·실리콘 등)',
+  example_devices  VARCHAR(100) NOT NULL,
+  related_hs6      VARCHAR(60)  NULL COMMENT '팀이 붙인 참고 HS6(세미콜론 구분). 수입액 연결 키 아님',
+  hs_basis         VARCHAR(10)  NOT NULL COMMENT 'related_hs6 근거. team = 팀 표시',
+  source           VARCHAR(100) NOT NULL,
+  PRIMARY KEY (type_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='국방반도체 7대 유형(발전전략 참고9) 7행';
+
+CREATE TABLE ref_semi_domestic_case (
+  case_no        SMALLINT UNSIGNED NOT NULL,
+  type_no        TINYINT UNSIGNED  NOT NULL COMMENT 'ref_semi_chip_type.type_no',
+  org            VARCHAR(60)  NOT NULL COMMENT '기관·기업(공동이면 · 로 연결)',
+  title          VARCHAR(150) NOT NULL,
+  event_date     VARCHAR(10)  NULL COMMENT '원본 date — 발표·보도일(YYYY-MM-DD 또는 YYYY-MM). 미기재 NULL',
+  target_system  VARCHAR(80)  NULL COMMENT '적용 대상 체계(기사 표현)',
+  stage          VARCHAR(30)  NOT NULL COMMENT '양산 · 개발 착수 등 기사 표현',
+  source_title   VARCHAR(50)  NOT NULL,
+  source_url     VARCHAR(255) NOT NULL,
+  verify_level   VARCHAR(20)  NOT NULL COMMENT '기사 원문 · 보도자료 등 확인 수준',
+  note           VARCHAR(120) NULL,
+  dapa_2025_task TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '1 = 방위사업청 2025 국방반도체 핵심기술 과제(2025-05-19 보도자료)',
+  PRIMARY KEY (case_no),
+  KEY ix_rsdc_type (type_no),
+  CONSTRAINT fk_rsdc_type FOREIGN KEY (type_no) REFERENCES ref_semi_chip_type (type_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='국방반도체 국내 개발 사례(보도·기사) 13행';
+
+CREATE TABLE ref_semi_market_share (
+  country   VARCHAR(20)  NOT NULL,
+  segment   VARCHAR(20)  NOT NULL COMMENT 'IDM · 파운드리 · 팹리스 등',
+  share_pct DECIMAL(5,1) NOT NULL COMMENT '점유율(%) — 참고3 막대그래프에서 읽은 값',
+  source    VARCHAR(100) NOT NULL,
+  caveat    VARCHAR(100) NOT NULL COMMENT '원출처·기준연도 미표기 등 한계',
+  PRIMARY KEY (country, segment)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='국가별 반도체 공급망 점유율(발전전략 참고3 인용) 16행';
+
+CREATE TABLE ref_semi_policy_timeline (
+  row_no       SMALLINT UNSIGNED NOT NULL COMMENT 'CSV 행 순서(시간순, 1부터)',
+  event_date   VARCHAR(10)  NOT NULL COMMENT '원본 date — YYYY · YYYY-MM · YYYY-MM-DD',
+  category     VARCHAR(10)  NOT NULL,
+  event        VARCHAR(100) NOT NULL,
+  detail       VARCHAR(150) NOT NULL,
+  source_title VARCHAR(100) NOT NULL,
+  source_url   VARCHAR(255) NULL,
+  verify_level VARCHAR(20)  NOT NULL,
+  PRIMARY KEY (row_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='국방반도체 발전전략 추진 경과 12행';
+
+CREATE TABLE ref_semi_public_fab (
+  fab_no      TINYINT UNSIGNED NOT NULL,
+  name_ko     VARCHAR(40)  NOT NULL,
+  abbr        VARCHAR(10)  NULL,
+  parent_org  VARCHAR(30)  NULL,
+  ministry    VARCHAR(10)  NOT NULL COMMENT '소관 부처',
+  field       VARCHAR(60)  NOT NULL,
+  field_group VARCHAR(10)  NOT NULL COMMENT '실리콘 · 화합물 등',
+  city        VARCHAR(10)  NOT NULL,
+  lat         DECIMAL(9,6) NOT NULL COMMENT '도시 단위 근사 좌표',
+  lon         DECIMAL(9,6) NOT NULL,
+  coord_basis VARCHAR(10)  NOT NULL COMMENT 'approx = 도시 단위 근사',
+  source      VARCHAR(100) NOT NULL,
+  PRIMARY KEY (fab_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='공공 나노팹(발전전략 참고10) 14행';
+
+CREATE TABLE ref_semi_strategy_task (
+  task_no        TINYINT UNSIGNED NOT NULL,
+  direction_no   TINYINT UNSIGNED NOT NULL,
+  direction_key  VARCHAR(10)  NOT NULL,
+  direction_name VARCHAR(60)  NOT NULL,
+  sub_no         TINYINT UNSIGNED NOT NULL,
+  task_name      VARCHAR(80)  NOT NULL,
+  source         VARCHAR(100) NOT NULL,
+  PRIMARY KEY (task_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='국방반도체 발전전략 4방향 12과제(본문 17-3) 12행';
+
+CREATE TABLE ref_semi_stat (
+  stat_key  VARCHAR(40)  NOT NULL,
+  label     VARCHAR(60)  NOT NULL,
+  value_num DECIMAL(6,1) NOT NULL,
+  unit_txt  VARCHAR(20)  NOT NULL COMMENT '% · % 이상(하한) 등 원문 단위 표현',
+  note      VARCHAR(200) NOT NULL,
+  source    VARCHAR(100) NOT NULL,
+  PRIMARY KEY (stat_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='국방반도체 발전전략 본문 인용 수치 2행(팀 계산값 아님)';
 
 -- =============================================================================
 -- 2. 원본 파일 계층 — DB 밖 (2026-09-22, 교수 피드백: 원본은 파일로, DB 는 정제·기준·뷰만)

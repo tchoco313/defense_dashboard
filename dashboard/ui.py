@@ -1,6 +1,8 @@
-"""공용 화면 요소 — 다크 테마 CSS, 상단 바(브랜드·메뉴·기준일), 구역 틀, 국가 색.
+"""공용 화면 요소 — 팀원 디자인 데모(K-Defense) 틀 위의 호환 층.
 
-디자인 기준: docs/report/app/mockup-2026-09-18/(main.html · common.css). 색 토큰은 common.css 와 같은 값을 쓴다.
+디자인(CSS·사이드바·머리띠·구역·카드·KPI·탭·지도·도넛)은 app/kdesign.py(데모 1~3절을 그대로 옮긴 것)가 정본이다.
+이 파일은 페이지들이 import 하던 이름(색 토큰·kpi·zone·style_fig·csv_header·period_control 등)을 유지하고 kdesign 으로 잇는다.
+이름은 Cloud 재배포 호환을 위해 지우지 않는다(값·동작만 바뀜). 새 이름을 페이지에서 import 하면 Manage app → Reboot.
 """
 from __future__ import annotations
 
@@ -9,21 +11,29 @@ from html import escape
 
 import streamlit as st
 
+import kdesign
+from kdesign import (chart_source, chart_title, source_pop, country_map, core_kpis, globe_loading, hero, hhi_level, hover_donut, mini_rail, png_button,  # noqa: F401
+                     rank_card, rules_card, share_card, sidebar, sparkline, supply_table)
 from metrics import period_years
 
-# ── 색 토큰(common.css) ─────────────────────────────────────────────────────
-BG, PANEL, PANEL2, LINE = "#0e1320", "#161c2a", "#1c2436", "#2a3347"
-TEXT, MUTED, ACCENT = "#e7eaf0", "#8b94a8", "#5b9bff"
+# ── 색 토큰(데모 값) ─────────────────────────────────────────────────────────
+BG, PANEL, PANEL2, LINE = kdesign.BG, kdesign.PANEL, kdesign.PANEL2, kdesign.LINE
+TEXT, MUTED, ACCENT = kdesign.TEXT, kdesign.MUTED, kdesign.ACCENT
+CAPTION, ZONE_LINE, BRAND_WEAK = "#8494ae", LINE, "#e8f0ff"
+OK, WARN = kdesign.UP, kdesign.DOWN
+NAVY = kdesign.NAVY
 
-# 국가 색: 목업 6개 고정 + 나머지는 순서대로, 다 쓰면 기타 회색
-COUNTRY_COLOR = {"US": "#5b9bff", "TW": "#f2b33d", "CN": "#b07cff", "SG": "#2ec4b6", "VN": "#ff8fab", "JP": "#9aa5b1"}
-EXTRA_COLORS = ["#7fd1ff", "#ffb37f", "#9be38a", "#e67d7d", "#d9c27a"]
-ETC = "#4a5570"
-IMP, EXP = ACCENT, "#ff8f4d"                   # 수입 파랑 · 수출 주황(시리즈 고정)
-IMP_DIM, EXP_DIM = "#35507f", "#8a4f31"        # 부분연도(점선)
+# 국가 색: 주요 7개국 고정 + 추가 1개국(등장 순) + 기타. 같은 국가 = 모든 차트에서 같은 색. 8개국을 넘으면 기타로 묶는다
+COUNTRY_COLOR = {"TW": kdesign.SERIES[0], "CN": kdesign.SERIES[1], "US": kdesign.SERIES[2], "JP": kdesign.SERIES[3],
+                 "VN": kdesign.SERIES[4], "SG": kdesign.SERIES[5], "HK": kdesign.SERIES[6]}
+EXTRA_COLORS = [kdesign.SERIES[7]]              # 그 밖 국가는 등장 순 1색, 다음부터는 기타(새 색을 만들지 않는다)
+ETC = kdesign.ETC
+IMP, EXP = kdesign.SERIES[0], kdesign.SERIES[1]   # 수입 파랑 · 수출 주황(모든 차트 · 지도 · 조회에서 같은 짝)
+IMP_DIM, EXP_DIM = "#9fc1ec", "#f5b597"            # 부분연도(같은 색의 옅은 톤)
+SERIES = kdesign.SERIES
 
 
-# 품목군 짧은 이름(목업 표기) — 홈 막대·지도, ③ 현황표. 없으면 ref_hs_whitelist.name_ko
+# 품목군 짧은 이름 — 홈 막대·지도, ③ 현황표. 없으면 ref_hs_whitelist.name_ko
 SHORT = {"901420": "항공 항행기기", "841191": "터보제트 부분품", "880730": "항공기 부분품", "854110": "다이오드",
          "854231": "프로세서 IC", "901490": "항행 부분품", "852692": "원격조종기기", "901380": "광학기기",
          "852691": "무선항행", "854239": "기타 IC", "852610": "레이더 기기", "854129": "트랜지스터 ≥1W",
@@ -32,7 +42,7 @@ SHORT = {"901420": "항공 항행기기", "841191": "터보제트 부분품", "8
 
 
 def country_colors(codes: list[str]) -> dict[str, str]:
-    """등장 순서대로 색을 정한다(고정 6개국은 항상 같은 색)."""
+    """등장 순서대로 색을 정한다(고정 7개국은 항상 같은 색, 추가 색을 다 쓰면 기타)."""
     out, extra = {}, iter(EXTRA_COLORS)
     for c in codes:
         if c not in out:
@@ -40,76 +50,35 @@ def country_colors(codes: list[str]) -> dict[str, str]:
     return out
 
 
-CSS = f"""
-<style>
-:root{{--bg:{BG};--panel:{PANEL};--panel2:{PANEL2};--line:{LINE};--text:{TEXT};--muted:{MUTED};--accent:{ACCENT};--tag:#2b3550}}
-[data-testid="stHeader"]{{display:none}}
-.block-container{{padding:0 32px 24px;max-width:1440px}}
-/* 상단 바 */
-.st-key-topbar{{border-bottom:1px solid var(--line);background:#0b101b;margin:0 -32px 18px;padding:14px 32px}}
-.st-key-topnav [data-testid="stHorizontalBlock"]{{gap:4px;flex-wrap:nowrap}}
-.st-key-topnav [data-testid="stColumn"]{{flex:0 0 auto!important;width:auto!important;min-width:0!important}}
-.st-key-topbar [data-testid="stPageLink"] a{{padding:5px 10px;border-radius:8px;background:transparent}}
-.st-key-topbar [data-testid="stPageLink"] a p{{font-size:13px;color:var(--muted);white-space:nowrap}}
-.nav-on{{display:inline-block;padding:5px 10px;font-size:13px;color:var(--text);white-space:nowrap;border-radius:8px;
-  background:var(--panel2);box-shadow:inset 0 -2px 0 var(--accent)}}
-.brand{{font-size:19px;font-weight:700;letter-spacing:-.3px;line-height:1.3;color:var(--text)}}
-.brand small{{display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:2px}}
-.nav-off{{display:inline-block;padding:5px 10px;font-size:13px;color:#566078;cursor:not-allowed;white-space:nowrap}}
-.stamp{{font-size:12px;color:var(--muted);text-align:right;line-height:1.5}}
-/* 구역(점선 틀 + 왼쪽 위 태그) */
-div[class*="st-key-zone_"]{{position:relative;border:1px dashed #3a4560;border-radius:14px;padding:30px 16px 16px;margin:12px 0 16px;overflow:visible}}
-div[class*="st-key-zone_"]::before{{position:absolute;top:-11px;left:16px;background:var(--accent);color:#08101f;
-  font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;z-index:1}}
-/* 카드·글 */
-.card{{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;height:100%}}
-.kpis{{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}}
-.kpis.k4{{grid-template-columns:repeat(4,1fr)}}
-.kpi .s .up{{color:#5fd39a}} .kpi .s .dn{{color:#ff8a8a}}
-.page-h{{font-size:20px;font-weight:700;color:var(--text);margin:4px 0 2px}}
-.kpi .l{{font-size:12px;color:var(--muted)}}
-.kpi .v{{font-size:28px;font-weight:700;margin-top:6px;letter-spacing:-.5px;color:var(--text)}}
-.kpi .v small{{font-size:14px;color:var(--muted);font-weight:500;margin-left:3px}}
-.kpi .s{{font-size:11px;color:var(--muted);margin-top:4px}}
-.ex{{display:inline-block;font-size:10px;color:#ffd48a;border:1px solid #6b5520;border-radius:4px;padding:0 4px;margin-left:4px;vertical-align:middle}}
-.h{{font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px;color:var(--text)}}
-.h .sub{{font-size:11px;color:var(--muted);font-weight:400}}
-.note{{font-size:11px;color:var(--muted);line-height:1.6}}
-.note b{{color:var(--text)}}
-.legend{{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted)}}
-.legend i{{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}}
-.caption{{font-size:11px;color:#6f7890}}
-/* Streamlit 카드 컨테이너(border=True)를 목업 카드처럼 */
-[data-testid="stVerticalBlockBorderWrapper"]:has(> div > [class*="st-key-card_"]),div[class*="st-key-card_"]{{background:var(--panel);border-color:var(--line)!important;border-radius:12px}}
-</style>
-"""
+# 데모 CSS 뒤에 얹는 호환 규칙 — 기존 페이지가 쓰던 클래스(page-h·cond·kpis.w4422·delta·badge·key·kpi-src)를 데모 톤으로.
+COMPAT_CSS = """<style>
+.page-h{font-size:23.5px;font-weight:800;letter-spacing:-.5px;color:#0f2c5e;margin:0 0 4px;line-height:1.3}
+.page-q{font-size:14.5px;color:#3d5b8c;margin:0 0 6px;line-height:1.55}
+.cond{font-size:13px;color:var(--muted);padding:6px 2px;display:flex;gap:12px;flex-wrap:wrap}
+.cond b{color:var(--text);font-weight:700}
+.kpis.k5{grid-template-columns:repeat(5,1fr)} .kpis.w4422{grid-template-columns:2fr 2fr 1fr 1fr}
+.kpi-src{font-size:12px;color:#8494ae;margin-top:6px}
+.delta{display:inline-block;font-size:12.5px;font-weight:600;color:var(--accent);background:#e8f0fe;border-radius:6px;padding:1px 7px;margin-right:4px}
+.badge{display:inline-block;font-size:12px;font-weight:600;color:#075985;background:#e0f2fe;border-radius:5px;padding:0 6px;margin-left:6px;vertical-align:middle}
+.key{color:var(--accent)}
+.h .key{color:var(--accent)}
+div[class*="st-key-filters_"]{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 18px 6px}
+</style>"""
 
 
-def style_fig(fig, height: int | None = None):
-    """plotly 그림을 다크 카드에 맞춘다(배경 투명 · 격자 LINE · 글자 TEXT/MUTED). st.plotly_chart(theme=None)과 함께 쓴다."""
-    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                      font=dict(color=TEXT, size=12), title_font=dict(size=14, color=TEXT),
-                      legend=dict(font=dict(color=MUTED), bgcolor="rgba(0,0,0,0)"),
-                      hoverlabel=dict(bgcolor=PANEL2, bordercolor=LINE, font=dict(color=TEXT)))
-    fig.update_xaxes(gridcolor=LINE, zerolinecolor=LINE, linecolor=LINE, tickfont=dict(color=MUTED), title_font=dict(color=MUTED))
-    fig.update_yaxes(gridcolor=LINE, zerolinecolor=LINE, linecolor=LINE, tickfont=dict(color=MUTED), title_font=dict(color=MUTED))
-    if height:
-        fig.update_layout(height=height)
-    return fig
+style_fig = kdesign.style_fig
 
 
 def dark_geo(fig):
-    """지도 배경을 홈 지도와 같게."""
-    fig.update_geos(projection_type="natural earth", showland=True, landcolor="#232c40", showocean=True, oceancolor="#121827",
-                    showcountries=True, countrycolor="#33405c", coastlinecolor="#33405c", bgcolor="rgba(0,0,0,0)", showframe=False)
+    """지도 배경(라이트). 이름은 페이지 import 호환용으로 유지한다."""
+    fig.update_geos(projection_type="natural earth", showland=True, landcolor="#e9eef5", showocean=True, oceancolor="#f4f9ff",
+                    showcountries=True, countrycolor=LINE, coastlinecolor=LINE, bgcolor="rgba(0,0,0,0)", showframe=False)
     return fig
 
 
-def kpi(label: str, value: str, unit: str, sub: str, tag: str = "") -> str:
-    """KPI 카드 HTML 한 장. 여러 장을 <div class="kpis"> 로 감싼다."""
-    t = f'<span class="ex">{tag}</span>' if tag else ""
-    return (f'<div class="card kpi"><div class="l">{label}{t}</div>'
-            f'<div class="v">{value}<small>{unit}</small></div><div class="s">{sub}</div></div>')
+def kpi(label: str, value: str, unit: str, sub: str, tag: str = "", icon: str = "") -> str:
+    """KPI 카드 한 장(Tremor — 라벨 · 큰 숫자 · 단위 · 설명). icon 은 호환용(그리지 않음). 여러 장을 <div class="kpis"> (k4·k6) 로 감싼다."""
+    return kdesign.kpi(label, value, unit, sub, tag, icon)
 
 
 def period_options(full_years) -> dict[str, list[int]]:
@@ -159,30 +128,13 @@ def csv_header(cond: str, source: str, stamps: list[tuple[str, dict, str | None]
 
 
 def inject_css() -> None:
-    st.html(CSS)
+    kdesign.inject()
+    st.html(COMPAT_CSS)
 
 
-def zone(key: str, tag: str):
-    """점선 구역. 태그 글자는 CSS attr() 로 못 넘기므로 구역마다 규칙을 하나 더 넣는다."""
-    # <style> 안은 HTML 엔티티를 풀지 않는다(escape 를 쓰면 & 가 &amp; 그대로 보인다) — CSS 문자열 규칙으로 막는다
-    css_tag = tag.replace("\\", "\\\\").replace('"', '\\"').replace("<", "\\3C ").replace("\n", " ")
-    st.html(f'<style>.st-key-zone_{key}::before{{content:"{css_tag}"}}</style>')
-    return st.container(key=f"zone_{key}")
+zone = kdesign.zone
 
 
-def top_bar(pages: list[tuple[object | None, str]], current: object, stamp: str) -> None:
-    """브랜드 | 메뉴 | 기준일. pages = [(st.Page 또는 None(준비 중), 라벨)], current = 지금 페이지(강조, 링크 아님)."""
-    with st.container(key="topbar"):
-        c_brand, c_nav, c_stamp = st.columns([3.2, 7, 1.6], vertical_alignment="center")
-        c_brand.html('<div class="brand">주요 방산 전자부품 수출입 및 국산화 현황'   # 2026-09-21 회의 M1·M8
-                     '<small>공식 분류·통제표로 고른 전자부품 품목군 · 공개 데이터 기반 현황 대시보드</small></div>')
-        with c_nav.container(key="topnav"):
-            cols = st.columns(len(pages), gap=None, vertical_alignment="center")
-            for col, (page, label) in zip(cols, pages):
-                if page is None:
-                    col.html(f'<span class="nav-off" title="준비 중">{escape(label)}</span>')
-                elif page is current:
-                    col.html(f'<span class="nav-on">{escape(label)}</span>')
-                else:
-                    col.page_link(page, label=label)
-        c_stamp.html(f'<div class="stamp">{stamp}</div>')
+def top_bar(pages, current, stamp: str) -> None:
+    """(호환용 — 2026-09-23 데모 틀 전환 뒤 쓰지 않음) 사이드바는 kdesign.sidebar."""
+    return None

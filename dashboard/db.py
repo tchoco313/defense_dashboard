@@ -76,7 +76,7 @@ def data_stamp(dataset_key: str = "customs_all", table: str = "fact_customs_mont
     """데이터 하나의 「자료 기간」과 「DB 적재일」 — 상단바·CSV 머리줄 공용. 캐시하지 않는다(안쪽 SELECT 는 query() 가 캐시).
 
     - period : 자료 자체의 기간. 관세청(fact_customs_monthly)은 적재된 yyyymm 실제 범위(예 2016.01~2026.08),
-               그 밖은 meta_dataset.period_start~period_end(+「(부분)」). 둘 다 없으면 「시점 미상(스냅샷)」.
+               그 밖은 meta_dataset.period_start~period_end(+「(부분)」). 둘 다 없으면 「기준일 미표기」(기간이 없는 목록형 자료).
     - loaded : meta_load_log 에서 **그 표**(table)의 최근 measured_at 날짜 — 표마다 다르다(전체 최근값이 아님).
     - today  : 내려받은 날(파일 생성일). 자료 기간·적재일과 섞어 「기준일」 하나로 부르지 않는다.
     - error  : 조회 실패 시 예외 클래스명(호스트·메시지 없음), 아니면 None.
@@ -97,7 +97,7 @@ def data_stamp(dataset_key: str = "customs_all", table: str = "fact_customs_mont
             period = f"{pd.Timestamp(r['period_start']):%Y.%m}~{end}" + (" (부분)" if int(r["is_partial_period"] or 0) else "")
     log, e2 = try_query("SELECT DATE(MAX(measured_at)) AS d FROM meta_load_log WHERE table_name = :t", {"t": table})
     loaded = str(log.iloc[0]["d"]) if log is not None and not log.empty and pd.notna(log.iloc[0]["d"]) else None
-    return {"dataset_key": dataset_key, "table": table, "period": period or "시점 미상(스냅샷)", "has_period": period is not None,
+    return {"dataset_key": dataset_key, "table": table, "period": period or "기준일 미표기", "has_period": period is not None,
             "loaded": loaded, "today": date.today().isoformat(), "error": e1 or e2}
 
 
