@@ -86,7 +86,7 @@
 
 ## 7. Figma
 
-디자인 규칙(기준 사이트·참고 URL·색/텍스트 역할·Streamlit 어휘·Figma 담당)은 **`01_design_system.md`**, 실제 값은 `app/mockup/common.css`에 있다. 전원이 그것부터 읽는다.
+디자인 규칙(요소별 참고 URL·색/텍스트 역할·Streamlit 어휘·Figma 담당)은 **`01_design_system.md`**, 실제 값은 `app/mockup/common.css`에 있다. 전원이 그것부터 읽는다.
 
 | 항목 | 값 |
 |---|---|
@@ -155,8 +155,8 @@
 
 순서 근거(09-22 사용자 결정): 목업을 전부 만든 뒤 Streamlit로 옮기면 Streamlit에서 구현되지 않는 디자인을 늦게 발견한다. 대표 화면 하나를 Streamlit까지 먼저 통과시켜 공통 규칙을 굳히고, 그 규칙으로 나머지를 늘린다. 화면별 역할(질문·데이터·지표·필터)은 이미 각 md §1~§5에 있으므로 다시 쓰지 않는다. 「누가 보는가」는 M1 재논의 중이라 §1 주 타겟 행 한 곳에만 둔다.
 
-0. **디자인 방향 하나** — 기준 사이트 **재지정 대기**(NABOSTATS 2026-09-23 폐기). 사용자 벤치마킹 URL에서 하나를 고른다. **지정 전에는 1 이후로 가지 않는다.** 전체 분위기(색·글꼴·간격)는 그 사이트 하나를 따르고, 다른 사이트는 필요한 요소만 참고한다(섞지 않음). 참고 URL·색 역할은 `01_design_system.md` §1·§2.
-1. **대표 화면 ①** — `20_trade.md` 하나를 `app/mockup/20_trade.html` + `app/mockup/common.css`로 만든다. 메뉴·필터·KPI 카드·차트·표와 상태(로딩 중 / 데이터 없음 / 조회 실패 / 미적재 / 부분연도 배너)까지 포함. 값은 실제 뷰 표본(DBHub `execute_sql`, app_ro)이고, 가상 값을 쓰면 「가상 데이터」 배너를 붙인다. 스킬: `frontend-design`(방향) + `dataviz`(차트 색·형식) + `minimalist-ui` §9. Context7 MCP로 Streamlit·Plotly 현재 API를 확인해 Streamlit 어휘(`01_design_system.md` §5) 밖 요소는 넣지 않는다. Artifact로 게시 → URL을 20 §0 「목업(Artifact) URL」과 §9 표에 기록.
+0. **디자인 입력** — 디자인은 **새로 만든다** — 큰 틀은 팀원 화면(URL), UI/UX는 벤치마킹 요소 URL 3개 이상, 색은 대표색 1개에서 파생(수입 파랑·수출 주황은 고정). 입력 칸 A·B·C와 생성 프롬프트는 `01_design_system.md` §1·§7. A1·C가 비어 있으면 1로 가지 않는다(2026-09-23 사용자 결정). Figma는 나중에.
+1. **대표 화면 ①** — `01_design_system.md` §7 생성 프롬프트로 `20_trade.md` 하나를 `app/mockup/20_trade.html` + `app/mockup/common.css`로 만든다. 메뉴·필터·KPI 카드·차트·표와 상태(로딩 중 / 데이터 없음 / 조회 실패 / 미적재 / 부분연도 배너)까지 포함. 값은 실제 뷰 표본(DBHub `execute_sql`, app_ro)이고, 가상 값을 쓰면 「가상 데이터」 배너를 붙인다. 스킬: `frontend-design`(방향) + `dataviz`(차트 색·형식) + `minimalist-ui` §9. Context7 MCP로 Streamlit·Plotly 현재 API를 확인해 Streamlit 어휘(`01_design_system.md` §5) 밖 요소는 넣지 않는다. Artifact로 게시 → URL을 20 §0 「목업(Artifact) URL」과 §9 표에 기록.
 2. **공통 규칙 확정** — 사용자가 §8 자연어 구상을 고치면 대표 화면을 재생성하며 색·글꼴·간격·카드·버튼·표·필터·상태 표현을 정한다. 확정값은 `common.css`에만 두고 md에는 값을 복사하지 않는다(디자인 값은 `common.css` 우선, 데이터 사실은 md 우선).
 3. **Streamlit 조기 검증** — ① 한 페이지만 `app/pages/1_수출입_현황.py`와 `app/ui.py`·`.streamlit/config.toml` 토큰에 이식한다. `app/db.py`·`app/metrics.py` 데이터 로직은 건드리지 않고 표현만. `minimalist-ui`는 로드하지 않는다. `run` 스킬 스크린샷을 HTML과 대조해 **Streamlit에서 안 되는 규칙은 `common.css`에서 빼거나 대안을 §4에 기록**한다. `app/ui.py`에 새 이름을 추가하면 공개 앱 Reboot 필요(benchmark §4).
 4. **확장** — 나머지 md(상태 「확정」 또는 §8이 채워진 것): §0 Figma 노드 URL이 「미정」이면 `common.css` 기반 HTML 목업 1개씩(URL → §0·§9), 있으면 Figma MCP(사용자가 켠 뒤)로 노드를 읽어 §3·§4를 맞추고 목업은 대조용으로만. Figma 값과 md §2가 어긋나면 md 우선. §0 「마지막 동기화」에 날짜.

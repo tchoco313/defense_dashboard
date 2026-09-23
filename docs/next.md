@@ -9,7 +9,7 @@
 - DBHub MCP 를 팀 서버 → **RDS**(`dev_taeho`·readonly)로 교체(2026-09-22). **Claude Code 를 다시 켜야 반영된다.**
 - 회의 안건 M1~M8 결정·반영 완료(2026-09-21, `app/specs/00_common.md` §8). 1만 건 요건 2종(M2) 표기를 기준 문서 전체에 통일 완료(09-22).
 - 화면 명세 `app/specs/` 14개(23·35 폐기) 작성·검증 완료, 팀 저장소 `dashboard/specs/` 동기(09-22).
-- **화면 디자인 기준**: 기준 사이트 **재지정 대기**(NABOSTATS 09-23 폐기 — 사용자 URL 3개를 `app/specs/01_design_system.md` §1에 받아 고른다), 현행 다크 색 유지, 참고 자료는 캡처 대신 URL, 디자인 규칙은 `app/specs/01_design_system.md`(09-23 재편, 값은 `common.css`에만). 화면 작업 순서·파일 지도는 **`app/roadmap.md`**.
+- **화면 디자인**(09-23): 디자인은 **새로 만든다** — 큰 틀은 팀원 화면(URL), UI/UX는 벤치마킹 요소 URL 3개 이상, 색은 대표색 1개에서 파생(수입 파랑·수출 주황은 고정). 입력 칸 A·B·C와 생성 프롬프트는 `01_design_system.md` §1·§7. 입력 대기(팀, 09-25). Figma는 나중. 화면 작업 순서·파일 지도는 **`app/roadmap.md`**.
 - **EDA 3종 완료**: `eda_customs.ipynb`(관세청 — 13개 기준 재실행 09-22) · `eda_localized_item.ipynb`(국산화개발품목 — 신설 09-22) · `eda_contract.ipynb`(국내조달 계약 — 부록). 세 노트북 모두 시각화 5종(비교·구성·관계·추세·공간) + 차이검정 + 상관을 갖췄다.
 
 ## 순서

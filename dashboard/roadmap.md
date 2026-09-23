@@ -8,15 +8,14 @@
 - **있는 것**: 화면 명세 `app/specs/` 14개(질문·읽는 데이터·집계 정의·레이아웃·차트 명세 완료),
   Streamlit 뼈대 `app/`(디자인 확정 전 자리표시), 09-18 HTML 시안(참고용)
 - **없는 것**: `app/mockup/` 폴더 — 대표 화면 HTML과 `common.css`가 아직 없다
-- **막혀 있던 것**: §11 0단계 「디자인 기준 사이트 1개 지정」 → 2026-09-22 해소(§1)
+- **기다리는 것**: `01_design_system.md` §1 입력 A(팀원 화면 URL)·B(요소 URL ≥3)·C(대표색·테마)
 
 ## 1. 확정 사항 (2026-09-22 사용자 결정)
 
 | 항목 | 값 | 비고 |
 | --- | --- | --- |
-| 기준 사이트 | **미정** — NABOSTATS는 09-23 폐기, 사용자 벤치마킹 URL(`01_design_system.md` §1)에서 다시 고른다 | 전체 분위기는 이 하나만 따른다 |
-| 색 방향 | 현행 다크 유지. 실제 값은 `app/mockup/common.css`가 정본(2단계에서 생성) | 지금 값은 `.streamlit/config.toml`·`app/ui.py` |
-| 디자인 문서 | `app/specs/01_design_system.md`(09-23 `01_figma_setup.md`에서 재편) — 규칙·이름·URL만, 값 없음 | 색 값이 여러 곳에 흩어지는 것을 막는다 |
+| 디자인 방향 | 디자인은 **새로 만든다** — 큰 틀은 팀원 화면(URL), UI/UX는 벤치마킹 요소 URL 3개 이상, 색은 대표색 1개에서 파생(수입 파랑·수출 주황은 고정). 입력 칸 A·B·C와 생성 프롬프트는 `01_design_system.md` §1·§7(09-23) | 지금 앱(`app/ui.py`·`config.toml`)은 임시 값, 기준 아님. NABOSTATS 기준 사이트 폐기 |
+| 디자인 문서 | `app/specs/01_design_system.md`(09-23 `01_figma_setup.md`에서 재편) — 입력 A·B·C · 색 두 층 규칙 · 생성 프롬프트(값은 대표색 입력만, 나머지는 `common.css`) | 색 값이 여러 곳에 흩어지는 것을 막는다 |
 | 참고 자료 | 캡처 이미지를 저장소에 넣지 않고 **URL만** 둔다(§4) | 필요할 때 브라우저로 연다 |
 | 작업 관리 | Shrimp Task Manager는 도입하지 않고 `docs/next.md`를 유지한다 | 남은 일정이 짧고 절차가 이미 선형 |
 
@@ -24,9 +23,9 @@
 
 | # | 할 일 | 산출물 | 쓰는 것 | 마감 |
 | --- | --- | --- | --- | --- |
-| 0 | 디자인 기준 사이트 지정 | `01_design_system.md` §1 | 사용자 URL 3개 | **재지정 대기(09-23)** |
+| 0 | 입력 채우기 — A 큰 틀(팀원 화면 URL) · B 요소 URL ≥3 · C 대표색·테마 | `01_design_system.md` §1 | 팀 | 09-25 |
 | 1 | 디자인 문서 재편 | `app/specs/01_design_system.md` | — | **완료(09-23)** |
-| 2 | 대표 화면 ① HTML | `app/mockup/20_trade.html` + `common.css` | `frontend-design` · `dataviz` · `minimalist-ui` §9 · context7 · DBHub 표본 → Artifact 게시 | 09-25 |
+| 2 | 대표 화면 ① HTML | `app/mockup/20_trade.html` + `common.css` | `01_design_system.md` §7 생성 프롬프트 · `frontend-design` · `dataviz` · `minimalist-ui` §9 · context7 · DBHub 표본 → Artifact 게시 | 09-25 |
 | 3 | 공통 규칙 확정 | `common.css` 정본 고정 | 사용자가 §8 자연어 구상을 고치면 재생성 반복 | 09-26 |
 | 4 | Streamlit 조기 검증 | `pages/1_수출입_현황.py` · `ui.py` · `config.toml` | `run` 스킬 스크린샷을 HTML과 대조. 데이터 로직 불변 | 09-27 |
 | 5 | 확장·이식 | 나머지 페이지 목업 → Streamlit | `dashboard-reviewer` → unittest → 개인·팀 push | 09-30 |
@@ -38,7 +37,7 @@
 | 파일 | 정본 내용 | 상태 |
 | --- | --- | --- |
 | `app/mockup/common.css` | 색 · 글꼴 · 간격 · 카드 · 버튼의 **실제 값** | 아직 없음(2단계) |
-| `app/specs/01_design_system.md` | 규칙 · 기준 사이트 · 참고 URL · 색/텍스트 역할 이름 · Streamlit 어휘 · Figma 담당 | 최신 |
+| `app/specs/01_design_system.md` | 규칙 · 참고 URL(세부 요소별) · 색/텍스트 역할 이름 · Streamlit 어휘 · Figma 담당 | 최신 |
 | `app/specs/<번호>_<키>.md` | 화면별 질문 · 읽는 데이터 · 집계 정의 · 레이아웃 · 차트 명세 | 14개 작성 완료 |
 | `app/specs/00_common.md` | 공통 규칙 · 회의 결정 M1~M8 · 페이지 목록 · §11 절차 | 최신 |
 | `app/ui.py` · `.streamlit/config.toml` | 실행되는 앱의 토큰 | 4단계에서 `common.css` 값으로 교체 |
@@ -48,7 +47,7 @@
 
 ## 4. 참고 사이트
 
-기준 사이트·요소별 참고 URL·따르지 않는 색은 `app/specs/01_design_system.md` §1 한 곳에 둔다.
+요소별 참고 URL·따르지 않는 색은 `app/specs/01_design_system.md` §1 한 곳에 둔다.
 
 ## 5. 주의점
 
@@ -72,6 +71,6 @@
 ## 6. 범위 밖
 
 - Shrimp Task Manager MCP 도입 — 하지 않는다(§1)
-- Figma 그리기 — 선택 사항(M3 보완). 기준은 `common.css`이고 Figma는 표현일 뿐이다
+- Figma 그리기 — **나중에**(09-23), 선택 사항(M3 보완). 기준은 `common.css`이고 Figma는 표현일 뿐이다
 - 국내 지도 페이지(35, 09-22 폐기) · 제한률 시나리오(23, 09-21 폐기)
 - 무기체계 사진 등 이미지 — 저작권·출처 문제
