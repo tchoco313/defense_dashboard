@@ -58,6 +58,12 @@ APP_ZOOM = 1.1
 CSS = f"""<style>
 {_FONTS}html{{zoom:{APP_ZOOM}}}
 [data-testid="stPlotlyChart"],[data-testid="stDataFrame"]{{zoom:calc(1 / {APP_ZOOM})}}
+/* 선택창 목록(selectbox · multiselect)은 버튼 위치를 재서 그 좌표에 뜨는데, 배율이 좌표까지 키워 버튼 밑이 아닌
+   오른쪽 아래 엉뚱한 곳에 떴다 — 목록 틀은 배율을 되돌려 제자리에, 안의 글씨·칸은 다시 배율만큼 키운다. 도움말 말풍선(help=)도 같다 */
+[data-rac][data-trigger],[data-rac][role="tooltip"]{{zoom:calc(1 / {APP_ZOOM})}}
+[data-rac][data-trigger] > *,[data-rac][role="tooltip"] > *{{zoom:{APP_ZOOM}}}
+/* 배율이 스크롤 영역 높이(100vh)까지 키워 페이지 맨 아래가 창 밖으로 잘린다 — 높이만 창 크기로 되돌린다 */
+[data-testid="stMain"]{{height:calc(100dvh / {APP_ZOOM})!important;max-height:calc(100dvh / {APP_ZOOM})!important}}
 :root{{
   --bg:{BG}; --panel:{PANEL}; --panel2:{PANEL2}; --line:{LINE};
   --text:{TEXT}; --muted:{MUTED}; --accent:{ACCENT}; --navy:{NAVY}; --navy2:{NAVY2};
@@ -105,6 +111,10 @@ html, body, [class*="st-"]{{font-family:Pretendard,'Malgun Gothic','Apple SD Got
 .st-key-minirail{{display:none!important}}
 .stApp:has([data-testid="stSidebar"][aria-expanded="false"]) .st-key-minirail{{display:flex!important}}
 .stApp:has([data-testid="stSidebar"][aria-expanded="false"]) [data-testid="stMain"]{{margin-left:60px}}
+/* 위 60px 만큼 본문 폭은 줄지 않아 오른쪽이 창 밖으로 나가고 구역들이 오른쪽으로 쏠린다 —
+   구역들만 30px 왼쪽으로, 맨 위 배너(hero)는 제자리 */
+.stApp:has([data-testid="stSidebar"][aria-expanded="false"]) .block-container{{position:relative;left:-30px}}
+.stApp:has([data-testid="stSidebar"][aria-expanded="false"]) .st-key-hero{{position:relative;left:30px}}
 .st-key-minirail{{position:fixed;left:0;top:0;bottom:0;width:60px;z-index:999980;   /* 헤더(999990, » 버튼이 들어 있음)보다 아래 */
 flex-direction:column;align-items:center;
   justify-content:center;gap:12px;padding:72px 0;overflow:visible;
@@ -365,6 +375,12 @@ st.html(r"""<style>
 .st-key-card_form [data-testid="stHorizontalBlock"]{margin-bottom:4px}
 /* 조회 결과 — 탭(차트 · 지도 · 표)을 바꿔도 창 크기가 그대로이게 탭 칸 높이를 고정(차트 탭 기준) */
 .st-key-card_res [data-testid="stTabs"] [role="tabpanel"]{height:500px;box-sizing:border-box;overflow-y:auto}
+/* CSV 내려받기 — 탭 칸 오른쪽 아래, 차트 캡션(그래프 기준 …)과 같은 줄로 끌어올린다 */
+.st-key-res_dl{margin-top:-78px;padding-right:22px;position:relative;z-index:2;pointer-events:none}
+/* 분석 조건 설정 · 조회 결과 — 두 카드 세로 길이를 긴 쪽에 맞춘다(국가 칩이 늘어도 같이) */
+[data-testid="stLayoutWrapper"]:has(> .st-key-card_form),[data-testid="stLayoutWrapper"]:has(> .st-key-card_res),
+.st-key-card_form,.st-key-card_res{flex:1 1 auto}
+.st-key-res_dl button{pointer-events:auto}
 .kpis.q{gap:10px;margin-bottom:6px}
 .kpis.q .kpi .v{font-size:23px}
 </style>""")
@@ -406,7 +422,8 @@ def style_fig(fig, height: int | None = None):
                       hoverlabel=dict(bgcolor="#ffffff", bordercolor=LINE, font=dict(color=TEXT)),
                       margin=dict(l=8 if m.l is None else m.l, r=8 if m.r is None else m.r,
                                   t=10 if m.t is None else m.t, b=8 if m.b is None else m.b))
-    fig.update_xaxes(gridcolor=grid, zerolinecolor=grid, linecolor=LINE, tickfont=dict(color=MUTED), title_font=dict(color=MUTED))
+    fig.update_xaxes(gridcolor=grid, zerolinecolor=grid, linecolor=LINE, tickfont=dict(color=MUTED), title_font=dict(color=MUTED),
+                     automargin=True)             # 아래 여백(8px)이 좁아도 가로축 글씨(국가명 등)가 잘리지 않게
     fig.update_yaxes(gridcolor=grid, zerolinecolor=grid, linecolor=LINE, tickfont=dict(color=MUTED), title_font=dict(color=MUTED),
                      automargin=True)             # 여백이 좁아도 눈금 숫자(10k 등)가 잘리지 않게
     if height:
@@ -1733,19 +1750,6 @@ def page_home() -> None:
                    f'<span class="sub">2016~2025 · 점선 = 50%</span></div>'
                    f'<div class="bars">{rows}</div><div class="legend" style="margin-top:10px">{legend}</div></div>')
 
-    with zone("guide", "안내"):
-        c2, c3 = st.columns(2, gap="small")
-        c2.html('<div class="card"><div class="h">읽는 법</div><div class="note">'
-                '· 「수입 집중도」 = 품목군 수입액 중 특정국 비중(점유율·HHI)<br>'
-                '· 국가 전체 수입으로 <b>민수가 포함</b>됩니다<br>'
-                '· 군수 몫은 관세 통계로 나뉘지 않습니다<br>'
-                '· 조달계획 ≠ 계약, 국산화개발 부품 수 ≠ 국산화율</div></div>')
-        c3.html('<div class="card"><div class="h">출처</div><div class="note">'
-                '관세청 품목별 국가별 수출입실적<br>'
-                '방위사업청 국외 조달계획 · 국산화개발품목 · 군급분류집<br>'
-                '열린재정 예산 · KOSIS 방산 가동률 · 광공업생산지수<br>'
-                '<span style="color:#8494ae">모든 수치에 기준일·산식 표시 · 상세는 ⑤ DATA INFO</span></div></div>')
-
 
 def page_import() -> None:
     with globe_loading("수입 집계를 읽는 중"):
@@ -2372,16 +2376,6 @@ def query_panel() -> dict:
         names = Q_COUNTRIES if all_c else [n for n in Q_COUNTRIES if n in picked]
         q = {"area": area, "hs": hs, "names": names, "period": f"{y0} ~ {y1}", "years": (y0, y1),
              "metrics": metrics, "chart": chart}
-        # CSV — 고른 차트 모양대로(조회 결과와 같은 표를 다시 짠다). 카드 오른쪽 아래.
-        with st.container(key="qs_dl", horizontal=True, horizontal_alignment="right", vertical_alignment="center"):
-            if names and metrics:
-                out, note = csv_shape(chart, trade_frame(names, *q["years"], hs), q)
-                st.html(f'<div class="csv-note">{len(out):,}행 × {len(out.columns)}열 · {note}</div>')
-                st.download_button(f"「{chart}」 모양으로 CSV 내려받기", out.to_csv(index=False).encode("utf-8-sig"),
-                                   f"조회결과_{chart.replace(' ', '')}_{area}_{q['years'][0]}_{q['years'][1]}_샘플.csv",
-                                   "text/csv", icon=":material/download:", type="primary")
-            else:
-                st.button("CSV 내려받기", icon=":material/download:", disabled=True, help="국가와 지표를 하나 이상 고르세요.")
     return q
 
 
@@ -2597,9 +2591,6 @@ def _csv_css() -> str:
 .csv-desc h5{font-size:15px;font-weight:800;margin:0 0 6px;color:#1d2330}
 .csv-desc .shape{display:inline-block;margin-top:10px;padding:3px 12px;border-radius:14px;background:#fff;border:1px solid #d6dbe6;
   font-weight:700;color:#3d4a6b;font-size:12px}
-/* 카드 오른쪽 아래 — CSV 내려받기 */
-.st-key-qs_dl{margin-top:10px;padding-top:12px;border-top:1px dashed var(--line);gap:10px}
-.csv-note{font-size:11.5px;color:#6b7a99;text-align:right}
 </style>"""
 
 
@@ -2849,7 +2840,13 @@ def query_result(q: dict, y0: int, y1: int) -> None:
                     modes=modes, height=400, note="선택 국가 기준")
     with t_tbl:
         stat_table(df, q)
-        st.html('<div class="caption">CSV 는 분석 조건 설정 오른쪽 아래 버튼으로, 고른 차트 유형 모양대로 내려받습니다.</div>')
+        st.html('<div class="caption">CSV 는 오른쪽 아래 버튼으로, 고른 차트 유형 모양대로 내려받습니다.</div>')
+    # CSV — 고른 차트 모양대로(조회 결과와 같은 표를 다시 짠다). 탭 칸 오른쪽 아래에 겹쳐 둔다(어느 탭이든 같은 자리).
+    out, _ = csv_shape(q["chart"], df, q)
+    with st.container(key="res_dl", horizontal=True, horizontal_alignment="right"):
+        st.download_button(f"「{q['chart']}」 모양으로 CSV 내려받기", out.to_csv(index=False).encode("utf-8-sig"),
+                           f"조회결과_{q['chart'].replace(' ', '')}_{q['area']}_{y0}_{y1}_샘플.csv",
+                           "text/csv", icon=":material/download:", type="primary")
 
 
 def page_info() -> None:
