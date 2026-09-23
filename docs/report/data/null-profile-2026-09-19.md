@@ -68,7 +68,7 @@
 | `clean_dapa_contract` | `matched_keywords` | 43,111 | 0 | 100.0 | (파생) | 의도된 NULL(후속) | 가이드 §3-5: `class5` 키워드 규칙 확정 후 UPDATE. 규칙 §2-2 미확정, §7 | 판단 보류 | 무시(후보일 뿐, 합산 금지) |
 | `clean_dapa_contract` | `evidence` | 43,110 | 0 | 100.0 | (파생) | 구조적 | 실측: 충돌 1행만 값. `class5` 근거는 규칙 확정 후 | 표시 안 함 | 무시 |
 | `clean_dapa_contract` | `contract_group` | 43,111 | 0 | 100.0 | (파생) | 의도된 NULL(후속) | 사전 "정제에서 부여" — 규칙 미정(가이드 §3-5) | 판단 보류 | 무시 |
-| `clean_dapa_contract` | `category` | 43,111 | 0 | 100.0 | (파생) | 의도된 NULL | `ref_category_map` 확정하지 않기로 결정(`category-map-decision-2026-09-17.md`, `schema-design.md` §7-15). `category_link_status` 전부 `미연결` | 판단 보류(대응표 없음) | 무시 |
+| `clean_dapa_contract` | `category` | 43,111 | 0 | 100.0 | (파생) | 의도된 NULL | `ref_category_map` 확정하지 않기로 결정(`category-map-decision-2026-09-17.md`, `schema-change-log.md` §7-15). `category_link_status` 전부 `미연결` | 판단 보류(대응표 없음) | 무시 |
 | `clean_dapa_contract` | `private_contract_reason` | 12,865 | 0 | 29.8 | `private_contract_reason` | 구조적(예외 9) | 실측: 비수의계약 12,856(일반경쟁 6,542·제한경쟁 5,184·협상 666·2단계 435·지명 29) + 수의계약인데 공란 9 | 해당 없음(경쟁계약) / 예외 9는 미기재 | `v_contract_private_reason` 분모 = 수의계약 30,255, 사유 미기재 9 병기 |
 | `clean_dapa_domestic_plan` | `budget_krw` | 4,965 | 0 | 13.8 | `budget_amount` | 원본 결측 | 사전·규칙 §7 "원본 미기재 4,965(0 아님)". 실측: 2024 778/4,545(17.1%) · 2025 4,187/31,314(13.4%) | 미기재 | 예산 합 분모 제외 + 미기재 건수 병기(`v_domestic_plan_yearly`) |
 | `clean_dapa_domestic_plan` | `progress_status` | 190 | 0 | 0.5 | `progress_status` | 원본 결측 | raw 공란 190(2024 14·2025 176) | 미기재 | `is_contracted` 판정 불가 → 미확인 별도 건수 병기 |
@@ -84,7 +84,7 @@
 | `clean_dapa_overseas_contract` | `vendor_name` | 60 | 0 | 0.9 | `vendor_name` | 원본 결측 | raw 공란 60 | 미기재 | 업체 수 분모 제외 + 60 병기 |
 | `clean_dapa_overseas_plan` | `rep_item_name` | 1 | 0 | 0.0 | `rep_item_name` | 원본 결측 | raw 공란 1 | 미기재 | 전자 후보 판정 불가 → 미확인(후보 아님으로 세지 않음) |
 | `clean_dapa_overseas_plan` | `system_family_hint` | 2,631 | 0 | 87.0 | (파생) | 구조적 | 실측: `is_electronics_candidate=0` 2,631과 1:1, 예외 0. 사전 "집계 축 아님" | 표시 안 함 | 무시 |
-| `clean_dapa_overseas_plan_api` | `item_seq` | 0 | 842 | 6.2 | `item_seq` | 원본 결측 | `schema-design.md` §7-24 ①: PK라 빈 문자열 + `is_item_seq_missing=1`(실측 1:1) | 미기재 | 건수 포함(행 고유) |
+| `clean_dapa_overseas_plan_api` | `item_seq` | 0 | 842 | 6.2 | `item_seq` | 원본 결측 | `schema-change-log.md` §7-24 ①: PK라 빈 문자열 + `is_item_seq_missing=1`(실측 1:1) | 미기재 | 건수 포함(행 고유) |
 | `clean_dapa_overseas_plan_api` | `function_name` | 1,657 | 0 | 12.2 | `function_name` | 원본 결측 | raw 공란 1,657 | 미기재 | 기능구분 집계 시 미기재 별도 건수 |
 | `clean_dapa_overseas_plan_api` | `function_code` | 1,657 | 0 | 12.2 | `function_code` | 원본 결측 | `function_name`과 같은 행(실측) | 미기재 | 같음 |
 | `clean_dapa_overseas_plan_api` | `item_kind_name` | 1,657 | 0 | 12.2 | `item_kind_name` | 원본 결측 | 같은 1,657행(실측) | 미기재 | 품목종류 집계 시 미기재 별도 건수 |
@@ -107,7 +107,7 @@
 | `clean_kdsis_nsn` | `assigned_date` | 17 | 0 | 0.0 | `assigned_date` | 원본 결측 | raw 공란 17(형식 위반은 0). 규칙 §2-14 연도 축 없음 | 표시 안 함 | 무시 |
 | `clean_krit_task` | `program_type` | 2 | 0 | 2.1 | (본문 절 제목) | 원본 결측 | P5 노트북 §1: 표 제목 구분·`순` 구분값 둘 다 없으면 NULL. 실측: 26-1차 본공고 1·2 | 미기재 | 구분별 집계 시 미기재 2 병기 |
 | `clean_krit_task` | `gov_fund_100m_krw` | 11 | 0 | 11.5 | `gov_fund_text` | 원본 결측 | 규칙 §2-4: 24-1차 예비 11행은 정부지원금 열 자체 없음(`gov_fund_unit_text='없음'`) | 미기재 | 지원금 합 분모 제외 + 11 병기 |
-| `clean_krit_task` | `category` | 96 | 0 | 100.0 | (파생) | 의도된 NULL | 대응표 확정 안 함(규칙 §7, `schema-design.md` §7-15) | 판단 보류(대응표 없음) | 무시 |
+| `clean_krit_task` | `category` | 96 | 0 | 100.0 | (파생) | 의도된 NULL | 대응표 확정 안 함(규칙 §7, `schema-change-log.md` §7-15) | 판단 보류(대응표 없음) | 무시 |
 | `clean_krit_task` | `hs6` | 96 | 0 | 100.0 | (파생) | 의도된 NULL | 규칙 §2-4 "대응 근거 없음, 텍스트 매칭 금지". `category_link_status` 전부 `미연결` | 판단 보류(대응표 없음) | `v_review_list` B1 NULL + `b1_status` |
 | `clean_krit_task` | `gov_fund_text` | 11 | 0 | 11.5 | `gov_fund_text` | 원본 결측 | 같은 11행 | 미기재 | 같음 |
 | `clean_krit_task` | `note` | 79 | 0 | 82.3 | `note` | 원본 결측 | raw 공란 66 + 자리표시 `-`·`·` 13 → NULL(사전) | 표시 안 함 | 무시 |

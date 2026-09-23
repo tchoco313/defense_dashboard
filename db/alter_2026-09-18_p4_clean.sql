@@ -3,7 +3,7 @@
 --
 -- 배경: 팀 raw·ref → clean 전환 분배 명세(docs/reference/clean-conversion-spec-2026-09-18.md §5, 담당 김훈희).
 --       6개 중 clean_dapa_contract·clean_company·clean_company_name_link 는 정의가 있고(0행), 입찰공고·입찰결과·국내 조달계획·군별 계약집행 4개는 없어 여기서 만든다.
---       schema-design.md §7-19(raw→clean 일괄 복제 안 함)와의 관계: 이 4개는 단순 복제가 아니라 명세가 요구하는 형 변환·키 정규화·열 밀림 격리·개인정보 제외 산출물이다(§7-20).
+--       schema-change-log.md §7-19(raw→clean 일괄 복제 안 함)와의 관계: 이 4개는 단순 복제가 아니라 명세가 요구하는 형 변환·키 정규화·열 밀림 격리·개인정보 제외 산출물이다(§7-20).
 -- 원칙: raw 는 읽기만(원본 동결). 모든 clean 행에 raw_row_id(FK). 금액은 BIGINT + 단위 접미(_krw, _100m_krw). 날짜는 DATE. Y/N → TINYINT(1).
 --       담당자명·대표자명·연락처 열은 clean 에 두지 않는다. 표준값이 미확인인 열(공고상태·업무구분 등)은 ENUM 대신 VARCHAR + COMMENT.
 -- 구조: §1 clean_excluded_row(공용) → §2 clean_dapa_bid_notice → §3 clean_dapa_bid_result → §4 clean_dapa_domestic_plan → §5 clean_dapa_contract_exec_by_service

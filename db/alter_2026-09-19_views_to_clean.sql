@@ -1,7 +1,7 @@
 -- =============================================================================
 -- raw 직독 뷰 14개 → clean_ 기준 전환 + clean 열 2개 보강  (작성 2026-09-19)
 --
--- 배경: raw→clean 전환이 끝났지만 아래 뷰들은 raw_ 테이블을 직접 읽고 있었다(docs/db/schema-design.md §7-20④·§7-24⑤·§7-26⑦ 보류 항목).
+-- 배경: raw→clean 전환이 끝났지만 아래 뷰들은 raw_ 테이블을 직접 읽고 있었다(docs/db/schema-change-log.md §7-20④·§7-24⑤·§7-26⑦ 보류 항목).
 --       담당 표가 팀원 것이라 팀 결정 뒤로 미뤘던 것을 2026-09-19 사용자 지시("보류가 뭐야, 그냥 다 해")로 Claude 가 잠정 결정 + 문서 기록으로 실행한다.
 --       계획: C:\Users\kimhh\.claude\plans\staged-spinning-peacock.md 작업 1.
 -- 원칙:
@@ -9,7 +9,7 @@
 --     예외 2개: v_overseas_contract_yearly.demand_org_count 삭제(clean 이 단일값 열을 뺐으므로 항상 1) ·
 --              v_kdsis_link_summary 에 raw 행 기준 열 3개 추가(기존 열 유지) + v_b2_localized_kdsis 끝에 dup_count 추가.
 --   · raw 는 읽기만 한다. clean 에 없던 값 2개는 clean 열로 추가하고 raw_row_id 조인으로 백필한다(§1).
---   · 의미가 바뀌는 곳은 clean 정제 때 문서화된 결정을 따른다(각 뷰 주석 "의미 변경" 참조). 전환 전/후 지표 대조는 schema-design.md §6.
+--   · 의미가 바뀌는 곳은 clean 정제 때 문서화된 결정을 따른다(각 뷰 주석 "의미 변경" 참조). 전환 전/후 지표 대조는 schema-change-log.md §6.
 --   · 뷰는 열 사전(meta_column_dict)에 넣지 않는다. 새 clean 열 2개만 §2 에서 등록한다.
 --   · GROUP_CONCAT 구분자 ';' 는 0x3B(hex 리터럴)로 쓴다 — scripts/apply_alter.py 가 세미콜론으로 문장을 나누므로 문자열 안에 ';' 를 둘 수 없다.
 --     (MySQL 8.4 실측: SEPARATOR 0x3B 결과 콜레이션 utf8mb4_unicode_ci, 값 'a;b'.)
@@ -345,7 +345,7 @@ GROUP BY contract_year, contract_method_name;
 -- (정의 변경 없음) v_contract_reason_group_yearly — v_contract_private_reason 파생. 3-9 전환 후 동작 확인만 한다.
 
 -- -----------------------------------------------------------------------------
--- §4 검증 (DBHub app_ro 또는 같은 클라이언트). 기대값은 2026-09-19 전환 전 스냅샷(schema-design.md §6) 기준.
+-- §4 검증 (DBHub app_ro 또는 같은 클라이언트). 기대값은 2026-09-19 전환 전 스냅샷(schema-change-log.md §6) 기준.
 -- -----------------------------------------------------------------------------
 -- [§1 열·백필]
 -- SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='clean_dapa_contract';          -- 41

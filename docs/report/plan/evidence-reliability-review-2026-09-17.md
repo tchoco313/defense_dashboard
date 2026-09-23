@@ -1,6 +1,6 @@
 # 근거 신뢰도·판단 로직 자기 검토 (2026-09-17)
 
-**목적**: 대시보드가 내놓는 "추가 검토 목록"의 근거가 무엇을 입증하고 무엇을 입증하지 못하는지를 5개 관점에서 비판적으로 점검한다. 발표(10-06) Q&A 대비와 기획서 보완에 재사용한다. 이 문서는 반론 문서이며 `docs/idea-review.md` §5 절충안·`docs/report/plan/project-plan-2026-09-16.md`를 대체하지 않는다.
+**목적**: 대시보드가 내놓는 "추가 검토 목록"의 근거가 무엇을 입증하고 무엇을 입증하지 못하는지를 5개 관점에서 비판적으로 점검한다. 발표(10-06) Q&A 대비와 기획서 보완에 재사용한다. 이 문서는 반론 문서이며 `docs/idea-review.md` §5 절충안·`docs/report/archive/plan/project-plan-2026-09-16.md`를 대체하지 않는다.
 
 **검토 범위**: `docs/`(기획·출처·설계·검증 문서), `db/schema.sql`·`db/alter_2026-09-17_*.sql`, 팀 DB `defense_dashboard` 직접 조회(DBHub, 2026-09-17, 부록 A), `app/`(연습용 2페이지), `data/reference/hs_whitelist.csv`.
 
@@ -29,7 +29,7 @@
 | 구분 | 내용 | 판정 |
 |---|---|---|
 | 입증하는 것 | HS10 × **선적국** × 월 단위의 **국가 전체** 수입(CIF USD)·수출(FOB USD) 금액과 중량. 2016-01~2026-08, 24개 HS6, 294,420행 | 확인됨 (`docs/data-sources.md` §관세청, `db/schema.sql` `fact_customs_monthly` 주석 "국가 전체 수입(민수 포함)") |
-| 입증하는 것 | HS6 × 연도별 국가 집중도(상위국 점유율·HHI·교역국 수). 총계행 대조 완전 일치, 완전 중복 0, 나미비아 `NA` 결측 오류 정정(국가 237→238) | 확인됨 (`docs/data-sources.md` 원본 확보 기록, `docs/db/schema-design.md` §7) |
+| 입증하는 것 | HS6 × 연도별 국가 집중도(상위국 점유율·HHI·교역국 수). 총계행 대조 완전 일치, 완전 중복 0, 나미비아 `NA` 결측 오류 정정(국가 237→238) | 확인됨 (`docs/data-sources.md` 원본 확보 기록, `docs/db/schema-change-log.md` §7) |
 | 입증 **못** 하는 것 | 군수 수요 규모·비중 — HS는 용도를 구분하지 않음. 군용 전용 HS10 세분류는 집적회로 3개(854231/33/39)뿐이고 신고 비중 ≤0.026%(하한선) | 확인됨 (`docs/reference/hs-whitelist-definition.md` §7-1·§7-3, `ref_hs_indicator.mil_hs10_share`) |
 | 입증 못 하는 것 | "방산 수입의존도"·"국산화율"·"국방용 수입액" — 문서가 산출 불가로 명시하고 표현을 금지 | 확인됨 (`docs/idea-review.md` §3-3·§4 라벨 원칙, `docs/report/plan/design-validity-review-2026-09-15.md` Q3) |
 | 입증 못 하는 것 | **원산지** — 관세청 국가는 선적국. 홍콩·싱가포르 경유(852610 레이더 1위 SG 43.3%가 그 예일 수 있음) | 확인됨(선적국 기준: `docs/idea-review.md` §3-4) / SG 경유 여부는 미확인 |
@@ -50,7 +50,7 @@
 
 | # | 위험 | 근거 | 판정 |
 |---|---|---|---|
-| R-1 | 기획서가 산업부 「3050 전략」의 관문(특정국 수입의존도 50%)을 "최대 수입국 점유율 50% 또는 HHI 2,500"으로 준용하면서, 관문 표 자체에는 "국가 전체 수입 기준이며 군수 수요 기준이 아님"이 없다. 본문 앞쪽(§배경 "수입 통계는 국방을 따로 보여 주지 않는다")에만 있어 관문 표만 인용되면 오독된다 | `docs/report/plan/project-plan-2026-09-16.md` 1단계 관문 행·"점유율 50%는 정부 기준을 그대로 준용" | 확인됨 |
+| R-1 | 기획서가 산업부 「3050 전략」의 관문(특정국 수입의존도 50%)을 "최대 수입국 점유율 50% 또는 HHI 2,500"으로 준용하면서, 관문 표 자체에는 "국가 전체 수입 기준이며 군수 수요 기준이 아님"이 없다. 본문 앞쪽(§배경 "수입 통계는 국방을 따로 보여 주지 않는다")에만 있어 관문 표만 인용되면 오독된다 | `docs/report/archive/plan/project-plan-2026-09-16.md` 1단계 관문 행·"점유율 50%는 정부 기준을 그대로 준용" | 확인됨 |
 | R-2 | 팀 회의 결론 문장에 "**해외 수입 의존도 시각화** 때 DB에서 가져와…"라는, 문서 전체가 금지한 표현이 남아 있다 | `docs/reference/hs-whitelist-definition.md` §8 회의 결론 표 | 확인됨 |
 | R-3 | 2025년 HHI 정렬 상위 5개 중 3개(854142 광전지 CN 83.5% · 847180 자료처리기기 CN 71.7% · 854159 기타 반도체 TW 65.5%)가 `evidence_basis=팀판단`·priority 3, 즉 규칙 R1~R4 어느 것에도 걸리지 않은 "근거 미확인" 품목이다. 관문 통과 14개 중 4개가 팀판단이다. 화면 기본 정렬이 HHI↓이면 **가장 근거가 약한 품목이 가장 위에 온다** | 부록 A-5 | 확인됨 |
 
@@ -154,7 +154,7 @@
 
 - 문서는 명시적으로 금지한다(확인됨): §3-15 "조달계획 예산 ≠ 수입액, 합산·비율·직접 비교 금지", `v_budget_rnd_yearly` 주석 "예산(편성)은 조달계획(집행 예정)·관세청 수입액(실적)과 합산·비율 금지".
 - **신규 지적(확인됨)**: 기획서 ③ 검토 목록 열 정의에 "**관련 R&D 예산**"이 들어 있다(`project-plan-2026-09-16.md` 화면 구성 표). A9는 세부사업 단위라 품목군과 연결할 키가 없고, 연결 시도 자체가 §3-15 위반이다. 이 열은 채울 수 없으므로 **기획서 열 정의와 DB 설계가 어긋난다**. 발표 화면에 이 열이 빈 채로 나오거나, 무리하게 채우면 "사업 예산 = 부품 예산" 오독을 유발한다.
-- A7의 `대표품명` 키워드로 품목군별 예산을 합산하는 것도 위험하다: 2019년 단일 건 1.5조 원이 전자 후보에 들어가면 연도 추이가 그 한 건에 좌우된다(`schema-design.md` §6 검증 기록, 확인됨).
+- A7의 `대표품명` 키워드로 품목군별 예산을 합산하는 것도 위험하다: 2019년 단일 건 1.5조 원이 전자 후보에 들어가면 연도 추이가 그 한 건에 좌우된다(`schema-change-log.md` §6 검증 기록, 확인됨).
 
 ### 3-3. 일회성 도입 수요와 반복 소모·정비 수요의 구분
 
@@ -256,10 +256,10 @@
 
 | # | 조치 | 대상 | 근거 |
 |---|---|---|---|
-| A-1 | 1단계 관문 표 옆에 "국가 전체 수입 기준(민수 포함). 군수 수요 비중이 아님" 주석 추가 | `docs/report/plan/project-plan-2026-09-16.md` | §1-2 R-1 |
+| A-1 | 1단계 관문 표 옆에 "국가 전체 수입 기준(민수 포함). 군수 수요 비중이 아님" 주석 추가 | `docs/report/archive/plan/project-plan-2026-09-16.md` | §1-2 R-1 |
 | A-2 | "해외 수입 의존도 시각화" → "수입 집중도 시각화"로 정정 | `docs/reference/hs-whitelist-definition.md` §8 회의 결론 | §1-2 R-2 |
 | A-3 | KDSIS 절에 "NSN 등록은 표준화 사실이며 사용·조달·재고를 뜻하지 않는다" 문장 추가 | `docs/data-sources.md`, `docs/db/table-guide.md` | §2-5 |
-| A-4 | 기획서 ③ 검토 목록 열에서 "관련 R&D 예산" 제거 또는 "연도별 R&D 예산 추이(배경, 품목군 무관)"로 재정의 | `docs/report/plan/project-plan-2026-09-16.md` | §3-2 |
+| A-4 | 기획서 ③ 검토 목록 열에서 "관련 R&D 예산" 제거 또는 "연도별 R&D 예산 추이(배경, 품목군 무관)"로 재정의 | `docs/report/archive/plan/project-plan-2026-09-16.md` | §3-2 |
 | A-5 | 수입액·점유율 수치에 기준 HS6 개수 병기(24개 681억$ / 21개 678억$) | 기획서·정의 문서 | §1-3 |
 | A-6 | 계약정보 2024년(11~12월) 부분연도 표기, `meta_dataset` 관세청 행 `published_on` 채움 | `db/meta_dataset.csv`, `docs/data-sources.md` | §1-3 |
 | A-7 | `schema-design.md` §3 ref_fsc "출처 없어 0행" → 676행(군급분류집) 정정 | `docs/db/schema-design.md` | 탐색 기록 |
@@ -341,4 +341,4 @@ A-7. `meta_load_log`: `dapa_contract` 원본 전체 43,112 이후 단계 없음;
 
 ## 부록 B. 인용 문서
 
-`docs/idea-review.md` §3(유의사항 3·9·12·14·15)·§4·§5 / `docs/report/plan/design-validity-review-2026-09-15.md`(논리 사슬 L1~L3, Q3, 금액 비교 조합표) / `docs/report/plan/project-plan-2026-09-16.md`(관문 표, 화면 구성 ③, 하지 않는 것) / `docs/report/plan/project-plan-review-2026-09-16.md` / `docs/report/feedback/professor-feedback-2026-09-15.md` / `docs/reference/hs-whitelist-definition.md` §7·§8 / `docs/report/data/category-map-decision-2026-09-17.md` / `docs/db/schema-design.md` §7 / `docs/db/table-guide.md` / `docs/data-sources.md` / `db/schema.sql`(`ref_category_map`·`v_review_list`·`v_defense_relevance_b2`·`v_hs6_candidate_rule` 주석) / `db/alter_2026-09-17_kdsis_nsn.sql` / ~~`db/alter_2026-09-17_category_map.sql`~~(2026-09-18 삭제) / `app/main.py`·~~`app/pages/1_관세청_수출입.py`~~(→ `1_수출입_현황.py`)
+`docs/idea-review.md` §3(유의사항 3·9·12·14·15)·§4·§5 / `docs/report/plan/design-validity-review-2026-09-15.md`(논리 사슬 L1~L3, Q3, 금액 비교 조합표) / `docs/report/archive/plan/project-plan-2026-09-16.md`(관문 표, 화면 구성 ③, 하지 않는 것) / `docs/report/archive/plan/project-plan-review-2026-09-16.md` / `docs/report/feedback/professor-feedback-2026-09-15.md` / `docs/reference/hs-whitelist-definition.md` §7·§8 / `docs/report/data/category-map-decision-2026-09-17.md` / `docs/db/schema-change-log.md` §7 / `docs/db/table-guide.md` / `docs/data-sources.md` / `db/schema.sql`(`ref_category_map`·`v_review_list`·`v_defense_relevance_b2`·`v_hs6_candidate_rule` 주석) / `db/alter_2026-09-17_kdsis_nsn.sql` / ~~`db/alter_2026-09-17_category_map.sql`~~(2026-09-18 삭제) / `app/main.py`·~~`app/pages/1_관세청_수출입.py`~~(→ `1_수출입_현황.py`)

@@ -1,6 +1,6 @@
 # 미결 사안 정리 — DB 부족분 · 회의 결정 필요 (2026-09-21)
 
-근거: `file-cleanup-audit-2026-09-20.md` §5, `app-metrics-review-2026-09-20.md` §4, `project-plan-v7-brief-2026-09-19.md` §9·§10, `schema-design.md` §7, `data-cleaning-rules.md` §7. RDS 수치는 2026-09-21 DBHub 실측. §2 M1~M8은 **2026-09-21 팀 회의에서 결정됨** — 결정의 단일 기록·반영 위치는 `app/specs/00_common.md` §8.
+근거: `file-cleanup-audit-2026-09-20.md` §5, `app-metrics-review-2026-09-20.md` §4, `project-plan-v7-brief-2026-09-19.md` §9·§10, `schema-change-log.md` §7, `data-cleaning-rules.md` §7. RDS 수치는 2026-09-21 DBHub 실측. §2 M1~M8은 **2026-09-21 팀 회의에서 결정됨** — 결정의 단일 기록·반영 위치는 `app/specs/00_common.md` §8.
 
 ## 1. DB에 없거나 부족한 것
 

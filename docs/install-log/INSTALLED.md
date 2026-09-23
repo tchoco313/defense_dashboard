@@ -102,4 +102,4 @@
 
 ## 2026-09-22 (중간 발표 PPTX 재생성)
 
-- `pptxgenjs` 4.0.1 (npm, `docs/report/plan-docx-build/node_modules` — gitignore) — `make_midterm.js`로 중간 발표 PPTX를 다시 만들기 위해 `npm install`. 생성: `node make_midterm.js <출력 경로.pptx>`. 결과물 `*.pptx`도 gitignore.
+- `pptxgenjs` 4.0.1 (npm, `build/pptx/node_modules` — gitignore) — `make_midterm.js`로 중간 발표 PPTX를 다시 만들기 위해 `npm install`. 생성: `node make_midterm.js <출력 경로.pptx>`. 결과물 `*.pptx`도 gitignore.

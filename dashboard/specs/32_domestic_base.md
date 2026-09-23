@@ -20,13 +20,13 @@
 ## 2. 읽는 데이터
 | 뷰·테이블 | 열 | 집계 정의 | 자료 기간·적재일 | 출처 문서 |
 |---|---|---|---|---|
-| `raw_kosis_utilization` (현재 코드) | `sector_name, year, value_text` | 방산업체 분야별 평균가동률(%). 화면에서 `value_text` → 숫자 변환 후 분야별 선. 분야 9종(평균·항공유도·화력·탄약·기동·통신전자·함정·화생방·기타) | 2016~2024 · 81행 | table-guide §3-5 · table-catalog |
-| `raw_kosis_production_index` (현재 코드) | `region_name, industry_name, stat_ym, item_name, value_text` | 광공업생산지수(2020=100). 조건 `region_name LIKE '00%'`(전국) · `item_name LIKE 'T20%'`(계절조정). 화면에서 `stat_ym`의 `p)`를 떼어 월 파싱, `industry_name` 앞 토큰 = C26/C261/C262/C264 | 2016.01~2026.07 · 1,016행 | table-guide §3-5 · table-catalog |
-| `clean_kosis_utilization` (clean 전환 시) | `raw_row_id, sector_name, is_avg_row, in_scope, year, utilization_pct, value_text, source_file` | raw 1:1(81행). 화면 전환 시 `in_scope=1`(통신전자)만 쓰고, `is_avg_row=1`(평균) 행을 분야 값으로 다시 평균 내지 않는다 | 2016~2024 · 적재 완료 2026-09-19 | table-guide §2 「보조 ④」 · §3-5 |
-| `clean_kosis_production_index` (clean 전환 시) | `raw_row_id, region_name, industry_code, industry_name, stat_month, is_month_restored, item_code, item_name, index_value, is_provisional, is_partial_year, scope_grade, value_text` | raw 1:1(1,016행). 화면 전환 시 `scope_grade='★'`(전국 × C26·C261 × T20)만, `is_provisional`(2026-06·07, 16행)·`is_partial_year`(2026) 라벨 필수 | 2016.01~2026.07 · 적재 완료 2026-09-19 | table-guide §2 「보조 ④」 · §3-5 |
+| ~~`raw_kosis_utilization`~~ (2026-09-22 raw_ 표 삭제 — 코드는 `clean_kosis_utilization`으로 전환) | `sector_name, year, value_text` | 방산업체 분야별 평균가동률(%). 화면에서 `value_text` → 숫자 변환 후 분야별 선. 분야 9종(평균·항공유도·화력·탄약·기동·통신전자·함정·화생방·기타) | 2016~2024 · 81행 | table-guide §3-5 · table-catalog |
+| ~~`raw_kosis_production_index`~~ (2026-09-22 raw_ 표 삭제 — 코드는 `clean_kosis_production_index`로 전환: `industry_code`·`stat_month`·`is_provisional`·`index_value`) | `region_name, industry_name, stat_ym, item_name, value_text` | 광공업생산지수(2020=100). 조건 `region_name LIKE '00%'`(전국) · `item_name LIKE 'T20%'`(계절조정). 화면에서 `stat_ym`의 `p)`를 떼어 월 파싱, `industry_name` 앞 토큰 = C26/C261/C262/C264 | 2016.01~2026.07 · 1,016행 | table-guide §3-5 · table-catalog |
+| `clean_kosis_utilization` (현재 코드) | `raw_row_id, sector_name, is_avg_row, in_scope, year, utilization_pct, value_text, source_file` | raw 1:1(81행). 화면 전환 시 `in_scope=1`(통신전자)만 쓰고, `is_avg_row=1`(평균) 행을 분야 값으로 다시 평균 내지 않는다 | 2016~2024 · 적재 완료 2026-09-19 | table-guide §2 「보조 ④」 · §3-5 |
+| `clean_kosis_production_index` (현재 코드) | `raw_row_id, region_name, industry_code, industry_name, stat_month, is_month_restored, item_code, item_name, index_value, is_provisional, is_partial_year, scope_grade, value_text` | raw 1:1(1,016행). 화면 전환 시 `scope_grade='★'`(전국 × C26·C261 × T20)만, `is_provisional`(2026-06·07, 16행)·`is_partial_year`(2026) 라벨 필수 | 2016.01~2026.07 · 적재 완료 2026-09-19 | table-guide §2 「보조 ④」 · §3-5 |
 | `v_defense_company_sector` | `sector, company_count, first_designated_year, last_designated_year` | 방산업체 지정현황 분야별 업체 수·지정연도 범위(84행, 공란 3 = 「미기재」). clean 표가 없어 raw 직독 유지 | 사용 가능(2026-09-17) | table-guide §2 「배경 ⓪ 보강」 · §3-6 |
 
-현재 코드는 `raw_*`를 직접 읽는다. clean 전환은 미적용 — 전환하면 `in_scope`·`scope_grade`·`is_provisional`로 범위·라벨을 코드가 아니라 DB 열로 판정한다.
+2026-09-22 raw_ 표 삭제로 코드가 `clean_kosis_*`를 읽는다(그리는 로직은 그대로 — 전 분야 선, T20·전국 필터, 잠정 구간은 `is_provisional`). 남은 전환: `in_scope`·`scope_grade`로 범위·라벨을 코드가 아니라 DB 열로 판정하는 것.
 
 ## 3. 레이아웃
 | 구역 | 키 | 내용 |
@@ -104,6 +104,6 @@
 | M# | 달라지는 부분 |
 |---|---|
 | 원본 구성 | 원본은 `app/pages/4_정책_산업_배경.py` 한 파일의 일부. 묶음·번호·순서는 담당자 Figma 결과에 따른다(M3, 09-21). idea-review 보조 ④ 「수출·생산 추세」 중 수출은 `20_trade.md`, 생산은 이 md |
-| 전환 | `raw_kosis_*` → `clean_kosis_*` 전환 여부·시점 → §2·§5·§6(`in_scope`·`scope_grade`·`is_provisional`·`is_partial_year`) |
+| 전환 | `clean_kosis_*` 전환은 완료(2026-09-22). `in_scope`·`scope_grade`·`is_partial_year` 라벨 반영 시점 → §2·§5·§6 |
 | 미구현 | 2026 부분연도 라벨, 「미기재」 3건 표기, 지정연도 범위(`first/last_designated_year`) 표시 |
 | 처리됨(2026-09-21) | 가동률(KOSIS 409)은 연 1회 갱신 자료라 2025년치 발표 시점은 정할 수 없다 — 차트 제목·각주에 「2016~2024」 범위를 고정 표기하고, 새 연도가 나오면 적재 후 범위만 바꾼다 |

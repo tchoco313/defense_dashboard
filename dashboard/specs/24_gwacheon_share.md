@@ -20,7 +20,7 @@
 | 뷰·테이블 | 열 | 집계 정의 | 자료 기간·적재일 | 출처 문서 |
 |---|---|---|---|---|
 | `v_customs_region_gwacheon_year` | `hs6, year, imp_kusd_total, imp_kusd_gwacheon, gwacheon_share, imp_cnt_gwacheon, sgg_count, is_partial_year` | HS6 × 연도. 분모 = 전국 수입액, 분자 = `sgg_name='경기도 과천시'` 수입액. `gwacheon_share` = 분자/분모(0~1). 금액 단위 **천 달러**. `sgg_count` = 그 HS6·연도에 신고가 있은 시군구 수 | 2016~2026(2026은 8월까지, `is_partial_year`) · 사용 가능 2026-09-21, 246행 | table-guide §2 「과천시 소재 수입자 비중(추정)」 · §3-6 · table-catalog |
-| `raw_customs_region` | `stat_ym, sgg_name, hs_cd, item_name_ko, imp_cnt, imp_usd_amt, req_hs, req_sido, req_year` | 뷰의 원천. HS6 × 시군구 × 월, 수입 = **납세의무자 주소지** 기준, 금액 천 달러 | 2016~2026 · 적재 2026-09-21, 273,586행 | open-decisions D1 · table-catalog |
+| `clean_customs_region(2026-09-22, 원본 파일 raw_customs_region)` | `stat_ym, sgg_name, hs_cd, item_name_ko, imp_cnt, imp_usd_amt, req_hs, req_sido, req_year` | 뷰의 원천. HS6 × 시군구 × 월, 수입 = **납세의무자 주소지** 기준, 금액 천 달러 | 2016~2026 · 적재 2026-09-21, 273,586행 | open-decisions D1 · table-catalog |
 | `ref_hs_whitelist` | `hs6, category, name_ko` | 품목군 이름·분류 표기 | 스냅샷 | hs-whitelist-definition §2 |
 
 검증값(`docs/data-sources.md`, 2025년 수입액 기준, 뷰로 재현): 880730 항공기 부분품 **30.1%**, 901490 항행 부분품 27.0%, 852560 송수신 무선기기 20.2%, 852910 안테나 17.0%, 852691 무선항행 14.7%, 852610 레이더 11.9%, 852990 통신·레이더 부분품 11.1%, 841191 터보제트 부분품 9.5% / 반도체·다이오드·트랜지스터 6개는 0.0~0.8%.
@@ -86,7 +86,7 @@
 - 국가 전체 수입(민수 포함) 기준. 「방산 수입 비중」 「국산화율」 「의존율」 금지.
 - 금액 단위는 천 달러로 표기하고, 달러 단위인 `fact_customs_monthly` 금액이나 원화 조달 예산과 **합산·비율 계산하지 않는다**.
 - FSC·NSN과 엮지 않는다. 시군구 명칭은 원본 그대로(2026-07-01 행정체계 개편 전후 표기 차이 가능).
-- 출처 캡션(제안): 「출처: 관세청 시군구별 품목별 수출입실적(15134343) → 팀 DB raw_customs_region · 뷰 v_customs_region_gwacheon_year. 금액 천 달러, 분모는 전국 수입액. 수입 = 납세의무자 주소지 기준.」
+- 출처 캡션(제안): 「출처: 관세청 시군구별 품목별 수출입실적(15134343) → 팀 DB clean_customs_region(2026-09-22, 원본 파일 raw_customs_region) · 뷰 v_customs_region_gwacheon_year. 금액 천 달러, 분모는 전국 수입액. 수입 = 납세의무자 주소지 기준.」
 
 ## 8. 자연어 구상 (Claude 초안 → 사용자 수정)
 30초 읽기: ① 구역 태그 「추정」과 한 줄 정의를 읽는다 → ② 가로 막대에서 항공·항행·통신 계열이 위쪽에, 반도체 계열이 바닥에 몰린 **패턴**을 본다 → ③ 관심 품목군 하나를 골라 연도별 선이 안정적인지 본다 → ④ 아래 관측값/가설 카드에서 이 숫자를 어디까지 말할 수 있는지 확인한다.

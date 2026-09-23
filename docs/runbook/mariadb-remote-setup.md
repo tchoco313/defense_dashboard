@@ -98,7 +98,7 @@ MARIADB_DATABASE=defense_dashboard
 - **`sql_mode`에 `STRICT_TRANS_TABLES`** — 열 길이 초과가 경고가 아니라 오류(1406)로 롤백된다. 2026-09-15 입찰공고·입찰결과 열 확장 사례는 `schema-design.md` §5.
 - **방사청 CSV는 cp949**(`data/raw/dapa/`). 노트북에서 `encoding="cp949"`로 읽어 pandas → `to_sql`로 넣거나, `LOAD DATA`를 쓰면 **`CHARACTER SET euckr`** 지정(2026-09-15 정정: MariaDB·MySQL에 `cp949`라는 문자셋 이름은 없어 `ERROR 1115`가 난다).
 - **줄끝이 파일마다 다르다**: 계약정보·KOSIS 2종은 LF, 나머지(관세청·입찰공고·입찰결과·국산화개발품목·방산업체·참조표)는 CRLF. `LOAD DATA`의 `LINES TERMINATED BY`를 파일에 맞춘다(안 맞으면 0행 또는 마지막 열에 `\r`). `LOAD DATA LOCAL`은 중복 키를 조용히 건너뛰므로 적재 후 반드시 건수 대조. 상세는 `docs/db/schema-design.md` §5.
-- 국가 참조표: pandas로 다룰 때 `keep_default_na=False` — `"NA"`(나미비아)가 결측으로 사라진다(`schema-design.md` §7-1).
+- 국가 참조표: pandas로 다룰 때 `keep_default_na=False` — `"NA"`(나미비아)가 결측으로 사라진다(`schema-change-log.md` §7-1).
 - `LOAD DATA LOCAL INFILE`은 **클라이언트 쪽 파일**을 읽으므로 원격에서도 된다. 서버 `local_infile=1`(§1-1) + 클라이언트 옵션(`mysql --local-infile=1`, pymysql `local_infile=True`) 둘 다 필요.
 - 원본 테이블(`dapa_contract_raw` 등)은 CSV 그대로, 정제 결과는 별도 테이블(`*_clean`). 원본 테이블은 적재 후 수정하지 않는다(CLAUDE.md 데이터 검증 규칙).
 - 적재 후 `SELECT COUNT(*)`를 파서 기준 원본 건수(`docs/data-sources.md`, `docs/report/data/data-feasibility-check-2026-09-13.md`)와 대조해 기록한다. 물리 줄 수와 다를 수 있다.
@@ -125,7 +125,7 @@ mysqldump -u root -p --default-character-set=utf8mb4 --routines defense_dashboar
 
 ## 6. Claude Code MCP 연결 (서버가 뜬 뒤, 사용자 PC에서)
 
-두 MCP 모두 **적재 후 스키마·건수 확인용**이다. 테이블 생성·INSERT 도구는 없으므로 DDL은 MariaDB 12.2 클라이언트(`mariadb.exe`, `commands.md`), 적재는 `scripts/load_db.py`(pymysql)로 한다(2026-09-15 팀 서버 구축 완료 — `schema-design.md` §6 "팀 서버 적용 기록").
+두 MCP 모두 **적재 후 스키마·건수 확인용**이다. 테이블 생성·INSERT 도구는 없으므로 DDL은 MariaDB 12.2 클라이언트(`mariadb.exe`, `commands.md`), 적재는 `scripts/load_db.py`(pymysql)로 한다(2026-09-15 팀 서버 구축 완료 — `schema-change-log.md` §6 "팀 서버 적용 기록").
 
 ### 6-1. DBHub (검증 완료, 2026-09-15)
 

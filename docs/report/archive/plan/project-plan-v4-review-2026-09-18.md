@@ -1,6 +1,6 @@
 # 기획서 v4 검토 (2026-09-18)
 
-대상: `docs/report/plan/project-plan-v4-2026-09-18.md`. 저장소 문서(`data-cleaning-rules.md`, `hs-whitelist-definition.md` §8, `column_dict.csv`, `table-guide.md`, `professor-feedback-2026-09-17.md`)와 대조했다. 운영 DB(RDS)는 DBHub가 끊겨 있어 **수치는 문서에 기록된 값으로만 대조**했고, 문서에 없는 수치는 미확인으로 남겼다.
+대상: `docs/report/archive/plan/project-plan-v4-2026-09-18.md`. 저장소 문서(`data-cleaning-rules.md`, `hs-whitelist-definition.md` §8, `column_dict.csv`, `table-guide.md`, `professor-feedback-2026-09-17.md`)와 대조했다. 운영 DB(RDS)는 DBHub가 끊겨 있어 **수치는 문서에 기록된 값으로만 대조**했고, 문서에 없는 수치는 미확인으로 남겼다.
 
 ## 0. 총평
 

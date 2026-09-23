@@ -1,6 +1,6 @@
 # 기획서 초안 검토 메모 (2026-09-16)
 
-대상: `new_data/기획서_양식_초안_2026-09-16.md`(팀원 작성, 양식 붙여넣기용) → 정리본 `docs/report/plan/project-plan-2026-09-16.md`.
+대상: `new_data/기획서_양식_초안_2026-09-16.md`(팀원 작성, 양식 붙여넣기용) → 정리본 `docs/report/archive/plan/project-plan-2026-09-16.md`.
 방법: 초안의 수치·구성·표현을 저장소 기준 문서(PROJECT.md, idea-review §3~§5, data-sources, professor-feedback 09-15, design-validity-review, dashboard-scope, hs-whitelist-definition, table-guide, schema.sql, meta_dataset.csv, column_dict.csv)와 대조하고, 저장소에 근거가 없는 외부 수치는 웹에서 원문을 열어 확인했다. 팀 DB는 이 세션에서 접속 실패(DBHub 연결 오류)라 `[DB]` 수치는 재조회하지 않았다(§4).
 
 ## 1. 결론

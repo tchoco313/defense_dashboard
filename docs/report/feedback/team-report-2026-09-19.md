@@ -60,7 +60,7 @@
 
 ## 7. 어디를 보면 되나
 
-- 오늘 변경·검증 기록: `docs/db/schema-design.md` §6·§7 #24~#29
+- 오늘 변경·검증 기록: `docs/db/schema-change-log.md` §6·§7 #24~#29
 - 노트북·alter 실행법: `docs/runbook/commands.md` §4·§6
 - 화면별 표·뷰: `docs/db/table-guide.md` §2
 - 결측 판정: `docs/report/data/null-profile-2026-09-19.md`

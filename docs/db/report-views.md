@@ -16,7 +16,7 @@
 | `v_kdsis_link_summary` | 위 두 연결의 총 행·연결 가능·연결·고유 NSN 요약 2행 | 2 | 위 두 뷰 | 없음(요약 전용) | 유지(Q&A "KDSIS 연결률이 왜 낮나" 근거) |
 | `v_hs_whitelist_rule` | HS6 24개 × 최신 규칙 버전의 R1~R4 플래그·근거 수치를 한 번에 읽는 뷰 | 24 | `ref_hs_whitelist` × `ref_hs_rule_flag` | `ref_hs_rule_flag`를 `rule_version` 최신으로 직접 조회하면 같음. 원본 없는 DB에서도 동작하도록 만든 스냅샷 조인 | 유지(화면 ③ 근거 열 후보 — `dashboard-scope` §3 검토표 6항목에 쓸 수 있음) |
 
-행 수는 2026-09-19 실측(`docs/db/schema-design.md` §6). `v_overseas_plan_api_kdsis`·`v_b2_localized_kdsis`·`v_kdsis_link_summary`의 clean 전환 결과는 `schema-design.md` §7-27.
+행 수는 2026-09-19 실측(`docs/db/schema-change-log.md` §6). `v_overseas_plan_api_kdsis`·`v_b2_localized_kdsis`·`v_kdsis_link_summary`의 clean 전환 결과는 `schema-change-log.md` §7-27.
 
 ## 2. HS6 선정 규칙·근거 뷰 8개 (화면 미사용이지만 삭제 대상 아님)
 

@@ -89,7 +89,7 @@ RDS 실측(09-20): `ref_fsg` 60 = 1, `ref_fsc` `fsc2='60'` 24행 전부 1(58: 20
 | 고유 대표업체명(콜레이션 기준) | 443 | **442** |
 | `meta_load_log` | ~129 | 130(「검증된 분석 대상」 6,327) |
 
-동기한 곳: `notebooks/clean_p3_overseas.ipynb` §3(규칙·코드, `excluded` 목록에 6행)·§5(로그 문구) — 재실행 시 같은 결과. 문서: `data-cleaning-rules.md` §2-8, `table-guide.md` §2·§3·§3-5, `schema-design.md` §6, `commands.md` §4, `team-report-2026-09-19.md` §1, 담당분배 명세 §8. `null-profile-2026-09-19.md`는 09-19 스냅샷이라 그대로 둔다.
+동기한 곳: `notebooks/clean_p3_overseas.ipynb` §3(규칙·코드, `excluded` 목록에 6행)·§5(로그 문구) — 재실행 시 같은 결과. 문서: `data-cleaning-rules.md` §2-8, `table-guide.md` §2·§3·§3-5, `schema-change-log.md` §6, `commands.md` §4, `team-report-2026-09-19.md` §1, 담당분배 명세 §8. `null-profile-2026-09-19.md`는 09-19 스냅샷이라 그대로 둔다.
 
 ## 4. 담당자 회신 문구 (팀 채널용)
 

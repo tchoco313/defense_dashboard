@@ -5,7 +5,7 @@
 --   축:   A 사업자등록번호 · B 공고↔결과 · C 주소→시도 · D 업체명→업체 마스터 · E 계약 이력 · F 조달계획·군별
 --   주석의 실측값은 2026-09-18 RDS(MySQL 8.4.11, app_ro/DBHub) 결과. 전부 읽기 전용, 한 블록씩 복사해 실행.
 --   상관 서브쿼리 EXISTS 는 인덱스가 없어 타임아웃이 나므로 파생표 JOIN 으로 쓴다.
---   판정 요약과 문서 반영: docs/reference/data-cleaning-rules.md §2-2·§2-9·§2-10·§3, docs/db/schema-design.md §7-22.
+--   판정 요약과 문서 반영: docs/reference/data-cleaning-rules.md §2-2·§2-9·§2-10·§3, docs/db/schema-change-log.md §7-22.
 -- ============================================================================
 
 USE defense_dashboard;

@@ -73,7 +73,7 @@ PPT 없이 말로도 되는 순서다. 자세한 대본은 `midterm-script-2026-
 | "전처리를 무엇을 했나?" | 같은 xlsx의 **「정제변경_요약」·「정제변경_상세」** 시트 (528행) |
 | "EDA는?" | `notebooks/eda_customs.ipynb` §8(집중도)·§9(검정·상관) / `eda_localized_item.ipynb` |
 | "결측은?" | `docs/report/data/null-profile-2026-09-19.md` (22표 77열) |
-| "화면은?" | https://defense-trade.streamlit.app → 시안 3장(`docs/report/plan-docx-build/mock_*.jpg`) |
+| "화면은?" | https://defense-trade.streamlit.app → 시안 3장(`build/pptx/mock_*.jpg`) |
 | "품목을 왜 그걸 골랐나?" | `docs/reference/hs-whitelist-definition.md` §8(선정 규칙)·§2(24개 정의표) |
 
 미리 띄워 둘 것: 명세서 xlsx, `erd.html`, 공개 앱. 세 개만 열어 두면 대부분 답한다.

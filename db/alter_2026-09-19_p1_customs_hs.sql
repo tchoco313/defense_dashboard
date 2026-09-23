@@ -105,7 +105,7 @@ PREPARE s2 FROM @q; EXECUTE s2; DEALLOCATE PREPARE s2;
 --    연계표는 통제 대상 HSK10 **전수 목록**이므로 목록에 없는 HS6(854142·854159)는 확인된 0이다(NULL 아님, §1-9).
 --    이 지표는 v_civil_mix_rule 3번 규칙의 입력이지만 **문턱값이 미정**이라 라벨(civil_mix_rule)은 NULL 그대로다.
 --    84·85·88·90류 HS6 486개 중 통제 비율 100%가 179개라 판별력이 없다는 부수 확인(§8-3)도 이 값으로 재현된다.
---    ref_hs_whitelist.civil_mix·civil_mix_basis(스냅샷 열)는 **바꾸지 않는다** — 뷰와 스냅샷이 달라지는 점은 schema-design.md §7 에 잠정으로 기록.
+--    ref_hs_whitelist.civil_mix·civil_mix_basis(스냅샷 열)는 **바꾸지 않는다** — 뷰와 스냅샷이 달라지는 점은 schema-change-log.md §7 에 잠정으로 기록.
 -- -----------------------------------------------------------------------------
 INSERT INTO ref_hs_indicator (hs6, axis, indicator, value_num, numerator, denominator, unit,
                               period_start, period_end, link_status, source, method, note)

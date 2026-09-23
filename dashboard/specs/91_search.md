@@ -23,7 +23,7 @@
 | `ref_country` | `stat_cd, name_ko` | 국가코드 → 국가명 라벨(238행) | 스냅샷 | table-catalog `ref_country` |
 | `fact_customs_monthly` | `DISTINCT hs10` (`WHERE hs6=:h ORDER BY hs10`) | 세부코드(HS10) 선택지 | 2016.01~2026.08 · 적재 2026-09-18 | table-guide §3-4 |
 | `fact_customs_monthly` | `year, stat_cd, SUM(imp_dlr), SUM(exp_dlr), MAX(is_partial_year)` GROUP BY `year, stat_cd` (`WHERE hs6 IN :hs` + 선택 시 `AND hs10=:h10`) | 연도 × 국가 수입·수출액. 이 한 덩어리로 KPI·차트·표를 모두 만든다 | 2016.01~2026.08(2026 부분연도) · 적재 2026-09-18 | table-guide §3-4 |
-| `raw_hs_unit_name` | `hs_code AS hs10, name_ko` (`WHERE hs_unit='10' AND hs_code LIKE :p`) | HS10 품명 라벨(관세청 15130660). 표가 없으면 코드만 보여 준다 | 스냅샷 | data-sources |
+| `ref_hs_code_master(HSK10 품명)` | `hs_code AS hs10, name_ko` (`WHERE hs_unit='10' AND hs_code LIKE :p`) | HS10 품명 라벨(관세청 15130660). 표가 없으면 코드만 보여 준다 | 스냅샷 | data-sources |
 
 집계 산식은 `metrics.concentration`(홈·③과 같은 함수)으로 단일화했다: 선택 기간을 **국가별 합산한 뒤** 점유율·HHI·수입국 수를 낸다. 연도 목록은 `metrics.period_years`(완결 연도만).
 
