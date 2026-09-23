@@ -1,9 +1,11 @@
 """K-Defense 대시보드 — 디자인 데모(단독 실행본).
 
-실행:  바탕화면의 `K-Defense_데모_실행.bat` 더블클릭(권장).
-       직접 칠 때는 라이트 테마 플래그를 같이 준다 — 이 폴더에는 `.streamlit/config.toml` 이 없어서
-       플래그가 없으면 표·위젯이 OS 다크모드를 따라간다:
-         streamlit run "K-Defense_대시보드_데모.py" --theme.base light
+실행:  같은 폴더의 `K-Defense_데모_실행.bat` 더블클릭(권장). 직접 칠 때는:
+         streamlit run "K-Defense_대시보드_demo.py" --theme.base light
+       저장소 루트의 `.streamlit/config.toml` 은 운영 앱용 **다크** 테마라, 저장소에서 플래그 없이 실행하면
+       테마가 다크로 잡힌다. OS 다크모드이거나 테마 설정이 없을 때도 마찬가지다. 그래도 버튼 · 선택창 · 체크박스는
+       아래 「라이트 테마 고정(위젯)」 CSS 로 라이트로 보인다. 단 st.dataframe 표(품목군 현황표 · DATA INFO)는
+       캔버스로 그려져 CSS 가 닿지 않으니, 위처럼 `--theme.base light` 를 붙여 실행하는 편이 안전하다.
 
 이 파일 하나만 있으면 돌아간다. DB·`.env`·프로젝트 폴더가 전혀 필요 없다(다른 PC로 복사해도 같다).
 필요한 것은 streamlit·pandas·plotly 뿐이고, 지구본의 세계지도 데이터만 인터넷(CDN)에서 받는다
@@ -276,6 +278,42 @@ div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)
 </style>"""
 
 st.html(CSS)
+
+# ── 라이트 테마 고정(위젯) ───────────────────────────────────────────────────
+# 저장소의 .streamlit/config.toml(운영 앱용 다크 테마) 아래에서 열거나, 테마 설정 없이 OS 다크모드에서 열면
+# 버튼 · 분석영역/HS 선택 · 체크박스 · 선택창이 어두운 바탕 · 흰 글씨 · 다크 강조색으로 그려졌다(조원 PC 에서 본 증상).
+# 이 파일만 받아 실행해도 같은 화면이 나오게 테마가 칠하는 색을 여기서 직접 정한다.
+# 아래 규칙보다 뒤에 오는 칸별 규칙(.st-key-… — 국가 칩 · 차트 유형 버튼 · ⓘ 단추)이 명시도가 같거나 높아 그대로 이긴다.
+st.html("""<style>
+:root{color-scheme:light}
+[data-testid="stMain"],div[role="dialog"]{color:var(--text)}
+div[role="dialog"]{background:#fff}
+/* 버튼 — 기본(흰 바탕) · 강조(파랑) */
+button[data-testid="stBaseButton-secondary"]{background:#fff;border-color:var(--line);color:var(--text)}
+button[data-testid="stBaseButton-secondary"]:hover{border-color:var(--accent);color:var(--accent)}
+button[data-testid="stBaseButton-primary"]{background:var(--accent);border-color:var(--accent);color:#fff}
+button[data-testid="stBaseButton-primary"]:hover{background:#1f5fe0;border-color:#1f5fe0;color:#fff}
+/* 분석영역 · HS 단위(segmented_control) — 고른 칸은 연한 파랑 바탕 · 파란 테두리 · 파란 글씨 */
+button[data-variant="segmented_control"]{background:var(--bg);border-color:var(--line);color:var(--text)}
+button[data-variant="segmented_control"]:hover{color:var(--accent)}
+[data-testid="stButtonGroup"] button[data-variant="segmented_control"][aria-checked="true"][data-selected]{
+  background:rgba(43,110,246,.1);border-color:var(--accent);color:var(--accent)}
+/* 체크박스 — 네모 칸 */
+[data-testid="stCheckbox"] label > div:not([data-testid]){background:#fff;border-color:#b7c4da}
+[data-testid="stCheckbox"] label:has(input:checked) > div:not([data-testid]){background:var(--accent);border-color:var(--accent)}
+[data-testid="stCheckbox"] label:has(input:disabled){opacity:.45}
+/* 선택창(selectbox · multiselect)과 펼친 목록 */
+[data-testid="stSelectbox"] div[role="group"],[data-testid="stMultiSelect"] div[role="group"]{background:#fff;border-color:var(--line);color:var(--text)}
+[data-testid="stSelectbox"] div[role="group"]:focus-within,[data-testid="stMultiSelect"] div[role="group"]:focus-within{border-color:var(--accent)}
+[data-testid="stSelectbox"] input,[data-testid="stMultiSelect"] input{color:var(--text)}
+[data-testid="stSelectbox"] input::placeholder,[data-testid="stMultiSelect"] input::placeholder{color:var(--muted)}
+[data-testid="stSelectbox"] div[role="group"] button,[data-testid="stMultiSelect"] div[role="group"] button{color:var(--muted)}
+[data-rac][data-trigger="ComboBox"]{background:#fff;border-color:var(--line);color:var(--text)}
+[data-rac][data-trigger="ComboBox"] [role="option"] *{color:var(--text)}
+/* 도움말 말풍선(help=) · 안내 상자(st.info) */
+[data-testid="stTooltipContent"]{background:#fff;color:var(--text)}
+[data-testid="stAlertContainer"]{background:#eaf1ff;color:#1c4ea3}
+</style>""")
 
 # ── 막대·선 그래프 등장 연출(plotly) ─────────────────────────────────────────
 # 막대는 왼쪽 것부터 차례로 바닥에서 자라고(가로 막대는 왼쪽에서 뻗고), 선은 왼쪽에서 오른쪽으로 그려진다.
