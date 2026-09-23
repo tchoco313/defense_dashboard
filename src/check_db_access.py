@@ -10,9 +10,9 @@
 
 ★ 결과를 어떻게 읽나.
    ① 부터 막히면        → 인터넷 자체가 안 된다. 와이파이부터 확인.
-   ① 만 되고 ② 가 막히면 → 서버에 못 닿는다. 우리 DB 는 **학원 랜 안에서만** 열린다.
-                           집·핫스팟이면 정상이다. 학원 와이파이인지 먼저 봐라.
-                           학원인데도 막히면 서버 PC 가 꺼졌거나 절전으로 들어간 것이다.
+   ① 만 되고 ② 가 막히면 → 서버에 못 닿는다. DB 는 AWS RDS 라 어디서든 열려 있어야 한다.
+                           config.py 의 DB_HOST(엔드포인트)를 잘못 적었거나,
+                           RDS 보안그룹이 내 접속을 막는 것이다 — 조장에게 알린다.
    ② 까지 되고 ③ 이 실패 → 네트워크는 통과. config.py 의 계정·비밀번호 문제다.
 """
 import os
@@ -58,9 +58,9 @@ def main():
     print("\n" + "=" * 62)
     print("② 팀 DB 서버 포트")
     if not tcp(host, port, "팀 DB"):
-        print("\n   → 서버에 못 닿습니다. 학원 랜 안에서만 열려 있습니다.")
-        print("      · 집·핫스팟이면 정상입니다. 학원에서 다시 해 보세요")
-        print("      · 학원인데 막히면 서버 PC 가 꺼졌거나 절전입니다 — 조장에게 알리세요")
+        print("\n   → 서버에 못 닿습니다. RDS 는 어디서든 열려 있어야 합니다.")
+        print("      · config.py 의 DB_HOST(엔드포인트)를 다시 확인하세요")
+        print("      · 엔드포인트가 맞는데 막히면 RDS 보안그룹 문제입니다 — 조장에게 알리세요")
         return
 
     print("\n" + "=" * 62)
@@ -71,7 +71,7 @@ def main():
         print("   [-] pymysql 이 없습니다.  pip install -r requirements.txt")
         return
 
-    # DB_SSL 은 config.py 가 정한다. 같은 랜 안이면 False 다
+    # DB_SSL 은 config.py 가 정한다. RDS 는 True 다
     ssl_opt = {"ssl": {}} if getattr(config, "DB_SSL", False) else None
     try:
         conn = pymysql.connect(

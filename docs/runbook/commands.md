@@ -42,9 +42,9 @@ python scripts/extract_drive_docs.py
 
 ## 4. DB 스키마 적용 (`db/schema.sql`)
 
-설계는 `docs/db/schema-design.md`. DDL은 전체 DROP 후 재생성(수작업 대응표·`meta_` 기록까지 삭제)이므로 **최초 구축·빈 개발 DB 초기화 전용**. 적재된 데이터가 있는 서버에서는 실행 전 덤프(`mariadb-remote-setup.md` §5). 데이터만 비우고 다시 적재할 때는 `db/reset_data.sql`(§5 재적재 3모드).
+설계는 `docs/db/schema-design.md`. DDL은 전체 DROP 후 재생성(수작업 대응표·`meta_` 기록까지 삭제)이므로 **최초 구축·빈 개발 DB 초기화 전용**. 적재된 데이터가 있는 서버에서는 실행 전 덤프(`db-connection.md` §5). 데이터만 비우고 다시 적재할 때는 `db/reset_data.sql`(§5 재적재 3모드).
 
-**운영 DB는 2026-09-18부터 AWS RDS**(`aws-rds-setup.md`)다. 아래 `mariadb.exe … 192.168.100.221` 명령은 팀 서버(백업·연습용)에 재현할 때만 쓰고, 운영 DB에는 다음 명령을 쓴다(`.env`의 `MARIADB_HOST`·`MARIADB_ADMIN_*`; DDL·reset·계정 관리는 `admin`, 적재는 `etl_rw`):
+**운영 DB는 2026-09-18부터 AWS RDS**(`db-connection.md`)다. 아래 `mariadb.exe` 명령은 폐기된 내부망 팀 서버에 재현할 때만 쓰고, 운영 DB에는 다음 명령을 쓴다(`.env`의 `MARIADB_HOST`·`MARIADB_ADMIN_*`; DDL·reset·계정 관리는 `admin`, 적재는 `etl_rw`):
 
 ```powershell
 # RDS(운영). MySQL 8.0 클라이언트 + TLS 필수. 비밀번호는 .env MARIADB_ADMIN_PASSWORD 를 PowerShell 변수로 읽어 넘긴다(화면 출력 금지)
@@ -56,11 +56,11 @@ cmd /c "`"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe`" -h $h -P 3306 
 **팀 서버 적용 완료(2026-09-15)** — MySQL 8.4.11, 테이블 31 + 뷰 6, FK 12, 오류 0(`schema-change-log.md` §6). **데이터가 있는 DB에서 다시 실행하면 안전장치가 DROP 전에 오류(`ERROR 1146 … stop_schema_sql_db_has_data …`)로 멈춘다** — 강제 초기화는 덤프 후 파일 앞 안전장치 블록을 지우고 실행. 이 PC에는 `mysql` CLI가 없어 MariaDB 12.2 클라이언트를 쓴다. 비밀번호는 `MYSQL_PWD` 환경변수로 넘기고(`--password=`를 주면 12.x 클라이언트가 서버 인증서 검증을 켜서 MySQL 자체서명 인증서에 `ERROR 2026`이 난다), `--skip-ssl-verify-server-cert`를 붙인다.
 
 ```powershell
-# 팀 서버(내부망). .env 의 MARIADB_* 값 사용. PowerShell 에서:
+# 팀 DB(AWS RDS). .env 의 MARIADB_* 값 사용. PowerShell 에서:
 $env:MYSQL_PWD = "<MARIADB_PASSWORD>"
-cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" -h 192.168.100.221 -P 3306 -u defense3 --protocol=TCP --skip-ssl-verify-server-cert --default-character-set=utf8mb4 --show-warnings defense_dashboard < db\schema.sql'
+cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" -h <RDS_ENDPOINT> -P 3306 -u <MARIADB_USER> --protocol=TCP --default-character-set=utf8mb4 --show-warnings defense_dashboard < db\schema.sql'
 # 확인(2026-09-15 당시): 테이블 31(+ 조장의 test_table) + 뷰 6 — 2026-09-18 테이블 48(+test_table) + 뷰 31 — 2026-09-19 RDS 실측 BASE TABLE 56 + 뷰 31(test_table·clean_kdsis_nsn_ref는 alter_2026-09-19_drop_unused.sql로 삭제)
-cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" -h 192.168.100.221 -P 3306 -u defense3 --protocol=TCP --skip-ssl-verify-server-cert defense_dashboard -e "SHOW FULL TABLES"'
+cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" -h <RDS_ENDPOINT> -P 3306 -u <MARIADB_USER> --protocol=TCP defense_dashboard -e "SHOW FULL TABLES"'
 
 # 데이터 계층만 비우기(ref_ 10·meta_dataset·meta_column_dict 보존, 25표 TRUNCATE — 목록은 schema.sql DROP과 1:1, 2026-09-22 raw_ 계층 제거 반영). clean_ 22 → fact_/dim_ 2 → meta_load_log 순. RDS는 admin 계정으로
 cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" ... defense_dashboard < db\reset_data.sql'
@@ -68,7 +68,7 @@ cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" ... defense_dashboard < 
 
 ### 증분 변경 (`db/alter_*.sql`) — 적재된 서버에 스키마를 더할 때
 
-`schema.sql`은 전체 DROP이라 적재된 서버에 못 돌린다. 열·테이블·뷰를 더할 때는 `db/alter_<날짜>_<주제>.sql`을 만들어 같은 `mariadb.exe` 방식으로 실행하고, `schema.sql`에도 같은 정의를 반영해 둘을 일치시킨다. DBHub MCP는 `readonly`라 ALTER·UPDATE가 안 된다(`READONLY_VIOLATION`) — **2026-09-22부터 DBHub는 RDS를 본다**(그전에는 팀 서버 192.168.100.221이었다. `~/.claude/dbhub.toml`, 종전 설정은 `dbhub.toml.team-backup`). 계정은 RDS에서는 `.env`의 `MARIADB_USER`(이 맥 `dev_taeho`, DDL 권한 있음 — admin은 이 맥에 미설정이라 `apply_alter.apply`에 `etl` 커넥션을 넘겨 쓴다), 팀 서버 재현 때는 `defense`(ALL PRIVILEGES — `mariadb-remote-setup.md` §6-1)를 쓴다.
+`schema.sql`은 전체 DROP이라 적재된 서버에 못 돌린다. 열·테이블·뷰를 더할 때는 `db/alter_<날짜>_<주제>.sql`을 만들어 같은 `mariadb.exe` 방식으로 실행하고, `schema.sql`에도 같은 정의를 반영해 둘을 일치시킨다. DBHub MCP는 `readonly`라 ALTER·UPDATE가 안 된다(`READONLY_VIOLATION`) — **2026-09-22부터 DBHub는 RDS를 본다**(그전에는 구 내부망 팀 서버였다. `~/.claude/dbhub.toml`, 종전 설정은 `dbhub.toml.team-backup`). 계정은 RDS에서는 `.env`의 `MARIADB_USER`(이 맥 `dev_taeho`, DDL 권한 있음 — admin은 이 맥에 미설정이라 `apply_alter.apply`에 `etl` 커넥션을 넘겨 쓴다), 팀 서버 재현 때는 `defense`(ALL PRIVILEGES — `mariadb-remote-setup.md` §6-1)를 쓴다.
 
 | 파일 | 내용 | 적용 |
 |---|---|---|
@@ -118,10 +118,10 @@ cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" ... defense_dashboard < 
 
 ```powershell
 $env:MYSQL_PWD = "<MARIADB_PASSWORD>"
-cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" -h 192.168.100.221 -P 3306 -u <MARIADB_USER> --protocol=TCP --skip-ssl-verify-server-cert --default-character-set=utf8mb4 --show-warnings --table defense_dashboard < db\alter_2026-09-16_indicator.sql'
+cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" -h <RDS_ENDPOINT> -P 3306 -u <MARIADB_USER> --protocol=TCP --default-character-set=utf8mb4 --show-warnings --table defense_dashboard < db\alter_2026-09-16_indicator.sql'
 ```
 
-- **적용 대상은 운영 DB(RDS) 하나**(2026-09-18 전환): 위 "DB 스키마 적용" 절의 RDS 명령(`admin`)으로 실행하고 표 "적용" 칸에 기록한다. 팀 서버는 백업·연습용이라 같이 적용하지 않는다(필요하면 `mariadb.exe … 192.168.100.221` 명령으로 재현). 뷰 DEFINER는 실행 계정 `admin`으로 잡힌다.
+- **적용 대상은 운영 DB(RDS) 하나**(2026-09-18 전환): 위 "DB 스키마 적용" 절의 RDS 명령(`admin`)으로 실행하고 표 "적용" 칸에 기록한다. 팀 서버는 백업·연습용이라 같이 적용하지 않는다(필요하면 `mariadb.exe` 구 내부망 서버 명령으로 재현). 뷰 DEFINER는 실행 계정 `admin`으로 잡힌다.
 
 - 재실행 가능: ALTER는 `information_schema` 검사 후 건너뛰고, 지표(`mil/aero/auto_hs10_share`·`b2_*`)는 **삭제 후 재삽입**이라 관세청·B2 데이터를 다시 적재한 뒤 이 파일을 다시 돌리면 지표와 `civil_mix`가 갱신된다. 실행 끝의 검증 SELECT 기대값(2026-09-16 당시 21개 기준): `civil_mix` 높음 3 / 중간 2 / 낮음 2 / NULL 14, 지표 39행, `meta_column_dict` 226 — 2026-09-19 RDS 현재는 NULL 15 · `ref_hs_indicator` 89 · `meta_column_dict` 849.
 - `VALUES()` deprecated 경고(MySQL 8.4, Code 1287)는 무시. MariaDB 호환을 위해 alias 문법으로 바꾸지 않는다.
@@ -165,7 +165,7 @@ python scripts/load_db.py --verify           # DB 건수 대조표(ref·meta·di
 - `sql_mode`에 `STRICT_TRANS_TABLES`가 있어 열 길이 초과는 오류(1406)로 잡힌다 — 2026-09-15 입찰공고 여부 열(열 밀림 원본 2행)과 면허제한그룹, 입찰결과 적격심사여부가 걸려 열을 넓혔다(`schema-change-log.md` §6).
 - `db/seed_ref.sql`은 `ref_sido_map`(시도 토큰 44개 — 2026-09-18 모호한 광주·광주시 제외, 충남대전시 추가)과 `ref_category_map` 후보(`ref_hs_whitelist.related_fsc` 분해, `link_status='후보'`)를 넣는다. 재실행해도 중복되지 않는다.
 - 열 사전 `db/column_dict.csv`는 `meta_column_dict` 테이블에 그대로 적재한다(UTF-8).
-- `LOAD DATA`를 쓸 수 있는 환경(로컬 검증 등)에서는 cp949 파일에 `CHARACTER SET euckr`, 줄끝은 파일별로 확인(`mariadb-remote-setup.md` §3).
+- `LOAD DATA`를 쓸 수 있는 환경(로컬 검증 등)에서는 cp949 파일에 `CHARACTER SET euckr`, 줄끝은 파일별로 확인(`db-connection.md` §4).
 
 ## 6. 정제 노트북 (`notebooks/*.ipynb`) — `clean_` 채우기
 
@@ -212,8 +212,9 @@ OpenAPI 없이 data.go.kr에서 수동 다운로드해 `data/raw/dapa/`에 둔�
 
 - 앱 URL **https://defense-trade.streamlit.app** — 워크스페이스 `kimhh080888-blip`(GitHub 로그인), 저장소 `kimhh080888-blip/Defense_Dashboard` `main` / 메인 파일 `app/main.py` / Python 3.14 / 루트 `requirements.txt` 사용. `main`에 push하면 자동 재배포(첫 빌드 약 2분, 2026-09-18 01:49 UTC 성공).
 - 접속 정보: 로컬은 `.env`, 클라우드는 **앱 설정 → Secrets**(TOML, `.streamlit/secrets.toml.example` 그대로 채움). `app/db.py`가 `.env` → `st.secrets` 순으로 읽고, `MARIADB_SSL=1`이면 TLS(AWS RDS용).
-- 현재 상태(2026-09-18): Secrets에 RDS `app_ro`(SELECT 전용) 접속 정보(`.streamlit/secrets.toml`과 동일 — `scripts/rds_accounts.py`가 생성)를 넣었고 화면 ①이 RDS 데이터로 뜬다. **RDS가 유일한 운영 DB**이므로 적재·alter가 RDS에 들어가면 앱에 그대로 반영된다(캐시 1시간, 즉시 보려면 앱 ⋮ → Reboot). 계정 3종·보안 그룹·크레딧은 `docs/runbook/aws-rds-setup.md`.
+- 현재 상태(2026-09-18): Secrets에 RDS `app_ro`(SELECT 전용) 접속 정보(`.streamlit/secrets.toml`과 동일 — `scripts/rds_accounts.py`가 생성)를 넣었고 화면 ①이 RDS 데이터로 뜬다. **RDS가 유일한 운영 DB**이므로 적재·alter가 RDS에 들어가면 앱에 그대로 반영된다(캐시 1시간, 즉시 보려면 앱 ⋮ → Reboot). 계정 3종·보안 그룹·크레딧은 `docs/runbook/db-connection.md`. 홈·① 수출입 현황 두 화면이 `db_ready()` 통과 후 KPI·차트를 그린다(2025 수입 498억$ · 수출 625억$ · 1위 수입국 대만 45.4% · 1위 수출국 중국 31.4%).
 - 공개 범위: private 저장소 앱은 기본이 "Only specific people"(팀원에게 안 보임) → **2026-09-18 "This app is public and searchable"로 변경**(사용자 결정). 다시 제한하려면 앱 설정 → 공유하기에서 되돌리고 이메일 초대. GitHub 권한은 OAuth `repo` 스코프(계정 전체 저장소 읽기)로 부여됨 — 작업 공간 설정 → 연결된 계정에서 해제 가능.
+- **공개 앱 + 인터넷에서 닿는 DB 조합이라 확인할 것 넷** — Secrets 의 계정이 조회 전용인지, RDS 보안그룹 범위, 담당자명 열의 RDS 적재 정책, 공개 범위 유지 여부. `db-connection.md` §7 에 안건으로 정리해 두었다. 앱 쪽은 이미 `SELECT *` 없이 열을 명시하고 담당자명 열을 한 번도 조회하지 않으며(`app/` 전체 확인), 접속 실패 메시지에 비밀번호·호스트를 섞지 않는다.
 - 로컬 실행: `streamlit run app/main.py` (`.streamlit/config.toml`: headless·통계 수집 끔·`client.showErrorDetails = "type"` — 브라우저에는 예외 유형만, 전체 메시지는 콘솔. 로컬에서 전부 보려면 `STREAMLIT_CLIENT_SHOW_ERROR_DETAILS=full`).
 - 앱 공통 계층(2026-09-20): `app/metrics.py`(집중도·기간·건수 상태 — streamlit 미의존), `app/db.py`(`try_query` 실패=예외 클래스명, `data_stamp` 데이터별 자료 기간·적재일), `app/ui.py`(`period_control`·`csv_header`). 회귀 검증: `.venv\Scripts\python.exe -m unittest discover -s tests -v`(DB 불필요, 22 케이스).
 

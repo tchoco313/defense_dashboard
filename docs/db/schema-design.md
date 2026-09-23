@@ -1,6 +1,6 @@
 # DB 스키마 설계 — `defense_dashboard` (2026-09-15, 리뷰 반영 §8)
 
-팀원용 요약: `docs/db/table-guide.md`(테이블 역할·화면 대응·행 수, PDF 동봉). DDL: `db/schema.sql`(최초 구축·개발 DB 초기화, **데이터 있는 DB에서는 안전장치로 중단**) · `db/reset_data.sql`(데이터 계층만 비우기) · `db/seed_ref.sql`(수작업 참조표 시드) · 열 사전: `db/column_dict.csv` · 출처 기록: `db/meta_dataset.csv` · 적재: `scripts/load_db.py` · 기준 문서: `docs/idea-review.md` §4·§5, `docs/report/data/csv-inventory-2026-09-14.md`, `docs/report/plan/dashboard-scope-2026-09-14.md` §5(이 문서로 이관), `docs/runbook/mariadb-remote-setup.md`.
+팀원용 요약: `docs/db/table-guide.md`(테이블 역할·화면 대응·행 수, PDF 동봉). DDL: `db/schema.sql`(최초 구축·개발 DB 초기화, **데이터 있는 DB에서는 안전장치로 중단**) · `db/reset_data.sql`(데이터 계층만 비우기) · `db/seed_ref.sql`(수작업 참조표 시드) · 열 사전: `db/column_dict.csv` · 출처 기록: `db/meta_dataset.csv` · 적재: `scripts/load_db.py` · 기준 문서: `docs/idea-review.md` §4·§5, `docs/report/data/csv-inventory-2026-09-14.md`, `docs/report/plan/dashboard-scope-2026-09-14.md` §5(이 문서로 이관), `docs/runbook/db-connection.md`.
 
 대상 DBMS: 팀 서버 실측 `VERSION()`=8.4.11(MySQL 8.4 — 2026-09-17부터 문서 표기도 MySQL 8.4로 통일) / 로컬 검증 MariaDB 12.2. DDL은 두 쪽에서 모두 도는 문법만 쓴다. 문자셋 `utf8mb4_unicode_ci`, InnoDB.
 

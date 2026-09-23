@@ -1,6 +1,6 @@
 # defense_dashboard 테이블 가이드 (팀원용)
 
-작성 2026-09-15. **운영 DB는 2026-09-18부터 AWS RDS MySQL 8.4**(DB `defense_dashboard`, 계정 admin / etl_rw / app_ro — 접속·계정은 `docs/runbook/aws-rds-setup.md`, IP 허용은 `docs/runbook/rds-access-registry.md`). 팀 서버 `192.168.100.221:3306`(계정 `defense3`)은 백업·연습용이라 새 데이터를 쓰지 않는다. 이 문서는 "어느 테이블이 무슨 역할이고 지금 뭐가 들어 있는지"만 다룬다. 설계 근거·검증 기록은 `docs/db/schema-design.md`, DDL은 `db/schema.sql`(서버와 동일함을 2026-09-15 462열 대조로 확인), 열 사전은 `db/column_dict.csv`.
+작성 2026-09-15(접속 정보 2026-09-18 갱신). **운영 DB는 2026-09-18부터 AWS RDS MySQL 8.4**, DB `defense_dashboard` — 계정은 용도별 3종(admin / etl_rw / app_ro), 엔드포인트·비밀번호는 `.env` 의 `MARIADB_*`, 절차는 `docs/runbook/db-connection.md`. 내부망 팀 서버(계정 `defense3`)는 2026-09-18 이후 쓰지 않는다 — 새 데이터를 쓰지 말 것(`db-connection.md` §8). 이 문서는 "어느 테이블이 무슨 역할이고 지금 뭐가 들어 있는지"만 다룬다. 설계 근거·검증 기록은 `docs/db/schema-design.md`, DDL은 `db/schema.sql`(서버와 동일함을 2026-09-15 462열 대조로 확인), 열 사전은 `db/column_dict.csv`.
 
 **⚠ `db/schema.sql`을 팀 서버에 연결한 상태로 실행하지 말 것.** 이 파일은 첫 부분이 전체 DROP이라 적재된 데이터가 전부 지워진다(2026-09-15 15:12 실제로 한 번 지워져 재적재함). ERD 도구에 넣을 때는 파일만 열거나 빈 로컬 DB를 쓴다. 지금은 안전장치가 있어 데이터가 있는 DB에서는 오류로 멈추지만, 그래도 서버에서 실행할 이유가 없다.
 

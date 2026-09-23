@@ -1,6 +1,6 @@
 # 미적재 데이터 대조 · 연결 설계 · 예산 적재 명세 (2026-09-16)
 
-초안. 클로드 코드 세션에서 드라이브 `1조/2_데이터수집_저장` 과 팀 DB(`192.168.100.221`, `defense_dashboard`)를
+초안. 클로드 코드 세션에서 드라이브 `1조/2_데이터수집_저장` 과 팀 DB(AWS RDS, `defense_dashboard`)를
 직접 대조해 썼다(드라이브 목록 = Drive API, DB = `COUNT(*)` + `meta_load_log`). 안태호 검토 후 팀에 공유.
 기존 문서 위에 얹는다: `docs/data/raw-upload-and-processing-spec-2026-09-16.md`(업로드·가공 명세) ·
 `docs/db/schema-design.md` · `docs/db/table-guide.md`.

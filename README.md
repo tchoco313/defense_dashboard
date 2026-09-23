@@ -20,10 +20,11 @@ pip install -r requirements.txt   # 필요한 패키지를 한 번에 깐다
 cp config_example.py config.py    # 접속정보 틀을 복사한다 (윈도우: copy)
 ```
 
-그다음 `config.py` 를 열어 **세 줄**을 자기 것으로 고친다. 비밀번호는 조장이 단톡으로 알려 준다.
-호스트·포트는 이미 채워져 있으니 **건드리지 마라.**
+그다음 `config.py` 를 열어 **네 줄**을 자기 것으로 고친다. 엔드포인트와 비밀번호는 조장에게 받는다
+(문서·깃에 적지 않는다). 포트·DB이름은 이미 채워져 있으니 **건드리지 마라.**
 
 ```python
+DB_HOST = "여기에_RDS_엔드포인트"        # 조장이 준 ...rds.amazonaws.com
 DB_USER = "defense1"                   # 자기 번호로
 DB_PASSWORD = "여기에_내_비밀번호"        # 내 것
 DASH_PASSWORD = "여기에_dash_비밀번호"    # 공용. 다섯 명이 같다
@@ -37,9 +38,8 @@ DASH_PASSWORD = "여기에_dash_비밀번호"    # 공용. 다섯 명이 같다
 
 **남의 번호로 붙지 마라.** 서버 로그에 누가 무엇을 했는지 남는 게 계정을 나눈 이유다.
 
-**MySQL 을 깔 필요가 없다.** DB 는 학원 PC 한 대(`192.168.100.221`)에 모여 있고, 다섯 명이
-거기에 붙어 쓴다. 각자 자기 컴퓨터에 DB 를 만들면 데이터가 다섯 벌로 갈라져서
-"내 화면에선 되는데" 가 생긴다.
+**MySQL 을 깔 필요가 없다.** DB 는 **AWS RDS** 한 곳에 모여 있고, 다섯 명이 거기에 붙어 쓴다.
+각자 자기 컴퓨터에 DB 를 만들면 데이터가 다섯 벌로 갈라져서 "내 화면에선 되는데" 가 생긴다.
 
 붙는지 확인은 이 한 줄이면 된다.
 
@@ -74,34 +74,32 @@ tmp3_contract_test         <- 김훈희(3번)가 혼자 쓰는 것. 남이 안 �
 
 이름만 지키면 남의 것을 덮어쓸 일이 없다. **`DROP TABLE` 을 치기 전에 이름 앞자리를 한 번 보라.**
 
-### ★ 학원 랜 안에서만 붙는다
+### 어디서든 붙는다 — 그래서 비밀번호가 중요해졌다
 
-집이나 핸드폰 핫스팟에서는 **연결이 안 된다** (`TimeoutError`). 고장이 아니라 원래 그렇다 —
-학원 PC 는 학원 네트워크 안쪽에만 열려 있다. 실제로 재 봤다.
+집·핫스팟에서도 붙는다. 2026-09-18 까지 쓰던 학원 PC 서버는 학원 랜 안에서만 열려서
+집에서는 `TimeoutError` 였고, **배포한 Streamlit 앱도 DB 를 못 읽었다.** 그게 RDS 로 옮긴 이유다.
 
-| 어디서 | 결과 |
-|---|---|
-| 학원 와이파이 | 붙는다. 질의 왕복 **6 ms** |
-| 핫스팟·집 | `TimeoutError` |
+바꿔 말하면 우리 DB 는 이제 **인터넷에서 닿는 주소**다. 비밀번호 하나가 유일한 문턱이다.
 
-그래서 **DB 를 만지는 작업은 학원에서 한다.** 집에서는 코드·문서·노트북만 손보면 된다.
-클라우드 DB(Aiven)도 써 봤지만 왕복이 **300 ms** 로 50 배 느려서 접었다.
+- 비밀번호를 단톡·문서·커밋에 남기지 않는다. 채팅에 남은 건 회수할 방법이 없다
+- 엔드포인트도 문서에 적지 않는다. `config.py`(gitignore)·`.env`·Streamlit Secrets 에만 둔다
+- **대시보드는 조회 전용 계정(`dash`)으로만 붙인다.** 공개 URL 이라 쓰기 권한이 섞이면 사고 범위가 DB 전체다
 
 ### 서버는 이렇게 만들었다 *(조장이 이미 했다 — 조원은 안 해도 된다)*
 
-발표 때 설명할 수 있게 남겨 둔다. 학원 PC 의 MySQL Workbench 에서 한 번 실행한 것이다.
+발표 때 설명할 수 있게 남겨 둔다. 계정 구성은 서버가 바뀌어도 같다.
 
 ```sql
 CREATE DATABASE defense_dashboard
   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- 데이터를 넣고 고치는 계정 — 사람마다 하나씩 다섯 개
-CREATE USER 'defense1'@'%' IDENTIFIED BY '1번_비밀번호';
+CREATE USER 'defense1'@'%' IDENTIFIED BY '<1번_비밀번호>';
 GRANT ALL PRIVILEGES ON defense_dashboard.* TO 'defense1'@'%';
 --  ... defense2 ~ defense5 도 같은 두 줄을 번호만 바꿔 반복한다
 
 -- 조회만 하는 계정 (대시보드용) — 이건 하나를 다 같이 쓴다
-CREATE USER 'dash'@'%' IDENTIFIED BY '또_다른_비밀번호';
+CREATE USER 'dash'@'%' IDENTIFIED BY '<또_다른_비밀번호>';
 GRANT SELECT ON defense_dashboard.* TO 'dash'@'%';
 ```
 
@@ -109,15 +107,13 @@ GRANT SELECT ON defense_dashboard.* TO 'dash'@'%';
 
 ```sql
 SELECT user, host FROM mysql.user WHERE user LIKE 'defense%' OR user = 'dash';
-SHOW GRANTS FOR 'defense1'@'%';
+SHOW GRANTS FOR 'dash'@'%';          -- SELECT 만 나와야 한다
 ```
 
-- **`'비밀번호'` 를 그대로 두면 안 된다.** 진짜 비밀번호로 바꿔서 실행한다 (한 번 그대로 붙여넣어서 막혔다)
-- **`@'%'` 가 `@'localhost'` 와 다른 점**이 핵심이다. `localhost` 는 그 PC 안에서 들어올 때만
-  통한다. 우리는 다른 컴퓨터에서 붙으므로 `%`(어디서든) 여야 한다
+- **`'<비밀번호>'` 를 그대로 두면 안 된다.** 진짜 비밀번호로 바꿔서 실행한다 (한 번 그대로 붙여넣어서 막혔다)
 - **`utf8mb4` 를 빼면 한글이 `???` 로 들어간다.** 넣을 땐 오류가 안 나고 조회할 때 알게 된다
-- 서버 쪽에서 추가로 해 둔 것 둘 — `bind-address` 를 `0.0.0.0` 으로 (자기 자신만 듣던 걸 밖에도 열기),
-  윈도우 방화벽에서 3306 인바운드 허용
+- RDS 쪽은 보안그룹(3306 접속 허용 범위)과 TLS 강제가 `bind-address`·윈도우 방화벽을 대신한다.
+  구 내부망 구성과 이관 경위는 `docs/runbook/db-connection.md` §8
 
 ---
 

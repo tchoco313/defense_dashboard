@@ -1,7 +1,7 @@
 # 원본 업로드 목록 · 가공 명세 (2026-09-16)
 
 작성 안태호(조장). 1조 드라이브 `2_데이터수집_저장` 에 올리는 **원본** 목록과, 각 원본을 어떻게 가공해 DB·화면에 넣는지의 규칙이다.
-원본 파일 자체는 이 저장소에 없다(`.gitignore`). 정본은 드라이브, 적재본은 팀 DB(`192.168.100.221`, `defense_dashboard`), 기록은 DB `meta_dataset`·`meta_column_dict`.
+원본 파일 자체는 이 저장소에 없다(`.gitignore`). 정본은 드라이브, 적재본은 팀 DB(AWS RDS, `defense_dashboard`), 기록은 DB `meta_dataset`·`meta_column_dict`.
 기존 기준 문서: `docs/data-sources.md`(김훈희, 확보 기록) · `docs/db/schema-design.md`(김훈희, DB 설계) · `docs/reference/hs-whitelist-definition.md`(김훈희, HS6 정의).
 이 문서는 그 셋 **위에** 9/15~16 신규 수집분(API 5종·예산 12종)과 가공 규칙을 얹는다.
 
