@@ -25,9 +25,9 @@
 | --- | --- | --- | --- | --- |
 | 0 | 입력 채우기 — A 큰 틀(팀원 화면 URL) · B 요소 URL ≥3 · C 대표색·테마 | `01_design_system.md` §1 | 팀 | 09-25 |
 | 1 | 디자인 문서 재편 | `app/specs/01_design_system.md` | — | **완료(09-23)** |
-| 2 | 대표 화면 ① HTML | `app/mockup/20_trade.html` + `common.css` | `01_design_system.md` §7 생성 프롬프트 · `frontend-design` · `dataviz` · `minimalist-ui` §9 · context7 · DBHub 표본 → Artifact 게시 | 09-25 |
+| 2 | 대표 화면 ① HTML | `app/mockup/20_trade.html` + `common.css` | `01_design_system.md` §0 판단 기준 · §7 생성 프롬프트 · **우선**: DBHub(수치·조건·기간 대조) · `dataviz`(단위·축·범례·부분연도) · **보조**: `frontend-design` · `dataviz` · `minimalist-ui` §9 · context7 · DBHub 표본 → Artifact 게시 | 09-25 |
 | 3 | 공통 규칙 확정 | `common.css` 정본 고정 | 사용자가 §8 자연어 구상을 고치면 재생성 반복 | 09-26 |
-| 4 | Streamlit 조기 검증 | `pages/1_수출입_현황.py` · `ui.py` · `config.toml` | `run` 스킬 스크린샷을 HTML과 대조. 데이터 로직 불변 | 09-27 |
+| 4 | Streamlit 조기 검증 | `pages/1_수출입_현황.py` · `ui.py` · `config.toml` | **우선**: Claude in Chrome·`run`(필터 변경·긴 표·다운로드 동작) · DBHub(화면·CSV 수치 일치) · 구현은 context7. 데이터 로직 불변 | 09-27 |
 | 5 | 확장·이식 | 나머지 페이지 목업 → Streamlit | `dashboard-reviewer` → unittest → 개인·팀 push | 09-30 |
 
 마감은 `docs/next.md` #3~#6과 같은 값이다. 단계별 상세 절차는 `00_common.md` §11.
@@ -55,7 +55,7 @@
   `search.html`·`search.png`의 「5840 레이더 장비」, 「이 품목군과 연결된 군수품」, 활성
   「적용장비」는 **옮기지 않는다** — 2026-09-21 카테고리 맵 폐기 결정(관세청 데이터를 NSN/FSC와
   엮지 않는다)에 어긋난다. `91_search.md` §7에서는 이미 제거됐다.
-- **Streamlit 어휘 6개**(상단바 · 구역 틀 · 카드 · KPI 카드 · KPI 줄 · 필터 줄) 밖의 요소는
+- **Streamlit 어휘 8개**(상단바 · 구역 틀 · 카드 · KPI 카드 · KPI 줄 · 필터 줄 · 현재 조건 줄 · 펼침) 밖의 요소는
   목업에 넣지 않는다. 자유 배치 · 그라데이션 · hover 상태 · 3D · 게이지 · 이미지는 구현되지
   않거나 금지다. 목록은 `01_design_system.md` §5.
 - **차트는 자리표시자 + 제목 + 범례까지만** 정한다. 내부 디자인은 Plotly가 그리므로 목업에서
