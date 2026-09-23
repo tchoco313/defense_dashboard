@@ -110,20 +110,21 @@ def period_control(df, note: str, key: str = "period") -> tuple[list[int], str]:
 
 
 def csv_header(cond: str, source: str, stamps: list[tuple[str, dict, str | None]], extra: str = "") -> str:
-    """내려받는 CSV 머리줄. stamps = [(데이터 이름, db.data_stamp(...), 기간 문구 재정의|None), …].
-    「기준일」 하나로 뭉치지 않고 데이터별 자료 기간(원천)·DB 적재일과, 내려받은 날(파일 생성일)을 따로 적는다.
-    조회 실패한 데이터는 기간·적재일을 「—(조회 실패)」로 적는다."""
-    lines = [f"# 조건: {cond}", f"# 출처: {source}"]
+    """내려받는 CSV 머리줄 — 조건 · 출처(기관 · 데이터명) · 데이터별 자료 기간 · 내려받은 날.
+    DB 표 · 뷰 · 열 이름과 DB 적재일은 넣지 않는다(보안, 2026-09-24 사용자 — kdesign.public_source 로 거른다).
+    stamps = [(데이터 이름, db.data_stamp(...), 기간 문구 재정의|None), …]. 조회 실패한 데이터는 「—(조회 실패)」."""
+    lines = [f"# 조건: {kdesign.public_source(cond) if kdesign._DB_BITS.search(cond) else cond}",
+             f"# 출처: {kdesign.public_source(source)}"]
     today = None
     for name, s, period in stamps:
         today = today or s.get("today")
-        if s.get("error") and not s.get("loaded") and not s.get("has_period"):
-            lines.append(f"# 자료 기간({name}): —(조회 실패) · DB 적재 —")
+        if s.get("error") and not s.get("has_period"):
+            lines.append(f"# 자료 기간({name}): —(조회 실패)")
             continue
-        lines.append(f"# 자료 기간({name}): {period or s.get('period') or '—'} · DB 적재 {s.get('loaded') or '—'}")
+        lines.append(f"# 자료 기간({name}): {period or s.get('period') or '—'}")
     lines.append(f"# 내려받은 날: {today or date.today().isoformat()}")
     if extra:
-        lines.append(f"# {extra}")
+        lines.append(f"# {kdesign.public_source(extra)}")
     return "\n".join(lines) + "\n"
 
 

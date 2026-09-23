@@ -21,7 +21,8 @@ from ui import (EXP, EXP_DIM, IMP, IMP_DIM, SHORT, source_pop, chart_source, cha
                 png_button, rank_card, style_fig, zone)
 
 SCOPE_LABEL = "국가 전체 수입·수출(민수 포함) · 관세청 품목별 국가별 수출입실적 · USD"
-SOURCE = "관세청 품목별 국가별 수출입실적 OpenAPI(15100475) → 팀 DB fact_customs_monthly → v_import_hs6_year"
+# 화면 · CSV 출처는 「기관 · 데이터명(포털 ID) · 자료 기간」만 — DB 표 · 뷰 이름과 적재일은 쓰지 않는다(보안, 2026-09-24 사용자)
+SOURCE = "관세청 품목별 국가별 수출입실적 OpenAPI(15100475)"
 ALL = "__all__"
 E6 = 1e6   # 백만 달러 = USD ÷ 1e6 (데모 단위: 백만 USD)
 PLOT_CFG = {"displaylogo": False, "modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "autoScale2d"]}
@@ -57,7 +58,9 @@ def load_hhi(year: int) -> pd.DataFrame:
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_hs10(hs6: str, year: int) -> pd.DataFrame:
     df = query("""
-        SELECT f.hs10, SUM(f.imp_dlr) AS imp_dlr, SUM(f.exp_dlr) AS exp_dlr, COUNT(DISTINCT f.stat_cd) AS countries
+        SELECT f.hs10, SUM(f.imp_dlr) AS imp_dlr, SUM(f.exp_dlr) AS exp_dlr,
+               COUNT(DISTINCT CASE WHEN f.imp_dlr > 0 THEN f.stat_cd END) AS imp_countries,
+               COUNT(DISTINCT CASE WHEN f.exp_dlr > 0 THEN f.stat_cd END) AS exp_countries
         FROM fact_customs_monthly f WHERE f.hs6 = :hs6 AND f.year = :y GROUP BY f.hs10
     """, {"hs6": hs6, "y": year})
     names = query("SELECT hs10, name_ko FROM ref_hs_code_master WHERE hs10 LIKE :p",
@@ -113,17 +116,16 @@ def trend_word(v: float) -> str:
 
 # ── 데이터 읽기 ───────────────────────────────────────────────────────────────
 stamp = data_stamp("customs_all", "fact_customs_monthly")
-STAMP_TXT = f"자료 기간 {stamp['period'] if stamp['has_period'] else '—'} · DB 적재 {stamp.get('loaded') or '—'}"
-SRC_TRADE = f"관세청 · 품목별 국가별 수출입실적(15100475) → fact_customs_monthly · v_import_hs6_year · {STAMP_TXT}"
-SRC_HHI = (f"관세청 · 품목별 국가별 수출입실적(15100475) → fact_customs_monthly · v_hhi_hs6_year · v_hhi_export_hs6_year · "
-           f"{STAMP_TXT}")
+STAMP_TXT = f"자료 기간 {stamp['period'] if stamp['has_period'] else '—'}"
+SRC_TRADE = f"관세청 · 품목별 국가별 수출입실적(15100475) · {STAMP_TXT}"
+SRC_HHI = f"관세청 · 품목별 국가별 수출입실적(15100475) · 연도별 집중도(HHI) · {STAMP_TXT}"
 hero("① 수출입 현황", "분석 대상 품목군을 어느 나라에서 얼마나 수입하고, 어느 나라로 얼마나 수출하는지 봅니다",
      stamps=[("관세청 수출입", stamp)])
 
-with st.spinner("팀 DB에서 관세청 집계를 읽는 중"):
+with st.spinner("관세청 집계를 읽는 중"):
     trade, wl = load_base()
 if trade.empty:
-    st.warning("관세청 집계 뷰(`v_import_hs6_year`)에 데이터가 없습니다(미적재). `scripts/load_db.py` 적재 여부를 확인하세요.")
+    st.warning("관세청 수출입 집계가 아직 적재되지 않았습니다(미적재). 관리자에게 적재 상태를 확인해 주세요.")
     st.stop()
 
 years = sorted(int(y) for y in trade["year"].unique())
@@ -322,7 +324,7 @@ with zone("focus", "품목군별 공급 집중도"):
         tab.html(share_card({"name": name_of_hs[h], "hs": h, "shares": shares, "n": len(g), "axis": ax, "year": year,
                              "hhi": float(hv) if pd.notna(hv) else 0.0,
                              "colors": {n: cc[code_of.get(n, n)] for n in g.index[:5]}}))
-        chart_source(SRC_TRADE + " · 연도 HHI 는 v_hhi_hs6_year · v_hhi_export_hs6_year", where=tab)
+        chart_source(SRC_TRADE + " · 집중도(HHI)는 연도별 값", where=tab)
 
 # ── 지도 · 품목군 구성 ────────────────────────────────────────────────────────
 with zone("mix", "지도 · 품목군 구성"):
@@ -336,7 +338,7 @@ with zone("mix", "지도 · 품목군 구성"):
                  d[["country", "lat", "lon"]].drop_duplicates("country").itertuples(index=False) if pd.notna(la)}
         country_map({n: m6(v) for n, v in geo["imp_dlr"].items() if v > 0},
                     {n: m6(v) for n, v in geo["exp_dlr"].items() if v > 0}, height=410, where=where)
-        chart_source(SRC_TRADE + " · 국가 좌표 ref_country · 수입 = 선적국, 수출 = 도착국")
+        chart_source(SRC_TRADE + " · 국가 좌표는 나라 대표 위치 · 수입 = 선적국, 수출 = 도착국")
     with c2.container(border=True, key="card_mekko"):
         ax3 = st.segmented_control("구성 기준", ["수입", "수출"], default="수입", key="p1_mekko_axis",
                                    label_visibility="collapsed") or "수입"
@@ -429,8 +431,7 @@ with zone("tbl", "집중도 · 표 · 내려받기"):
             st.dataframe(show, hide_index=True, width="stretch", height=min(480, 40 + 36 * len(show)),
                          column_config={"수입 HHI": st.column_config.NumberColumn(format="%.0f"),
                                         "수출 HHI": st.column_config.NumberColumn(format="%.0f")})
-            st.download_button("집중도 표 CSV 내려받기", (csv_header(f"{scope} · {year}년 · 연도별 HHI", SOURCE.replace("v_import_hs6_year",
-                               "v_hhi_hs6_year · v_hhi_export_hs6_year"), [("관세청", stamp, None)],
+            st.download_button("집중도 표 CSV 내려받기", (csv_header(f"{scope} · {year}년 · 연도별 HHI", SOURCE, [("관세청", stamp, None)],
                                "HHI = Σ(국가 점유율 × 100)², 0~10,000 · 국가 전체 교역 기준") + show.to_csv(index=False)).encode("utf-8-sig"),
                                file_name=f"hhi_{'all13' if sel == ALL else sel}_{year}.csv", mime="text/csv", key="p1_csv_hhi",
                                icon=":material/download:")
@@ -443,25 +444,25 @@ with zone("tbl", "집중도 · 표 · 내려받기"):
             else:
                 h10["수입 비중(%)"] = (h10["imp_dlr"] / h10["imp_dlr"].sum() * 100).round(1) if h10["imp_dlr"].sum() else 0.0
                 h10 = h10.rename(columns={"hs10": "HS10", "name_ko": "품명(관세청 HS부호 단위별 품목명)", "imp_dlr": "수입액(USD)",
-                                          "exp_dlr": "수출액(USD)", "countries": "교역국 수"})
+                                          "exp_dlr": "수출액(USD)", "imp_countries": "수입국 수", "exp_countries": "수출국 수"})   # 실적 > 0 국가만(00_common §4)
                 if h10["수입액(USD)"].sum() > 0:
                     t10 = h10.iloc[0]
                     chart_title(f'HS10 {len(h10)}개 중 <span class="key">{t10["HS10"]}</span>이 수입액의 {t10["수입 비중(%)"]:.1f}%를 차지한다',
                                 f"{sel} · {year}년 · 수입액 내림차순 · 금액 USD")
                 st.dataframe(h10, hide_index=True, width="stretch")
-                st.download_button("HS10 표 CSV 내려받기", (csv_header(f"{sel} · {year}년 HS10", "관세청 15100475 → fact_customs_monthly",
+                st.download_button("HS10 표 CSV 내려받기", (csv_header(f"{sel} · {year}년 HS10", SOURCE + " · 관세청 HS부호 단위별 품목명(15130660)",
                                    [("관세청", stamp, None)]) + h10.to_csv(index=False)).encode("utf-8-sig"),
                                    file_name=f"hs10_{sel}_{year}.csv", mime="text/csv", key="p1_csv_h10")
-                chart_source(f"관세청 · 품목별 국가별 수출입실적(15100475) → fact_customs_monthly · 품명 ref_hs_code_master · {STAMP_TXT}")
+                chart_source(f"관세청 · 품목별 국가별 수출입실적(15100475) · HS10 품명은 관세청 HS부호 단위별 품목명(15130660) · {STAMP_TXT}")
     with st.expander("산식 · 출처 · 표현 범위"):
-        st.markdown("**수입액·수출액** = fact_customs_monthly 의 imp_dlr·exp_dlr 합(HS10→HS6 합산, 총계 행 제외). 백만 USD = USD ÷ 10⁶.  \n"
+        st.markdown("**수입액·수출액** = 관세청 수입·수출 금액(USD) 합(HS10→HS6 합산, 총계 행 제외). 백만 USD = USD ÷ 10⁶.  \n"
                     "**전년 대비** = (당해 ÷ 전년 − 1) × 100. 완결 연도끼리만 계산.  \n"
                     "**점유율** = 국가 금액 ÷ 해당 연도 합계 × 100.  \n"
                     "**HHI** = Σ(국가 점유율 × 100)², 0~10,000. 이 화면은 **연도별** 값. 홈·검토 목록의 「기간 합계 HHI」와 다른 지표.  \n"
                     "**국가** = 관세청 통계의 선적국·도착국. 원산지가 아닙니다.  \n\n"
                     "**표현 범위** — 국가 전체(민수 포함) 교역액이며 군수 수요 규모나 국방 부품의 해외 조달 비중을 뜻하지 않습니다. "
                     "FSC·NSN·조달 예산과 연결하지 않으며 특정 기업을 지목하지 않습니다.  \n\n"
-                    f"**출처** — {SOURCE}. 자료 기간 {stamp['period']} · DB 적재 {stamp.get('loaded') or '—'}.")
+                    f"**출처** — {SOURCE}. 자료 기간 {stamp['period']}.")
 
 st.html('<div class="caption" style="margin-top:16px">수입액·수출액은 국가 전체(민수 포함) 교역액이며 군수 수요 규모를 뜻하지 않습니다.</div>'
-        + source_pop(f'{SOURCE} · 자료 기간 {stamp["period"]} · DB 적재 {stamp.get("loaded") or "—"}'))
+        + source_pop(f'{SOURCE} · 자료 기간 {stamp["period"]}'))

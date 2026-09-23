@@ -45,8 +45,7 @@ def data_info_dialog() -> None:
         '<div class="di-big">관세청 OpenAPI (data.go.kr)<br>데이터셋 ID: 15100475</div>'
         '<div class="di-s">품목별 국가별 수출입실적 · 방위사업청 조달 파일데이터 · KRIT 부품국산화</div></div></div>'
         '<div class="di-card"><div><div class="di-t">분석 기간</div>'
-        f'<div class="di-big">{period}</div><div class="di-s">(월별, 마지막 연도는 부분연도)</div>'
-        f'<span class="di-chip">DB 적재일:<b>{s.get("loaded") or "—"}</b></span></div></div>'
+        f'<div class="di-big">{period}</div><div class="di-s">(월별, 마지막 연도는 부분연도)</div></div></div>'
         '<div class="di-card"><div><div class="di-t">수집 범위</div><div class="di-kv">'
         f'<span>국가</span><span><b>{n_ctry}개국</b> (실적이 있는 선적국)</span>'
         f'<span>HS6</span><span><b>{n_all}개</b> (수집범위) → <b>{n_tgt}개</b> (분석대상)</span></div></div></div>'
@@ -59,11 +58,11 @@ def data_info_dialog() -> None:
 
 
 def foot() -> str:
-    """사이드바 아래 — 관세청 자료 기간과 fact 표 적재일(db.data_stamp, 비캐시: 실패 문구가 1시간 고정되지 않게)."""
+    """사이드바 아래 — 관세청 자료 기간(db.data_stamp, 비캐시). DB 적재일 · 표 이름은 화면에 쓰지 않는다(보안, 2026-09-24)."""
     s = data_stamp("customs_all", "fact_customs_monthly")
     period = s["period"] if s["has_period"] else "—"
     return ('<div class="sb-note">공개 자료로 확인·인용하는<br>수출입 · 조달 · 국산화 현황</div>'
-            f'<div class="sb-ver">관세청 자료 {period}<br>DB 적재 {s.get("loaded") or "—"}</div>')
+            f'<div class="sb-ver">관세청 자료 {period}</div>')
 
 
 items = nav_items()

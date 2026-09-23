@@ -15,6 +15,7 @@
 """
 from __future__ import annotations
 
+import re
 from html import escape
 
 import pandas as pd
@@ -83,10 +84,23 @@ def period(r) -> str:
 
 
 def stamp_txt(name: str, s: dict) -> str:
-    """데이터 하나의 자료 기간 · DB 적재일(「기준일」 하나로 뭉치지 않는다). 조회 실패는 따로 적는다."""
-    if s.get("error") and not s.get("loaded") and not s.get("has_period"):
+    """데이터 하나의 자료 기간(화면 · CSV 에 DB 적재일은 쓰지 않는다 — 보안, 2026-09-24). 조회 실패는 따로 적는다."""
+    if s.get("error") and not s.get("has_period"):
         return f"{name} —(조회 실패)"
-    return f"{name} 자료 {s['period']} · DB 적재 {s['loaded'] or '—'}"
+    return f"{name} 자료 {s['period']}"
+
+
+_FILE_BITS = re.compile(r"\s*\([^)]*(?:/|\.(?:csv|txt|py|xlsx|json|ipynb))[^)]*\)"   # (정리본: a.txt + b.csv) · (new_data/)
+                        r"|\s*→\s*[^|]*?\.py\b[^|·]*"                               # → parse_krit.py 표 추출
+                        r"|\s*\S+\.(?:csv|txt|py|xlsx|json|ipynb)\b")                 # countries.csv
+
+
+def plain_cell(v) -> str:
+    """출처 표의 기관 · 데이터 · 형태 칸에서 스크립트 · 파일 이름 · 내부 경로를 뺀다(화면에 내부 정보 노출 금지)."""
+    if not isinstance(v, str):
+        return v
+    t = _FILE_BITS.sub("", v)
+    return re.sub(r"\s{2,}", " ", t).strip(" +·→") or v
 
 
 def caption(text: str, top: int = 8) -> None:
@@ -141,19 +155,19 @@ hero("⑤ 데이터 정보", "화면의 숫자가 어디서 왔고 어떻게 계
      stamps=[("관세청 수출입", stamp_customs)])
 
 st.html('<div class="lede"><div class="note">이 대시보드의 숫자가 어디서 왔고, 어떻게 계산했고, '
-        '무엇을 뜻하지 <b>않는지</b> 적어 둔 곳입니다. 값은 모두 팀 DB(AWS RDS)에서 읽습니다.</div></div>')
+        '무엇을 뜻하지 <b>않는지</b> 적어 둔 곳입니다. 값은 모두 아래 「데이터 출처」 표의 공개 자료에서 왔습니다.</div></div>')
 
 # ── 데이터 출처 ────────────────────────────────────────────────────────────
 with zone("src", "데이터 출처"):
     if not src_ok:
-        st.info("출처 표(meta_dataset)를 읽지 못했습니다. 기준 문서: docs/data-sources.md · db/meta_dataset.csv")
+        st.info("출처 표를 읽지 못했습니다(조회 실패). 잠시 뒤 다시 열어 주세요.")
     else:
         tiers = src["tier"].value_counts()
         chart_title(f'대시보드의 숫자는 자료 <span class="key">{len(src)}종</span>에서 온다 — '
                     + " · ".join(f"{t} {int(tiers.get(t, 0))}" for t in ("핵심", "보조", "참조") if tiers.get(t, 0)),
                     "행 · 원본 건수 = 내려받아 파서로 센 수 · 「(부분)」 = 1년이 다 차지 않은 기간")
         view = pd.DataFrame({
-            "기관": src["provider"], "데이터": src["title"], "형태": src["access_method"],
+            "기관": src["provider"].map(plain_cell), "데이터": src["title"].map(plain_cell), "형태": src["access_method"].map(plain_cell),
             "기간": [period(r) for r in src.itertuples()], "원본 건수(행)": src["raw_row_count"],
             "구분": src["tier"], "포털 ID": src["dataset_id"].fillna("—"), "확보일": src["acquired_on"].astype(str),
             "링크": src["url"],
@@ -169,15 +183,15 @@ with zone("src", "데이터 출처"):
         c_note, c_dl = st.columns([4, 1], vertical_alignment="center")
         c_note.html(f'<div class="note">{req}<br>원본 건수 = 실제로 내려받아 파서로 센 수(5단계 보고의 「원본 전체」) · {partial_line}</div>')
         with c_dl:
-            csv_button(view, "조건 없음 · 팀 DB 적재 자료 전체(tier ≠ 메타)", "팀 DB meta_dataset(= db/meta_dataset.csv)",
+            csv_button(view, "조건 없음 · 출처 표 전체", "대시보드 출처 표(팀 작성)",
                        [("관세청 수출입", stamp_customs, None)], "데이터정보_출처표", "p5_csv_src")
-        chart_source(f"팀 DB meta_dataset(= db/meta_dataset.csv) · 자료 {len(src)}종 · {stamp_txt('관세청 수출입', stamp_customs)}")
+        chart_source(f"대시보드 출처 표(팀 작성) · 자료 {len(src)}종 · {stamp_txt('관세청 수출입', stamp_customs)}")
 
 # ── 데이터 결합 검증 — 입찰 공고 ↔ 결과 깔때기(데모 배치, 값은 RDS) ─────────────
 with zone("match", "데이터 결합 검증"):
     bm = load_bid_match()
     if bm is None or bm.empty:
-        st.info("입찰 공고 · 결과 표(clean_dapa_bid_notice · clean_dapa_bid_result)를 조회하지 못했습니다(조회 실패).")
+        st.info("입찰 공고 · 결과 자료를 조회하지 못했습니다(조회 실패).")
     elif int(bm.at[0, "n_notice"]) == 0 or int(bm.at[0, "n_result"]) == 0:
         st.warning("입찰 공고 · 결과 표에 적재된 행이 없습니다(미적재).")
     else:
@@ -207,10 +221,10 @@ with zone("match", "데이터 결합 검증"):
         step_df = pd.DataFrame(steps, columns=["단계", "행 수"]).assign(**{"공고 행 대비(%)": lambda d: (d["행 수"] / n_ann * 100).round(1)})
         c_cap, c_dl = st.columns([4, 1], vertical_alignment="center")
         c_cap.html('<div class="caption">전자부품과 잇는 공통 식별자가 없어 화면 분석에는 쓰지 않습니다 · 연결 판정 = 공고번호 + 차수 대조</div>')
-        chart_source("방위사업청 국내 입찰공고 · 입찰결과(파일데이터) → clean_dapa_bid_notice · clean_dapa_bid_result"
-                     f"(notice_link_status, v_bid_notice_result_link 와 같은 기준) · {stamp_txt('입찰결과', stamp_bid)}", where=c_cap)
+        chart_source("방위사업청 국내 입찰공고 · 입찰결과(파일데이터) · 연결 판정 = 공고번호 + 차수 대조 · "
+                     f"{stamp_txt('입찰결과', stamp_bid)}", where=c_cap)
         with c_dl:
-            csv_button(step_df, "입찰 공고 ↔ 결과 매칭 · 단위 행", "팀 DB clean_dapa_bid_notice · clean_dapa_bid_result",
+            csv_button(step_df, "입찰 공고 ↔ 결과 매칭 · 단위 행", "방위사업청 국내 입찰공고 · 입찰결과(파일데이터)",
                        [("입찰결과", stamp_bid, None)], "데이터정보_입찰매칭", "p5_csv_match")
 
 # ── 한계와 주의 ────────────────────────────────────────────────────────────
@@ -241,8 +255,8 @@ with zone("detail", "상세 정의"):
         card_title(st, rule_title, "진입 = R1(군용전용) 또는 R2(항공 · 항행) · R3은 참고 · R4 제외 · 지표 산식은 오른쪽 카드 · 여러 해는 기간 합계 후 계산")
         st.html(cards([
             (f"분석 대상 {n_wl if n_wl is not None else ''}품목군은 이렇게 골랐습니다".replace("  ", " "), bullets([
-                (f"범위: HS 84 · 85 · 88 · 90류의 HS6 {n_rule:,}개(ref_hs_rule_flag)" if st_rule == "ok"
-                 else "범위: HS 84 · 85 · 88 · 90류의 HS6 전체(ref_hs_rule_flag — 건수 조회 실패)"),
+                (f"범위: HS 84 · 85 · 88 · 90류의 HS6 {n_rule:,}개 전수" if st_rule == "ok"
+                 else "범위: HS 84 · 85 · 88 · 90류의 HS6 전수(건수 조회 실패)"),
                 "<b>공식 자료에서 확인한 사실</b>: 관세청 분류표의 세분류 명칭(R1 · R2 입력), 전략물자수출입고시 별표2 HSK 연계표(R3 입력)",
                 "<b>규칙</b>: <b>R1 군용전용</b> — 「제9301호 · 제9306호 물품 전용」 세분류가 있음 / "
                 "<b>R2 항공 · 항행</b> — 「항공기용 · 항행 · 레이더 · 무인기」 세분류가 있거나 HS6 명칭에 같은 용도어 / "
@@ -261,12 +275,11 @@ with zone("detail", "상세 정의"):
                 "<b>수입국 수</b> = 그 기간 수입 실적(>0)이 있는 국가 수. 수출만 있는 국가는 세지 않습니다",
                 "<b>수출/수입</b> = 같은 기간 수출액 ÷ 수입액. HS6 합계라 민수 반도체가 대부분입니다",
                 "<b>특정국 50% 이상</b> = 1위 공급국 점유율 50% 이상인 품목군 수(산업부 공급망 참고선)",
-                "<b>국외 조달계획 건수</b> = clean_dapa_overseas_plan_api 에서 전자 군급(FSG 58 · 59 · 60, NSN 13자 숫자 · 영숫자)으로 판정한 행 수"
+                "<b>국외 조달계획 건수</b> = 국외 조달계획(품목 단위 OpenAPI)에서 전자 군급(FSG 58 · 59 · 60, NSN 13자 숫자 · 영숫자)으로 판정한 행 수"
                 "(조달요구번호 × 품목순번). 전자 판정 기준은 확정(2026-09-21)이며 금액은 통화 미검증이라 쓰지 않습니다",
                 "국가는 <b>선적국</b> 기준입니다. 원산지와 다를 수 있습니다(홍콩 · 싱가포르 경유 등)"])),
         ]))
-        chart_source("ref_hs_whitelist(품목군 기준표, 분석 대상 = priority 1·2) · ref_hs_rule_flag(HS6 전수 규칙 판정) · 관세청 HS 분류표 세분류 명칭 · "
-                     "전략물자수출입고시 별표2 · 규칙 정의 docs/reference/hs-whitelist-definition.md §8 · "
+        chart_source("관세청 HS 분류표 세분류 명칭 · 전략물자수출입고시 별표2 · 팀 품목 선정 규칙(분석 대상 = 진입 R1 또는 R2) · "
                      f"{stamp_txt('품목군 기준표', stamp_wl)} · {stamp_txt('규칙 판정표', stamp_flag)}")
 
     # ── 용어 ────────────────────────────────────────────────────────────────────
@@ -297,7 +310,7 @@ with zone("detail", "상세 정의"):
                                     "뜻": st.column_config.TextColumn(width="large")})
         csv_button(terms, "조건 없음 · 화면 용어 전체", "팀 작성 용어 정의", [("품목군 기준표", stamp_wl, None)], "데이터정보_용어", "p5_csv_terms")
         chart_source("팀 작성 용어 정의 · 코드는 관세청 HS 분류와 미 연방보급분류(FSG · FSC) 공식 명칭 · "
-                     f"국산화개발 사업 수는 clean_dapa_localized_item 의 사업명 수({stamp_txt('국산화개발품목', stamp_local)})")
+                     f"국산화개발 사업 수는 국산화개발품목 자료의 사업명 수({stamp_txt('국산화개발품목', stamp_local)})")
 
     # ── 3. 과천시 소재 수입자 비중(추정) — 관측값과 가설을 좌우로 나눠 적는다 ────────
     with st.expander("과천시 소재 수입자 비중(추정)"):
@@ -308,11 +321,9 @@ with zone("detail", "상세 정의"):
             ("무엇을 관측할 수 있나", bullets([
                 "관세청 <b>시군구별</b> 품목별 수출입실적(15134343)에서 수입자 소재지가 <b>경기 과천시</b>인 수입액의 비중 — "
                 "관세청 명세상 「<b>납세의무자 주소지</b>」 기준이며 사용처 · 생산지가 아닙니다",
-                "관측값의 이름은 「과천시 소재 수입자 비중(방위사업청 소재지), 추정」입니다(docs/data-sources.md 지역 통계 검증 절)",
-                "이 자료는 팀 DB(RDS) clean_customs_region · 뷰 v_customs_region_gwacheon_year 로 재현됩니다"
-                "(2026-09-21 채택, 「추정」 표기. 원본 파일 customs_region_&lt;HS6&gt;.csv)",
-                "재현 경로: 시군구별 CSV(2016~2026) → docs/data-sources.md 지역 통계 검증 절(HS6별, 2025) · "
-                "notebooks/eda_customs.ipynb §11(분류별, 2025). 분모는 각각 HS6 수입액 · 분류 수입액으로 다릅니다"])),
+                "관측값의 이름은 「과천시 소재 수입자 비중(방위사업청 소재지), 추정」입니다",
+                "2026-09-21 회의에서 「추정」 표기를 붙여 채택한 참고 지표이며, 시군구별 실적(2016~2026)으로 다시 계산할 수 있습니다",
+                "분모는 계산 단위에 따라 HS6별 수입액 또는 분류별 수입액으로 다릅니다"])),
             ("왜 「군 직접 수입의 하한」이라고 쓰지 않나", bullets([
                 "과천에 방위사업청(정부과천청사)과 국군수송사령부가 있다는 것은 사실이지만, 수입신고의 납세의무자가 실제로 그 기관인지는 "
                 "공개 자료로 확인되지 않았습니다 — 이 부분은 <b>가설</b>입니다",
@@ -321,8 +332,7 @@ with zone("detail", "상세 정의"):
                 "2026-09-21 회의에서 「추정」 표기를 붙여 참고 지표로 채택했습니다. 관측값과 가설은 계속 나눠 적습니다",
                 "군수 몫은 관세 통계로 나뉘지 않습니다 — 품목군 지표는 국가 전체 수입(민수 포함)입니다"])),
         ]))
-        chart_source("관세청 시군구별 품목별 수출입실적(15134343) → clean_customs_region(원본 파일 raw_customs_region) · "
-                     "v_customs_region_gwacheon_year · 금액 천 달러 · 수입 = 납세의무자 주소지 기준 · "
+        chart_source("관세청 시군구별 품목별 수출입실적(15134343) · 금액 천 달러 · 수입 = 납세의무자 주소지 기준 · "
                      f"{stamp_txt('시군구별 수출입', stamp_region)}")
 
     # ── 4. 제외한 데이터 ────────────────────────────────────────────────────────
@@ -341,10 +351,10 @@ with zone("detail", "상세 정의"):
                        "부품 단위로 이을 식별자가 없거나, 기간 · 항목이 모자라거나, 비공개이거나, 존재하지 않는 통계",
                    "데이터 · 쓰지 않은 이유 · 표 오른쪽 위 돋보기로 찾을 수 있습니다")
         st.dataframe(ex, hide_index=True, width="stretch")
-        csv_button(ex, "조건 없음 · 화면에 쓰지 않은 데이터 전체", "docs/report/data/data-usage-decision-2026-09-18.md §1",
+        csv_button(ex, "조건 없음 · 화면에 쓰지 않은 데이터 전체", "팀 데이터 사용 결정 기록(2026-09-18)",
                    [("관세청 수출입", stamp_customs, None)], "데이터정보_제외데이터", "p5_csv_ex")
-        caption("일부(입찰 · 조달계획 등)는 위 출처 표에 적재돼 있으나 화면에 쓰지 않습니다")
-        chart_source("docs/report/data/data-usage-decision-2026-09-18.md §1 「제외」 · docs/idea-review.md §2-C")
+        caption("일부(입찰 · 조달계획 등)는 위 출처 표에 있으나 화면에 쓰지 않습니다")
+        chart_source("팀 데이터 사용 결정 기록(2026-09-18) · 팀 기획 검토")
 
     # ── 5. 과장 금지 ────────────────────────────────────────────────────────────
     with st.expander("이 대시보드가 말하지 않는 것"):
@@ -364,19 +374,16 @@ with zone("detail", "상세 정의"):
                 "계약업체 주소는 생산시설 · 납품 위치가 아닙니다",
                 "「잠정」 표시 값은 정제 · 산출식 확정 전입니다. 확정 뒤 표시를 뗍니다"])),
         ], "7fr 5fr"))
-        chart_source("docs/idea-review.md §3 유의사항 · docs/reference/data-cleaning-rules.md §1(공통 규칙)")
+        chart_source("팀 기획 검토의 유의사항 · 팀 정제 공통 규칙")
 
 with st.expander("산식 · 출처 · 표현 범위"):
     st.markdown("**이 화면의 숫자**  \n"
-                "**원본 건수** = 내려받은 원본 파일을 파서로 센 레코드 수(meta_dataset.raw_row_count). 5단계 보고의 「원본 전체」.  \n"
-                "**깔때기** = clean_dapa_bid_notice 행 수 → clean_dapa_bid_result 행 수 → notice_link_status ≠ 미연결 행 수 → "
-                "notice_link_status = 1:1 행 수.  \n"
-                "**분석 대상 품목군 수** = ref_hs_whitelist 의 priority 1·2 행 수. priority 3 = 분석 제외(배경 자료).  \n"
-                "**규칙 판정 범위** = ref_hs_rule_flag 행 수(HS 84·85·88·90류 HS6 전수).  \n"
-                "**국산화개발 사업 수** = clean_dapa_localized_item 의 서로 다른 사업명(project_name) 수.  \n\n"
-                "**출처** — 팀 DB meta_dataset(= db/meta_dataset.csv) · ref_hs_whitelist · ref_hs_rule_flag · clean_dapa_localized_item · "
-                "clean_dapa_bid_notice · clean_dapa_bid_result.")
+                "**원본 건수** = 내려받은 원본 파일을 파서로 센 레코드 수. 5단계 보고의 「원본 전체」.  \n"
+                "**깔때기** = 입찰 공고 행 수 → 입찰 결과 행 수 → 공고와 연결된 결과 행 수 → 공고 1건과만 맞는 결과 행 수"
+                "(연결 판정 = 공고번호 + 차수 대조).  \n"
+                "**분석 대상 품목군 수** = 품목군 기준표에서 진입 규칙(R1 또는 R2)에 해당하는 품목군 수. 나머지는 배경 자료.  \n"
+                "**규칙 판정 범위** = HS 84·85·88·90류 HS6 전수.  \n"
+                "**국산화개발 사업 수** = 국산화개발품목 자료의 서로 다른 사업명 수.  \n\n"
+                "**출처** — 위 「데이터 출처」 표의 공개 자료(기관 · 데이터 · 포털 ID).")
 
-chart_source("팀 DB meta_dataset · ref_hs_whitelist · ref_hs_rule_flag · clean_dapa_localized_item · clean_dapa_bid_notice · "
-             "clean_dapa_bid_result · 근거 문서 docs/data-sources.md · docs/reference/hs-whitelist-definition.md · "
-             "docs/reference/data-cleaning-rules.md §2-6 · docs/report/data/data-usage-decision-2026-09-18.md · docs/idea-review.md §3")
+chart_source("위 데이터 출처 표의 공개 자료 · 팀 품목 선정 규칙 · 팀 정제 공통 규칙 · 팀 데이터 사용 결정 기록")

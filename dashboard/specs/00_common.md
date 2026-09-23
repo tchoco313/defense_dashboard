@@ -31,7 +31,7 @@
 | 컴포넌트 | 함수 | 규칙 |
 |---|---|---|
 | 현재 조건 줄 | (4단계에서 `ui`에 추가) | 필터 바로 아래 한 줄: 품목 · 기간 · 단위 · 부분연도 여부. 그 아래 KPI·차트·표는 모두 이 조건(`01_design_system.md` §0-2) |
-| 사이드바 · 머리띠 | `kdesign.sidebar` · `ui.hero(title, sub, side, side_sub)` | 데모 사이드바(브랜드 · 메뉴 · 자료 기간 · ⓘ 데이터 정보). 머리띠 오른쪽 = 「관세청 자료 기간 / DB 적재일」(`db.data_stamp`), 실패 시 「—」 |
+| 사이드바 · 머리띠 | `kdesign.sidebar` · `ui.hero(title, sub, stamps=[(이름, data_stamp)])` | 데모 사이드바(브랜드 · 메뉴 · 관세청 자료 기간 · ⓘ 데이터 정보). 머리띠 = 페이지 이름 · 한 문장 부제 · 오른쪽 위 「자료 기준」 버튼(누르면 데이터별 기간). DB 적재일 · 표 이름은 보이지 않게(보안) |
 | KPI 카드 | `kpi(label, value, unit, sub, tag="")` | 여러 장은 `<div class="kpis">`(5열, `.k4` 4열). `tag`는 「잠정」「인용」「정부안」 배지 |
 | 구역 틀 | `zone(key, tag)` | 점선 구역 + 태그. 페이지마다 `p<n>_<이름>` 키 |
 | 기간 기준 | `period_control(df, note, key)` | 버튼 3개: 「YYYY 기준 연도」 / 「최근 5년」 / 「전체 YYYY~」. **완결 연도만**(부분연도 제외). 완결 연도 없으면 `st.info("완결 연도(부분연도 제외) 실적이 없어 기간 기준을 만들 수 없습니다.")` 후 `st.stop()`. 페이지별 key(`period_home`·`period_p3`·`q_period`) |
@@ -39,7 +39,7 @@
 | 건수 상태 | `metrics.count_state(df, err, col, total_col)` → `home.kpi_num` | 아래 표 |
 | 조회 | `db.try_query` → `(df, None)` / `(None, 예외 클래스명)` · `db.safe_query` → df 또는 None | 오류는 클래스명만(호스트·비밀번호 없음). 실패값은 캐시하지 않음 |
 | 접속 실패 | `db.db_ready()` | `st.error("DB(AWS RDS)에 연결하지 못했습니다 (<클래스>). …")` + 「다시 연결」 버튼 |
-| CSV 머리줄 | `csv_header(cond, source, stamps, extra)` | 조건·출처·**데이터별** 자료 기간·DB 적재일·내려받은 날을 따로. 실패는 「—(조회 실패)」 |
+| CSV 머리줄 | `csv_header(cond, source, stamps, extra)` | 조건·출처(기관·데이터명)·**데이터별** 자료 기간·내려받은 날을 따로. 실패는 「—(조회 실패)」 |
 | 분석 대상 | 뷰·앱 조회의 `WHERE priority IN (1, 2)` | `ref_hs_whitelist` 24개 중 13개(R1 OR R2 진입). priority 3 = 규칙 미해당 11개(09-16 팀판단 5 + 09-21 R4 제외 6) — 「근거 미확인」, 수집은 24개 그대로 |
 
 건수 상태 어휘(`count_state` 4상태 → 카드 표기):

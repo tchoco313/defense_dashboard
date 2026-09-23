@@ -18,11 +18,12 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from db import data_stamp, query
+from kdesign import LV_BG, LV_FG, TEXT
 from metrics import concentration
-from ui import (ACCENT, ETC, SHORT, chart_source, chart_title, country_colors, csv_header, hero, hover_donut, period_control,
+from ui import (ETC, SHORT, hhi_level, chart_source, chart_title, country_colors, csv_header, hero, hover_donut, period_control,
                 png_button, rules_card, style_fig, zone)
 
-SRC_PATH = "관세청 품목별 국가별 수출입실적 OpenAPI(15100475) → 팀 DB fact_customs_monthly → v_import_hs6_year"
+SRC_PATH = "관세청 품목별 국가별 수출입실적 OpenAPI(15100475)"   # 화면 출처 = 기관 · 데이터명 · 기간만(DB 표 · 뷰 이름은 쓰지 않는다 — 보안)
 M6 = 1e6   # 백만 달러 = USD ÷ 1e6 (표시 전용 변환)
 BASIS_SHOW = 6                # 선정 근거 표에서 처음부터 보이는 줄 수 — 나머지는 펼쳐 보기
 # evidence 키 → 뜻(docs/reference/hs-whitelist-definition.md §8-2). B2-FSC(R4)는 규칙에서 제외해 열을 두지 않는다
@@ -44,6 +45,20 @@ def load() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """, {"hs": tgt})
     ctry = query("SELECT stat_cd, name_ko FROM ref_country")
     return wl_all, trade, ctry
+
+
+def tint(hex_color: str, a: float = 0.2) -> str:
+    """국가 색을 흰색과 섞은 옅은 바탕색(표 칸 · 글자는 본문색으로 둬 노랑 같은 옅은 색도 읽히게)."""
+    h = hex_color.lstrip("#")
+    r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+    return "#{:02x}{:02x}{:02x}".format(*(round(255 - (255 - v) * a) for v in (r, g, b)))
+
+
+def on_color(hex_color: str) -> str:
+    """칸 색 위 글자색 — 밝은 칸(노랑 · 분홍 · 기타 회색)은 본문색, 짙은 칸은 흰색."""
+    h = hex_color.lstrip("#")
+    r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+    return TEXT if (0.299 * r + 0.587 * g + 0.114 * b) > 150 else "#ffffff"
 
 
 def ig(word: str) -> str:
@@ -107,13 +122,13 @@ def basis_legend() -> str:
         f"· <b>{t}</b> — {d}" for t, d in BASIS_TAGS) + "</div>"
 
 
-with st.spinner("팀 DB에서 관세청 집계를 읽는 중"):
+with st.spinner("관세청 집계를 읽는 중"):
     wl_all, trade, ctry = load()
 wl = wl_all[wl_all["priority"].isin([1, 2])]
 cname = dict(zip(ctry["stat_cd"], ctry["name_ko"]))
 stamp = data_stamp("customs_all", "fact_customs_monthly")
 SRC = (f"{SRC_PATH} · 자료 기간 {stamp['period'] if stamp['has_period'] else '—'} · "
-       f"DB 적재 {stamp.get('loaded') or '—'} · 국가는 선적국(원산지 아님)")
+       "국가는 선적국(원산지 아님)")
 
 hero("③ 검토 목록", "분석 대상 품목군을 수입 집중도(HHI)가 높은 순으로 한 표에서 비교합니다 — 우선순위를 정한 목록은 아닙니다",
      stamps=[("관세청 수출입", stamp)])
@@ -142,6 +157,8 @@ with zone("tbl", "품목군 현황표"):
         st.info(f"{y_label} 수입 실적이 있는 품목군이 없습니다.")
         st.stop()
 
+    cnt = t["top1_cd"].value_counts()
+    cmap = country_colors(cnt.index.tolist())   # 1위 공급국 국가 색 — 표 · 도넛 · 트리맵 · 막대가 같은 색 키를 쓴다
     top_r = t.iloc[0]
     n_hi = int((t["hhi"] >= 2500).sum())
     chart_title(f'{len(t)}개 품목군 중 <span class="key">{n_hi}개가 기간 합계 HHI 2,500 이상</span>이고, '
@@ -154,9 +171,16 @@ with zone("tbl", "품목군 현황표"):
         "HHI": t["hhi"].round(0).astype(int), "수입국 수": t["n_ctry"].astype(int),
         amt_col: (t["imp_dlr"] / M6).round(1), "수출/수입": (t["exp_dlr"] / t["imp_dlr"]).round(2),
     }).reset_index(drop=True)
+    codes = t["top1_cd"].tolist()                 # items 와 같은 순서(표 정렬 = HHI 내림차순)
+    ccol = [cmap.get(c, ETC) for c in codes]      # 품목군별 1위 공급국 국가 색
+    # 표 색: 1위 공급국 = 그 나라 색의 옅은 바탕, HHI = 집중 등급 배지색(홈 공급망 표와 같은 규칙). 정렬은 그대로 된다
+    styler = (items.style
+              .apply(lambda col: [f"background-color:{tint(c)};color:{TEXT};font-weight:600" for c in ccol], subset=["1위 공급국"])
+              .apply(lambda col: [f"background-color:{LV_BG[hhi_level(v)[0]]};color:{LV_FG[hhi_level(v)[0]]};font-weight:600"
+                                  for v in col], subset=["HHI"]))
     with st.spinner("품목군 집계를 다시 계산하는 중"):
         st.dataframe(
-            items, width="stretch", hide_index=True, height=min(38 + 35 * len(items), 520),
+            styler, width="stretch", hide_index=True, height=min(38 + 35 * len(items), 520),
             column_config={
                 "1위 점유율(%)": st.column_config.ProgressColumn("1위 점유율(%)", min_value=0, max_value=100, format="%.1f%%"),
                 "HHI": st.column_config.NumberColumn("HHI", format="%d", help="기간 합계 HHI — Σ(국가 점유율 %)², 0~10,000. "
@@ -172,6 +196,10 @@ with zone("tbl", "품목군 현황표"):
                             "국가 전체 수입·수출(민수 포함) · 국가는 선적국")
     st.download_button("CSV 내려받기", (head + items.to_csv(index=False)).encode("utf-8-sig"),
                        f"품목군_현황표_{y_label.replace('~', '-')}.csv", "text/csv", key="p3_csv")
+    st.html('<div class="legend" style="margin-top:6px"><span><b>HHI 칸</b></span>'
+            + "".join(f'<span><i style="background:{LV_BG[k]};border:1px solid #cbd5e1"></i>{k}</span>'
+                      for k in ("매우 높음", "높음", "보통"))
+            + '<span>· 4,000 이상 매우 높음 · 2,500 이상 높음</span><span style="margin-left:10px"><b>1위 공급국 칸</b> = 국가 색</span></div>')
     miss_txt = (f" · {y_label} 수입 실적이 없어 뺀 품목군: " + ", ".join(f"{h} {n}" for h, n in zip(missing.index, missing["short"]))
                 if not missing.empty else "")
     chart_source(f"{SRC} · 선택 연도를 국가별로 합산한 뒤 점유율·HHI 계산{escape(miss_txt)}")
@@ -179,8 +207,6 @@ with zone("tbl", "품목군 현황표"):
 # ── 1위 공급국 분포 ───────────────────────────────────────────────────────────
 with zone("lead", "1위 공급국 분포"):
     c1, c2 = st.columns([1.5, 1], gap="medium")
-    cnt = t["top1_cd"].value_counts()
-    cmap = country_colors(cnt.index.tolist())
     with c1.container(border=True, key="card_lead"):
         rows = [(cname.get(c, c), int(v), cmap.get(c, ETC)) for c, v in cnt.items()]
         lead_ties = [r for r in rows if r[1] == rows[0][1]] if rows else []
@@ -205,20 +231,25 @@ with zone("lead", "1위 공급국 분포"):
     ]))
 
 # ── 집중도 한눈에 ─────────────────────────────────────────────────────────────
+legend_html = ('<div class="legend" style="margin-top:4px"><span><b>1위 공급국</b></span>'
+               + "".join(f'<span><i style="background:{cmap.get(c, ETC)}"></i>{escape(str(cname.get(c, c)))}</span>'
+                         for c in cnt.index) + "</div>")
 with zone("tree", "집중도 한눈에"):
     c1, c2 = st.columns(2, gap="medium")
     with c1.container(border=True, key="card_tree"):
         t_tree = (f'기간 합계 HHI 는 <span class="key">{escape(ig(str(items.iloc[0]["품목군"])))} {items.iloc[0]["HHI"]:,}</span>로 가장 높고 '
                   f'{escape(ig(str(items.iloc[-1]["품목군"])))} {items.iloc[-1]["HHI"]:,}로 가장 낮다')
-        chart_title(t_tree, f"칸 크기 = HHI(0~10,000) · 색 = 1위 점유율(%) · {per}")
+        chart_title(t_tree, f"칸 크기 = HHI(0~10,000) · 색 = 1위 공급국 · 칸 글자 = 1위 점유율(%) · {per}")
         fig = go.Figure(go.Treemap(
             labels=items["품목군"], parents=[""] * len(items), values=items["HHI"],
-            marker=dict(colors=items["1위 점유율(%)"], colorscale=[[0, "#dbeafe"], [1, ACCENT]],
-                        line=dict(color="#fff", width=2)),
-            texttemplate="%{label}<br>%{customdata:.1f}%", customdata=items["1위 점유율(%)"],
-            hovertemplate="%{label}<br>HHI %{value:,}<br>1위 점유율 %{customdata:.1f}%<extra></extra>"))
+            marker=dict(colors=ccol, line=dict(color="#fff", width=2)),
+            textfont=dict(color=[on_color(c) for c in ccol]),
+            texttemplate="%{label}<br>%{customdata[0]:.1f}%",
+            customdata=list(zip(items["1위 점유율(%)"], items["1위 공급국"])),
+            hovertemplate="%{label}<br>HHI %{value:,}<br>1위 %{customdata[1]} %{customdata[0]:.1f}%<extra></extra>"))
         fig.update_layout(height=380)
         st.plotly_chart(style_fig(fig), width="stretch", theme=None)
+        st.html(legend_html)
         src_tree = f"{SRC} · HHI = Σ(국가 점유율 %)², 기간 합계 점유율 기준"
         chart_source(src_tree)
         png_button(fig, f"품목군_HHI_트리맵_{y_label.replace('~', '-')}", title=t_tree, source=src_tree)
@@ -226,14 +257,14 @@ with zone("tree", "집중도 한눈에"):
         mx, mn = items.loc[items["수입국 수"].idxmax()], items.loc[items["수입국 수"].idxmin()]
         t_cnt = (f'수입국 수는 <span class="key">{escape(str(mx["품목군"]))} {mx["수입국 수"]}개국</span>이 가장 많고 '
                  f'{escape(str(mn["품목군"]))} {mn["수입국 수"]}개국이 가장 적다')
-        chart_title(t_cnt, f"개국 · {per} · 수입 실적 > 0 국가")
-        fig = go.Figure(go.Bar(x=items["품목군"], y=items["수입국 수"],
-                               marker=dict(color=items["수입국 수"], colorscale=[[0, "#c7ddfb"], [1, ACCENT]],
-                                           line=dict(color="#fff", width=1)),
-                               hovertemplate="%{x}<br>%{y}개국<extra></extra>"))
+        chart_title(t_cnt, f"개국 · {per} · 수입 실적 > 0 국가 · 막대 색 = 1위 공급국")
+        fig = go.Figure(go.Bar(x=items["품목군"], y=items["수입국 수"], customdata=items["1위 공급국"],
+                               marker=dict(color=ccol, line=dict(color="#fff", width=1)),
+                               hovertemplate="%{x}<br>%{y}개국 · 1위 %{customdata}<extra></extra>"))
         fig.update_layout(height=380)
         fig.update_xaxes(tickangle=-40)
         st.plotly_chart(style_fig(fig), width="stretch", theme=None)
+        st.html(legend_html)
         src_cnt = f"{SRC} · 수입국 수 = 기간 합계 수입액 > 0 인 국가 수"
         chart_source(src_cnt)
         png_button(fig, f"품목군_수입국수_{y_label.replace('~', '-')}", title=t_cnt, source=src_cnt)
@@ -249,13 +280,11 @@ with zone("basis", "품목군 선정 근거(실측)"):
         with st.expander(f"나머지 {n_all - BASIS_SHOW}개 펼쳐 보기 (분석 대상 {n_tgt - BASIS_SHOW}개 · 배경 {n_all - n_tgt}개)"):
             st.html(basis_matrix(rows_b.iloc[BASIS_SHOW:], n_all, n_tgt, start=BASIS_SHOW, card=False) + basis_legend())
     c2.html(basis_summary(wl_all))
-    s_wl = data_stamp("ref_hs_whitelist", "ref_hs_whitelist")
-    chart_source("팀 작성 HS6 선정 기준표(data/reference/hs_whitelist.csv) → ref_hs_whitelist.evidence · "
-                 f"정의 docs/reference/hs-whitelist-definition.md §8-2 · DB 적재 {s_wl.get('loaded') or '—'} · "
+    chart_source("팀 작성 HS6 선정 기준표(수집 24개 · 근거 태그) · 진입 규칙 R1 군용전용 또는 R2 항공·항행 · "
                  "R4(국산화개발품목 FSC 대응)는 2026-09-21 규칙에서 제외")
 
 with st.expander("산식 · 출처 · 표현 범위"):
-    st.markdown("**수입액** = v_import_hs6_year 의 imp_dlr 를 선택 연도에 걸쳐 합산. 백만 달러 = USD ÷ 10⁶.  \n"
+    st.markdown("**수입액** = 관세청 품목별 국가별 수출입실적의 품목군 · 국가별 연간 수입액(USD)을 선택 연도에 걸쳐 합산. 백만 달러 = USD ÷ 10⁶.  \n"
                 "**1위 공급국 · 점유율** = 선택 연도를 국가별로 먼저 합산한 뒤 국가 금액 ÷ 품목군 합계 × 100(수입 실적 > 0 국가만).  \n"
                 "**HHI(기간 합계)** = Σ(국가 점유율 × 100)², 0~10,000. 연도별 HHI 평균이 아니며 ① 화면의 「연도별 HHI」와 다른 지표. "
                 "2,500 이상 = 높은 집중.  \n"
@@ -263,4 +292,4 @@ with st.expander("산식 · 출처 · 표현 범위"):
                 "**수출/수입** = 기간 합계 수출액 ÷ 수입액.  \n\n"
                 "**표현 범위** — 「추가 검토 목록」이며 우선순위 확정이 아닙니다. 수입액은 국가 전체(민수 포함) 교역액이며 군수 수요 규모를 "
                 "뜻하지 않습니다. 이 화면은 FSC·NSN·조달 예산과 연결하지 않습니다.  \n\n"
-                f"**출처** — {SRC_PATH}. 선정 기준표 ref_hs_whitelist(분석 대상 = priority 1·2, {len(wl)}개), 국가 이름 ref_country.")
+                f"**출처** — {SRC_PATH}. 팀 작성 HS6 선정 기준표(분석 대상 = 진입 규칙 R1 또는 R2, {len(wl)}개), 국가 이름은 관세청 국가 코드표.")

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import re
 import json
 from html import escape
 
@@ -66,6 +67,7 @@ html, body, [class*="st-"]{{font-family:{SIDE_STACK}}}
   letter-spacing:normal;text-transform:none;white-space:nowrap;direction:ltr;-webkit-font-smoothing:antialiased}}
 /* 헤더는 투명하게 두고 메뉴 · 툴바만 숨긴다(사이드바 열기 버튼은 남긴다) */
 [data-testid="stHeader"]{{background:transparent;height:0;pointer-events:none}}
+[data-testid="stToolbar"]{{pointer-events:none}}   /* 보이지 않는 도구 막대가 머리띠 오른쪽 위 「자료 기준」 버튼 클릭을 가로채지 않게 */
 [data-testid="stToolbar"] > *:not(:has([data-testid="stExpandSidebarButton"])),
 [data-testid="stDecoration"],[data-testid="stStatusWidget"],[data-testid="stMainMenu"],
 [data-testid="stToolbarActions"],[data-testid="stAppDeployButton"]{{display:none!important}}
@@ -106,7 +108,7 @@ html, body, [class*="st-"]{{font-family:{SIDE_STACK}}}
 /* ── 머리띠(데모 hero 자리 · 평면 옅은 하늘) ───────────────────────────── */
 .st-key-hero{{margin:14px 0 6px;padding:0}}
 .hero{{display:flex;align-items:flex-start;justify-content:space-between;gap:28px;padding:22px 26px 20px;background:#1e4fa8;border-radius:12px}}
-.hero .ht{{flex:1 1 auto;min-width:0}}
+.hero .ht{{flex:1 1 0;min-width:0}}
 .hero h1{{margin:0;font-size:27px;font-weight:700;letter-spacing:-.5px;color:#ffffff;line-height:1.3}}
 .hero p{{margin:7px 0 0;font-size:14.5px;color:#d6e6fb;line-height:1.55}}
 .hero .slogan{{flex:0 0 auto;text-align:right;padding-left:22px;border-left:1px solid rgba(255,255,255,.28)}}
@@ -115,6 +117,20 @@ html, body, [class*="st-"]{{font-family:{SIDE_STACK}}}
 .hero .slogan .k{{margin:0 0 3px;font-size:12px;color:#b9d2f3}}
 .hero .slogan .row{{display:block;font-size:13.5px;line-height:1.6;color:#ffffff;font-weight:600;white-space:nowrap}}
 .hero .slogan .row em{{font-style:normal;font-weight:400;color:#cfe0f7;margin-right:6px}}
+/* 자료 기준 — 머리띠 오른쪽 알약 버튼, 누르면 아래로 흰 카드(출처 「?」와 같은 방식) */
+details.basis{{flex:0 0 auto;width:max-content;position:relative;align-self:flex-start}}
+details.basis > summary{{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:6px 13px;
+  border:1px solid rgba(255,255,255,.5);border-radius:999px;color:#fff;font-size:13.5px;font-weight:600;user-select:none;white-space:nowrap}}
+details.basis > summary::-webkit-details-marker{{display:none}}
+details.basis > summary .material-symbols-rounded{{font-size:17px;color:#cfe0f7}}
+details.basis > summary:hover,details.basis[open] > summary{{background:rgba(255,255,255,.16)}}
+details.basis .basis-pop{{position:absolute;right:0;top:calc(100% + 8px);z-index:50;min-width:300px;background:#fff;
+  border:1px solid var(--line);border-radius:10px;padding:12px 16px;box-shadow:0 6px 18px rgba(15,31,58,.14);text-align:left}}
+.basis-pop .bt{{font-size:12px;color:var(--muted);margin-bottom:6px}}
+.basis-pop .row{{display:flex;justify-content:space-between;gap:18px;font-size:13.5px;line-height:1.75;color:var(--text);font-weight:600;white-space:nowrap}}
+.basis-pop .row em{{font-style:normal;font-weight:400;color:var(--muted)}}
+.basis-pop .bl{{margin-top:6px;padding-top:6px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}}
+[class*="st-key-hero"],[class*="st-key-hero"] *:has(> details.basis){{overflow:visible}}
 
 .demo-bar{{display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:9px 14px;border-radius:8px;
   background:var(--sky-weak);border:1px solid #cfe5f8}}
@@ -144,7 +160,8 @@ div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)
   font-variant-numeric:tabular-nums}}
 .kpi .v small{{font-size:14.5px;color:var(--muted);font-weight:500;margin-left:4px;letter-spacing:0}}
 .kpi .s{{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.55}}
-.kpi .s .up,.kpi .s .dn{{display:inline-block;color:var(--accent);background:#e8f0fe;font-weight:600;font-size:12.5px;
+.kpi .s .up,.kpi .s .dn{{display:inline-block;color:#d63b30;background:#fdecea;font-weight:600;font-size:12.5px;
+.kpi .s .dn{{color:#1d4ed8;background:#e8f0fe}}   /* 증감 — 오르면 빨강 · 내리면 파랑(2026-09-24 사용자) */
   border-radius:6px;padding:1px 7px;margin-right:3px;font-variant-numeric:tabular-nums}}
 .ex{{display:inline-block;font-size:12px;font-weight:600;color:#075985;background:#e0f2fe;border-radius:5px;
   padding:0 6px;margin-left:6px;vertical-align:middle}}
@@ -254,7 +271,7 @@ TABLE_CSS = r"""<style>
 .sc td.no{color:var(--muted);font-weight:600}
 .sc td.nm{text-align:left;font-weight:600}
 .sc td.nm em{display:block;font-style:normal;font-weight:400;font-size:12px;color:var(--muted)}
-.sc td.up,.sc td.dn{color:var(--text);font-weight:600}
+.sc td.up{color:#d63b30;font-weight:600} .sc td.dn{color:#1d4ed8;font-weight:600}
 .sc td.lv{font-weight:600} .sc td.lv i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
 .sc .lvb{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:600}
 .sc .cdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0}
@@ -346,14 +363,14 @@ def _stamp_period(st_: dict) -> str:
 
 
 def hero(title: str, subtitle: str, side: str = "", side_sub: str = "", stamps: list | None = None) -> None:
-    """머리띠(데모 hero 자리) — 제목 · 이 화면에서 보는 것 한 문장 · 오른쪽 「자료 기준」.
-    stamps = [(데이터 이름, db.data_stamp(...)), …] 를 주면 「이름 기간」 줄과 맨 아래 「DB 반영 날짜」로 통일해 그린다."""
+    """머리띠(데모 hero 자리) — 제목 · 이 화면에서 보는 것 한 문장 · 오른쪽 「자료 기준」 버튼.
+    stamps = [(데이터 이름, db.data_stamp(...)), …] 를 주면 버튼을 누를 때 「이름 · 기간」 줄이 펼쳐진다(DB 반영일은 출처 「?」 · CSV 에)."""
     if stamps:
+        # 자료 기준은 버튼 뒤에 접어 둔다 — 누르면 아래로 카드가 펼쳐진다(HTML details · 서버 재실행 없음)
         rows = "".join(f'<span class="row"><em>{escape(n)}</em>{escape(_stamp_period(s_))}</span>' for n, s_ in stamps)
-        loaded = max((s_.get("loaded") or "" for _, s_ in stamps), default="")
-        side = f'<small class="k">자료 기준</small>{rows}'
-        side_sub = f"DB 반영 {loaded}" if loaded else ""
-        right = f'<div class="slogan">{side}<small>{side_sub}</small></div>'
+        right = ('<details class="basis"><summary title="자료 기간 보기">'
+                 '<span class="material-symbols-rounded">calendar_month</span>자료 기준</summary>'
+                 f'<div class="basis-pop"><div class="bt">자료 기준</div>{rows}</div></details>')
     else:
         right = f'<div class="slogan"><b>{side}</b><small>{side_sub}</small></div>' if side else ""
     with st.container(key="hero"):
@@ -392,10 +409,23 @@ def chart_title(title: str, sub: str = "", where=None) -> None:
     (where or st).html(f'<div class="h"><span>{title}</span>' + (f'<span class="sub">{sub}</span>' if sub else "") + "</div>")
 
 
+_DB_BITS = re.compile(r"\b(?:clean|fact|dim|ref|meta|raw)_[a-z0-9_]+|\bv_[a-z0-9_]+|\b[a-z][a-z0-9]*_[a-z0-9_]+\b"
+                      r"|DB\s*(?:적재|반영)|팀\s*DB|AWS|RDS|DBHub|schema|스키마")
+
+
+def public_source(text: str) -> str:
+    """사용자에게 보이는 출처에서 DB 내부 정보(표 · 뷰 · 열 이름, 「팀 DB」, DB 적재 · 반영일)를 걸러 낸다 — 보안(2026-09-24 사용자).
+    「기관 · 데이터명 → DB 표 · 기간 · DB 적재 날짜」 → 「기관 · 데이터명 · 기간」. 화면 출처 「?」 · PNG 출처 줄 · CSV 머리줄이 모두 이 함수를 지난다."""
+    parts = [p.strip(" ·,.;") for p in re.split(r"\s*(?:→|->|·)\s*", str(text))]
+    keep = [p for p in parts if p and not _DB_BITS.search(p)]
+    out = " · ".join(dict.fromkeys(keep))          # 같은 조각이 겹치면 한 번만
+    return re.sub(r"^출처:\s*", "", out).strip() or "공개 자료"
+
+
 def source_pop(text: str) -> str:
     """출처를 「?」 원 뒤에 접어 두는 HTML — 누르면 펼쳐지고 다시 누르면 접힌다(HTML details · 서버 재실행 없음).
     화면은 깔끔하게, 인용할 사람은 한 번 눌러 확인한다. 내려받는 PNG · CSV 에는 출처가 그대로 들어간다."""
-    body = text if text.startswith("출처") else f"출처: {text}"
+    body = f"출처: {public_source(text)}"
     return (f'<details class="src"><summary title="출처 보기" aria-label="출처 보기">?</summary>'
             f'<div class="src-body">{body}</div></details>')
 
@@ -503,28 +533,254 @@ def share_card(f: dict) -> str:
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# 3. 공급국 지도 · 로딩 표시
-#    데모의 회전 지구본(화살표 흐름 · 인트로 · 로딩 지구본)은 쓰지 않는다 — 평면 세계지도(plotly)에 원 크기 = 수입액.
-#    이름(supply_globe · globe_loading)은 페이지 호환을 위해 유지한다.
+# 3. 공급국 지구본 · 로딩 표시
+#    지구본은 데모 HOME 그대로(회전 · 끌어 돌리기 · 지구본↔지도 · 흐름 화살표) — 버튼 이모지 · 그라데이션만 뺐다(2026-09-24 사용자).
+#    데모의 인트로 화면 · 로딩 지구본은 쓰지 않는다(globe_loading 은 로딩 문구).
 # ════════════════════════════════════════════════════════════════════════════
+KOREA = [127.8, 36.5]
+_GLOBE = r"""
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Pretendard,'Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif;
+       color:#16233f;background:transparent;overflow:hidden;user-select:none}
+  #wrap{position:relative;width:100%;height:__H__px;border-radius:12px;overflow:hidden;
+        background:linear-gradient(170deg,#f4f9ff,#e6f0fd)}
+  canvas{position:absolute;inset:0;width:100%;height:100%}
+  #globe-c{transition:opacity .55s ease, transform .75s cubic-bezier(.65,0,.35,1)}
+  #map-c{opacity:0;transition:opacity .6s ease .12s, transform .75s cubic-bezier(.65,0,.35,1);transform:scale(.88)}
+  .flat #globe-c{opacity:0;transform:scale(1.35)}
+  .flat #map-c{opacity:1;transform:scale(1)}
+  #hud{position:absolute;left:14px;top:12px;display:flex;align-items:center;gap:8px;z-index:5;pointer-events:none}
+  #dot{width:7px;height:7px;border-radius:50%;background:#2b6ef6;box-shadow:0 0 0 0 rgba(43,110,246,.55);animation:pulse 1.8s infinite}
+  @keyframes pulse{70%{box-shadow:0 0 0 9px rgba(43,110,246,0)}100%{box-shadow:0 0 0 0 rgba(43,110,246,0)}}
+  #status{font-size:13px;font-weight:700;color:#3d5b8c;letter-spacing:-.2px}
+  #ctrl{position:absolute;right:12px;top:10px;display:flex;gap:6px;z-index:6}
+  #ctrl button{font:600 13px Pretendard,system-ui,sans-serif;color:#3d5b8c;background:rgba(255,255,255,.88);
+    border:1px solid #dde5f2;border-radius:9px;padding:5px 11px;cursor:pointer;box-shadow:0 1px 3px rgba(19,42,84,.08);transition:all .15s}
+  #ctrl button:hover{background:#fff;color:#1d4ed8;border-color:#b9d1fb}
+  #ctrl button.on{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
+  #tip{position:absolute;z-index:9;pointer-events:none;opacity:0;transform:translate(-50%,-118%);background:#fff;
+    border:1px solid #dde5f2;border-radius:10px;padding:8px 11px;box-shadow:0 8px 24px rgba(19,42,84,.16);
+    transition:opacity .12s;white-space:nowrap}
+  #tip b{display:block;font-size:12.5px;font-weight:800;letter-spacing:-.3px}
+  #tip .v{font-size:12px;color:#2b6ef6;font-weight:800;margin-top:2px}
+  #tip .n{font-size:10.5px;color:#6b7a99;margin-top:3px;max-width:230px;white-space:normal;line-height:1.45}
+</style></head><body>
+<div id="wrap">
+  <canvas id="globe-c"></canvas><canvas id="map-c"></canvas>
+  <div id="hud"><span id="dot"></span><span id="status">지구본 회전 중…</span></div>
+  <div id="ctrl"><button id="b-globe" class="on">지구본</button><button id="b-map">지도</button><button id="b-replay">흐름 다시</button></div>
+  <div id="tip"></div>
+</div>
+<script>
+const PTS = __DATA__, KOREA = __KOREA__, UNIT = "__UNIT__";
+const wrap=document.getElementById('wrap'), tip=document.getElementById('tip'), statusEl=document.getElementById('status');
+const gc=document.getElementById('globe-c'), mc=document.getElementById('map-c');
+const gx=gc.getContext('2d'), mx=mc.getContext('2d');
+let W=0,H=0,DPR=Math.min(window.devicePixelRatio||1,2), world=null;
+const graticule=d3.geoGraticule10(), maxVal=Math.max(1,...PTS.map(p=>+p.value||0));
+const projG=d3.geoOrthographic().clipAngle(90).precision(0.4);
+const projM=d3.geoNaturalEarth1().precision(0.4);
+let pathG,pathM;
+
+function size(){
+  W=wrap.clientWidth; H=wrap.clientHeight;
+  for(const c of [gc,mc]){c.width=W*DPR;c.height=H*DPR;}
+  gx.setTransform(DPR,0,0,DPR,0,0); mx.setTransform(DPR,0,0,DPR,0,0);
+  projG.scale(Math.min(W,H)*0.40).translate([W/2,H/2+6]);
+  projM.fitExtent([[18,34],[W-18,H-34]],{type:'Sphere'});
+  pathG=d3.geoPath(projG,gx); pathM=d3.geoPath(projM,mx);
+}
+function paintSphere(ctx,path,proj,isGlobe){
+  ctx.clearRect(0,0,W,H);
+  ctx.beginPath(); path({type:'Sphere'});
+  if(isGlobe){
+    const c=proj.translate(), r=proj.scale();
+    const g=ctx.createRadialGradient(c[0]-r*.35,c[1]-r*.4,r*.1,c[0],c[1],r*1.08);
+    g.addColorStop(0,'#eaf4ff'); g.addColorStop(.55,'#d3e6fb'); g.addColorStop(1,'#b9d5f3');
+    ctx.fillStyle=g;
+  } else ctx.fillStyle='#dce9fa';
+  ctx.fill();
+  if(isGlobe){ctx.save();ctx.shadowColor='rgba(43,110,246,.28)';ctx.shadowBlur=22;ctx.fill();ctx.restore();}
+  ctx.beginPath(); path(graticule); ctx.strokeStyle='rgba(90,130,190,.22)'; ctx.lineWidth=.6; ctx.stroke();
+  if(world){ctx.beginPath();path(world);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle='#c2d3ec';ctx.lineWidth=.7;ctx.stroke();}
+  ctx.beginPath(); path({type:'Sphere'});
+  ctx.strokeStyle=isGlobe?'rgba(43,110,246,.45)':'rgba(150,180,220,.5)'; ctx.lineWidth=1.1; ctx.stroke();
+}
+function radius(v){return 4+20*Math.sqrt((+v||0)/maxVal);}
+function seen(lon,lat,isGlobe){
+  if(!isGlobe) return true;
+  const rot=projG.rotate();
+  return d3.geoDistance([lon,lat],[-rot[0],-rot[1]])<Math.PI/2;
+}
+function visible(p,proj,isGlobe){return seen(p.lon,p.lat,isGlobe);}
+
+/* ── 흐름 화살표 — 대권 위 t 지점의 진행 방향으로 삼각형을 그린다 ──────── */
+function arrow(ctx,proj,isGlobe,p,t,alpha,s){
+  if(t<=0.03) return;
+  const inter=d3.geoInterpolate([p.lon,p.lat],KOREA);
+  const c0=inter(Math.max(0,t-0.035)), c1=inter(t);
+  if(!seen(c0[0],c0[1],isGlobe)||!seen(c1[0],c1[1],isGlobe)) return;
+  const a=proj(c0), b=proj(c1); if(!a||!b) return;
+  const dx=b[0]-a[0], dy=b[1]-a[1], L=Math.hypot(dx,dy);
+  if(L<0.4||L>90) return;                         // 지도 이음매를 건널 때는 건너뛴다
+  const ux=dx/L, uy=dy/L;
+  ctx.beginPath();
+  ctx.moveTo(b[0]+ux*s, b[1]+uy*s);
+  ctx.lineTo(b[0]-ux*s*0.75-uy*s*0.62, b[1]-uy*s*0.75+ux*s*0.62);
+  ctx.lineTo(b[0]-ux*s*0.28, b[1]-uy*s*0.28);
+  ctx.lineTo(b[0]-ux*s*0.75+uy*s*0.62, b[1]-uy*s*0.75-ux*s*0.62);
+  ctx.closePath(); ctx.fillStyle='rgba(43,110,246,'+alpha+')'; ctx.fill();
+}
+function paintPoints(ctx,path,proj,isGlobe,arcProgress,hoverIdx,flow){
+  if(arcProgress>0){
+    PTS.forEach((p,i)=>{
+      if(!visible(p,proj,isGlobe)) return;
+      const inter=d3.geoInterpolate([p.lon,p.lat],KOREA);
+      const pts=d3.range(0,arcProgress+1e-9,1/28).map(inter);
+      if(pts.length<2) return;
+      const lw=0.9+2.4*Math.sqrt((+p.value||0)/maxVal);
+      ctx.beginPath(); path({type:'LineString',coordinates:pts});
+      ctx.strokeStyle=i===hoverIdx?'rgba(43,110,246,.75)':'rgba(43,110,246,.38)';
+      ctx.lineWidth=i===hoverIdx?lw+1:lw; ctx.lineCap='round'; ctx.stroke();
+
+      // 머리 화살표 — 그리는 동안은 선 끝, 다 그린 뒤에는 한국 바로 앞에 선다
+      arrow(ctx,proj,isGlobe,p,arcProgress<1?arcProgress:0.88,i===hoverIdx?1:.9,5+lw*0.85);
+      // 흐름 화살표 — 선을 따라 계속 한국 쪽으로 흐른다
+      if(arcProgress>=1){
+        const t=0.12+0.72*((flow+i*0.17)%1);
+        arrow(ctx,proj,isGlobe,p,t,.5,4+lw*0.5);
+      }
+    });
+  }
+  PTS.forEach((p,i)=>{
+    if(!visible(p,proj,isGlobe)){p._xy=null;return;}
+    const xy=proj([p.lon,p.lat]); p._xy=xy; if(!xy) return;
+    const r=radius(p.value), on=i===hoverIdx;
+    ctx.beginPath(); ctx.arc(xy[0],xy[1],r,0,2*Math.PI);
+    ctx.fillStyle=p.color||'rgba(43,110,246,.55)';
+    ctx.globalAlpha=on?.95:.72; ctx.fill(); ctx.globalAlpha=1;
+    ctx.lineWidth=on?2.4:1.4; ctx.strokeStyle=on?'#12234a':'#fff'; ctx.stroke();
+  });
+  const k=proj(KOREA);
+  if(k&&seen(KOREA[0],KOREA[1],isGlobe)){
+    ctx.beginPath(); ctx.arc(k[0],k[1],5.5,0,2*Math.PI);
+    ctx.fillStyle='#ff6b9a'; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#fff'; ctx.stroke();
+    ctx.font='700 11px Pretendard, system-ui, sans-serif'; ctx.fillStyle='#12234a'; ctx.textAlign='center';
+    ctx.fillText('대한민국',k[0],k[1]-11);
+  }
+  if(!isGlobe){
+    ctx.font='600 10.5px Pretendard, system-ui, sans-serif'; ctx.textAlign='center'; ctx.fillStyle='#41537a';
+    PTS.forEach(p=>{if(p._xy) ctx.fillText(p.name,p._xy[0],p._xy[1]+radius(p.value)+11);});
+  }
+}
+
+let mode='globe', spinning=true, arc=0, hover=-1, mouse=null, drag=null, t0=performance.now();
+function drawGlobe(){
+  const f=((performance.now()-t0)/2600)%1;
+  paintSphere(gx,pathG,projG,true);
+  paintPoints(gx,pathG,projG,true,mode==='globe'?arc:0,mode==='globe'?hover:-1,f);
+}
+function drawMap(){
+  const f=((performance.now()-t0)/2600)%1;
+  paintSphere(mx,pathM,projM,false);
+  paintPoints(mx,pathM,projM,false,mode==='map'?arc:0,mode==='map'?hover:-1,f);
+}
+
+/* ── 커서 정보 — 매 프레임 다시 찾는다(지구본이 돌아도 따라붙게) ───────── */
+function hitTest(){
+  if(!mouse||drag) return -1;
+  let found=-1,best=1e9;
+  PTS.forEach((p,i)=>{if(!p._xy)return;const d=Math.hypot(p._xy[0]-mouse[0],p._xy[1]-mouse[1]);
+    if(d<radius(p.value)+6&&d<best){best=d;found=i;}});
+  return found;
+}
+function fillTip(p){
+  tip.innerHTML='<b>'+p.name+'</b><div class="v">'+p.value.toLocaleString(undefined,{maximumFractionDigits:1})+' '+UNIT+'</div>'
+    +(p.note?'<div class="n">'+p.note+'</div>':'');
+}
+function syncTip(){
+  const p=hover>=0?PTS[hover]:null;
+  if(!p||!p._xy){tip.style.opacity=0;return;}
+  tip.style.left=p._xy[0]+'px'; tip.style.top=p._xy[1]+'px'; tip.style.opacity=1;
+}
+function idleStatus(){
+  return mode==='map'?'세계지도 — 공급국을 짚어 보세요':(spinning?'지구본 회전 중…':'멈춤 — 끌어서 돌릴 수 있습니다');
+}
+
+function loop(){
+  try{
+    const h=hitTest();
+    if(h!==hover){
+      hover=h;
+      if(h>=0){fillTip(PTS[h]); statusEl.textContent=PTS[h].name+' — 커서를 떼면 다시 돕니다';}
+      else statusEl.textContent=idleStatus();
+    }
+    if(spinning&&mode==='globe'&&hover<0&&!drag){const rot=projG.rotate();projG.rotate([rot[0]+0.2,rot[1],rot[2]]);}
+    if(arc<1) arc=Math.min(1,arc+0.02);
+    if(mode==='globe') drawGlobe(); else drawMap();
+    syncTip();
+  }catch(e){ statusEl.textContent='그리기 오류: '+(e&&e.message?e.message:e); return; }
+  requestAnimationFrame(loop);
+}
+function setMode(next){
+  mode=next; arc=0; t0=performance.now(); hover=-1; tip.style.opacity=0;
+  wrap.classList.toggle('flat',next==='map');
+  document.getElementById('b-globe').classList.toggle('on',next==='globe');
+  document.getElementById('b-map').classList.toggle('on',next==='map');
+  spinning=next==='globe';
+  statusEl.textContent=idleStatus();
+  drawGlobe(); drawMap();
+}
+wrap.addEventListener('mousemove',ev=>{
+  const b=wrap.getBoundingClientRect(); mouse=[ev.clientX-b.left, ev.clientY-b.top];
+});
+wrap.addEventListener('mouseleave',()=>{mouse=null;});
+wrap.addEventListener('mousedown',ev=>{if(mode!=='globe')return;
+  drag={x:ev.clientX,y:ev.clientY,r:projG.rotate()};spinning=false;statusEl.textContent='끌어서 돌리는 중';});
+window.addEventListener('mouseup',()=>{if(!drag)return;drag=null;
+  if(mode==='globe'){spinning=true;statusEl.textContent=idleStatus();}});
+window.addEventListener('mousemove',ev=>{if(!drag)return;
+  projG.rotate([drag.r[0]+(ev.clientX-drag.x)*0.32,
+    Math.max(-80,Math.min(80,drag.r[1]-(ev.clientY-drag.y)*0.32)),drag.r[2]]);});
+document.getElementById('b-globe').onclick=()=>setMode('globe');
+document.getElementById('b-map').onclick=()=>setMode('map');
+document.getElementById('b-replay').onclick=()=>{arc=0;t0=performance.now();};
+window.addEventListener('resize',()=>{size();drawGlobe();drawMap();});
+size(); projG.rotate([-KOREA[0]+18,-20,0]); loop();
+fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(r=>r.json()).then(topo=>{
+  world=topojson.feature(topo,topo.objects.countries); drawGlobe(); drawMap();
+}).catch(()=>{statusEl.textContent='지도 데이터를 불러오지 못해 경위선만 표시합니다(인터넷 연결 확인)';});
+</script></body></html>
+"""
+
+
+
+
 def supply_globe(points: list[dict], height: int = 430, unit: str = "백만 USD"):
-    """공급국 원 지도(평면). points = [{name, lat, lon, value, color, note}]. 그린 plotly 그림을 돌려준다(PNG 내려받기용)."""
+    """공급국 지구본(데모 HOME 그대로) — 회전 · 끌어서 돌리기 · 지구본↔지도 전환 · 공급국 → 한국 흐름 화살표.
+    points = [{name, lat, lon, value, color, note}] — 원 색 = 국가 색(표 · 막대와 같은 색), 원 크기 = 수입액.
+    지구본은 HTML 이라 PNG 로 바로 저장할 수 없어, 같은 값의 평면 지도(plotly)를 만들어 돌려준다(화면에는 그리지 않음 — PNG 단추용)."""
+    html = (_GLOBE.replace("__DATA__", json.dumps(points, ensure_ascii=False))
+            .replace("__KOREA__", json.dumps(KOREA)).replace("__UNIT__", unit)
+            .replace("__H__", str(height - 10)))
+    components.html(html, height=height, scrolling=False)
     fig = go.Figure()
     if points:
         vmax = max(p["value"] for p in points) or 1
         fig.add_trace(go.Scattergeo(
             lat=[p["lat"] for p in points], lon=[p["lon"] for p in points], mode="markers+text",
             text=[p["name"] for p in points], textposition="top center", textfont=dict(size=12.5, color=TEXT),
-            customdata=[[p["value"], p.get("note", "")] for p in points],
             marker=dict(size=[p["value"] for p in points], sizemode="area", sizeref=2 * vmax / 46 ** 2, sizemin=5,
-                        color=[p.get("color", ACCENT) for p in points], opacity=.85, line=dict(color="#ffffff", width=1.2)),
-            hovertemplate="<b>%{text}</b><br>%{customdata[0]:,.1f} " + unit + "<br>%{customdata[1]}<extra></extra>"))
+                        color=[p.get("color", ACCENT) for p in points], opacity=.85, line=dict(color="#ffffff", width=1.2))))
     fig.update_geos(projection_type="natural earth", showland=True, landcolor="#e8f0fa", showocean=True, oceancolor="#ffffff",
                     showcountries=True, countrycolor="#ffffff", coastlinecolor="#d3e0f0", showframe=False, bgcolor="rgba(0,0,0,0)",
                     lataxis_range=[-50, 75])
     fig.update_layout(height=height, margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor="rgba(0,0,0,0)", showlegend=False,
                       font=dict(family=SIDE_STACK))
-    st.plotly_chart(fig, width="stretch", theme=None, config={"displaylogo": False, "scrollZoom": False})
     return fig
 
 
@@ -958,6 +1214,7 @@ def png_button(fig, filename: str, label: str = "PNG 이미지 내려받기", wi
                                      font=dict(size=18, color=TEXT)))
         top += 56
     if source:
+        source = "출처: " + public_source(source)
         out.add_annotation(text=_plotly_rich(source), xref="paper", yref="paper", x=0, y=0, xanchor="left", yanchor="top",
                            yshift=-bottom - 18, showarrow=False, align="left", font=dict(size=12.5, color=MUTED))
         bottom += 34

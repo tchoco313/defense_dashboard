@@ -22,7 +22,8 @@ from ui import (SHORT, source_pop, chart_source, chart_title, country_map, csv_h
                 style_fig, zone)
 
 ALL = "__all__"
-SOURCE = "관세청 품목별 국가별 수출입실적(15100475) → fact_customs_monthly · 국가 전체 교역(민수 포함) · 국가는 선적국"
+# 화면 · CSV 출처는 「기관 · 데이터명(포털 ID) · 자료 기간」만 — DB 표 · 뷰 이름과 적재일은 쓰지 않는다(보안, 2026-09-24 사용자)
+SOURCE = "관세청 품목별 국가별 수출입실적(15100475) · 국가 전체 교역(민수 포함) · 국가는 선적국"
 PLOT_CFG = {"displaylogo": False, "modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "autoScale2d"]}
 TARGET = "SELECT hs6 FROM ref_hs_whitelist WHERE priority IN (1, 2)"   # 분석 대상 13개(2026-09-21 M5)
 
@@ -86,12 +87,12 @@ hero("조회", "조건을 골라 원하는 차트를 만들고, 표와 그림으
      stamps=[("관세청 수출입", STAMP)])
 if not STAMP["has_period"]:
     if STAMP["error"]:
-        st.error(f"관세청 월별 표(fact_customs_monthly)를 조회하지 못했습니다({STAMP['error']}). 잠시 뒤 다시 열어 주세요.")
+        st.error(f"관세청 수출입 자료를 조회하지 못했습니다({STAMP['error']}). 잠시 뒤 다시 열어 주세요.")
     else:
-        st.warning("관세청 월별 표(fact_customs_monthly)에 적재된 행이 없습니다(미적재).")
+        st.warning("관세청 수출입 자료가 아직 적재되지 않았습니다(미적재).")
     st.stop()
 
-with globe_loading("팀 DB 에서 기준표를 읽는 중"):
+with globe_loading("기준표를 읽는 중"):
     WL, CTRY, YRS = load_ref()
 HS_NAME = {h: SHORT.get(h, n) for h, n in zip(WL["hs6"], WL["name_ko"])}
 CTRY = CTRY[CTRY["stat_cd"] != "ZZ"]                       # 기타국(ZZ)은 한 나라가 아니라 국가 목록에서 뺀다
@@ -830,8 +831,7 @@ def query_result(q: dict, y0: int, y1: int) -> None:
             tag="참고값" if "중량" in m else "", icon=icon[m]) for m in q["metrics"])
     st.html(f'<div class="kpis q" style="grid-template-columns:repeat({min(len(q["metrics"]), 3)},1fr)">{cards}</div>')
 
-    src_q = (f"관세청 · 품목별 국가별 수출입실적(15100475) → fact_customs_monthly · 자료 기간 {STAMP['period']} · "
-             f"DB 적재 {STAMP.get('loaded') or '—'}")
+    src_q = f"관세청 · 품목별 국가별 수출입실적(15100475) · 자료 기간 {STAMP['period']}"
     t_chart, t_map, t_tbl = st.tabs(["차트", "국가별 분포 지도", "결과 표"])
     with t_chart:
         title, sub = query_title(df, q)
@@ -854,7 +854,7 @@ def query_result(q: dict, y0: int, y1: int) -> None:
         country_map({n: float(v) for n, v in by_c["수입액"].items() if v > 0},
                     {n: float(v) for n, v in by_c["수출액"].items() if v > 0},
                     modes=modes, height=400, note="선택 국가 기준", where=WHERE)
-        chart_source(f"{src_q} · 국가 좌표 ref_country · 수입 = 선적국, 수출 = 도착국")
+        chart_source(f"{src_q} · 국가 좌표는 나라 대표 위치 · 수입 = 선적국, 수출 = 도착국")
     with t_tbl:
         tm = ([m for m in q["metrics"] if m in Q_MONEY] or q["metrics"][:1])[0]
         tsum = df.groupby("국가")[tm].sum()
@@ -895,7 +895,7 @@ def page_search() -> None:
             else:
                 query_result(q, y0, y1)
     st.html('<div class="caption">수출입액은 국가 전체(민수 포함) 교역액이며 군수 수요 규모를 뜻하지 않습니다. 중량은 참고값(반올림 오차).</div>'
-            + source_pop(f'{SOURCE} · 자료 기간 {STAMP["period"]} · DB 적재 {STAMP.get("loaded") or "—"}'))
+            + source_pop(f'{SOURCE} · 자료 기간 {STAMP["period"]}'))
 
 
 page_search()

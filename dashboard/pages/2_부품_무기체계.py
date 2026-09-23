@@ -29,12 +29,13 @@ PLAN_C, B2_C = SERIES[0], SERIES[2]          # 국외 조달계획 · 국산화 
 ARMY_C = {"육군": SERIES[0], "해군": SERIES[1], "공군": SERIES[2], "해병대": SERIES[3], "국직": SERIES[4], "미확인": ETC}
 FSGS = ["58", "59", "60"]                    # clean.is_elec = fsg2 IN (58, 59, 60) — 2026-09-21 M4 확정
 FSG_C = {"58": SERIES[0], "59": SERIES[1], "60": SERIES[2]}
-SOURCE_LINE = ("방위사업청 국외 조달계획 OpenAPI(15158418) → clean_dapa_overseas_plan_api(is_elec=1 · FSG 58·59·60) · "
-               "국방전자조달시스템 국산화개발품목(15119899) → clean_dapa_localized_item · 군급분류집 → ref_fsc · ref_fsg")
-DOM_SOURCE = ("방위사업청 국내조달 계약정보(15050920) → clean_dapa_contract · 입찰공고 → clean_dapa_bid_notice · "
-              "입찰결과 → clean_dapa_bid_result · 국외조달 계약정보 → clean_dapa_overseas_contract")
-SRC_PLAN = "방위사업청 국외 조달계획 OpenAPI(15158418) → clean_dapa_overseas_plan_api(is_elec=1 · FSG 58·59·60) · 군급분류집 → ref_fsc · ref_fsg"
-SRC_B2 = "국방전자조달시스템 국산화개발품목(15119899) → clean_dapa_localized_item(is_electronic_group=1) · 군급분류집 → ref_fsc · ref_fsg"
+# 화면 출처 = 기관 · 데이터명(포털 ID) · 자료 기간만. DB 표 · 뷰 · 열 이름과 DB 적재일은 쓰지 않는다(보안, 2026-09-24 사용자)
+SOURCE_LINE = ("방위사업청 국외 조달계획 OpenAPI(15158418, 전자 군급 FSG 58·59·60) · "
+               "국방전자조달시스템 국산화개발품목(15119899) · 방위사업청 군급분류집")
+DOM_SOURCE = ("방위사업청 국내조달 계약정보(15050920) · 방위사업청 국내 입찰공고 · 방위사업청 국내 입찰결과 · "
+              "방위사업청 국외조달 계약정보")
+SRC_PLAN = "방위사업청 국외 조달계획 OpenAPI(15158418, 전자 군급 FSG 58·59·60) · 방위사업청 군급분류집"
+SRC_B2 = "국방전자조달시스템 국산화개발품목(15119899, 전자 군급) · 방위사업청 군급분류집"
 PLOT_CFG = {"displaylogo": False, "modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "autoScale2d"]}
 
 
@@ -123,8 +124,11 @@ def pct(n: float, d: float) -> float:
     return n / d * 100 if d else 0.0
 
 
-def stamp_txt(s: dict) -> str:
-    return "—(조회 실패)" if s.get("error") and not s.get("loaded") else (s.get("loaded") or "—")
+def period_txt(s: dict) -> str:
+    """출처 줄의 자료 기간 — 기간이 없는 목록형 자료는 「기준일 미표기」, 조회 실패는 그대로 알린다(DB 적재일은 쓰지 않는다)."""
+    if s.get("error") and not s.get("has_period"):
+        return "—(조회 실패)"
+    return s["period"] if s.get("has_period") else "기준일 미표기"
 
 
 s_plan = data_stamp("dapa_overseas_plan_api", "clean_dapa_overseas_plan_api")
@@ -133,7 +137,7 @@ s_con = data_stamp("dapa_contract", "clean_dapa_contract")
 hero("② 조달·국산화 근거", "전자 군급별 국외 조달계획과 국산화를 마친 부품, 국내 조달이 이뤄지는 방식을 봅니다",
      stamps=[("국외 조달계획", s_plan), ("국산화개발품목", s_b2), ("국내 계약", s_con)])
 
-with st.spinner("팀 DB에서 방위사업청 조달계획·국산화 목록을 읽는 중"):
+with st.spinner("방위사업청 조달계획 · 국산화 목록을 읽는 중"):
     d = load()
 fsc_name = dict(zip(d["fsc"]["fsc4"], d["fsc"]["name_ko"]))
 fsg_name = dict(zip(d["fsg"]["fsg_code"], d["fsg"]["name_ko"]))
@@ -169,12 +173,12 @@ else:
         st.html('<div class="kpis">'
                 + kpi("국외 조달계획 품목", f"{len(plan):,}", "건", f"요구연도 {yr_txt} · 조달요구번호 × 품목순번 행")
                 + kpi("해당 군급(FSC)", f"{plan['fsc4'].nunique()}", "개", "조달계획에 나온 FSC4 수")
-                + kpi("국산화 완료 부품", f"{n_parts:,}", "개", "part_mgmt_no 고유 · 국산화율 아님")
+                + kpi("국산화 완료 부품", f"{n_parts:,}", "개", "부품관리번호 기준 고유 수 · 국산화율 아님")
                 + kpi("국산화 사업", f"{n_proj}", "개", f"B2 지상 {d['all_projects']}개 사업 중")
                 + kpi("적용장비", f"{plan['equipment'].nunique():,}", "종", "고유 수(결측 제외) · 이름은 싣지 않음")
                 + "</div>")
         st.html('<div class="caption">두 자료는 합산 · 비교하지 않음 · 금액 미사용(통화 미검증)</div>')
-        chart_source(f"{SOURCE_LINE} · 조달계획 DB 적재 {stamp_txt(s_plan)} · 국산화개발품목 DB 적재 {stamp_txt(s_b2)}")
+        chart_source(f"{SOURCE_LINE} · 국외 조달계획 {period_txt(s_plan)} · 국산화개발품목 {period_txt(s_b2)}")
 
     # ── 군급 분포 ──────────────────────────────────────────────────────────────
     with zone("fsg", "군급 분포"):
@@ -188,7 +192,7 @@ else:
                      f'<span class="key">{escape(f_top[0])} {pct(f_top[1], f_tot):.0f}%</span>') if f_top and f_tot else "FSG 58·59·60 분포"
             chart_title(t_fsg, f"건 · 요구연도 {yr_txt} · 국외 조달계획")
             chart(hbar(fsg_rows, 300, "건"), f"조달계획_FSG분포_{tag}", "p2_fsg_bar", title=t_fsg, source=SRC_PLAN)
-            chart_source(f"{SRC_PLAN} · DB 적재 {stamp_txt(s_plan)}")
+            chart_source(f"{SRC_PLAN} · 국외 조달계획 {period_txt(s_plan)}")
         top_fsc = by_fsc[by_fsc["plan_n"] > 0].nlargest(8, "plan_n")
         fsc_rows = [(f"{f} {n}"[:24], int(v), SERIES[i % len(SERIES)]) for i, (f, n, v) in
                     enumerate(zip(top_fsc["fsc4"], top_fsc["name"], top_fsc["plan_n"]))]
@@ -199,7 +203,7 @@ else:
                          f'<span class="key">{escape(str(r0.fsc4))} {escape(str(r0["name"]))}({int(r0.plan_n):,}건)</span>')
                 chart_title(t_fsc, f"건 · 요구연도 {yr_txt} · 상위 8")
                 chart(hbar(fsc_rows, 300, "건"), f"조달계획_FSC상위_{tag}", "p2_fsc_bar", title=t_fsc, source=SRC_PLAN)
-                chart_source(f"{SRC_PLAN} · DB 적재 {stamp_txt(s_plan)}")
+                chart_source(f"{SRC_PLAN} · 국외 조달계획 {period_txt(s_plan)}")
             else:
                 chart_title("FSC 상위 군급", "건 · 상위 8")
                 st.info("이 조건에는 국외 조달계획 행이 없습니다(0건).")
@@ -219,10 +223,10 @@ else:
             if tot_loc:
                 png_button(pie_fig([r for r in loc_rows if r[1] > 0], f"{tot_loc:,.0f}<br>국산화 완료 부품"),
                            f"국산화완료부품_FSG_{tag}", align="flex-start", title=t_loc, source=SRC_B2)
-            chart_source(f"{SRC_B2} · DB 적재 {stamp_txt(s_b2)}")
+            chart_source(f"{SRC_B2} · 국산화개발품목 {period_txt(s_b2)}")
         c2.html(rules_card("읽는 법", [
             ("국산화율이 아닙니다", f"지상 {d['all_projects']}개 사업에서 국산화개발을 마친 부품 수이며 비율 지표가 아닙니다."),
-            ("조각 크기 = 부품 수", "금액이 아니라 부품(part_mgmt_no) 개수 기준입니다. FSC4별로 센 뒤 더해 고유 수와 조금 다를 수 있습니다."),
+            ("조각 크기 = 부품 수", "금액이 아니라 부품(부품관리번호) 개수 기준입니다. FSC4별로 센 뒤 더해 고유 수와 조금 다를 수 있습니다."),
             ("조달계획과 연결하지 않습니다", "같은 군급 축에 나란히 놓을 뿐, 한쪽이 많다고 「국산화가 부족하다」는 뜻이 아닙니다."),
         ]))
 
@@ -237,7 +241,7 @@ else:
                               "국산화개발품목(B2) · 상위 5 군급 · 적용장비 이름은 싣지 않습니다",
                               [(f"{f} {n}", float(v), SERIES[i % len(SERIES)]) for i, (f, n, v) in
                                enumerate(zip(top_b2["fsc4"], top_b2["name"], top_b2["parts"]))], "부품 수"))
-            chart_source(f"{SRC_B2} · DB 적재 {stamp_txt(s_b2)}", where=c1)
+            chart_source(f"{SRC_B2} · 국산화개발품목 {period_txt(s_b2)}", where=c1)
         else:
             c1.info("이 조건에는 국산화 완료 부품이 없습니다(0개).")
         with c2.container(border=True, key="card_army"):
@@ -260,7 +264,7 @@ else:
             g = d["gap"]
             st.html(f'<div class="caption">원자료가 2018~2020년에 비어 있는 구간(전체 {g["n"]:,}행 중 2018 {g["y18"]:,} · '
                     f'2019 {g["y19"]:,} · 2020 {g["y20"]:,}건)이라 「조달 없음 · 감소」로 읽지 않습니다.</div>')
-            chart_source(f"{SRC_PLAN} · DB 적재 {stamp_txt(s_plan)}")
+            chart_source(f"{SRC_PLAN} · 국외 조달계획 {period_txt(s_plan)}")
 
     # ── 군급별 나란히(대칭 막대) · 표 · CSV ─────────────────────────────────────
     with zone("pair", "군급별 국외 조달계획 · 국산화 완료"):
@@ -284,7 +288,7 @@ else:
                                          ticktext=[f"{lim * 0.7:,.0f}건", "0", f"{lim * 0.7:,.0f}개"]),
                               legend=dict(orientation="h", y=1.08), margin=dict(l=280, r=40, t=30, b=8))
             chart(fig, f"군급별_조달계획_국산화_{tag}", "p2_pair_bar", title=t_pair, source=f"{SRC_PLAN} · {SRC_B2}")
-            chart_source(f"{SOURCE_LINE} · 조달계획 DB 적재 {stamp_txt(s_plan)} · 국산화개발품목 DB 적재 {stamp_txt(s_b2)}")
+            chart_source(f"{SOURCE_LINE} · 국외 조달계획 {period_txt(s_plan)} · 국산화개발품목 {period_txt(s_b2)}")
         tbl = by_fsc.sort_values(["plan_n", "parts"], ascending=False)
         view = pd.DataFrame({"FSC": tbl["fsc4"], "군급 명칭": tbl["name"], "국외 조달계획(건)": tbl["plan_n"].astype(int),
                              "적용장비(종)": tbl["eq_n"].astype(int), "국산화 완료 부품(개)": tbl["parts"].astype(int),
@@ -296,14 +300,13 @@ else:
             st.dataframe(view, hide_index=True, width="stretch", height=min(38 + 35 * len(view), 420))
             head = csv_header(
                 f"FSG {','.join(g_pick)} · 소요군 {','.join(a_pick)}(조달계획에만 적용)",
-                "방위사업청 국외 조달계획 OpenAPI(15158418) → clean_dapa_overseas_plan_api(is_elec=1) · "
-                "국방전자조달 국산화개발품목(15119899) → clean_dapa_localized_item(is_electronic_group=1)",
+                "방위사업청 국외 조달계획 OpenAPI(15158418, 전자 군급) · 국방전자조달시스템 국산화개발품목(15119899, 전자 군급)",
                 [("국외 조달계획", s_plan, f"요구연도 {yr_txt}(원자료 2018~2020 공백)" if years else None), ("국산화개발품목", s_b2, None)],
-                extra="건수 = 조달계획 행 수(조달요구번호 × 품목순번) · 부품 수 = part_mgmt_no 고유 · 두 자료는 합산·비교하지 않음")
+                extra="건수 = 조달계획 행 수(조달요구번호 × 품목순번) · 부품 수 = 부품관리번호 기준 고유 수 · 두 자료는 합산·비교하지 않음")
             st.download_button("군급 표 CSV 내려받기", (head + view.to_csv(index=False)).encode("utf-8-sig"),
                                file_name=f"fsc_plan_localized_FSG{'-'.join(g_pick)}.csv", mime="text/csv", key="p2_csv",
                                icon=":material/download:", type="primary")
-            chart_source(f"{SOURCE_LINE} · 조달계획 DB 적재 {stamp_txt(s_plan)} · 국산화개발품목 DB 적재 {stamp_txt(s_b2)}")
+            chart_source(f"{SOURCE_LINE} · 국외 조달계획 {period_txt(s_plan)} · 국산화개발품목 {period_txt(s_b2)}")
 
 # ══ 국내 조달(부록) ══════════════════════════════════════════════════════════
 dm = load_domestic()
@@ -329,11 +332,11 @@ with zone("dkpi", "국내 조달 핵심 지표"):
             + kpi("경쟁입찰 유찰률", f"{fail_keys / keys_tot * 100:.1f}", "%", f"유찰 {fail_keys:,} / 공고 키 {keys_tot:,}")
             + kpi("낙찰업체", f"{o['winners']:,}", "개", "사업자번호 기준(입찰결과)")
             + "</div>")
-    chart_source(f'{DOM_SOURCE} · 계약 {s_con["period"]} · DB 적재 {stamp_txt(s_con)}')
+    chart_source(f'{DOM_SOURCE} · 국내 계약 {period_txt(s_con)}')
 
 with zone("dmethod", "계약 방법"):
     c1, c2 = st.columns([1.4, 1], gap="medium")
-    src_con = f'방위사업청 국내조달 계약정보(15050920) → clean_dapa_contract(is_latest_seq=1) · 계약 {s_con["period"]} · DB 적재 {stamp_txt(s_con)}'
+    src_con = f'방위사업청 국내조달 계약정보(15050920, 계약번호별 최종 차수) · 국내 계약 {period_txt(s_con)}'
     with c1.container(border=True, key="card_dmethod"):
         t_meth = (f"국내 계약 {n_con:,}건 중 가장 많은 계약 방법은 "
                   f'<span class="key">{escape(str(m.iloc[0].m))}({pct(m.iloc[0].n, n_con):.1f}%)</span>') if not m.empty else "계약 체결 방법별 건수"
@@ -347,7 +350,7 @@ with zone("dmethod", "계약 방법"):
         st.html(pct_rows([("국내조달", pct(priv, n_con), SERIES[2]), ("국외조달", pct(o["ov_priv"], o["ov_n"]), SERIES[0])])
                 + f'<div class="caption">국내 {priv:,} / {n_con:,}계약 · 국외 {o["ov_priv"]:,} / {o["ov_n"]:,}계약. '
                   '국내는 소액·소기업 사유가 대부분이라 비중 차이를 곧 진입 장벽으로 읽지 않습니다.</div>')
-        chart_source(f"{src_con} · 국외조달 계약정보 → clean_dapa_overseas_contract")
+        chart_source(f"{src_con} · 방위사업청 국외조달 계약정보")
 
 with zone("dreason", "수의계약 사유"):
     c1, c2 = st.columns([1.4, 1], gap="medium")
@@ -359,7 +362,7 @@ with zone("dreason", "수의계약 사유"):
         t_rsn = (f"수의계약 {r_tot:,}계약 중 가장 많은 사유는 "
                  f'<span class="key">{escape(str(rs.iloc[0].g))}({pct(rs.iloc[0].n, r_tot):.0f}%)</span>') if not rs.empty and r_tot else "수의계약 사유 그룹"
         chart_title(t_rsn, "계약 · 계약번호당 1행")
-        src_rsn = f"{src_con} · 사유 그룹 = v_contract_private_reason"
+        src_rsn = f"{src_con} · 수의계약 사유는 원문 사유를 팀이 그룹으로 묶은 것"
         chart(hbar(rows, 340, "계약"), "국내조달_수의계약사유", "p2_dreason", title=t_rsn, source=src_rsn)
         chart_source(src_rsn)
     c2.html(rules_card("사유를 읽는 법", [
@@ -372,7 +375,7 @@ with zone("dbid", "입찰 결과"):
     c1, c2 = st.columns([1.2, 1], gap="medium")
     bid_c = {"개찰완료": SERIES[0], "유찰": SERIES[3], "순위확정": SERIES[1]}   # 파랑 · 옅은 파랑 · 하늘(조각끼리 구분)
     bid_rows = [(r, float(bid.at[r, "rows_n"]), bid_c[r]) for r in ("개찰완료", "유찰", "순위확정") if r in bid.index]
-    src_bid = f'방위사업청 국내 입찰결과(파일데이터) → clean_dapa_bid_result · DB 적재 {stamp_txt(data_stamp("dapa_bid_result", "clean_dapa_bid_result"))}'
+    src_bid = f'방위사업청 국내 입찰결과(파일데이터) · 자료 기간 {period_txt(data_stamp("dapa_bid_result", "clean_dapa_bid_result"))}'
     with c1.container(border=True, key="card_dbid"):
         tot_bid = sum(v for _, v, _ in bid_rows)
         b_top = max(bid_rows, key=lambda r: r[1]) if bid_rows else None
@@ -391,7 +394,7 @@ with zone("dbid", "입찰 결과"):
                 + f'<div class="caption" style="margin-top:10px">긴급 공고 {urgent:,} / {n_notice:,} · 유찰 {fail_keys:,} / {keys_tot:,} 공고 키 · '
                   f'재공고 {int(nt.get("재공고", 0)):,} · 취소 {int(nt.get("취소", 0)):,}.<br>'
                   '국외조달 입찰결과는 부분연도라 연간 유찰률로 쓰지 않고 국내와 나란히 두지 않습니다. 낙찰금액 ≠ 계약금액.</div>')
-        chart_source("방위사업청 국내 입찰공고 → clean_dapa_bid_notice · 입찰결과 → clean_dapa_bid_result")
+        chart_source("방위사업청 국내 입찰공고 · 방위사업청 국내 입찰결과")
     agg = pd.concat([
         pd.DataFrame({"구분": "계약 방법(계약)", "항목": m["m"], "건수": m["n"].astype(int)}),
         pd.DataFrame({"구분": "수의계약 사유 그룹(계약)", "항목": dm["reason"]["g"], "건수": dm["reason"]["n"].astype(int)}),
@@ -400,7 +403,7 @@ with zone("dbid", "입찰 결과"):
         pd.DataFrame({"구분": "공고 상태(공고)", "항목": nt.index, "건수": nt.astype(int).values})])
     head = csv_header(f'국내 조달 전체({s_con["period"]}) · 건수만(금액 미사용)', DOM_SOURCE,
                       [("국내 계약", s_con, None), ("입찰공고", data_stamp("dapa_bid_notice", "clean_dapa_bid_notice"), None)],
-                      extra="계약 = clean_dapa_contract is_latest_seq=1 · 사유 = v_contract_private_reason · 유찰률 = 유찰 공고 키 ÷ 공고 키")
+                      extra="계약 = 계약번호별 최종 차수 · 사유 = 수의계약 사유 그룹(팀 분류) · 유찰률 = 유찰 공고 키 ÷ 공고 키")
     st.download_button("국내 조달 집계 CSV 내려받기", (head + agg.to_csv(index=False)).encode("utf-8-sig"),
                        file_name="domestic_procurement_counts.csv", mime="text/csv", key="p2_dom_csv",
                        icon=":material/download:", type="primary")

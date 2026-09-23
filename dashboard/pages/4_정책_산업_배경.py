@@ -20,11 +20,14 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from db import data_stamp, query, try_query
-from ui import (ACCENT, ETC, MUTED, SERIES, TEXT, chart_source, chart_title, csv_header, dark_geo, globe_loading, hero, kpi,
+from ui import (ACCENT, COUNTRY_COLOR, ETC, MUTED, SERIES, TEXT, chart_source, chart_title, csv_header, dark_geo, globe_loading, hero, kpi,
                 png_button, rules_card, style_fig, zone)
 
 HIGHLIGHT = "통신전자"   # 방산 분야 중 전자부품과 가장 가까운 분야 — 강조색
-GREY = "#cdd6e4"
+AVG_COLOR = "#64748b"    # 분야 평균선 — 중립 점선
+# 방산 분야 색(가동률 선 · 방산업체 막대 공용 — 같은 분야 = 같은 색). 통신전자는 주황으로 강조, 기타는 회색
+SECTOR_COLOR = {"통신전자": SERIES[1], "항공유도": SERIES[0], "기동": SERIES[2], "함정": SERIES[3], "탄약": SERIES[4],
+                "화력": SERIES[5], "화생방": SERIES[6], "항공": SERIES[7], "기타": ETC}
 # 국방반도체 참조표(RDS ref_semi_*, alter_2026-09-23_semi_ref.sql) — 키 → SELECT. date 열은 DB 에서 event_date
 SEMI_SQL = {
     "chip_type": "SELECT type_no, name_ko, summary, material_process, example_devices, related_hs6, hs_basis, source "
@@ -112,8 +115,8 @@ def caption(text: str) -> None:
 
 
 def stamp_txt(name: str, s: dict) -> str:
-    failed = s.get("error") and not s.get("has_period") and not s.get("loaded")
-    return f'{name} {"—(조회 실패)" if failed else s["period"]} · DB 적재 {s.get("loaded") or "—"}'
+    failed = s.get("error") and not s.get("has_period")
+    return f'{name} {"—(조회 실패)" if failed else s["period"]}'   # DB 적재일은 화면에 쓰지 않는다(보안, 2026-09-24)
 
 
 def yoy_badge(cur: float, prev: float | None, unit: str = "%") -> str:
@@ -124,7 +127,7 @@ def yoy_badge(cur: float, prev: float | None, unit: str = "%") -> str:
     return f'<span class="{"up" if d >= 0 else "dn"}">{"▲" if d >= 0 else "▼"} {d:+.1f}{unit}</span> 전년 대비'
 
 
-with globe_loading("팀 DB 에서 배경 자료를 읽는 중"):
+with globe_loading("배경 자료를 읽는 중"):
     d = load()
 s_plan = data_stamp("dapa_overseas_plan", "clean_dapa_overseas_plan")
 s_bud = data_stamp("openfiscal_program_budget", "clean_openfiscal_program_budget")
@@ -143,6 +146,10 @@ yearly = (p.groupby("plan_year", as_index=False).agg(n=("plan_count", "sum"), kr
                                                     elec=("elec_candidate_count", "sum"))
           if not p.empty else pd.DataFrame(columns=["plan_year", "n", "krw", "elec"]))
 yearly["year"] = yearly["plan_year"].astype(int)
+# 집행유형 색(누적 예산 막대 · 건수 막대 · 히트맵 행 공용 — 같은 유형 = 같은 색). 전체 계획 예산 큰 순서로 8색, 「기타」 · 9번째부터 회색
+_exec_rank = (p[p["exec_type"] != "기타"].groupby("exec_type")["budget_krw"].sum().sort_values(ascending=False).index.tolist()
+              if not p.empty else [])
+EXEC_COLOR = {t: (SERIES[i] if i < len(SERIES) else ETC) for i, t in enumerate(_exec_rank)} | {"기타": ETC}
 b = d["budget"].copy()
 b["year"] = b["fiscal_year"].astype(int)
 b["pct"] = b["tech_dev_gov_100m"] / b["total_gov_100m"] * 100
@@ -175,14 +182,14 @@ with zone("bkpi", "예산 · 조달"):
         cards.append(kpi("전자부품 생산지수(C262)", f"{e2.v:.1f}", "", f"{e2.ym:%Y.%m} · 2020 = 100 · 계절조정 · 민수 포함",
                          "잠정" if e2.prelim else ""))
     st.html('<div class="kpis k4">' + "".join(cards) + "</div>")
-    chart_source(f"방위사업청 국외조달 계획 → clean_dapa_overseas_plan · {stamp_txt('국외조달 계획', s_plan)} · "
-                 f"KOSIS 방산업체 가동률 → clean_kosis_utilization · {stamp_txt('KOSIS 가동률', s_util)} · "
-                 f"KOSIS 광공업생산지수 → clean_kosis_production_index · {stamp_txt('KOSIS 생산지수', s_prod)}")
+    chart_source(f"방위사업청 국외조달 조달계획(파일데이터) · {stamp_txt('국외조달 계획', s_plan)} · "
+                 f"통계청 KOSIS 방산업체 가동률 · {stamp_txt('KOSIS 가동률', s_util)} · "
+                 f"통계청 KOSIS 광공업생산지수 · {stamp_txt('KOSIS 생산지수', s_prod)}")
 
 # ── 2. 예산 추이 ─────────────────────────────────────────────────────────────
 with zone("bud", "예산 추이"):
     c1, c2 = st.columns(2, gap="medium")
-    src_plan = f"방위사업청 국외조달 조달계획(파일데이터) → clean_dapa_overseas_plan · v_overseas_plan_yearly · {stamp_txt('국외조달 계획', s_plan)}"
+    src_plan = f"방위사업청 국외조달 조달계획(파일데이터) · {stamp_txt('국외조달 계획', s_plan)}"
     with c1.container(border=True, key="card_bud"):
         if yearly.empty:
             chart_title("연도별 국외조달 계획 예산", "억 원 · 원화 계획(집행 예정액)")
@@ -192,18 +199,27 @@ with zone("bud", "예산 추이"):
             by0, by1, bv0, bv1 = int(yearly["year"].iloc[0]), int(yearly["year"].iloc[-1]), float(ys.iloc[0]), float(ys.iloc[-1])
             t_bud = (f"국외조달 계획 예산은 {by0}년 {bv0:,.0f}억 원에서 {by1}년 "
                      f'<span class="key">{bv1:,.0f}억 원</span>으로 {trend(bv0, bv1)}')
-            chart_title(t_bud, f"억 원 · 계획연도 {by0}~{by1} · 원화 계획(집행 예정액)")
-            fig = go.Figure(go.Bar(x=yearly["year"], y=ys, marker=dict(color="#9dbdf9", line=dict(color="#fff", width=1)),
-                                   text=[f"{v:,.0f}" for v in ys], textposition="outside",
-                                   textfont=dict(size=12, color=TEXT), cliponaxis=False,
-                                   hovertemplate="%{x}년<br>%{y:,.0f}억 원<extra></extra>"))
+            chart_title(t_bud, f"억 원 · 계획연도 {by0}~{by1} · 원화 계획(집행 예정액) · 색 = 집행유형(예산 상위 5 + 기타)")
+            top_b = _exec_rank[:5]   # 예산 상위 5개 유형 + 기타(나머지 유형 포함) — 합계는 연도 합 그대로
+            bmix = (p.assign(grp=p["exec_type"].where(p["exec_type"].isin(top_b), "기타"), y=p["plan_year"].astype(int))
+                    .groupby(["y", "grp"])["budget_krw"].sum().unstack(fill_value=0) / E8)
+            fig = go.Figure()
+            for g in top_b + ["기타"]:
+                if g in bmix.columns:
+                    fig.add_trace(go.Bar(x=bmix.index, y=bmix[g], name=g,
+                                         marker=dict(color=EXEC_COLOR.get(g, ETC), line=dict(color="#fff", width=1)),
+                                         hovertemplate=g + " %{x}년<br>%{y:,.0f}억 원<extra></extra>"))
+            for yv, tv in zip(yearly["year"], ys):   # 막대 위 합계
+                fig.add_annotation(x=yv, y=tv, text=f"{tv:,.0f}", showarrow=False, yshift=9,
+                                   font=dict(size=12, color=TEXT))
             fig.update_xaxes(dtick=1)
             fig.update_yaxes(tickformat=",.0f", range=[0, ys.max() * 1.15])
-            fig.update_layout(showlegend=False, bargap=.35, margin=dict(l=50, r=8, t=20, b=8))
+            fig.update_layout(barmode="stack", bargap=.35, legend=dict(orientation="h", y=1.16),
+                              margin=dict(l=50, r=8, t=20, b=8))
             chart(style_fig(fig, 330), "국외조달계획예산", title=t_bud, source=src_plan)
             caption("계획연도 합 · 계약 · 집행 실적이 아님 · 관세청 수입액(USD)과 비교하지 않음")
             chart_source(src_plan)
-    src_bud = f"열린재정 세부사업 예산 → clean_openfiscal_program_budget · v_budget_rnd_yearly · {stamp_txt('열린재정', s_bud)}"
+    src_bud = f"기획재정부 열린재정 세부사업 예산 · {stamp_txt('열린재정', s_bud)}"
     with c2.container(border=True, key="card_ratio"):
         sf, sd = b[b["amount_basis"] == "확정"], b[b["amount_basis"] != "확정"]
         if sf.empty:
@@ -238,9 +254,9 @@ with zone("proc", "국외조달 절차 · 집행유형별 예산"):
     c1, c2 = st.columns([1, 1.35], gap="medium")
     pc = d["proc"].iloc[0]
     fmt_ym = lambda v: f"{str(v)[:4]}.{str(v)[4:6]}" if v and len(str(v)) >= 6 else str(v)
-    steps_src = [("계획", "", "조달 필요 확인<br>구매계획 수립", int(pc.plan_n), "#1d4ed8"),
-                 ("입찰", "", "국외 공고 및 입찰<br>업체 평가 · 선정", int(pc.bid_n), "#0369a1"),
-                 ("계약", "", "계약 체결<br>납품 및 이행 관리", int(pc.ctr_n), "#1e3a8a")]
+    steps_src = [("계획", "", "조달 필요 확인<br>구매계획 수립", int(pc.plan_n), SERIES[0]),
+                 ("입찰", "", "국외 공고 및 입찰<br>업체 평가 · 선정", int(pc.bid_n), SERIES[1]),
+                 ("계약", "", "계약 체결<br>납품 및 이행 관리", int(pc.ctr_n), SERIES[2])]
     steps = '<div class="ar">→</div>'.join(
         f'<div class="st"><div class="ci" style="background:{bg}"><span>{ic}</span><b>{nm}</b></div>'
         f'<div class="ds">{ds}</div><div class="n">{n:,}<small>건</small></div></div>'
@@ -250,9 +266,9 @@ with zone("proc", "국외조달 절차 · 집행유형별 예산"):
                     f'<span class="key">{int(pc.ctr_n):,}건</span> — 기간이 달라 전환율로 읽지 않는다', "건 · 단계별 행 수(실측)")
         st.html(f'<div class="proc">{steps}</div>')
         caption("조달계획 ≠ 계약 · 단계마다 기간 · 단위가 달라 앞 단계 대비 비율로 보지 않습니다")
-        chart_source(f"방위사업청 국외조달 계획 · 입찰결과 · 계약(파일데이터) → clean_dapa_overseas_plan({pc.plan_y0}~{pc.plan_y1}) · "
-                     f"clean_dapa_overseas_bid_result({fmt_ym(pc.bid_y0)}~{fmt_ym(pc.bid_y1)}, 결과 행) · "
-                     f"clean_dapa_overseas_contract({pc.ctr_y0}~{pc.ctr_y1}) · DB 적재 {s_plan.get('loaded') or '—'}")
+        chart_source(f"방위사업청 국외조달 조달계획({pc.plan_y0}~{pc.plan_y1}) · "
+                     f"국외조달 입찰결과({fmt_ym(pc.bid_y0)}~{fmt_ym(pc.bid_y1)}, 결과 행) · "
+                     f"국외조달 계약정보({pc.ctr_y0}~{pc.ctr_y1}) · 모두 파일데이터")
     with c2.container(border=True, key="card_heat"):
         if p.empty:
             chart_title("집행유형별 국외조달 계획 예산", "억 원")
@@ -273,7 +289,8 @@ with zone("proc", "국외조달 절차 · 집행유형별 예산"):
                               tickfont=dict(color=MUTED, size=12.5)),
                 hovertemplate="%{y} · %{x}년<br>%{customdata:,.0f}억 원<extra></extra>"))
             fig.update_xaxes(dtick=1, showgrid=False, tickfont=dict(size=12))
-            fig.update_yaxes(autorange="reversed", showgrid=False)
+            fig.update_yaxes(autorange="reversed", showgrid=False, tickmode="array", tickvals=list(hm.index),
+                             ticktext=[f'<span style="color:{EXEC_COLOR.get(t, ETC)}">■</span> {t}' for t in hm.index])
             fig = style_fig(fig, 330)
             fig.update_layout(margin=dict(l=90, r=8, t=10, b=30))
             chart(fig, "집행유형별예산히트맵", title=t_heat, source=src_plan)
@@ -281,9 +298,9 @@ with zone("proc", "국외조달 절차 · 집행유형별 예산"):
             chart_source(src_plan)
 
 # ── 4. 운영 DB 실측 — 가동률 · 국산화 예산 · 계획 · 방산업체 ─────────────────────
-with zone("facts", "운영 DB 실측 — 가동률 · 국산화 예산 · 국외조달 계획"):
+with zone("facts", "실측 — 가동률 · 국산화 예산 · 국외조달 계획"):
     c1, c2 = st.columns(2, gap="medium")
-    src_util = f"통계청 KOSIS 방산업체 경영분석(가동률) → clean_kosis_utilization · {stamp_txt('KOSIS 가동률', s_util)}"
+    src_util = f"통계청 KOSIS 방산업체 경영분석(가동률) · {stamp_txt('KOSIS 가동률', s_util)}"
     with c1.container(border=True, key="card_util"):
         if u.empty:
             chart_title("방산 분야별 가동률", "%")
@@ -304,10 +321,11 @@ with zone("facts", "운영 DB 실측 — 가동률 · 국산화 예산 · 국외
             for name, g in u.groupby("sector_name"):
                 if name in (HIGHLIGHT, "평균"):
                     continue
-                fig.add_trace(go.Scatter(x=g["year"], y=g["v"], name=name, mode="lines", showlegend=False,
-                                         line=dict(color=GREY, width=1.4), hovertemplate=name + " %{x}년 %{y:.1f}%<extra></extra>"))
+                fig.add_trace(go.Scatter(x=g["year"], y=g["v"], name=name, mode="lines", opacity=.6,
+                                         line=dict(color=SECTOR_COLOR.get(name, ETC), width=1.6),
+                                         hovertemplate=name + " %{x}년 %{y:.1f}%<extra></extra>"))
             n_sector = u.loc[u["sector_name"] != "평균", "sector_name"].nunique()
-            for name, dash, color, w in (("평균", "dash", SERIES[3], 2), (HIGHLIGHT, None, SERIES[1], 3)):
+            for name, dash, color, w in (("평균", "dash", AVG_COLOR, 2), (HIGHLIGHT, None, SECTOR_COLOR[HIGHLIGHT], 3.2)):
                 g = u[u["sector_name"] == name].sort_values("year")
                 if g.empty:
                     continue
@@ -317,8 +335,8 @@ with zone("facts", "운영 DB 실측 — 가동률 · 국산화 예산 · 국외
                                          hovertemplate=name + " %{x}년 %{y:.1f}%<extra></extra>"))
             fig.update_xaxes(dtick=1)
             fig.update_yaxes(range=[max(0, u["v"].min() - 5), min(100, u["v"].max() + 5)], ticksuffix="%")
-            fig.update_layout(legend=dict(orientation="h", y=1.14))
-            chart(style_fig(fig, 330), "방산가동률", title=t_util, source=src_util)
+            fig.update_layout(legend=dict(orientation="h", y=1.2, font=dict(size=12)))
+            chart(style_fig(fig, 360), "방산가동률", title=t_util, source=src_util)
             hi = u[u["sector_name"] == HIGHLIGHT].sort_values("year")
             if not hi.empty:
                 caption(f"{HIGHLIGHT}은 {int(hi['year'].min())}~{int(hi['year'].max())}년 {hi['v'].min():.1f}~{hi['v'].max():.1f}% "
@@ -377,10 +395,10 @@ with zone("facts", "운영 DB 실측 — 가동률 · 국산화 예산 · 국외
                      f'<span class="key">{escape(str(keep[0]))}({k_share:.0f}%)</span>') if keep else "국외조달 계획 — 집행유형별 건수"
             chart_title(t_mix, f"건 · 계획연도 {y0}~{y1} · 상위 5개 유형 + 기타")
             fig = go.Figure()
-            for i, g in enumerate(keep + ["기타"]):
+            for g in keep + ["기타"]:
                 if g in mix.columns:
                     fig.add_trace(go.Bar(x=mix.index, y=mix[g], name=g,
-                                         marker=dict(color=(SERIES[:5] + [ETC])[i], line=dict(color="#fff", width=1)),
+                                         marker=dict(color=EXEC_COLOR.get(g, ETC), line=dict(color="#fff", width=1)),
                                          hovertemplate=g + " %{x}년 %{y}건<extra></extra>"))
             fig.update_xaxes(dtick=1)
             fig.update_layout(barmode="stack", legend=dict(orientation="h", y=1.16), bargap=.3)
@@ -393,7 +411,7 @@ with zone("facts", "운영 DB 실측 — 가동률 · 국산화 예산 · 국외
             tbl = tbl.reset_index().rename(columns={"y": "계획연도"})
             tbl["계획 예산(억 원)"] = tbl["계획연도"].map(dict(zip(yearly["year"], (yearly["krw"] / E8).round(1))))
             head = csv_header(f"국외조달 계획 · {y0}~{y1} 계획연도 · 집행유형 상위 5 + 기타 · 단위 건 / 억 원(원화 계획액)",
-                              "방위사업청 국외조달 조달계획(파일 데이터) → clean_dapa_overseas_plan → v_overseas_plan_yearly",
+                              "방위사업청 국외조달 조달계획(파일데이터)",
                               [("국외조달 계획", s_plan, None)], extra="계획 ≠ 계약 · 관세청 수입액과 합산·비교하지 않음")
             st.download_button("표 CSV 내려받기", (head + tbl.to_csv(index=False)).encode("utf-8-sig"),
                                f"배경_국외조달계획_{y0}-{y1}.csv", "text/csv", icon=":material/download:", key="p4_csv_plan")
@@ -402,7 +420,7 @@ with zone("facts", "운영 DB 실측 — 가동률 · 국산화 예산 · 국외
         comp = comp_all[comp_all["sector"] != "미기재"].sort_values("company_count", ascending=False)
         total_c = int(comp_all["company_count"].sum())
         n_missing = int(comp_all.loc[comp_all["sector"] == "미기재", "company_count"].sum())
-        src_comp = f"방위사업청 방산업체 지정현황 → clean_dapa_defense_company · v_defense_company_sector · {stamp_txt('방산업체 지정현황', s_comp)}"
+        src_comp = f"방위사업청 방산업체 지정현황(파일데이터) · {stamp_txt('방산업체 지정현황', s_comp)}"
         if comp.empty:
             chart_title("분야별 방산업체 지정 수", "개사")
             st.info("방산업체 지정 자료가 없습니다(미적재).")
@@ -416,7 +434,7 @@ with zone("facts", "운영 DB 실측 — 가동률 · 국산화 예산 · 국외
                 t_comp = (f"지정 방산업체 {total_c}개사 중 가장 많은 분야는 {escape(str(c_top.sector))}({int(c_top.company_count)}개사), "
                           f'{HIGHLIGHT} 분야는 <span class="key">{int(c_hl.iloc[0])}개사</span>')
             chart_title(t_comp, f"개사 · 「미기재」 {n_missing}개사는 막대에서 빼고 합계에 포함")
-            rows = [(r.sector, int(r.company_count), SERIES[1] if r.sector == HIGHLIGHT else "#9dbdf9") for r in comp.itertuples()]
+            rows = [(r.sector, int(r.company_count), SECTOR_COLOR.get(r.sector, ETC)) for r in comp.itertuples()]   # 가동률 선과 같은 분야 색
             chart(style_fig(hbar(rows, 330, "개사")), "방산업체지정", title=t_comp, source=src_comp)
             caption("지정 기준 값이며 생산 능력이나 국산화 수준을 뜻하지 않습니다")
             chart_source(src_comp)
@@ -424,7 +442,7 @@ with zone("facts", "운영 DB 실측 — 가동률 · 국산화 예산 · 국외
 # ── 5. 국내 생산 기반 — 생산지수 · 해석 주의 ───────────────────────────────────
 with zone("geo", "국내 생산 기반"):
     c1, c2 = st.columns([1.3, 1], gap="medium")
-    src_prod = f"통계청 KOSIS 광공업생산지수 → clean_kosis_production_index · {stamp_txt('KOSIS 생산지수', s_prod)}"
+    src_prod = f"통계청 KOSIS 광공업생산지수 · {stamp_txt('KOSIS 생산지수', s_prod)}"
     with c1.container(border=True, key="card_prod"):
         if pr.empty:
             chart_title("광공업생산지수 — 전자부품 · 반도체 · 통신장비", "2020 = 100")
@@ -470,9 +488,9 @@ with zone("geo", "국내 생산 기반"):
 sm, sm_err = load_semi()
 with zone("semi", "국방반도체 발전전략 · 국내 기반"):
     if sm is None and sm_err == "미적재":
-        st.warning("국방반도체 참조표(ref_semi_*)가 비어 있습니다(미적재). `python scripts/load_db.py --ref` 로 적재하세요.")
+        st.warning("국방반도체 참조 자료가 아직 준비되지 않았습니다(미적재).")
     elif sm is None:
-        st.error(f"국방반도체 참조표(ref_semi_*)를 조회하지 못했습니다({sm_err}). 잠시 뒤 다시 열어 주세요.")
+        st.error(f"국방반도체 참조 자료를 조회하지 못했습니다({sm_err}). 잠시 뒤 다시 열어 주세요.")
     else:
         stat = sm["stat"].set_index("stat_key")
         s_ov, s_us = stat.loc["overseas_share"], stat.loc["us_share_min"]
@@ -510,7 +528,7 @@ with zone("semi", "국방반도체 발전전략 · 국내 기반"):
             fig.add_vline(x=strat_day, line=dict(color=ACCENT, dash="dot", width=1))
             fig.update_layout(showlegend=False, xaxis=dict(tickformat="%Y.%m"),
                               yaxis=dict(categoryorder="array", categoryarray=cats[::-1]))
-            src_tl = f"{SRC_SEMI} 추진 경과 · 보도자료 · 언론 보도(점마다 출처 제목) → ref_semi_policy_timeline"
+            src_tl = f"{SRC_SEMI} 추진 경과 · 보도자료 · 언론 보도(점마다 출처 제목)"
             chart(style_fig(fig, 340), "국방반도체_타임라인", title=t_tl, source=src_tl)
             y_only = [d_ for d_ in tl["date"] if len(d_) == 4]
             if y_only:
@@ -546,7 +564,7 @@ with zone("semi", "국방반도체 발전전략 · 국내 기반"):
             dark_geo(fig)
             fig.update_geos(projection_type="mercator", lonaxis_range=[124.8, 130.6], lataxis_range=[33.0, 38.9], resolution=50)
             fig.update_layout(legend=dict(orientation="h", y=-0.05), margin=dict(t=10, b=10, l=0, r=0))
-            src_fab = f"{SRC_SEMI} 참고10 → ref_semi_public_fab"
+            src_fab = f"{SRC_SEMI} 참고10"
             chart(style_fig(fig, 420), "공공나노팹", title=t_fab, source=src_fab)
             caption("파운드리 구축 협력 후보(연구 · 시제 규모) · 수입 통계의 신고 지역과 무관")
             chart_source(src_fab)
@@ -561,14 +579,15 @@ with zone("semi", "국방반도체 발전전략 · 국내 기반"):
                 t_ms = "국가별 반도체 분야 시장점유율"
             chart_title(t_ms, "% · 발전전략 참고3 그래프 판독값(인용) · 원출처 · 기준연도 미표기")
             fig = go.Figure()
-            for country, color in {"미국": "#94a7c8", "대만": GREY, "중국": "#e1e7f0", "한국": ACCENT}.items():
+            for country, color in {"미국": COUNTRY_COLOR["US"], "대만": COUNTRY_COLOR["TW"], "중국": COUNTRY_COLOR["CN"],
+                                   "한국": SERIES[6]}.items():   # 국가 색은 대시보드 전체와 같다(한국은 무역 상대국이 아니라 따로)
                 g = ms[ms["country"] == country]
                 fig.add_trace(go.Bar(x=g["segment"], y=g["share_pct"], name=country, marker=dict(color=color, line=dict(color="#fff", width=1)),
                                      text=g["share_pct"].map(lambda v: f"{v:g}"), textposition="outside",
                                      textfont=dict(color=TEXT if country == "한국" else MUTED, size=11), cliponaxis=False,
                                      hovertemplate=country + " %{x} %{y:g}%<extra></extra>"))
             fig.update_layout(barmode="group", yaxis=dict(range=[0, 78], ticksuffix="%"), legend=dict(orientation="h", y=1.12))
-            src_ms = f"{SRC_SEMI} 참고3(인용 · 그래프 판독값) → ref_semi_market_share"
+            src_ms = f"{SRC_SEMI} 참고3(인용 · 그래프 판독값)"
             chart(style_fig(fig, 420), "반도체시장점유율", title=t_ms, source=src_ms)
             chart_source(src_ms)
 
@@ -586,20 +605,20 @@ with zone("semi", "국방반도체 발전전략 · 국내 기반"):
             st.dataframe(tv, hide_index=True, width="stretch", height=38 + 35 * len(tv), column_config={
                 "개요": st.column_config.TextColumn(width="large"),
                 "국내 사례(건)": st.column_config.ProgressColumn(format="%d", min_value=0, max_value=int(max(n_case.max(), 1)))})
-            head = csv_header("국방반도체 7대 유형 × 국내 개발 사례 건수", "방위사업청 「국방반도체 발전전략」(2024-11-19) 참고9 · 언론 보도 → RDS ref_semi_chip_type · ref_semi_domestic_case",
-                              [], extra="RDS 참조표(수작업 입력) · 관련 HS6 은 팀 판단")
+            head = csv_header("국방반도체 7대 유형 × 국내 개발 사례 건수", "방위사업청 「국방반도체 발전전략」(2024-11-19) 참고9 · 언론 보도",
+                              [], extra="팀 수작업 정리(발전전략 · 보도 인용) · 관련 HS6 은 팀 판단")
             st.download_button("표 CSV 내려받기", (head + tv.to_csv(index=False)).encode("utf-8-sig"),
                                "배경_국방반도체_유형별사례.csv", "text/csv", icon=":material/download:", key="p4_csv_semi")
-            chart_source(f"{SRC_SEMI} 참고9 · 언론 보도 → ref_semi_chip_type · ref_semi_domestic_case")
+            chart_source(f"{SRC_SEMI} 참고9 · 언론 보도")
 
 with st.expander("산식 · 출처 · 표현 범위"):
     st.markdown(
-        "**국외조달 계획 예산** = v_overseas_plan_yearly 의 budget_krw 계획연도 합(원화, 집행 예정액). 억 원 = 원 ÷ 10⁸. "
+        "**국외조달 계획 예산** = 국외조달 계획의 계획 예산을 계획연도별로 합한 값(원화, 집행 예정액). 억 원 = 원 ÷ 10⁸. "
         "**전년 대비** = (당해 ÷ 전년 − 1) × 100(가동률은 %p 차).  \n"
-        "**국외조달 절차 건수** = clean_dapa_overseas_plan · clean_dapa_overseas_bid_result · clean_dapa_overseas_contract 행 수(기간이 서로 달라 전환율 아님).  \n"
+        "**국외조달 절차 건수** = 국외조달 조달계획 · 입찰결과 · 계약정보의 행 수(기간이 서로 달라 전환율 아님).  \n"
         "**국방기술개발 비중** = 국방기술개발 ÷ 방위사업청 일반회계 세부사업 합계 × 100(같은 자료 안의 비율). 정부안 연도는 확정 전 값.  \n"
         "**가동률** = KOSIS 방산 분야별 평균가동률(%). **지정 업체 수** = 방산업체 지정현황(「미기재」는 막대에서 빼고 합계에 포함). "
         "**광공업생산지수** = 전국 · 계절조정(T20) · 2020=100, 잠정치(p) 음영.  \n"
-        "**국방반도체** = RDS ref_semi_* 7표(원본은 data/reference/semi_*.csv 수작업 참조표). 해외 도입 비중 · 미국 비중은 ref_semi_stat 의 발전전략 본문 인용값(팀 계산값 아님).  \n\n"
+        "**국방반도체** = 방위사업청 「국방반도체 발전전략」(2024-11-19)과 보도 · 기사를 팀이 정리한 참조표. 해외 도입 비중 · 미국 비중은 발전전략 본문 인용값(팀 계산값 아님).  \n\n"
         "**표현 범위** — 계획 ≠ 계약 ≠ 집행. 원화 예산 · 계획액은 관세청 수입액(달러 실적)과 합산 · 비율 · 같은 축 비교를 하지 않습니다. "
         "세부사업 계열끼리도 합산하지 않습니다. 가동률 · 지정 업체 수 · 생산지수는 생산 능력이나 국산화 수준을 뜻하지 않습니다.")

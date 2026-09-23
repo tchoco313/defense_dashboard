@@ -26,9 +26,9 @@ from ui import (source_pop, ETC, SHORT, chart_source, chart_title, core_kpis, co
                 period_control, png_button, supply_table, zone)
 
 E6 = 1e6   # 백만 달러 = USD ÷ 1e6 (표시 전용 변환)
-SOURCE_LINE = ("출처: 관세청 품목별 국가별 수출입실적 OpenAPI(15100475) → v_import_hs6_year · fact_customs_monthly · 방위사업청 국외 조달계획 "
-               "OpenAPI(15158418) → clean_dapa_overseas_plan_api · 방위사업청 국산화개발품목(15119899) → clean_dapa_localized_item · "
-               "기준표 ref_hs_whitelist · ref_country")
+# 화면 · CSV 출처는 「기관 · 데이터명(포털 ID) · 자료 기간」만 — DB 표 · 뷰 이름과 적재일은 쓰지 않는다(보안, 2026-09-24 사용자)
+SOURCE_LINE = ("출처: 관세청 품목별 국가별 수출입실적 OpenAPI(15100475) · 방위사업청 국외 조달계획 OpenAPI(15158418) · "
+               "방위사업청 국산화개발품목(15119899) · 분석 대상 품목군 기준표(팀 작성)")
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -82,17 +82,17 @@ def ym_txt(ym: str) -> str:
 s_customs = data_stamp("customs_all", "fact_customs_monthly")
 
 
-def src_customs(tables: str) -> str:
-    """관세청 출처 한 줄 — 「기관 · 데이터명 → DB 표 · 자료 기간 · DB 적재일」."""
-    return (f"관세청 품목별 국가별 수출입실적(15100475) → {tables} · 자료 기간 "
-            f"{s_customs['period'] if s_customs['has_period'] else '—'} · DB 적재 {s_customs.get('loaded') or '—'}")
+def src_customs() -> str:
+    """관세청 출처 한 줄 — 「기관 · 데이터명(포털 ID) · 자료 기간」(DB 표 이름 · 적재일은 쓰지 않는다)."""
+    return (f"관세청 품목별 국가별 수출입실적(15100475) · 자료 기간 "
+            f"{s_customs['period'] if s_customs['has_period'] else '—'}")
 
 
 hero("주요 방산 전자부품 수출입 및 국산화 현황",
      "분석 대상 품목군의 수입 규모와 공급국 집중도, 조달 · 국산화 현황을 요약합니다",
      stamps=[("관세청 수출입", s_customs)])
 
-with globe_loading("팀 DB에서 관세청·방위사업청 집계를 읽는 중"):
+with globe_loading("관세청·방위사업청 집계를 읽는 중"):
     d = load()
     rule_df, rule_err = try_query("SELECT COUNT(*) AS n FROM ref_hs_rule_flag")
     plan_df, plan_err = try_query(PLAN_SQL)
@@ -145,7 +145,7 @@ with zone("kpi", "한눈에 보는 KPI"):
             + kpi("국산화개발 전자 부품", b_val, b_unit, b_sub or "국산화율 아님")
             + "</div>")
     chart_source(f"{SOURCE_LINE.removeprefix('출처: ')} · 관세청 자료 기간 "
-                 f"{s_customs['period'] if s_customs['has_period'] else '—'} · DB 적재 {s_customs.get('loaded') or '—'} · "
+                 f"{s_customs['period'] if s_customs['has_period'] else '—'} · "
                  "관세청 달러 금액과 방위사업청 건수·부품 수는 합산하거나 비율을 내지 않습니다(직접 비교 불가)")
     if "failed" in (st_rule, st_plan, st_b2):
         if st.button("다시 조회", key="kpi_retry"):   # try_query 는 캐시되지 않으므로 rerun 이 곧 재시도
@@ -180,7 +180,7 @@ chain_head = (f'<div class="h"><span>{t_chain}</span><span class="sub">{y_label}
 with zone("chain", "부품별 공급망 현황"):
     c1, c2 = st.columns([2.3, 1], gap="medium")
     c1.html(re.sub(r'<div class="h">.*?</div>', lambda _m: chain_head, supply_table(rows), count=1))
-    chart_source(src_customs("v_import_hs6_year · fact_customs_monthly")
+    chart_source(src_customs()
                  + f" · 집중도·1위 점유율·수입국 = {y_label} 합계(완결 연도) · 추이·변화율 = 최근 12개월("
                  f"{ym_txt(str(piv.columns[-12]))}~{ym_txt(d['last'])}) vs 그 전 12개월 월별 수입액 · HHI 순 · 국가는 선적국", where=c1)
     c2.html(core_kpis([
@@ -213,14 +213,14 @@ with zone("where", "어디서 들어오나"):
                      f'{g0["value"]:,.0f}백만 USD</span>가 가장 크다')
         else:
             t_map = f"{y_label} 1위 공급국 수입 실적이 없다"
-        chart_title(t_map, f"백만 USD · {y_label} 합계 · 1위 공급국만 · 원에 올리면 상세")
+        chart_title(t_map, f"백만 USD · {y_label} 합계 · 1위 공급국만 · 지구본 · 지도 전환 · 끌어서 돌리기 · 원에 올리면 상세")
         fig_map = supply_globe(globe_pts, height=430, unit="백만 USD")
         st.html('<div style="display:inline-flex;align-items:center;gap:13px;font-size:12px;color:#6b7a99;'
                 'background:#fff;border:1px solid #dde5f2;border-radius:8px;padding:5px 11px">'
-                '<span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#1d4ed8;'
-                'margin-right:5px;vertical-align:middle"></i>원 크기 = 분석 대상 수입액 합</span>'
+                '<span>원 크기 = 분석 대상 수입액 합</span>'
+                '<span>화살표 = 대한민국으로 들어오는 방향</span><span>원 색 = 국가(표 · 막대와 같은 색)</span>'
                 '<span>국가는 선적국(원산지 아님)</span></div>')
-        src_map = src_customs("v_import_hs6_year · ref_country(좌표)") + " · 국가는 선적국"
+        src_map = src_customs() + " · 국가 좌표는 나라 대표 위치 · 국가는 선적국"
         chart_source(src_map)
         png_button(fig_map, f"홈_1위공급국_지도_{y_label.replace('~', '-')}", title=t_map, source=src_map)
     bars = top1.sort_values("share", ascending=False)
@@ -236,17 +236,17 @@ with zone("where", "어디서 들어오나"):
     c_bar.html(f'<div class="card"><div class="h"><span>{t_bar}</span>'
                f'<span class="sub">% · {y_label} 합계 · 점선 = 50%</span></div>'
                f'<div class="bars">{body}</div><div class="legend" style="margin-top:10px">{legend}</div>'
-               + source_pop(f'{src_customs("v_import_hs6_year")} · 수입 실적 &gt; 0 국가만 · '
+               + source_pop(f'{src_customs()} · 수입 실적 &gt; 0 국가만 · '
                             '1위 동률은 국가 코드 내림차순 · 국가는 선적국') + '</div>')
 
 with st.expander("산식 · 출처 · 표현 범위"):
-    st.markdown(f"**수입액** = v_import_hs6_year 의 imp_dlr(USD) 합 — 분석 대상 {len(wl)}개 품목군, 선택 기간의 완결 연도 합계. 백만 USD = USD ÷ 10⁶.  \n"
+    st.markdown(f"**수입액** = 관세청 수입금액(USD) 합 — 분석 대상 {len(wl)}개 품목군, 선택 기간의 완결 연도 합계. 백만 USD = USD ÷ 10⁶.  \n"
                 "**1위 공급국 점유율** = 품목군별 1위 국가 수입액 ÷ 품목군 수입액 합 × 100(수입 실적 > 0 국가만).  \n"
                 "**기간 합계 HHI** = Σ(국가 점유율 × 100)², 0~10,000. 선택 기간을 합산한 점유율로 계산(①의 연도별 HHI와 다른 지표). "
                 "4,000 이상 「매우 높음」 · 2,500 이상 「높음」 · 그 밖 「보통」은 집중 수준 구간일 뿐 위험 예측이 아닙니다.  \n"
-                "**추이 · 변화율** = fact_customs_monthly 월별 수입액, 최근 12개월 합 ÷ 그 전 12개월 합 − 1.  \n"
-                "**전자 군급 국외 조달계획** = clean_dapa_overseas_plan_api 에서 is_elec = 1 행 수(건수만).  \n"
-                "**국산화개발 전자 부품** = clean_dapa_localized_item 에서 is_electronic_group = 1 인 부품관리번호 고유 수(국산화율 아님).  \n\n"
+                "**추이 · 변화율** = 관세청 월별 수입액, 최근 12개월 합 ÷ 그 전 12개월 합 − 1.  \n"
+                "**전자 군급 국외 조달계획** = 방위사업청 국외 조달계획 중 전자 군급(FSG 58 · 59 · 60) 품목 수(건수만).  \n"
+                "**국산화개발 전자 부품** = 국산화개발품목 중 전자 군급 부품의 부품관리번호 고유 수(국산화율 아님).  \n\n"
                 "**표현 범위** — 수입액은 국가 전체(민수 포함) 교역액이며 군수 수요 규모를 뜻하지 않습니다. "
                 "관세청 달러 금액과 방위사업청 건수·부품 수는 합산하거나 비율을 내지 않습니다. HS 품목군을 FSC·NSN과 연결하지 않습니다.  \n\n"
                 f"**출처** — {SOURCE_LINE.removeprefix('출처: ')}.")
