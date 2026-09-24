@@ -1,6 +1,6 @@
 """홈 — 팀원 디자인 데모(K-Defense) 「HOME」 화면 배치를 그대로 옮기고 값만 RDS 로 바꿨다.
 
-구역: 핵심 KPI 5장 → 부품별 공급망 현황(품목군 표 + 스파크라인 · 핵심 지표) → 어디서 들어오나(지구본 · 1위 공급국 점유율 막대).
+구역: 원천 확인 한 줄(live.py — 관세청 API 로 공개 최신 월을 직접 확인) → 핵심 KPI 5장 → 부품별 공급망 현황(품목군 표 + 스파크라인 · 핵심 지표) → 어디서 들어오나(지구본 · 1위 공급국 점유율 막대).
 명세 app/specs/10_home.md. 데이터 판정: docs/report/data/data-usage-decision-2026-09-18.md §4.
 - 분석 대상 = ref_hs_whitelist 중 priority IN (1, 2) — 13개(2026-09-21 회의 M5). 수입액은 국가 전체 수입(민수 포함).
 - 기간 기준(기준 연도 / 최근 5년 / 전체)은 수입액 · 점유율 · HHI · 지구본 · 막대에 적용. 부분연도(예: 2026.01~08)는 빼고 센다.
@@ -19,6 +19,7 @@ from html import escape
 import pandas as pd
 import streamlit as st
 
+import live
 from db import data_stamp, query, try_query
 from metrics import concentration, count_state
 from kdesign import supply_globe
@@ -101,6 +102,16 @@ wl, imp, ctry, mon = d["wl"], d["imp"], d["ctry"], d["mon"]
 names = {r.hs6: SHORT.get(r.hs6, r.name_ko) for r in wl.itertuples()}
 cname = dict(zip(ctry["stat_cd"], ctry["name_ko"]))
 
+# ── 관세청 원천 최신 월 확인 — 페이지를 볼 때 관세청 API 에 직접 묻는다(6시간 캐시 · DB 값은 바꾸지 않음) ─────────
+chk = live.source_check(str(d["last"]), wl["hs6"].tolist())
+live_html = f'<b>원천 확인</b> · {escape(live.line_text(chk))}'
+if chk["state"] == "newer" and chk["new"] is not None and not chk["new"].empty:
+    nm = chk["new"][chk["new"]["yyyymm"] == chk["src_latest"]]
+    live_html += (f' — <span class="key">{live.ym_dot(chk["src_latest"])} 분석 대상 {len(wl)}개 수입 '
+                  f'{nm["imp"].sum() / E6:,.0f} · 수출 {nm["exp"].sum() / E6:,.0f} 백만 USD</span>'
+                  '<span class="caption"> (관세청 직접 조회 · 화면 표 · 차트에는 아직 없음)</span>')
+st.html(f'<div class="lede"><div class="note">{live_html}</div></div>')
+
 # 기간 기준(부분연도 제외) — 데모 홈에는 없지만 수입액·집중도의 기준 기간을 밝혀야 해서 둔다
 with st.container(key="filters_home"):
     years, y_label = period_control(imp, "기간 기준을 바꾸면 수입액 · 점유율 · HHI · 지구본 · 점유율 막대가 같은 기준으로 다시 계산됩니다",
@@ -138,7 +149,7 @@ yoy_txt = (f'<span class="{"up" if yoy >= 0 else "dn"}">{"▲" if yoy >= 0 else 
 with zone("kpi", "한눈에 보는 KPI"):
     st.html('<div class="kpis">'
             + kpi("분석 대상 품목군", f"{len(wl)}", "개",
-                  (f"HS6 후보 {n_rule:,}개에 " if st_rule == "ok" else "") + f"공식 분류·통제표 규칙 R1·R2 적용 · 수집 {n_wl_all}개 중")
+                  (f"HS6 후보 {n_rule:,}개에 " if st_rule == "ok" else "") + f"진입 규칙(군용 전용 · 전문 용도 세분류) 적용 · 수집 {n_wl_all}개 중")
             + kpi(f"{y_label} 수입액", f"{total / E6:,.0f}", "백만 USD", yoy_txt + "국가 전체 수입 · 민수 포함")
             + kpi("특정국 50% 이상 품목군", f"{k50}", "개", f"1위 공급국 점유율 기준 · {y_label} 합계")
             + kpi("전자 군급 국외 조달계획", p_val, p_unit, p_sub or "건수만 · 계획 ≠ 계약")
@@ -148,8 +159,7 @@ with zone("kpi", "한눈에 보는 KPI"):
                  f"{s_customs['period'] if s_customs['has_period'] else '—'} · "
                  "관세청 달러 금액과 방위사업청 건수·부품 수는 합산하거나 비율을 내지 않습니다(직접 비교 불가)")
     if "failed" in (st_rule, st_plan, st_b2):
-        if st.button("다시 조회", key="kpi_retry"):   # try_query 는 캐시되지 않으므로 rerun 이 곧 재시도
-            query.clear()
+        if st.button("다시 조회", key="kpi_retry"):   # try_query 실패는 캐시되지 않으므로 rerun 이 곧 재시도(전역 캐시는 비우지 않는다)
             st.rerun()
 
 # ── 부품별 공급망 현황 — 품목군 표(스파크라인) · 핵심 지표 ─────────────────────────
@@ -175,10 +185,10 @@ if rows:
 else:
     t_chain = f"{y_label} 수입 실적이 있는 품목군이 없다"
 chain_head = (f'<div class="h"><span>{t_chain}</span><span class="sub">{y_label} 합계 · 추이 = 최근 12개월 월별 · '
-              'HHI 4,000 이상 매우 높음 · 2,500 이상 높음</span></div>')
+              'HHI 2,500 이상 높음</span></div>')
 
 with zone("chain", "부품별 공급망 현황"):
-    c1, c2 = st.columns([2.3, 1], gap="medium")
+    c1, c2 = st.columns([2.6, 1], gap="medium")   # 공급망 표가 1280 폭에서도 잘리지 않게 표 쪽을 넓게
     c1.html(re.sub(r'<div class="h">.*?</div>', lambda _m: chain_head, supply_table(rows), count=1))
     chart_source(src_customs()
                  + f" · 집중도·1위 점유율·수입국 = {y_label} 합계(완결 연도) · 추이·변화율 = 최근 12개월("
@@ -215,8 +225,9 @@ with zone("where", "어디서 들어오나"):
             t_map = f"{y_label} 1위 공급국 수입 실적이 없다"
         chart_title(t_map, f"백만 USD · {y_label} 합계 · 1위 공급국만 · 지구본 · 지도 전환 · 끌어서 돌리기 · 원에 올리면 상세")
         fig_map = supply_globe(globe_pts, height=430, unit="백만 USD")
-        st.html('<div style="display:inline-flex;align-items:center;gap:13px;font-size:12px;color:#6b7a99;'
-                'background:#fff;border:1px solid #dde5f2;border-radius:8px;padding:5px 11px">'
+        # 지도 읽는 법 — 네 줄이 좁은 칸에서 두 줄씩 어긋나게 꺾이지 않도록 2열 격자로
+        st.html('<div style="display:grid;grid-template-columns:repeat(2,max-content);gap:3px 18px;font-size:13px;color:var(--muted);'
+                'background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 12px">'
                 '<span>원 크기 = 분석 대상 수입액 합</span>'
                 '<span>화살표 = 대한민국으로 들어오는 방향</span><span>원 색 = 국가(표 · 막대와 같은 색)</span>'
                 '<span>국가는 선적국(원산지 아님)</span></div>')
@@ -243,7 +254,7 @@ with st.expander("산식 · 출처 · 표현 범위"):
     st.markdown(f"**수입액** = 관세청 수입금액(USD) 합 — 분석 대상 {len(wl)}개 품목군, 선택 기간의 완결 연도 합계. 백만 USD = USD ÷ 10⁶.  \n"
                 "**1위 공급국 점유율** = 품목군별 1위 국가 수입액 ÷ 품목군 수입액 합 × 100(수입 실적 > 0 국가만).  \n"
                 "**기간 합계 HHI** = Σ(국가 점유율 × 100)², 0~10,000. 선택 기간을 합산한 점유율로 계산(①의 연도별 HHI와 다른 지표). "
-                "4,000 이상 「매우 높음」 · 2,500 이상 「높음」 · 그 밖 「보통」은 집중 수준 구간일 뿐 위험 예측이 아닙니다.  \n"
+                "2,500 이상 「높음」(미 법무부 · 연방거래위원회 2010 합병 지침의 고집중 기준) · 그 밖 「보통」은 집중 수준 구간일 뿐 위험 예측이 아닙니다.  \n"
                 "**추이 · 변화율** = 관세청 월별 수입액, 최근 12개월 합 ÷ 그 전 12개월 합 − 1.  \n"
                 "**전자 군급 국외 조달계획** = 방위사업청 국외 조달계획 중 전자 군급(FSG 58 · 59 · 60) 품목 수(건수만).  \n"
                 "**국산화개발 전자 부품** = 국산화개발품목 중 전자 군급 부품의 부품관리번호 고유 수(국산화율 아님).  \n\n"

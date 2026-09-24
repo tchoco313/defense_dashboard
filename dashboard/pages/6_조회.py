@@ -127,6 +127,7 @@ Q_CHART_COLS = 5                                              # 차트 유형 �
 Q_METRIC_COLOR = {"수출액": SERIES[1], "수입액": SERIES[0], "무역수지": SERIES[6], "수출중량": "#f5b597",
                   "수입중량": "#9fc1ec"}   # 수입 파랑 · 수출 주황(①·지도와 같은 짝), 중량은 같은 색의 옅은 톤
 Q_PALETTE = SERIES   # 검증 팔레트 8색 고정 순서 — 9번째부터는 기타(ETC), 색을 돌려 쓰지 않는다
+Q_CHART_TOP = len(SERIES)   # 그림에 따로 그리는 국가 수 — 넘으면 기간 합계 상위만 두고 나머지는 「기타 N개국」 한 줄(카드 · 표 · CSV 는 전체)
 
 Q_DEFAULT = {"qs_area": "수출입", "qs_hs6": ALL, "qs_hs10": ALL, "qs_ctry": ["중국", "대만", "미국"], "qs_all": False,
              "qs_y0": Q_YEARS[0], "qs_y1": Q_YEARS[-1], "qs_chart": "막대 그래프",
@@ -293,6 +294,20 @@ def query_panel() -> dict:
     return q
 
 
+def _chart_frame(df: pd.DataFrame, names: list[str], primary: str) -> tuple[pd.DataFrame, list[str], int]:
+    """그림용 국가 줄이기 — 고른 국가가 Q_CHART_TOP 보다 많으면(예: 전체 국가 선택) 기간 합계 상위 국가만 두고
+    나머지는 연도별로 더해 「기타 N개국」 한 줄로 만든다. 무역수지는 절댓값 순. 돌려주는 값: (그림용 표, 국가 순서, 합친 국가 수)."""
+    if len(names) <= Q_CHART_TOP:
+        return df, names, 0
+    tot = df.groupby("국가")[primary].sum()
+    key = tot.abs() if primary == "무역수지" else tot
+    top = key.sort_values(ascending=False, kind="stable").index[:Q_CHART_TOP].tolist()
+    rest = [n for n in names if n not in top]
+    etc = f"기타 {len(rest)}개국"
+    other = df[df["국가"].isin(rest)].groupby("연도", as_index=False)[list(Q_UNIT)].sum().assign(국가=etc)
+    return pd.concat([df[df["국가"].isin(top)], other[df.columns]], ignore_index=True), top + [etc], len(rest)
+
+
 def query_chart(df: pd.DataFrame, q: dict) -> tuple[go.Figure, str]:
     """차트 유형에 맞춰 그린다. 금액 지표(수출액·수입액·무역수지)끼리만 한 축에 두고,
     중량·건수는 금액이 하나도 없을 때만 그린다(단위가 달라 한 축에 섞지 않는다).
@@ -301,6 +316,14 @@ def query_chart(df: pd.DataFrame, q: dict) -> tuple[go.Figure, str]:
     plot_ms = [m for m in q["metrics"] if m in Q_MONEY] or q["metrics"][:1]
     primary = plot_ms[0]
     unit = Q_UNIT[primary]
+    n_all = len(names)
+    if chart != "맵 차트":                                   # 지도는 전체 국가를 그대로 칠한다
+        df, names, n_rest = _chart_frame(df, names, primary)
+        q = {**q, "names": names}
+    else:
+        n_rest = 0
+    trim = (f"그래프는 {primary} 기간 합계 상위 {Q_CHART_TOP}개국 + 나머지 {n_rest}개국 합계(「기타」) — "
+            f"지표 카드 · 결과 표 · CSV 는 {n_all}개국 전체" if n_rest else "")
     by_c = df.groupby("국가", sort=False)[list(Q_UNIT)].sum()
     color = {n: (Q_PALETTE[i] if i < len(Q_PALETTE) else ETC) for i, n in enumerate(names)}
     note = ""
@@ -312,7 +335,9 @@ def query_chart(df: pd.DataFrame, q: dict) -> tuple[go.Figure, str]:
         fig = csv_preview(chart, out)
         fig.update_layout(height=400)
         st.plotly_chart(fig, width="stretch", theme=None, config=PLOT_CFG)
-        return fig, f"그래프 기준: {note} · {escape(q['hs'])} 기준"
+        if trim:
+            st.html(f'<div class="caption">{escape(trim)}</div>')
+        return fig, f"그래프 기준: {note} · {escape(q['hs'])} 기준" + (f". {trim}" if trim else "")
     if chart == "도넛 그래프":
         pm = primary if primary != "무역수지" else ("수출액" if q["area"] != "수입" else "수입액")
         if pm != primary:
@@ -367,9 +392,11 @@ def query_chart(df: pd.DataFrame, q: dict) -> tuple[go.Figure, str]:
         fig.update_layout(legend=dict(orientation="h", y=1.12), height=400, margin=dict(l=58, r=10, t=30, b=8))
         fig.update_yaxes(tickformat=",.0f")
         st.plotly_chart(style_fig(fig), width="stretch", theme=None, config=PLOT_CFG)
+    if trim:
+        st.html(f'<div class="caption">{escape(trim)}</div>')
     dropped = [m for m in q["metrics"] if m not in plot_ms and chart != "도넛 그래프"]
     msg = " ".join(x for x in (note, f"{'·'.join(dropped)}은(는) 단위가 달라 그래프에서 빼고 위 지표 카드와 표에만 둡니다."
-                               if dropped else "") if x)
+                               if dropped else "", f"{trim}." if trim else "") if x)
     basis = f"그래프 기준: {'·'.join(plot_ms)} ({unit}) · {escape(q['hs'])} 기준" + (f". {msg}" if msg else "")
     return (style_fig(png_fig) if fig is None else fig), basis
 
@@ -579,11 +606,11 @@ def _csv_css() -> str:
 .st-key-qs_ct_grid{position:relative;gap:6px}
 .st-key-qs_ct_grid [data-testid="stHorizontalBlock"]{gap:6px;margin-bottom:0 !important}
 .st-key-qs_ct_grid [data-testid="stColumn"]{position:static}
-.st-key-qs_ct_grid button{height:66px;padding:6px 4px;border-radius:8px;border:1px solid var(--line);background:#fff;color:#aab4c5}
+.st-key-qs_ct_grid button{height:66px;padding:6px 4px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--muted)}
 .st-key-qs_ct_grid button > div,.st-key-qs_ct_grid button > div > span{width:100%;justify-content:center}
 .st-key-qs_ct_grid button > div > span{flex-direction:column;align-items:center;gap:5px}
 .st-key-qs_ct_grid button > div > span > span:first-child{margin:0 !important}
-/* 아이콘 · 이름은 평소 밝은 회색, 커서를 올리거나 고른 버튼만 파란색(버튼 글자색을 그대로 따른다) */
+/* 아이콘 · 이름은 평소 회색(잠긴 것처럼 보이지 않게 대비 4.5:1 이상), 커서를 올리거나 고른 버튼만 파란색 */
 .st-key-qs_ct_grid button [data-testid="stIconMaterial"]{font-size:24.5px;width:22px;height:22px;color:inherit !important}
 .st-key-qs_ct_grid button [data-testid="stMarkdownContainer"]{text-align:center}
 .st-key-qs_ct_grid button p{font-size:14px;line-height:1.2;white-space:nowrap;color:inherit}
@@ -803,13 +830,13 @@ def stat_table(df: pd.DataFrame, q: dict) -> None:
     yl = lambda y: f"{y}<small> ({PARTIAL_TXT})</small>" if y == PARTIAL_YEAR else str(y)
     head1 = "".join(f'<th colspan="{len(ms)}">{yl(y)}</th>' for y in years)
     head2 = "".join(f"<th>{m}<br><small>{Q_UNIT[m]}</small></th>" for _ in years for m in ms)
-    body = "".join(f'<tr><td><span class="dot" style="background:{color[n]}"></span>{n}</td>'
+    body = "".join(f'<tr><td><span class="dot" style="background:{color[n]}"></span>{escape(str(n))}</td>'
                    + "".join(_stat_cell(float(piv.loc[n, (m, y)]), m) for y in years for m in ms) + "</tr>"
                    for n in names)
     st.html(STAT_CSS + f'<div class="st-scroll"><table class="st-tbl"><thead><tr><th rowspan="2">국가</th>{head1}</tr>'
             f'<tr>{head2}</tr></thead><tbody>{body}</tbody></table></div>'
             f'<div class="st-note">통계표 · 국가 {len(names)}개 × 시점 {len(years)}개({years[0]}~{years[-1]}) × 항목 {len(ms)}개 · '
-            f'{q["area"]} · {q["hs"]} · 가로로 넘겨 보세요'
+            f'{q["area"]} · {escape(str(q["hs"]))} · 가로로 넘겨 보세요'
             + (f" · {PARTIAL_YEAR}년은 {PARTIAL_TXT} 부분연도" if PARTIAL_YEAR in years else "") + "</div>")
 
 
@@ -867,7 +894,7 @@ def query_result(q: dict, y0: int, y1: int) -> None:
             chart_title(f"{escape(q['names'][0]) if q['names'] else '선택 국가'} 연도별 통계표", f"행 = 국가 · 열 = 연도 × 지표 · {y0}~{y1}")
         stat_table(df, q)
         chart_source(f"{src_q} · CSV 는 오른쪽 아래 버튼으로, 고른 차트 유형 모양대로 내려받습니다")
-    # CSV — 고른 차트 모양대로(조회 결과와 같은 표를 다시 짠다). 탭 칸 오른쪽 아래에 겹쳐 둔다(어느 탭이든 같은 자리).
+    # CSV — 고른 차트 모양대로(조회 결과와 같은 표를 다시 짠다). 탭 칸 아래 오른쪽(어느 탭이든 같은 자리).
     out, note = csv_shape(q["chart"], df, q)
     head = csv_header(f"분석영역 {q['area']} · 품목군 {q['hs']} · 국가 {len(q['names'])}개({', '.join(q['names'][:10])}"
                       f"{' 외' if len(q['names']) > 10 else ''}) · 기간 {y0}~{y1} · 차트 {q['chart']} · 단위 백만 USD(중량 톤)",
@@ -881,12 +908,12 @@ def query_result(q: dict, y0: int, y1: int) -> None:
 
 def page_search() -> None:
     with zone("sel", "분석 조건 설정"):
-        c_form, c_res = st.columns([1, 1.55], gap="medium")
+        c_form, c_res = st.columns([1.15, 1.45], gap="medium")   # 1280 폭에서 차트 유형 · 지표 이름이 잘리지 않게 조건 칸을 넓게
         with c_form:
             q = query_panel()
         with c_res.container(border=True, key="card_res"):
             y0, y1 = q["years"]
-            st.html(f'<div class="h">조회 결과 <span class="sub">{q["area"]} · {q["hs"]} · {len(q["names"])}개국 · '
+            st.html(f'<div class="h">조회 결과 <span class="sub">{q["area"]} · {escape(str(q["hs"]))} · {len(q["names"])}개국 · '
                     f'{y0}~{y1} · {q["chart"]}</span></div>')
             if not q["names"]:
                 st.info("국가를 하나 이상 고르거나 「전체 국가 선택」을 켜 주세요.")

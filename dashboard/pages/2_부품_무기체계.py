@@ -1,6 +1,7 @@
 """② 조달·국산화 근거 — 팀원 디자인 데모(K-Defense) 「부품 → 무기체계」 + 「국내 조달」 화면 틀을 그대로 옮기고 값만 RDS 로 바꿨다.
 
 위: 전자 군급(FSG 58·59·60)의 방위사업청 국외 조달계획과 국산화 완료 이력을 같은 군급(FSC) 축에 나란히 놓는다(연결·비율 아님).
+   군별 전자 군급 비중(100% 막대)은 요구연도 범위를 고르면 그 구역만 다시 조회한다(분모 = 군급 판별 가능 행, 전자 외 군급 포함).
 아래(부록, 2026-09-21 M2): 방위사업청 국내 조달 계약 방법 · 수의계약 사유 · 경쟁입찰 결과 · 공고 상태(건수만, 금액 미사용).
 
 데이터 판정: docs/report/data/data-usage-decision-2026-09-18.md §1 핵심(국외 조달계획 API · 군급 기준표 · B2), 부록은 app/specs/34_domestic_procurement.md.
@@ -36,6 +37,7 @@ DOM_SOURCE = ("방위사업청 국내조달 계약정보(15050920) · 방위사�
               "방위사업청 국외조달 계약정보")
 SRC_PLAN = "방위사업청 국외 조달계획 OpenAPI(15158418, 전자 군급 FSG 58·59·60) · 방위사업청 군급분류집"
 SRC_B2 = "국방전자조달시스템 국산화개발품목(15119899, 전자 군급) · 방위사업청 군급분류집"
+SRC_ARMY = "방위사업청 국외 조달계획 OpenAPI(15158418, 군급 판별 가능 전체 행) · 방위사업청 군급분류집"
 PLOT_CFG = {"displaylogo": False, "modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "autoScale2d"]}
 
 
@@ -65,6 +67,28 @@ def b2_scope(fsgs: tuple[str, ...]) -> tuple[int, int]:
     r = query("SELECT COUNT(DISTINCT part_mgmt_no) AS parts, COUNT(DISTINCT project_name) AS projects "
               "FROM clean_dapa_localized_item WHERE is_electronic_group = 1 AND fsc2 IN :g", {"g": list(fsgs)}).iloc[0]
     return int(r["parts"]), int(r["projects"])
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def plan_years() -> list[int]:
+    return [int(y) for y in query("SELECT DISTINCT demand_year AS y FROM clean_dapa_overseas_plan_api "
+                                  "WHERE demand_year IS NOT NULL ORDER BY y")["y"]]
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_army_share(y0: int, y1: int) -> pd.DataFrame:
+    """군별 전자 군급 비중(EDA B2 — db/query_eda2_2026-09-23.sql [B2]와 같은 분모 · 분자, 요구연도만 파라미터).
+    분모 = 군급 판별 가능 행(fsg2 있음 · 임시 FSC 9999 제외). 전체 기간이면 합계 13,017행(2026-09-24 실측)."""
+    return query("""
+        SELECT army_std AS army,
+               SUM(fsg2 IS NOT NULL AND fsc4 <> '9999') AS n_valid,
+               SUM(fsg2 = '58' AND fsc4 <> '9999') AS fsg58,
+               SUM(fsg2 = '59' AND fsc4 <> '9999') AS fsg59,
+               SUM(fsg2 = '60' AND fsc4 <> '9999') AS fsg60
+        FROM clean_dapa_overseas_plan_api
+        WHERE demand_year BETWEEN :y0 AND :y1
+        GROUP BY army_std
+    """, {"y0": y0, "y1": y1})
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -134,7 +158,7 @@ def period_txt(s: dict) -> str:
 s_plan = data_stamp("dapa_overseas_plan_api", "clean_dapa_overseas_plan_api")
 s_b2 = data_stamp("dapa_localized_item", "clean_dapa_localized_item")
 s_con = data_stamp("dapa_contract", "clean_dapa_contract")
-hero("② 조달·국산화 근거", "전자 군급별 국외 조달계획과 국산화를 마친 부품, 국내 조달이 이뤄지는 방식을 봅니다",
+hero("③ 조달·국산화 근거", "전자 군급별 국외 조달계획과 국산화를 마친 부품, 국내 조달이 이뤄지는 방식을 봅니다",
      stamps=[("국외 조달계획", s_plan), ("국산화개발품목", s_b2), ("국내 계약", s_con)])
 
 with st.spinner("방위사업청 조달계획 · 국산화 목록을 읽는 중"):
@@ -148,7 +172,7 @@ st.html('<div class="lede"><div class="note">전자 군급(FSG 58 통신·탐지
 
 # ── 조건(클릭) — FSG · 소요군 ──────────────────────────────────────────────────
 with st.container(key="filters_p2"):
-    c1, c2 = st.columns([1.2, 1], vertical_alignment="bottom")
+    c1, c2 = st.columns([2.2, 1], vertical_alignment="bottom")   # 군급 이름이 길어 왼쪽을 넓게(칩이 잘리지 않게)
     g_pick = c1.pills("군급 그룹(FSG)", FSGS, selection_mode="multi", default=FSGS, key="p2_fsg",
                       format_func=lambda g: f"{g} {fsg_name.get(g, '')}") or FSGS
     armies = [a for a in ARMY_C if a in set(d["plan"]["army_name"])]
@@ -239,7 +263,7 @@ else:
             c1.html(rank_card(f"국산화 완료 부품이 가장 많은 군급은 "
                               f'<span class="key">{escape(str(b0.fsc4))} {escape(str(b0["name"]))}({int(b0.parts):,}개)</span>',
                               "국산화개발품목(B2) · 상위 5 군급 · 적용장비 이름은 싣지 않습니다",
-                              [(f"{f} {n}", float(v), SERIES[i % len(SERIES)]) for i, (f, n, v) in
+                              [(escape(f"{f} {n}"), float(v), SERIES[i % len(SERIES)]) for i, (f, n, v) in
                                enumerate(zip(top_b2["fsc4"], top_b2["name"], top_b2["parts"]))], "부품 수"))
             chart_source(f"{SRC_B2} · 국산화개발품목 {period_txt(s_b2)}", where=c1)
         else:
@@ -265,6 +289,71 @@ else:
             st.html(f'<div class="caption">원자료가 2018~2020년에 비어 있는 구간(전체 {g["n"]:,}행 중 2018 {g["y18"]:,} · '
                     f'2019 {g["y19"]:,} · 2020 {g["y20"]:,}건)이라 「조달 없음 · 감소」로 읽지 않습니다.</div>')
             chart_source(f"{SRC_PLAN} · 국외 조달계획 {period_txt(s_plan)}")
+
+    # ── 군별 전자 군급 비중(100% 막대) — 요구연도 범위를 바꾸면 이 구역만 다시 조회한다 ──────────
+    @st.fragment
+    def army_share() -> None:
+        ys = plan_years()
+        if not ys:
+            st.info("국외 조달계획 요구연도가 없습니다(미적재).")
+            return
+        y0, y1 = st.select_slider("요구연도 범위(이 차트에만 적용)", options=ys, value=(ys[0], ys[-1]), key="p2_army_years")
+        sh, err = None, None
+        try:
+            sh = load_army_share(int(y0), int(y1))
+        except Exception as e:   # noqa: BLE001 — 클래스명만(접속 정보 노출 금지)
+            err = type(e).__name__
+        if err or sh is None:
+            st.error(f"조회 실패({err}) — 페이지를 새로 고쳐 다시 조회해 주세요.")
+            return
+        excluded = sh[sh["army"].isin(["국직", "미확인"])]
+        sh = sh[sh["army"].isin(a_pick) & ~sh["army"].isin(["국직", "미확인"]) & (sh["n_valid"] > 0)].copy()
+        if sh.empty:
+            st.info("고른 소요군 · 요구연도에 군급을 판별할 수 있는 조달계획 행이 없습니다(0행).")
+            return
+        picked = [g for g in FSGS if g in g_pick]
+        other = [g for g in FSGS if g not in g_pick]
+        sh["sel"] = sh[[f"fsg{g}" for g in picked]].sum(axis=1)
+        sh = sh.sort_values("sel", ascending=True)          # 가로 막대: 위가 가장 높은 군
+        sh = sh.assign(sel_pct=sh["sel"] / sh["n_valid"] * 100)
+        top = sh.iloc[-1]
+        span = f"{y0}~{y1}" if y0 != y1 else f"{y0}"
+        fsg_lbl = "·".join(picked)
+        t = (f"{span} 국외 조달계획 중 전자 군급(FSG {fsg_lbl}) 비중은 "
+             f'<span class="key">{escape(str(top.army))} {top.sel_pct:.1f}%</span>가 가장 높다')
+        chart_title(t, "군별 100% = 군급을 판별할 수 있는 조달계획 행 · 건수 비율(금액 아님)")
+        fig = go.Figure()
+        for g in picked:
+            v = sh[f"fsg{g}"] / sh["n_valid"] * 100
+            fig.add_trace(go.Bar(y=sh["army"], x=v, orientation="h", name=f"FSG {g} {fsg_name.get(g, '')}",
+                                 marker=dict(color=FSG_C[g], line=dict(color="#fff", width=1)),
+                                 customdata=sh[f"fsg{g}"], hovertemplate=f"%{{y}} · FSG {g}<br>%{{customdata:,}}건 · %{{x:.1f}}%<extra></extra>"))
+        if other:
+            v = sh[[f"fsg{g}" for g in other]].sum(axis=1)
+            fig.add_trace(go.Bar(y=sh["army"], x=v / sh["n_valid"] * 100, orientation="h", name="고르지 않은 전자 군급",
+                                 marker=dict(color="#c9d3e0", line=dict(color="#fff", width=1)), customdata=v,
+                                 hovertemplate="%{y} · 고르지 않은 전자 군급<br>%{customdata:,}건 · %{x:.1f}%<extra></extra>"))
+        rest = sh["n_valid"] - sh[[f"fsg{g}" for g in FSGS]].sum(axis=1)
+        fig.add_trace(go.Bar(y=sh["army"], x=rest / sh["n_valid"] * 100, orientation="h", name="전자 외 군급",
+                             marker=dict(color="#eef2f7", line=dict(color="#fff", width=1)), customdata=rest,
+                             text=[f"{p:.1f}%" for p in sh["sel_pct"]], textposition="inside", insidetextanchor="start",
+                             textfont=dict(color=TEXT, size=12.5),
+                             hovertemplate="%{y} · 전자 외 군급<br>%{customdata:,}건 · %{x:.1f}%<extra></extra>"))
+        fig.update_layout(barmode="stack", height=70 * len(sh) + 120, legend=dict(orientation="h", y=1.18, traceorder="normal"),
+                          xaxis=dict(range=[0, 100], ticksuffix="%"), margin=dict(l=70, r=20, t=40, b=8))
+        chart(fig, f"조달계획_군별전자군급비중_{span}_{tag}", "p2_army_share", title=t, source=SRC_ARMY)
+        notes = [f"분모 {int(sh['n_valid'].sum()):,}행(군급 판별 가능 · 임시 FSC 9999 · 군급 미상 제외)"]
+        n_ex = int(excluded["n_valid"].sum()) if not excluded.empty else 0
+        if n_ex:
+            notes.append(f"국직 등 {n_ex}행은 막대에서 뺌")
+        if int(y0) <= 2020 and int(y1) >= 2018:
+            notes.append("2018~2020년은 원자료 공백 구간")
+        st.html(f'<div class="caption">{escape(" · ".join(notes))} · 막대 안 % = 고른 전자 군급 합계</div>')
+        chart_source(f"{SRC_ARMY} · 국외 조달계획 {period_txt(s_plan)}")
+
+    with zone("army", "군별 전자 군급 비중"):
+        with st.container(border=True, key="card_army_share"):
+            army_share()
 
     # ── 군급별 나란히(대칭 막대) · 표 · CSV ─────────────────────────────────────
     with zone("pair", "군급별 국외 조달계획 · 국산화 완료"):

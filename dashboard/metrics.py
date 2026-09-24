@@ -9,13 +9,13 @@ from __future__ import annotations
 
 import pandas as pd
 
-CONC_COLS = ["hs6", "total", "top1_stat_cd", "top1_share", "hhi", "country_count"]
+CONC_COLS = ["hs6", "total", "top1_stat_cd", "top1_share", "top3_share", "hhi", "country_count"]
 
 
 def _empty_conc() -> pd.DataFrame:
     return pd.DataFrame({"hs6": pd.Series(dtype="str"), "total": pd.Series(dtype="float64"),
                          "top1_stat_cd": pd.Series(dtype="str"), "top1_share": pd.Series(dtype="float64"),
-                         "hhi": pd.Series(dtype="float64"), "country_count": pd.Series(dtype="int64")})
+                         "top3_share": pd.Series(dtype="float64"), "hhi": pd.Series(dtype="float64"), "country_count": pd.Series(dtype="int64")})
 
 
 def concentration(df: pd.DataFrame, value_col: str) -> pd.DataFrame:
@@ -23,7 +23,7 @@ def concentration(df: pd.DataFrame, value_col: str) -> pd.DataFrame:
 
     단위: hs6 × 국가, 선택 연도를 합산한 뒤 점유율.
     - 국가 = value > 0 인 stat_cd 만(0·NaN·음수는 국가로 세지 않는다 → 수출만 있는 국가는 수입 국가 수에서 빠진다)
-    - total = 양수 합 · top1_share 0~1 · hhi = Σ(share×100)² (0~10,000) · country_count = 양수 국가 수
+    - total = 양수 합 · top1_share 0~1 · top3_share = 상위 3개국 점유율 합 0~1(국가가 3개 미만이면 있는 만큼) · hhi = Σ(share×100)² (0~10,000) · country_count = 양수 국가 수
     - 합계 0 인 hs6 는 결과에 없다(= 이 기간 실적 없음. 호출부는 join 뒤 NaN 으로 구분). 빈 입력 → 열만 있는 빈 표
     - 1위 동률: value 내림차순 → stat_cd **내림차순** — DB 뷰 v_hhi_hs6_year 의 `MAX(CASE WHEN rnk=1 THEN stat_cd END)` 와 같은 규칙
       (단일 연도를 넣으면 뷰와 같은 1위국·점유율·HHI 가 나와야 한다. 2026-09-20 실측: 1위 자리 동률 0건)
@@ -35,12 +35,14 @@ def concentration(df: pd.DataFrame, value_col: str) -> pd.DataFrame:
     if by_c.empty:
         return _empty_conc()
     by_c = by_c.assign(share=by_c[value_col] / by_c.groupby("hs6")[value_col].transform("sum"))
-    top1 = (by_c.sort_values(["hs6", value_col, "stat_cd"], ascending=[True, False, False], kind="stable")
-            .drop_duplicates("hs6").set_index("hs6"))
+    ranked = by_c.sort_values(["hs6", value_col, "stat_cd"], ascending=[True, False, False], kind="stable")
+    top1 = ranked.drop_duplicates("hs6").set_index("hs6")
+    top3 = ranked.groupby("hs6").head(3).groupby("hs6")["share"].sum()   # 3위 동률은 1위와 같은 규칙으로 3개만
     g = by_c.groupby("hs6")
     out = pd.DataFrame({"total": g[value_col].sum().astype("float64"),
                         "top1_stat_cd": top1["stat_cd"],
                         "top1_share": top1["share"].astype("float64"),
+                        "top3_share": top3.astype("float64"),
                         "hhi": by_c.assign(sq=(by_c["share"] * 100) ** 2).groupby("hs6")["sq"].sum().astype("float64"),
                         "country_count": g["stat_cd"].nunique().astype("int64")})
     return out.reset_index().loc[:, CONC_COLS]

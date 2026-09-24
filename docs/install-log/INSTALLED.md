@@ -107,3 +107,7 @@
 ## 2026-09-23 (데모 디자인 이식 — 정적 점검)
 
 - `pyflakes` (`.venv`, pip) — 데모 코드를 옮긴 `app/kdesign.py`·페이지 파일의 미정의 이름·안 쓰는 import 점검용. 실행: `.venv\Scripts\python.exe -m pyflakes <파일>`. 린터 규칙 도입은 아님(CLAUDE.md 「린터 없음」 유지).
+
+## 2026-09-24 (화면 자동 점검)
+
+- `playwright` 1.63.0 (+ `pyee` 13.0.1, `.venv`, pip) — 로컬 앱(8501) 7페이지를 헤드리스로 캡처하고 예외·작은 글씨·대비·잘림·DB 이름 노출을 자동 점검하려고 설치. 브라우저는 따로 받지 않고 설치된 Chrome을 쓴다(`chromium.launch(channel="chrome")`). 앱 실행에는 필요 없어 `requirements.txt`에는 넣지 않았다.

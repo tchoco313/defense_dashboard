@@ -135,7 +135,7 @@ s_util = data_stamp("kosis_utilization", "clean_kosis_utilization")
 s_comp = data_stamp("dapa_defense_company", "clean_dapa_defense_company")
 s_prod = data_stamp("kosis_production_index", "clean_kosis_production_index")
 
-hero("⓪ 국외조달 예산 · 배경", "국외조달 계획의 예산과 건수, 그 배경인 국방 R&amp;D 예산 · 국내 생산 기반 · 국방반도체 정책을 봅니다",
+hero("② 국외조달 예산 · 배경", "국외조달 계획의 예산과 건수, 그 배경인 국방 R&amp;D 예산 · 국내 생산 기반 · 국방반도체 정책을 봅니다",
      stamps=[("국외조달 계획", s_plan), ("열린재정 예산", s_bud), ("KOSIS 가동률", s_util), ("KOSIS 생산지수", s_prod)])
 st.html('<div class="lede"><div class="note">수입 현황의 배경 — 정부 예산, 방위사업청 국외조달 계획, 국내 생산 기반. '
         '각 자료는 단위·기준이 달라 서로 합하거나 관세청 수입액과 <b>직접 비교하지 않습니다</b>.</div></div>')
@@ -254,13 +254,14 @@ with zone("proc", "국외조달 절차 · 집행유형별 예산"):
     c1, c2 = st.columns([1, 1.35], gap="medium")
     pc = d["proc"].iloc[0]
     fmt_ym = lambda v: f"{str(v)[:4]}.{str(v)[4:6]}" if v and len(str(v)) >= 6 else str(v)
-    steps_src = [("계획", "", "조달 필요 확인<br>구매계획 수립", int(pc.plan_n), SERIES[0]),
-                 ("입찰", "", "국외 공고 및 입찰<br>업체 평가 · 선정", int(pc.bid_n), SERIES[1]),
-                 ("계약", "", "계약 체결<br>납품 및 이행 관리", int(pc.ctr_n), SERIES[2])]
+    # 단계 원은 데이터 범주가 아니라 절차라 화면 틀 파랑 계열(.proc CSS)로 칠한다 — 흰 글자 대비 4.5:1 이상
+    steps_src = [("계획", "", "조달 필요 확인<br>구매계획 수립", int(pc.plan_n)),
+                 ("입찰", "", "국외 공고 및 입찰<br>업체 평가 · 선정", int(pc.bid_n)),
+                 ("계약", "", "계약 체결<br>납품 및 이행 관리", int(pc.ctr_n))]
     steps = '<div class="ar">→</div>'.join(
-        f'<div class="st"><div class="ci" style="background:{bg}"><span>{ic}</span><b>{nm}</b></div>'
+        f'<div class="st"><div class="ci"><span>{ic}</span><b>{nm}</b></div>'
         f'<div class="ds">{ds}</div><div class="n">{n:,}<small>건</small></div></div>'
-        for nm, ic, ds, n, bg in steps_src)
+        for nm, ic, ds, n in steps_src)
     with c1.container(border=True, key="card_proc"):
         chart_title(f"국외조달 기록은 계획 {int(pc.plan_n):,}건 · 입찰 결과 {int(pc.bid_n):,}건 · 계약 "
                     f'<span class="key">{int(pc.ctr_n):,}건</span> — 기간이 달라 전환율로 읽지 않는다', "건 · 단계별 행 수(실측)")
@@ -289,7 +290,7 @@ with zone("proc", "국외조달 절차 · 집행유형별 예산"):
                               tickfont=dict(color=MUTED, size=12.5)),
                 hovertemplate="%{y} · %{x}년<br>%{customdata:,.0f}억 원<extra></extra>"))
             fig.update_xaxes(dtick=1, showgrid=False, tickfont=dict(size=12))
-            fig.update_yaxes(autorange="reversed", showgrid=False, tickmode="array", tickvals=list(hm.index),
+            fig.update_yaxes(autorange="reversed", showgrid=False, ticks="", tickmode="array", tickvals=list(hm.index),
                              ticktext=[f'<span style="color:{EXEC_COLOR.get(t, ETC)}">■</span> {t}' for t in hm.index])
             fig = style_fig(fig, 330)
             fig.update_layout(margin=dict(l=90, r=8, t=10, b=30))
@@ -362,8 +363,9 @@ with zone("facts", "실측 — 가동률 · 국산화 예산 · 국외조달 계
             fig.add_trace(go.Bar(x=s["year"], y=s[col], name=name,
                                  marker=dict(color=color, opacity=[.45 if a != "확정" else 1 for a in s["amount_basis"]],
                                              line=dict(color="#fff", width=1)),
-                                 text=[f"{v:,.0f}" if v >= 100 else f"{v:,.1f}" for v in s[col]],
-                                 textposition="outside", textfont=dict(size=12, color=TEXT), cliponaxis=False,
+                                 text=[f"{v:,.0f}" if v >= 100 else ("" if name != "부품국산화" else f"{v:,.1f}") for v in s[col]],
+                                 textposition="outside", textfont=dict(size=13, color=TEXT), cliponaxis=False,
+                                 constraintext="none",
                                  customdata=s["amount_basis"],
                                  hovertemplate=name + " %{x}년 %{y:,.1f}억 원 (%{customdata})<extra></extra>"))
         top = b[["localization_gov_100m", "supply_chain_gov_100m", "semiconductor_gov_100m"]].max().max()
@@ -532,10 +534,11 @@ with zone("semi", "국방반도체 발전전략 · 국내 기반"):
             chart(style_fig(fig, 340), "국방반도체_타임라인", title=t_tl, source=src_tl)
             y_only = [d_ for d_ in tl["date"] if len(d_) == 4]
             if y_only:
-                caption(f"「{' · '.join(y_only)}」은 연 단위 자료라 1월 위치에 찍었습니다")
+                caption(f"「{escape(' · '.join(y_only))}」은 연 단위 자료라 1월 위치에 찍었습니다")
             chart_source(src_tl)
         rows = "".join(
-            f'<div style="margin-bottom:9px"><b style="color:{color}">{escape(k)}</b> '
+            f'<div style="margin-bottom:9px"><b><i style="display:inline-block;width:9px;height:9px;border-radius:2px;'
+            f'margin-right:6px;background:{color}"></i>{escape(k)}</b> '
             f'<span style="color:{MUTED}">{escape(g["direction_name"].iloc[0])}</span><br>'
             + " · ".join(escape(t) for t in g["task_name"]) + "</div>"
             for (k, g), color in zip(task.groupby("direction_key", sort=False), SERIES))
@@ -549,14 +552,14 @@ with zone("semi", "국방반도체 발전전략 · 국내 기반"):
         with c1.container(border=True, key="card_fab"):
             t_fab = (f'공공 나노팹 {len(fab)}곳 중 화합물반도체 팹은 <span class="key">{len(comp_fab)}곳</span>'
                      + (f"({escape(', '.join(comp_fab['name_ko']))})" if not comp_fab.empty else ""))
-            chart_title(t_fab, "곳 · 부처별 색 · 큰 점 = 화합물반도체 · 좌표는 도시 단위 근사값")
+            chart_title(t_fab, "곳 · 부처별 색 · 큰 점 = 화합물반도체(이름 표시) · 다른 팹은 점에 커서 · 좌표는 도시 단위 근사값")
             fig = go.Figure()
             for ministry, color in (("과기부", SERIES[0]), ("산업부", SERIES[1])):
                 g = fab[fab["ministry"] == ministry]
                 hi = g["field_group"] == "화합물"
                 fig.add_trace(go.Scattergeo(lat=g["lat"], lon=g["lon"], mode="markers+text", name=ministry,
-                                            text=g["abbr"].where(g["abbr"] != "", g["parent_org"]),
-                                            textfont=dict(color=MUTED, size=11), textposition="middle right",
+                                            text=g["abbr"].where(g["abbr"] != "", g["parent_org"]).where(hi, ""),
+                                            textfont=dict(color=TEXT, size=13), textposition="middle right",
                                             marker=dict(size=[16 if h else 10 for h in hi], color=color, opacity=.9,
                                                         line=dict(color=[TEXT if h else "#fff" for h in hi], width=[2 if h else 1 for h in hi])),
                                             customdata=g[["name_ko", "parent_org", "field", "city"]],

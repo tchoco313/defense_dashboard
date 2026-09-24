@@ -28,15 +28,16 @@ class PageSpec(NamedTuple):
 PAGE_SPECS: tuple[PageSpec, ...] = (
     PageSpec("home", "home.py", "홈", "", "HOME", "home"),
     PageSpec("trade", "pages/1_수출입_현황.py", "① 수출입 현황", "import", "① 수출입 현황", "bar_chart"),
-    PageSpec("parts", "pages/2_부품_무기체계.py", "② 조달·국산화 근거", "parts", "② 조달·국산화 근거", "inventory_2"),
-    PageSpec("table", "pages/3_품목군_현황표.py", "③ 검토 목록", "table", "③ 검토 목록", "table_rows"),
-    PageSpec("background", "pages/4_정책_산업_배경.py", "⓪ 국외조달 예산 · 배경", "background", "⓪ 국외조달 예산 · 배경", "account_balance"),
+    PageSpec("parts", "pages/2_부품_무기체계.py", "③ 조달·국산화 근거", "parts", "③ 조달·국산화 근거", "inventory_2"),
+    PageSpec("table", "pages/3_품목군_현황표.py", "④ 검토 목록", "table", "④ 검토 목록", "table_rows"),
+    PageSpec("background", "pages/4_정책_산업_배경.py", "② 국외조달 예산 · 배경", "background", "② 국외조달 예산 · 배경", "account_balance"),
     PageSpec("info", "pages/5_DATA_INFO.py", "⑤ 데이터 정보", "info", "DATA INFO", "info"),
     PageSpec("search", "pages/6_조회.py", "조회", "search", "조회", "search"),
 )
 SPEC_BY_KEY: dict[str, PageSpec] = {s.key: s for s in PAGE_SPECS}
 
-# 사이드바 표시 순서(CLAUDE.md 핵심 설계 제약, 09-17 교수 피드백): 홈 · ① 수출입 현황 · ⓪ 국외조달 예산(배경) · ② 근거 · ③ 검토 목록 · 조회 · ⑤ 데이터 정보
+# 사이드바 표시 순서(CLAUDE.md 핵심 설계 제약, 09-17 교수 피드백): 홈 · ① 수출입 현황 · ② 국외조달 예산(배경) · ③ 근거 · ④ 검토 목록 · 조회 · ⑤ 데이터 정보
+# 화면 번호 = 표시 순번(2026-09-24 사용자). 문서의 페이지 키(핵심 ① · 배경 ⓪ · 핵심 ② · 핵심 ③)와 다르다 — 대응표 app/specs/00_common.md §1
 NAV_ORDER: tuple[str, ...] = ("home", "trade", "background", "parts", "table", "search", "info")
 
 

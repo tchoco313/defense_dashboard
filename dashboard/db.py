@@ -34,7 +34,7 @@ def engine() -> Engine:
                          connect_args=dbconf.sqlalchemy_connect_args("etl"))
 
 
-@st.cache_data(ttl=CACHE_TTL, show_spinner=False)
+@st.cache_data(ttl=CACHE_TTL, show_spinner=False, max_entries=500)   # 조건 조합이 많아도 메모리가 끝없이 늘지 않게
 def query(sql: str, params: dict | None = None) -> pd.DataFrame:
     """SELECT 한 문장을 DataFrame 으로. 파라미터는 `:name` 바인딩(list/tuple 값은 `IN :name` 확장).
 
@@ -107,14 +107,15 @@ def db_ready() -> bool:
         with engine().connect() as conn:
             conn.execute(text("SELECT 1"))
         return True
+    # 공개 화면에는 인프라 구조(서비스 이름 · 방화벽 · 설정 키 이름)를 쓰지 않는다 — 점검 안내는 서버 콘솔(앱 소유자만 봄)로
     except DBConfigError as e:
-        st.error(f"DB 설정 오류 — {e}")
+        print(f"[db_ready] 접속 설정 오류: {e}", file=sys.stderr)
+        st.error("데이터 연결 설정을 읽지 못했습니다(설정 오류). 잠시 뒤 다시 열어 주세요.")
     except SQLAlchemyError as e:
-        # 비밀번호·호스트가 메시지에 섞이지 않도록 원인 클래스만 보여 준다
-        st.error(f"DB(AWS RDS)에 연결하지 못했습니다 ({type(e.orig).__name__ if getattr(e, 'orig', None) else type(e).__name__}). "
-                 "RDS 보안 그룹에 현재 공인 IP가 허용돼 있는지와 Secrets/`.env`의 MARIADB_* 값을 확인하세요.")
+        cls = type(e.orig).__name__ if getattr(e, "orig", None) else type(e).__name__
+        print(f"[db_ready] 접속 실패 {cls} — 보안 그룹 허용 IP · Secrets/.env 의 MARIADB_* 값을 확인", file=sys.stderr)
+        st.error(f"데이터를 불러오지 못했습니다({cls}). 잠시 뒤 「다시 연결」을 눌러 주세요.")
     if st.button("다시 연결", type="primary"):
-        engine.clear()
-        query.clear()
+        engine.clear()          # 실패한 조회는 캐시되지 않으므로 조회 캐시는 비우지 않는다(누구나 전역 캐시를 비우지 못하게)
         st.rerun()
     return False

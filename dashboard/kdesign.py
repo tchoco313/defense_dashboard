@@ -28,18 +28,27 @@ BG, PANEL, PANEL2, LINE = "#edf4fc", "#ffffff", "#eef5fc", "#dbe5f1"   # BG = �
 TEXT, MUTED, ACCENT = "#0f1f3a", "#5b6b82", "#1d4ed8"                  # ACCENT = 대표 파랑
 SKY, SKY_WEAK = "#38bdf8", "#e6f3fd"                                  # 하늘(보조 강조) · 옅은 하늘(선택 배경)
 NAVY, NAVY2 = "#163c8c", "#163c8c"                                    # 사이드바 — 평면 파랑(그라데이션 없음)
-UP, DOWN = "#1d4ed8", "#1d4ed8"                                       # 증감은 좋고 나쁨이 아니라 같은 색 + ▲▼ 로만 구분
+UP, DOWN = "#c42b21", "#1d4ed8"                                       # 증감 — 오르면 빨강 · 내리면 파랑(2026-09-24 사용자). 옅은 배지 바탕 위 대비 4.5:1 이상
 # 데이터 범주색 — 화면 틀(파랑 · 하늘 · 흰색)과 따로, 서로 잘 구분되는 8색을 고정 순서로 쓴다(dataviz 검증 팔레트).
 # 검증 2026-09-23(흰 바탕): 색맹 인접 ΔE 9.1 ≥ 8 · 일반 시각 19.6 ≥ 15 통과. 청록 · 노랑 · 분홍은 대비 3:1 미만 → 범례 · 값 라벨 · 표와 함께 쓴다.
 # 9번째부터는 새 색을 만들지 않고 기타(ETC)로 묶는다. 크기(연속값)는 파랑 한 계열의 진하기로(히트맵 · HHI 등급 · 지도 구간).
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
 ETC = "#b8c2cf"
 
+# 외부 CDN 스크립트(d3 · topojson · world-atlas · plotly.js)는 정확한 버전 + 무결성 해시(SRI)로 고정한다 — CDN 변조 시 실행되지 않게.
+# 버전을 올릴 때는 새 파일의 sha384 를 다시 계산해 integrity 를 함께 바꾼다(2026-09-24 보안 감사).
 # ── 글꼴 ────────────────────────────────────────────────────────────────────
 SIDE_STACK = "Pretendard,'Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif"
 # @import 는 다른 규칙보다 반드시 앞에 와야 브라우저가 읽는다(뒤에 두면 통째로 무시된다).
 _PRETENDARD = "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
 _FONTS = f"@import url('{_PRETENDARD}');\n"
+_FONT_LINK = f'<link rel="stylesheet" href="{_PRETENDARD}">'   # iframe(지구본 · 도넛 · 지도 · PNG 단추)도 본문과 같은 글꼴로
+
+
+def _js(obj) -> str:
+    """iframe <script> 에 넣는 JSON — DB 문자열에 </script> 나 태그가 섞여도 스크립트 밖으로 새지 않게 < > & 를 이스케이프한다."""
+    return (json.dumps(obj, ensure_ascii=False)
+            .replace("<", r"\u003c").replace(">", r"\u003e").replace("&", r"\u0026"))
 
 # 화면 배율 — 데모는 1.1 로 전체를 키웠으나, 배율이 오른쪽 · 아래 빈 띠와 차트 마우스 위치 어긋남을 만들어 1(끔)로 둔다.
 # 1 이 아니면 아래 ZOOM_CSS 가 차트 · 표 · 선택창의 배율을 되돌리는 보정을 함께 넣는다.
@@ -98,9 +107,9 @@ html, body, [class*="st-"]{{font-family:{SIDE_STACK}}}
 .st-key-sidenav [data-testid="stPageLink"] a:hover{{background:rgba(255,255,255,.08)}}
 .st-key-sidenav [data-testid="stPageLink"] a p{{font-size:15.5px;font-weight:500;color:#dbe7fb;white-space:nowrap}}
 .st-key-sidenav [data-testid="stPageLink"] a [data-testid="stIconMaterial"]{{color:#9fbbe8}}
-.nav-on{{display:flex;align-items:center;gap:10px;padding:8px 12px;margin:0;font-size:15.5px;font-weight:600;color:{NAVY};
-  border-radius:8px;background:#fff}}
-.nav-on .material-symbols-rounded{{color:{ACCENT}}}
+.st-key-nav_cur [data-testid="stPageLink"] a{{background:#fff!important;pointer-events:none}}   /* 현재 페이지 = 흰 바탕 · 다시 누르지 않게 */
+.st-key-nav_cur [data-testid="stPageLink"] a p{{color:{NAVY}!important;font-weight:600}}
+.st-key-nav_cur [data-testid="stPageLink"] a [data-testid="stIconMaterial"]{{color:{ACCENT}!important}}
 .st-key-sidefoot{{padding:22px 20px 16px;margin-top:8px}}
 .sb-note{{font-size:13.5px;color:#b8cdf0;line-height:1.6}}
 .sb-ver{{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.12);font-size:12.5px;color:#9fbbe8;line-height:1.6}}
@@ -122,7 +131,8 @@ details.basis{{flex:0 0 auto;width:max-content;position:relative;align-self:flex
 details.basis > summary{{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:6px 13px;
   border:1px solid rgba(255,255,255,.5);border-radius:999px;color:#fff;font-size:13.5px;font-weight:600;user-select:none;white-space:nowrap}}
 details.basis > summary::-webkit-details-marker{{display:none}}
-details.basis > summary .material-symbols-rounded{{font-size:17px;color:#cfe0f7}}
+/* 달력 아이콘 = CSS 배경 SVG(st.html 은 svg 태그를 걸러 낸다 · 이 CSS 안에 꺾쇠 태그 글자를 쓰면 블록 전체가 버려진다) — 글꼴 아이콘이 아니라 페이지를 옮길 때 「calendar_month」 글자가 번쩍이지 않는다 */
+details.basis > summary .cal{{display:inline-block;flex:none;width:17px;height:17px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23cfe0f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M16 3v4M8 3v4M3 10h18'/%3E%3C/svg%3E") center/contain no-repeat}}
 details.basis > summary:hover,details.basis[open] > summary{{background:rgba(255,255,255,.16)}}
 details.basis .basis-pop{{position:absolute;right:0;top:calc(100% + 8px);z-index:50;min-width:300px;background:#fff;
   border:1px solid var(--line);border-radius:10px;padding:12px 16px;box-shadow:0 6px 18px rgba(15,31,58,.14);text-align:left}}
@@ -147,6 +157,11 @@ div[class*="st-key-zone_"]::before{{position:absolute;top:-11px;left:16px;z-inde
 .card{{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:15px 17px;height:100%;box-shadow:var(--shadow)}}
 [data-testid="stVerticalBlockBorderWrapper"]:has(> div > [class*="st-key-card_"]),
 div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)!important;border-radius:10px;box-shadow:var(--shadow)}}
+/* 같은 줄 카드 높이 맞추기(Tremor 격자) — 열은 이미 줄 높이만큼 늘어나 있으므로, 열의 마지막 카드가 남은 높이를 채운다 */
+[data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"]:last-child:has(> [class*="st-key-card_"]),
+[data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"]:last-child > [class*="st-key-card_"],
+[data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:last-child:has(> [data-testid="stHtml"] > .card:only-child){{flex:1 1 auto}}
+[data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:last-child > [data-testid="stHtml"]:has(> .card:only-child){{height:100%}}
 
 /* ── KPI(Tremor: 작은 라벨 · 큰 숫자 · 알약 증감) ─────────────────────── */
 .kpis{{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}}
@@ -158,11 +173,11 @@ div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)
 .kpi .l{{font-size:14px;font-weight:500;color:var(--muted);line-height:1.35}}
 .kpi .v{{font-size:31.5px;font-weight:600;margin-top:8px;letter-spacing:-.8px;color:var(--text);line-height:1.1;
   font-variant-numeric:tabular-nums}}
-.kpi .v small{{font-size:14.5px;color:var(--muted);font-weight:500;margin-left:4px;letter-spacing:0}}
+.kpi .v small{{font-size:14.5px;color:var(--muted);font-weight:500;margin-left:4px;letter-spacing:0;white-space:nowrap}}   /* 단위가 「백 / 만 USD」로 쪼개지지 않게 */
 .kpi .s{{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.55}}
-.kpi .s .up,.kpi .s .dn{{display:inline-block;color:#d63b30;background:#fdecea;font-weight:600;font-size:12.5px;
-.kpi .s .dn{{color:#1d4ed8;background:#e8f0fe}}   /* 증감 — 오르면 빨강 · 내리면 파랑(2026-09-24 사용자) */
+.kpi .s .up,.kpi .s .dn{{display:inline-block;color:var(--up);background:#fdecea;font-weight:600;font-size:13px;
   border-radius:6px;padding:1px 7px;margin-right:3px;font-variant-numeric:tabular-nums}}
+.kpi .s .dn{{color:var(--down);background:#e8f0fe}}   /* 증감 — 오르면 빨강 · 내리면 파랑(2026-09-24 사용자) */
 .ex{{display:inline-block;font-size:12px;font-weight:600;color:#075985;background:#e0f2fe;border-radius:5px;
   padding:0 6px;margin-left:6px;vertical-align:middle}}
 
@@ -175,7 +190,7 @@ div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)
 .note b{{color:var(--text);font-weight:600}}
 .legend{{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted)}}
 .legend i{{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}}
-.caption{{font-size:12.5px;color:#7486a0;line-height:1.7;margin-top:6px}}
+.caption{{font-size:13px;color:var(--muted);line-height:1.7;margin-top:6px}}
 .lede{{background:#fff;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;
   padding:10px 14px;margin-bottom:4px}}
 
@@ -187,7 +202,7 @@ div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)
 .rule span{{display:block;font-size:13px;color:var(--muted);margin-top:2px;line-height:1.5}}
 
 /* 순위 목록 */
-.rank{{display:grid;grid-template-columns:22px 104px 1fr 70px;align-items:center;gap:9px;height:28px;font-size:13.5px}}
+.rank{{display:grid;grid-template-columns:22px minmax(104px,40%) 1fr 64px;align-items:center;gap:9px;height:28px;font-size:13.5px}}
 .rank .no{{width:20px;height:20px;border-radius:50%;background:var(--panel2);color:var(--muted);font-size:12px;font-weight:700;
   display:grid;place-items:center}}
 .rank .nm{{font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
@@ -196,9 +211,9 @@ div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)
 .rank .vl{{text-align:right;font-weight:600;color:var(--text);font-size:13px;font-variant-numeric:tabular-nums}}
 
 /* 점유율 막대 */
-.bars .row{{display:grid;grid-template-columns:128px 1fr 52px;align-items:center;gap:8px;height:21px;font-size:13px}}
+.bars .row{{display:grid;grid-template-columns:150px 1fr 52px;align-items:center;gap:8px;height:21px;font-size:13px}}
 .bars .nm{{color:{TEXT};white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
-.bars .nm em{{color:{MUTED};font-style:normal;font-size:11px;margin-left:3px}}
+.bars .nm em{{color:{MUTED};font-style:normal;font-size:12px;margin-left:3px}}
 .bars .track{{position:relative;height:11px;border-radius:3px;background:{PANEL2}}}
 .bars .fill{{position:absolute;left:0;top:0;bottom:0;border-radius:3px}}
 .bars .ref{{position:absolute;top:-4px;bottom:-4px;left:50%;border-left:1px dashed #94a7c8}}
@@ -212,7 +227,7 @@ div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)
 .proc .st:nth-child(3) .ci{{background:#0369a1}} .proc .st:nth-child(5) .ci{{background:#1e3a8a}}
 .proc .ci span{{display:none}}
 .proc .ci b{{font-size:17.5px;font-weight:700;letter-spacing:-.3px}}
-.proc .ar{{margin-top:30px;text-align:center;font-size:20px;color:#93c5fd}}
+.proc .ar{{margin-top:30px;text-align:center;font-size:20px;color:#6b8fc9}}
 .proc .ds{{margin-top:10px;font-size:13.5px;color:#44567a;line-height:1.55}}
 .proc .n{{margin-top:6px;font-size:23.5px;font-weight:700;color:#0f2a5c;letter-spacing:-.5px;font-variant-numeric:tabular-nums}}
 .proc .n small{{font-size:13.5px;color:var(--muted);font-weight:500;margin-left:3px}}
@@ -227,6 +242,7 @@ div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)
 /* ── 위젯 ─────────────────────────────────────────────────────────────── */
 [data-baseweb="select"] > div{{background:#fff;border-color:var(--line);border-radius:8px}}
 [data-testid="stSegmentedControl"] button{{border-radius:8px}}
+[data-testid="stButtonGroup"] > div:not([data-testid]){{flex-wrap:wrap;row-gap:6px}}   /* 칩(pills)이 칸보다 길면 잘리지 않고 다음 줄로 */
 [data-testid="stDataFrame"]{{border-radius:8px;overflow:hidden;border:1px solid var(--line)}}
 [data-testid="stExpander"]{{background:#fff;border:1px solid var(--line)!important;border-radius:10px}}
 .stButton button,.stDownloadButton button{{border-radius:8px;font-weight:500}}
@@ -266,14 +282,15 @@ TABLE_CSS = r"""<style>
 .sc{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
 .sc th{font-size:13px;font-weight:600;color:var(--muted);background:#f6f9fd;padding:9px 6px;text-align:center;
   border-bottom:1px solid var(--line);line-height:1.35;white-space:nowrap}
-.sc th small{display:block;font-weight:400;color:var(--muted);font-size:11px}
-.sc td{padding:9px 6px;text-align:center;border-bottom:1px solid #edf2f8;color:var(--text);white-space:nowrap}
+.sc th small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.sc td{padding:9px 5px;text-align:center;border-bottom:1px solid #edf2f8;color:var(--text);white-space:nowrap}
+.card:has(> table.sc){overflow-x:auto}
 .sc td.no{color:var(--muted);font-weight:600}
 .sc td.nm{text-align:left;font-weight:600}
 .sc td.nm em{display:block;font-style:normal;font-weight:400;font-size:12px;color:var(--muted)}
-.sc td.up{color:#d63b30;font-weight:600} .sc td.dn{color:#1d4ed8;font-weight:600}
+.sc td.up{color:var(--up);font-weight:600} .sc td.dn{color:var(--down);font-weight:600}
 .sc td.lv{font-weight:600} .sc td.lv i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
-.sc .lvb{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:600}
+.sc .lvb{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap}
 .sc .cdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0}
 .demo-bar.real{background:var(--sky-weak);border-color:#cfe5f8}
 .basis{width:100%;border-collapse:collapse;font-size:13.5px}
@@ -284,6 +301,7 @@ TABLE_CSS = r"""<style>
 .basis td.cat{color:var(--muted);font-size:12.5px}
 .basis i{display:inline-block;width:11px;height:11px;border-radius:50%}
 .spark{display:block;margin:0 auto}
+.sc .spark{width:clamp(84px,8vw,118px);height:auto}   /* 좁은 화면에서 추이선을 줄여 표 끝 칸이 잘리지 않게 */
 
 .kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
 .kc{display:flex;gap:12px;align-items:center;padding:13px 14px;border:1px solid var(--line);border-radius:10px;background:#fff}
@@ -291,7 +309,7 @@ TABLE_CSS = r"""<style>
 .kc .l{font-size:13.5px;font-weight:500;color:var(--muted)}
 .kc .v{font-size:27px;font-weight:600;color:var(--text);letter-spacing:-.6px;line-height:1.2;margin-top:4px;font-variant-numeric:tabular-nums}
 .kc .v small{font-size:13.5px;color:var(--muted);font-weight:500;margin-left:3px;letter-spacing:0}
-.kc .s{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4}
+.kc .s{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.4}
 
 .bars.big{display:flex;flex-direction:column;gap:5px;margin-top:4px}
 .bars.big .row{height:28px;font-size:14px}
@@ -299,7 +317,9 @@ TABLE_CSS = r"""<style>
 .bars.big .fill{border-radius:3px}
 
 /* 탭 — Tremor 밑줄형: 고른 탭만 파란 글씨 + 파란 밑줄 */
-[data-testid="stTabs"] [role="tablist"]{gap:18px;border-bottom:1px solid var(--line);box-shadow:none;padding:0 2px;margin:0}
+[data-testid="stTabs"] [role="tablist"]{gap:2px 18px;border-bottom:1px solid var(--line);box-shadow:none;padding:0 2px;margin:0;
+  flex-wrap:wrap}   /* 탭이 많으면 옆으로 숨기지 않고 두 줄로 — 고른 탭 표시는 밑줄(아래 aria-selected)이 맡는다 */
+[data-testid="stTabs"] [data-baseweb="tab-highlight"],[data-testid="stTabs"] [data-baseweb="tab-border"]{display:none}
 [data-testid="stTabs"] [role="tablist"]::after,[data-testid="stTabs"] [role="tablist"]::before{display:none}
 [data-testid="stTabs"] [data-testid="stTab"]{height:auto;padding:8px 2px 9px;margin:0 0 -1px;background:transparent;border:none;
   border-bottom:2px solid transparent;border-radius:0}
@@ -318,9 +338,9 @@ TABLE_CSS = r"""<style>
 .st-key-card_form [data-testid="stMarkdownContainer"] p [data-testid="stIconMaterial"]{font-size:21.5px;vertical-align:-4px}
 .st-key-card_form [data-testid="stCheckbox"] label p{font-size:14.5px}
 .st-key-card_form [data-testid="stHorizontalBlock"]{margin-bottom:4px}
-/* 조회 결과 — 탭을 바꿔도 카드 높이가 그대로이게 탭 칸 높이를 고정 */
-.st-key-card_res [data-testid="stTabs"] [role="tabpanel"]{height:520px;box-sizing:border-box;overflow-y:auto}
-.st-key-res_dl{margin-top:-60px;padding-right:18px;position:relative;z-index:2;pointer-events:none}
+/* 조회 결과 — 탭을 바꿔도 카드 높이가 크게 흔들리지 않게 탭 칸에 최소 높이. CSV 단추는 탭 아래 오른쪽(차트 위에 겹치지 않게) */
+.st-key-card_res [data-testid="stTabs"] [role="tabpanel"]{min-height:560px;box-sizing:border-box}
+.st-key-res_dl{margin-top:4px;position:relative;z-index:2;pointer-events:none}
 [data-testid="stLayoutWrapper"]:has(> .st-key-card_form),[data-testid="stLayoutWrapper"]:has(> .st-key-card_res),
 .st-key-card_form,.st-key-card_res{flex:1 1 auto}
 .st-key-res_dl button{pointer-events:auto}
@@ -334,7 +354,7 @@ details.src > summary::-webkit-details-marker{display:none}
 details.src > summary:hover{border-color:var(--accent);color:var(--accent)}
 details.src[open] > summary{border-color:var(--accent);background:var(--sky-weak);color:var(--accent)}
 details.src .src-body{margin-top:6px;padding:9px 12px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);
-  font-size:12.5px;color:#4b5b73;line-height:1.65}
+  font-size:13px;color:#4b5b73;line-height:1.65}
 </style>"""
 
 
@@ -369,7 +389,7 @@ def hero(title: str, subtitle: str, side: str = "", side_sub: str = "", stamps: 
         # 자료 기준은 버튼 뒤에 접어 둔다 — 누르면 아래로 카드가 펼쳐진다(HTML details · 서버 재실행 없음)
         rows = "".join(f'<span class="row"><em>{escape(n)}</em>{escape(_stamp_period(s_))}</span>' for n, s_ in stamps)
         right = ('<details class="basis"><summary title="자료 기간 보기">'
-                 '<span class="material-symbols-rounded">calendar_month</span>자료 기준</summary>'
+                 '<span class="cal" aria-hidden="true"></span>자료 기준</summary>'
                  f'<div class="basis-pop"><div class="bt">자료 기준</div>{rows}</div></details>')
     else:
         right = f'<div class="slogan"><b>{side}</b><small>{side_sub}</small></div>' if side else ""
@@ -396,11 +416,73 @@ def style_fig(fig, height: int | None = None):
                      automargin=True)
     fig.update_yaxes(gridcolor=grid, zeroline=False, showline=False, tickfont=dict(color=MUTED), title_font=dict(color=MUTED),
                      automargin=True)
+    # 눈금 숫자는 화면 다른 곳처럼 쉼표로(6000 → 6,000, 5k → 5,000). 연도 축(2016 …)은 쉼표를 넣지 않는다
+    for axis, update in (("x", fig.update_xaxes), ("y", fig.update_yaxes)):
+        years = any(_yearish(t[axis]) for t in fig.data if axis in t and t[axis] is not None)
+        update(exponentformat="none", **({} if years else {"separatethousands": True}))
     if fig.layout.legend.orientation is None:
         fig.update_layout(legend=dict(orientation="h", y=1.1, x=0, title=None))
     if height:
         fig.update_layout(height=height)
+    _floor_fonts(fig)
     return fig
+
+
+_LABEL_POS = {   # plotly textposition → 라벨 상자 왼쪽 위(점 중심 기준, 픽셀). r = 점 반지름, w · h = 라벨 크기
+    "top center": lambda r, w, h: (-w / 2, -r - 2 - h), "bottom center": lambda r, w, h: (-w / 2, r + 2),
+    "middle right": lambda r, w, h: (r + 3, -h / 2), "middle left": lambda r, w, h: (-r - 3 - w, -h / 2),
+    "top right": lambda r, w, h: (r * .6, -r - h), "top left": lambda r, w, h: (-r * .6 - w, -r - h),
+    "bottom right": lambda r, w, h: (r * .6, r), "bottom left": lambda r, w, h: (-r * .6 - w, r),
+}
+
+
+def point_labels(xs, ys, texts, xr, yr, w: float = 460, h: float = 290, fs: float = 13, r: float = 7):
+    """산점도 점 이름이 서로 · 다른 점과 겹치지 않게 자리(textposition)를 고른다. 세로값이 큰 점부터 놓고,
+    여덟 자리 모두 막히면 그 점의 이름은 비운다(커서를 올리면 보인다). xr · yr = 그림에 줄 축 범위, w · h = 그림 칸 대략 픽셀."""
+    pts = [((x - xr[0]) / (xr[1] - xr[0]) * w, (1 - (y - yr[0]) / (yr[1] - yr[0])) * h) for x, y in zip(xs, ys)]
+    dots = [(cx - r, cy - r, 2 * r, 2 * r) for cx, cy in pts]
+    placed: list[tuple[float, float, float, float]] = []
+    over = lambda a, b: a[0] < b[0] + b[2] and a[0] + a[2] > b[0] and a[1] < b[1] + b[3] and a[1] + a[3] > b[1]
+    out_t, out_p = [""] * len(pts), ["top center"] * len(pts)
+    for i in sorted(range(len(pts)), key=lambda k: -ys[k]):
+        t = str(texts[i])
+        tw, th = sum(fs * (1.0 if ord(c) > 0x2E80 else .6) for c in t), fs * 1.3
+        for pos, off in _LABEL_POS.items():
+            dx, dy = off(r, tw, th)
+            box = (pts[i][0] + dx, pts[i][1] + dy, tw, th)
+            if box[0] < 0 or box[1] < 0 or box[0] + tw > w or box[1] + th > h:
+                continue
+            if any(over(box, d) for k, d in enumerate(dots) if k != i) or any(over(box, p) for p in placed):
+                continue
+            placed.append(box)
+            out_t[i], out_p[i] = t, pos
+            break
+    return out_t, out_p
+
+
+def _yearish(vals) -> bool:
+    """축 값이 모두 연도(1900~2100 정수)인가 — 연도 눈금에는 천 단위 쉼표를 넣지 않는다."""
+    try:
+        xs = [float(v) for v in vals if v is not None]
+    except (TypeError, ValueError):
+        return False
+    return bool(xs) and all(1900 <= v <= 2100 and v == int(v) for v in xs)
+
+
+def _floor_fonts(fig, lo: float = 13) -> None:
+    """차트 글씨 하한(2026-09-23 사용자 — 작게 만들지 않는다): 눈금 · 범례 · 주석 · 값 라벨에 lo 보다 작게 정한 크기를 lo 로 올린다."""
+    small = lambda f: f is not None and isinstance(f.size, (int, float)) and f.size < lo
+    for ax in [*fig.select_xaxes(), *fig.select_yaxes()]:
+        if small(ax.tickfont):
+            ax.tickfont.size = lo
+    if small(fig.layout.legend.font):
+        fig.layout.legend.font.size = lo
+    for a in fig.layout.annotations or ():
+        if small(a.font):
+            a.font.size = lo
+    for tr in fig.data:
+        if "textfont" in tr and small(tr.textfont):
+            tr.textfont.size = lo
 
 
 def chart_title(title: str, sub: str = "", where=None) -> None:
@@ -444,21 +526,20 @@ def rules_card(title: str, items: list[tuple[str, str]]) -> str:
 def rank_card(title: str, sub: str, rows: list[tuple[str, float, str]], unit: str) -> str:
     top = max(v for _, v, _ in rows) or 1
     body = "".join(
-        f'<div class="rank"><span class="no">{i}</span><span class="nm">{n}</span>'
+        f'<div class="rank"><span class="no">{i}</span><span class="nm" title="{n}">{n}</span>'
         f'<span class="tr"><span class="fl" style="width:{v / top * 100:.0f}%;background:{c}"></span></span>'
         f'<span class="vl">{v:,.0f}</span></div>'
         for i, (n, v, c) in enumerate(rows, 1))
-    return (f'<div class="card"><div class="h">{title} <span class="sub">단위: {unit}</span></div>'
-            f'<div style="font-size:12.5px;color:{MUTED};margin-bottom:6px">{sub}</div>{body}</div>')
+    # 제목은 한 <span> 으로 싼다 — .h 는 flex 라 글자 · 강조 구절이 따로 놓이면 사이가 벌어진다
+    return (f'<div class="card"><div class="h"><span>{title}</span><span class="sub">단위: {unit}</span></div>'
+            f'<div style="font-size:13px;color:{MUTED};margin-bottom:6px">{sub}</div>{body}</div>')
 
 
 # ── 공급망 현황 · 공급 집중도 요소 ────────────────────────────────────────────
 def hhi_level(hhi: float) -> tuple[str, str]:
     """HHI 구간 이름과 색 — 위험 예측이 아니라 집중 수준만 나눈다. 색은 파랑 명도(진할수록 집중)."""
-    if hhi >= 4000:
-        return "매우 높음", "#1e3a8a"
-    if hhi >= 2500:
-        return "높음", ACCENT
+    if hhi >= 2500:   # 한 단계만 — 2010 합병 지침 고집중 기준(근거 없는 4,000 구간은 두지 않는다)
+        return "높음", "#1e3a8a"
     return "보통", "#93c5fd"
 
 
@@ -484,8 +565,8 @@ def sparkline(vals: list[float], color: str = ACCENT, w: int = 118, h: int = 30)
     return _svg_img(svg, w, h, "spark")
 
 
-LV_BG = {"매우 높음": "#1e3a8a", "높음": "#dbe8fb", "보통": "#f1f5fa"}    # 공급 집중 등급 배지 — 진할수록 집중
-LV_FG = {"매우 높음": "#ffffff", "높음": "#1d4ed8", "보통": "#5b6b82"}
+LV_BG = {"높음": "#1e3a8a", "보통": "#f1f5fa"}    # 공급 집중 등급 배지 — 진할수록 집중
+LV_FG = {"높음": "#ffffff", "보통": "#5b6b82"}
 
 
 def supply_table(rows: list[dict]) -> str:
@@ -497,14 +578,14 @@ def supply_table(rows: list[dict]) -> str:
     for i, f in enumerate(rows, 1):
         up = f["yoy"] >= 0
         lvl, lc = hhi_level(f["hhi"])
-        body += (f'<tr><td class="no">{i}</td><td class="nm">{f["name"]}<em>HS {f["hs"]}</em></td>'
-                 f'<td><span class="cdot" style="background:{f.get("color", ACCENT)}"></span>{f["top"]}</td>'
+        body += (f'<tr><td class="no">{i}</td><td class="nm">{escape(str(f["name"]))}<em>HS {escape(str(f["hs"]))}</em></td>'
+                 f'<td><span class="cdot" style="background:{f.get("color", ACCENT)}"></span>{escape(str(f["top"]))}</td>'
                  f'<td>{sparkline(f["m"], f.get("color", ACCENT))}</td>'
                  f'<td class="{"up" if up else "dn"}">{"▲" if up else "▼"} {abs(f["yoy"]):.1f}%</td>'
                  f'<td>{f["n"]}</td><td>{f["hhi"]:,}</td><td>{f["s1"]:.1f}%</td>'
                  f'<td class="lv"><span class="lvb" style="background:{LV_BG[lvl]};color:{LV_FG[lvl]}">{lvl}</span></td></tr>')
     return (f'<div class="card"><div class="h">부품별 공급망 현황 <span class="sub">품목군 {len(rows)}개 · '
-            f'공급 집중 = HHI 4,000 이상 매우 높음 · 2,500 이상 높음</span></div>'
+            f'공급 집중 = HHI 2,500 이상 높음</span></div>'
             f'<table class="sc"><thead>{head}</thead><tbody>{body}</tbody></table>'
             f'<div class="caption">추이·변화율은 최근 12개월과 그 전 12개월의 월별 수입액 비교 · '
             f'국산화율은 이 대시보드가 다루지 않습니다.</div></div>')
@@ -539,9 +620,9 @@ def share_card(f: dict) -> str:
 # ════════════════════════════════════════════════════════════════════════════
 KOREA = [127.8, 36.5]
 _GLOBE = r"""
-<!DOCTYPE html><html><head><meta charset="utf-8">
-<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<!DOCTYPE html><html><head><meta charset="utf-8">__FONTLINK__
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js" integrity="sha384-Ukv1p/xTma6P4/2bY5KzWBw+ydSpXmhCMtyciIQVDJ1RmOxtCYNMF1uXT9T63H67" crossorigin="anonymous"></script>
 <style>
   *{box-sizing:border-box}
   body{margin:0;font-family:Pretendard,'Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif;
@@ -577,6 +658,7 @@ _GLOBE = r"""
 </div>
 <script>
 const PTS = __DATA__, KOREA = __KOREA__, UNIT = "__UNIT__";
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const wrap=document.getElementById('wrap'), tip=document.getElementById('tip'), statusEl=document.getElementById('status');
 const gc=document.getElementById('globe-c'), mc=document.getElementById('map-c');
 const gx=gc.getContext('2d'), mx=mc.getContext('2d');
@@ -699,8 +781,8 @@ function hitTest(){
   return found;
 }
 function fillTip(p){
-  tip.innerHTML='<b>'+p.name+'</b><div class="v">'+p.value.toLocaleString(undefined,{maximumFractionDigits:1})+' '+UNIT+'</div>'
-    +(p.note?'<div class="n">'+p.note+'</div>':'');
+  tip.innerHTML='<b>'+esc(p.name)+'</b><div class="v">'+p.value.toLocaleString(undefined,{maximumFractionDigits:1})+' '+UNIT+'</div>'
+    +(p.note?'<div class="n">'+esc(p.note)+'</div>':'');
 }
 function syncTip(){
   const p=hover>=0?PTS[hover]:null;
@@ -751,7 +833,7 @@ document.getElementById('b-map').onclick=()=>setMode('map');
 document.getElementById('b-replay').onclick=()=>{arc=0;t0=performance.now();};
 window.addEventListener('resize',()=>{size();drawGlobe();drawMap();});
 size(); projG.rotate([-KOREA[0]+18,-20,0]); loop();
-fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(r=>r.json()).then(topo=>{
+fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json", {integrity: "sha384-yOCJ+8ShBm8UDqtAVtAvxTDDf4gXo5edxl/YG0FmVC5OTmqVLl7utuVGBDEeZWHf"}).then(r=>r.json()).then(topo=>{
   world=topojson.feature(topo,topo.objects.countries); drawGlobe(); drawMap();
 }).catch(()=>{statusEl.textContent='지도 데이터를 불러오지 못해 경위선만 표시합니다(인터넷 연결 확인)';});
 </script></body></html>
@@ -764,9 +846,9 @@ def supply_globe(points: list[dict], height: int = 430, unit: str = "백만 USD"
     """공급국 지구본(데모 HOME 그대로) — 회전 · 끌어서 돌리기 · 지구본↔지도 전환 · 공급국 → 한국 흐름 화살표.
     points = [{name, lat, lon, value, color, note}] — 원 색 = 국가 색(표 · 막대와 같은 색), 원 크기 = 수입액.
     지구본은 HTML 이라 PNG 로 바로 저장할 수 없어, 같은 값의 평면 지도(plotly)를 만들어 돌려준다(화면에는 그리지 않음 — PNG 단추용)."""
-    html = (_GLOBE.replace("__DATA__", json.dumps(points, ensure_ascii=False))
-            .replace("__KOREA__", json.dumps(KOREA)).replace("__UNIT__", unit)
-            .replace("__H__", str(height - 10)))
+    html = (_GLOBE.replace("__DATA__", _js(points))
+            .replace("__KOREA__", _js(KOREA)).replace("__UNIT__", unit)
+            .replace("__H__", str(height - 10)).replace("__FONTLINK__", _FONT_LINK))
     components.html(html, height=height, scrolling=False)
     fig = go.Figure()
     if points:
@@ -824,6 +906,30 @@ _HOVER_JS = r"""
   const svg = stage.querySelector('svg');
   const lab = stage.querySelector('.c-lab'), sub = stage.querySelector('.c-sub'), val = stage.querySelector('.c-val');
   const orig = [lab.textContent, sub.textContent];
+  // 가운데 설명이 도넛 구멍보다 길면 두 줄로 나눈다(띄어쓰기 기준) — 링 위로 넘치지 않게
+  const MAXW = 2 * IN - 16, VAL_Y = +val.getAttribute('y');
+  function putSub(text) {
+    sub.textContent = text;
+    let lines = 1;
+    if (sub.getComputedTextLength() > MAXW) {
+      const w = text.split(' ');
+      if (w.length > 1) {
+        let k = 1, best = 1e9;
+        for (let j = 1; j < w.length; j++) {
+          const d = Math.abs(w.slice(0, j).join(' ').length - w.slice(j).join(' ').length);
+          if (d < best) { best = d; k = j; }
+        }
+        sub.textContent = '';
+        [w.slice(0, k).join(' '), w.slice(k).join(' ')].forEach((s, i) => {
+          const t = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+          t.setAttribute('x', CX); t.setAttribute('dy', i ? '1.3em' : '0'); t.textContent = s; sub.appendChild(t);
+        });
+        lines = 2;
+      }
+    }
+    val.setAttribute('y', VAL_Y + (lines - 1) * 17);
+  }
+  putSub(orig[1]);
   const segs = D.map((_, i) => document.getElementById('seg' + i));
   const lgs = [...stage.querySelectorAll('.lg')];
   let cur = -1;
@@ -832,10 +938,10 @@ _HOVER_JS = r"""
     stage.classList.toggle('focusing', i >= 0);
     segs.forEach((s, k) => s.classList.toggle('on', k === i));
     lgs.forEach((g, k) => g.classList.toggle('on', k === i));
-    if (i < 0) { lab.textContent = orig[0]; sub.textContent = orig[1]; val.textContent = ''; return; }
+    if (i < 0) { lab.textContent = orig[0]; putSub(orig[1]); val.textContent = ''; return; }
     const d = D[i];
     lab.textContent = (d.p * 100).toFixed(1) + '%';
-    sub.textContent = d.l;
+    putSub(d.l);
     val.textContent = d.v.toLocaleString('ko-KR') + (UNIT ? ' ' + UNIT : '');
   }
   // 조각 판정은 각도로 한다 — 12시 = 0, 시계 방향(도넛을 -90° 돌려 그린 것과 같다)
@@ -863,11 +969,11 @@ def _hover_js(rows: list[tuple[str, float, str]], cx: float, cy: float, on: str,
     """on = 도넛이 다 펼쳐졌을 때 #stage 에 붙는 클래스. 그 전에는 커서를 올려도 반응하지 않는다."""
     total = float(sum(float(v) for _, v, _ in rows))
     data = [{"l": str(l), "v": float(v), "p": float(v) / total} for l, v, _ in rows]
-    return (_HOVER_JS.replace("__DATA__", json.dumps(data, ensure_ascii=False))
+    return (_HOVER_JS.replace("__DATA__", _js(data))
             .replace("__CX__", str(cx)).replace("__CY__", str(cy))
             .replace("__IN__", str(R - STROKE / 2 - 4)).replace("__OUT__", str(R + STROKE / 2 + 4))
             .replace("__OUTH__", str(HOVER_OUT))
-            .replace("__ON__", on).replace("__UNIT__", json.dumps(unit, ensure_ascii=False)))
+            .replace("__ON__", on).replace("__UNIT__", _js(unit)))
 
 
 # ── 도넛 — 바로 펼쳐지고, 조각(또는 범례)에 커서를 올리면 3-3 의 반응을 한다 ──
@@ -893,13 +999,13 @@ def hover_donut(rows: list[tuple[str, float, str]], center: str, sub: str = "", 
             .replace("__CENTER__", escape(center))
             .replace("__SUB__", escape(sub))
             .replace("__C__", str(C))
-            .replace("__H__", str(height - 10))
+            .replace("__H__", str(height - 10)).replace("__FONTLINK__", _FONT_LINK)
             .replace("__HOVER__", _hover_js(rows, 170, 170, "shown", value_unit)))
     components.html(html, height=height, scrolling=False)
 
 
 _DONUT_TPL = r"""
-<!DOCTYPE html><html><head><meta charset="utf-8">
+<!DOCTYPE html><html><head><meta charset="utf-8">__FONTLINK__
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:transparent;overflow:hidden;user-select:none;
@@ -939,9 +1045,9 @@ __HOVER__
 #      지도 모양은 CDN 에서 받는다 — 세계: world-atlas, 시·도: southkorea-maps(통계청 2013).
 # ════════════════════════════════════════════════════════════════════════════
 _MAP_HEAD = r"""
-<!DOCTYPE html><html><head><meta charset="utf-8">
-<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<!DOCTYPE html><html><head><meta charset="utf-8">__FONTLINK__
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js" integrity="sha384-Ukv1p/xTma6P4/2bY5KzWBw+ydSpXmhCMtyciIQVDJ1RmOxtCYNMF1uXT9T63H67" crossorigin="anonymous"></script>
 <style>
   *{box-sizing:border-box}
   body{margin:0;font-family:Pretendard,'Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif;
@@ -992,6 +1098,7 @@ _WORLD_MAP = _MAP_HEAD + r"""
 </div>
 <script>
 const D = __DATA__, INFO = __INFO__, MODES = __MODES__, UNIT = "__UNIT__", TOPN = __TOPN__, NOTE = "__NOTE__";
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const PAL = {imp: {c: '#1d4ed8', t: '#1e3a8a', bins: ['#1e3a8a', '#1d4ed8', '#3b82f6', '#93c5fd', '#dbeafe']},
              exp: {c: '#eb6834', t: '#a8431c', bins: ['#a8431c', '#eb6834', '#f39a70', '#f8c4aa', '#fde8dd']}};
 const CUT = [20, 10, 5, 1, 0], CUT_TXT = ['20% 이상', '10 - 20%', '5 - 10%', '1 - 5%', '1% 미만'];
@@ -1018,7 +1125,7 @@ function tipShow(ev, n, s, other) {
   const b = wrap.getBoundingClientRect();
   if (!s) { tip.style.opacity = 0; return; }
   const o = other && other.v ? '<br>' + KOR[mode === 'imp' ? 'exp' : 'imp'] + ' ' + other.v.toLocaleString(undefined, {maximumFractionDigits: 1}) + ' ' + UNIT : '';
-  tip.innerHTML = '<b>' + n + '</b>' + KOR[mode] + ' <em style="color:' + PAL[mode].t + '">'
+  tip.innerHTML = '<b>' + esc(n) + '</b>' + KOR[mode] + ' <em style="color:' + PAL[mode].t + '">'
     + s.v.toLocaleString(undefined, {maximumFractionDigits: 1}) + ' ' + UNIT + '</em> · ' + s.p.toFixed(1) + '%' + o;
   tip.style.left = (ev.clientX - b.left) + 'px'; tip.style.top = (ev.clientY - b.top) + 'px'; tip.style.opacity = 1;
 }
@@ -1049,20 +1156,34 @@ function paint() {
     .attr('cx', n => proj([INFO[n][2], INFO[n][1]])[0]).attr('cy', n => proj([INFO[n][2], INFO[n][1]])[1])
     .attr('fill', n => P.bins[bin(S[n].p)])
     .on('mousemove', (ev, n) => tipShow(ev, n, S[n], O[n])).on('mouseleave', tipHide);
-  // 상위 국가 라벨 — 옮긴 라벨은 점선으로 나라와 잇는다
+  // 상위 국가 라벨 — 큰 나라부터 제자리에 놓고, 겹치면 빈 곳으로 옮겨 점선으로 나라와 잇는다(1위 라벨이 가려지지 않게)
   labels.innerHTML = ''; gk.selectAll('*').remove();
+  const W = wrap.clientWidth, H = wrap.clientHeight, placed = [];
+  const clash = r => placed.some(q => r.x < q.x + q.w + 4 && r.x + r.w + 4 > q.x && r.y < q.y + q.h + 4 && r.y + r.h + 4 > q.y);
   Object.entries(S).filter(([n]) => INFO[n]).sort((a, b) => b[1].v - a[1].v).slice(0, TOPN).forEach(([n, s], k) => {
-    const [, la, lo, dx, dy] = INFO[n], xy = proj([lo, la]);
+    const [, la, lo] = INFO[n], xy = proj([lo, la]);
     if (!xy) return;
+    const el = document.createElement('div');
+    el.className = 'lb'; el.style.animationDelay = (k * .06) + 's';
+    el.innerHTML = '<b>' + esc(n) + '</b><span style="color:' + P.t + '">' + s.p.toFixed(1) + '%</span>';
+    labels.appendChild(el);
+    const w = el.offsetWidth, h = el.offsetHeight, cand = [[0, 0]];
+    for (const d of [1, 1.6, 2.3]) for (const [ux, uy] of [[0, -1], [0, 1], [1, 0], [-1, 0], [1, -1], [-1, -1], [1, 1], [-1, 1]])
+      cand.push([ux * (w + 8) * d * .75, uy * (h + 6) * d]);
+    let pick = null;
+    for (const [dx, dy] of cand) {
+      const r = {x: xy[0] + dx - w / 2, y: xy[1] + dy - h / 2, w, h};
+      if (r.x < 4 || r.y < 44 || r.x + w > W - 4 || r.y + h > H - 4 || clash(r)) continue;
+      pick = [dx, dy, r]; break;
+    }
+    if (!pick) { el.remove(); return; }                  // 놓을 자리가 없으면 라벨을 빼고 커서 정보로 본다
+    const [dx, dy, r] = pick;
+    placed.push(r);
+    el.style.left = (xy[0] + dx) + 'px'; el.style.top = (xy[1] + dy) + 'px';
     if (dx || dy) {
       gk.append('line').attr('class', 'lead').attr('x1', xy[0]).attr('y1', xy[1]).attr('x2', xy[0] + dx).attr('y2', xy[1] + dy);
       gk.append('circle').attr('class', 'anc').attr('r', 2.4).attr('cx', xy[0]).attr('cy', xy[1]);
     }
-    const el = document.createElement('div');
-    el.className = 'lb'; el.style.left = (xy[0] + dx) + 'px'; el.style.top = (xy[1] + dy) + 'px';
-    el.style.animationDelay = (k * .06) + 's';
-    el.innerHTML = '<b>' + n + '</b><span style="color:' + P.t + '">' + s.p.toFixed(1) + '%</span>';
-    labels.appendChild(el);
   });
   document.getElementById('legend').innerHTML = CUT_TXT.map((t, i) => '<div><i style="background:' + P.bins[i] + '"></i>' + t + '</div>').join('');
   document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', b.dataset.m === mode));
@@ -1074,7 +1195,7 @@ seg.querySelectorAll('button').forEach(b => b.onclick = () => { mode = b.dataset
 new ResizeObserver(() => { if (layout()) paint(); }).observe(wrap);     // 탭 안에 숨어 있다가 보일 때도 다시 맞춘다
 let lastW = 0;                                   // 숨은 탭에서 크기 알림을 놓쳐도 폭이 바뀌면 다시 그린다
 setInterval(() => { if (world && wrap.clientWidth && wrap.clientWidth !== lastW) { lastW = wrap.clientWidth; if (layout()) paint(); } }, 400);
-fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(r => r.json()).then(t => {
+fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json", {integrity: "sha384-yOCJ+8ShBm8UDqtAVtAvxTDDf4gXo5edxl/YG0FmVC5OTmqVLl7utuVGBDEeZWHf"}).then(r => r.json()).then(t => {
   world = topojson.feature(t, t.objects.countries); resolve();
   document.getElementById('msg').remove();
   if (layout()) paint();
@@ -1089,11 +1210,11 @@ def country_map(imp: dict, exp: dict, modes: tuple[str, ...] = ("imp", "exp"), h
     modes 가 하나면 전환 단추를 숨긴다."""
     # where = 국가명 → (위도, 경도)(ref_country). 나라 면은 JS 가 좌표를 품은 면(d3.geoContains)으로 찾는다
     info = {n: [None, la, lo, 0, 0] for n, (la, lo) in (where or {}).items() if (n in imp or n in exp) and la is not None}
-    html = (_WORLD_MAP.replace("__DATA__", json.dumps({"imp": imp, "exp": exp}, ensure_ascii=False))
-            .replace("__INFO__", json.dumps(info, ensure_ascii=False))
-            .replace("__MODES__", json.dumps(list(modes))).replace("__UNIT__", unit)
+    html = (_WORLD_MAP.replace("__DATA__", _js({"imp": imp, "exp": exp}))
+            .replace("__INFO__", _js(info))
+            .replace("__MODES__", _js(list(modes))).replace("__UNIT__", unit)
             .replace("__TOPN__", str(top_n)).replace("__NOTE__", escape(note))
-            .replace("__H__", str(height - 10)))
+            .replace("__H__", str(height - 10)).replace("__FONTLINK__", _FONT_LINK))
     components.html(html, height=height, scrolling=False)
 
 
@@ -1140,8 +1261,11 @@ def sidebar(pages: list, current: object, foot: str, on_info=None) -> None:
             st.html('<div class="sb-brand"><b>방산 전자부품</b><small>수출입 및 국산화 현황 대시보드</small></div>')
         with st.container(key="sidenav"):
             for page, label, icon in pages:
+                # 현재 페이지도 같은 st.page_link 로 그린다 — 아이콘 크기 · 글자 위치가 그대로라 눌러도 흔들리지 않고,
+                # 아이콘 이름 글자(inventory_2 등)가 글꼴 도착 전에 크게 보이는 일도 없다. 표시는 감싼 컨테이너 키로 색만 바꾼다.
                 if page is current:
-                    st.html(f'<div class="nav-on"><span class="material-symbols-rounded">{escape(icon)}</span>{escape(label)}</div>')
+                    with st.container(key="nav_cur"):
+                        st.page_link(page, label=label, icon=f":material/{icon}:", width="stretch")
                 else:
                     st.page_link(page, label=label, icon=f":material/{icon}:", width="stretch")
         with st.container(key="sidefoot"):
@@ -1164,7 +1288,7 @@ def info_button(key: str, on_info) -> None:
 # 서버에 이미지 엔진(kaleido·Chrome)이 없어도 되게 브라우저에서 만든다: 지금 그린 그림(fig)을 JSON 으로 싣고,
 # 단추를 누르면 plotly.js 가 보이지 않는 칸에 같은 그림을 다시 그려 PNG 로 저장한다. 조건·차트 유형이 바뀌면
 # 페이지가 다시 돌며 새 fig 가 실리므로 늘 화면과 같은 그림이 내려받아진다.
-_PNG_BTN = r"""<!DOCTYPE html><html><head><meta charset="utf-8">
+_PNG_BTN = r"""<!DOCTYPE html><html><head><meta charset="utf-8">__FONTLINK__
 <style>body{margin:0;background:transparent;font-family:Pretendard,'Malgun Gothic',system-ui,sans-serif;display:flex;justify-content:__ALIGN__}
 button{font:600 14px Pretendard,'Malgun Gothic',system-ui,sans-serif;color:#1d4ed8;background:#fff;border:1px solid #c7d7f2;
   border-radius:8px;padding:7px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
@@ -1179,6 +1303,7 @@ function loadPlotly() {
   return new Promise((ok, fail) => {
     const sc = document.createElement('script');
     sc.src = 'https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js';
+    sc.integrity = 'sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7'; sc.crossOrigin = 'anonymous';
     sc.onload = ok; sc.onerror = fail; document.head.appendChild(sc);
   });
 }
@@ -1222,7 +1347,7 @@ def png_button(fig, filename: str, label: str = "PNG 이미지 내려받기", wi
     h = int(out.layout.height)
     html = (_PNG_BTN.replace("__FIG__", out.to_json()).replace("__FILE__", escape(filename).replace('"', ""))
             .replace("__LABEL__", escape(label)).replace("__W__", str(width)).replace("__HGT__", str(h))
-            .replace("__ALIGN__", align))
+            .replace("__ALIGN__", align).replace("__FONTLINK__", _FONT_LINK))
     components.html(html, height=42, scrolling=False)
 
 

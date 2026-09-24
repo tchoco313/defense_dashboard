@@ -1,6 +1,7 @@
 """⑤ 데이터 정보 — 팀원 디자인 데모(K-Defense) 「DATA INFO」 화면 배치를 그대로 옮기고 값은 RDS 에서 읽는다.
 
-데모 배치: 머리 안내(lede) → 「데이터 출처」 표 → 「데이터 결합 검증」(입찰 공고 ↔ 결과 깔때기 + 읽는 법) → 「한계와 주의」 카드 2장.
+데모 배치: 머리 안내(lede) → 「데이터 출처」 표 → 「데이터 결합 검증」(입찰 공고 ↔ 결과 깔때기 + 읽는 법) → 「한계와 주의」 카드 2장
++ 세분류 용도별 수입 비중(EDA A1 — 기간을 고르면 이 카드만 다시 조회, 태그 규칙은 v_hs10_use_share 와 같음).
 데모의 샘플 값은 모두 바꿨다:
 - 출처 표 = DB meta_dataset(= db/meta_dataset.csv) — 화면이 문서와 따로 놀지 않게 DB에서 읽는다
 - 깔때기 = clean_dapa_bid_notice · clean_dapa_bid_result 행 수와 notice_link_status(공고번호 + 차수 대조, v_bid_notice_result_link 와 같은 기준)
@@ -19,15 +20,20 @@ import re
 from html import escape
 
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
-from db import data_stamp, safe_query, try_query
+from db import data_stamp, query, safe_query, try_query
 from metrics import count_state
-from ui import SHORT, chart_source, chart_title, csv_header, hero, rules_card, zone
+from ui import SHORT, chart_source, chart_title, csv_header, hero, png_button, rules_card, style_fig, zone
 
 # 1만 건 요건 2종(2026-09-21 회의 M2) + 부록 — 출처 표에서 포털 ID 로 찾는다(표시용)
 ID_CUSTOMS, ID_LOCAL, ID_CONTRACT = "15100475", "15119899", "15050920"
-FUNNEL_COLORS = ["#1e3a8a", "#1d4ed8", "#3b82f6", "#38bdf8"]   # 깔때기 — 파랑 → 하늘(단계가 좁아질수록 옅게)
+FUNNEL_COLORS = ["#1e3a8a", "#1d4ed8", "#3b82f6", "#0284c7"]
+# 「군용」 신고 비중(EDA A1) — 용도 태그 = 파랑 한 계열 농도(군용 전용이 가장 진함), 태그가 없는 세분류 = 옅은 회색
+USE_TAGS = [("군용전용", "군용 전용(제9301·9306호)", "#1e3a8a"), ("항공기용", "항공기용 · 우주항행", "#3b82f6"),
+            ("자동차용", "자동차용", "#93c5fd"), ("기타", "용도 표기 없음", "#e5eaf1")]
+SRC_USE = "관세청 품목별 국가별 수출입실적 OpenAPI(15100475) · 관세청 HS 코드표(세분류 품명) · 국가 전체 수입(민수 포함)"   # 깔때기 — 파랑 → 하늘(단계가 좁아질수록 옅게) · 흰 숫자 대비 3:1 이상
 
 # 건수 3종 — 캐시 밖(try_query): 실패해도 페이지는 그리고 숫자만 뺀다
 rule_df, rule_err = try_query("SELECT COUNT(*) AS n FROM ref_hs_rule_flag")
@@ -38,6 +44,74 @@ st_b2, n_b2 = count_state(b2_df, b2_err, "n")
 n_wl = int((wl_df["priority"] <= 2).sum()) if wl_df is not None else None      # 분석 대상 13개(priority 1·2)
 excl_items = ([f"{r.hs6} {SHORT.get(r.hs6, r.name_ko)}" for r in wl_df.itertuples() if r.priority == 3]
               if wl_df is not None else [])                                       # 규칙 미해당 11개(priority 3)
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def customs_full_years() -> list[int]:
+    return [int(y) for y in query("SELECT DISTINCT year AS y FROM fact_customs_monthly WHERE is_partial_year = 0 ORDER BY y")["y"]]
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_use_share(y0: int, y1: int) -> pd.DataFrame:
+    """분석 대상 13개 품목의 세분류 용도 태그별 수입액(EDA A1). 태그 규칙은 v_hs10_use_share 뷰와 같고
+    뷰에 고정된 기간(2021~2025)만 :y0 · :y1 로 바꿨다 — 기본값 2021~2025 는 뷰와 같은 값이어야 한다."""
+    return query("""
+        SELECT t.hs6, t.use_tag, SUM(t.imp_dlr) AS imp_dlr, COUNT(DISTINCT t.hs10) AS hs10_count
+        FROM (SELECT d.hs6, d.hs10,
+                     CASE WHEN d.name_ko REGEXP '9301|9306'             THEN '군용전용'
+                          WHEN d.name_ko REGEXP '항공기용|항공용|우주항행' THEN '항공기용'
+                          WHEN d.name_ko REGEXP '자동차용'                THEN '자동차용'
+                          ELSE '기타' END AS use_tag,
+                     COALESCE(f.imp_dlr, 0) AS imp_dlr
+              FROM dim_hs10 d
+              LEFT JOIN fact_customs_monthly f
+                     ON f.hs10 = d.hs10 AND f.year BETWEEN :y0 AND :y1 AND f.is_partial_year = 0) t
+        JOIN ref_hs_whitelist w ON w.hs6 = t.hs6 AND w.priority IN (1, 2)
+        GROUP BY t.hs6, t.use_tag
+    """, {"y0": y0, "y1": y1})
+
+
+@st.fragment
+def use_share_card() -> None:
+    """세분류 용도별 수입 비중 — 기간을 바꾸면 이 카드만 다시 조회한다."""
+    ys = customs_full_years()
+    if not ys:
+        st.info("관세청 완결 연도 집계가 없습니다(미적재).")
+        return
+    d0 = 2021 if 2021 in ys else ys[0]
+    y0, y1 = st.select_slider("기간(완결 연도)", options=ys, value=(d0, ys[-1]), key="p5_use_years")
+    u = load_use_share(int(y0), int(y1))
+    tot = u.groupby("hs6")["imp_dlr"].transform("sum")
+    u = u.assign(pct=(u["imp_dlr"] / tot.where(tot > 0) * 100).fillna(0))
+    wide = u.pivot_table(index="hs6", columns="use_tag", values="pct", aggfunc="sum", fill_value=0)
+    for k, _, _ in USE_TAGS:
+        if k not in wide.columns:
+            wide[k] = 0.0
+    pos = u.groupby("hs6")["imp_dlr"].sum()
+    wide = wide.loc[wide.index.isin(pos[pos > 0].index)].sort_values(["항공기용", "군용전용"], ascending=True)
+    if wide.empty:
+        st.info(f"{y0}~{y1} 분석 대상 품목의 수입 실적이 없습니다.")
+        return
+    names = {r.hs6: SHORT.get(r.hs6, r.name_ko) for r in wl_df.itertuples()} if wl_df is not None else {}
+    labels = [f"{names.get(h, h)} {h}" for h in wide.index]
+    mil_max = float(wide["군용전용"].max())
+    span = f"{y0}~{y1}" if y0 != y1 else f"{y0}"
+    t = (f"{span} 「군용 전용」 세분류로 신고된 수입액은 {len(wide)}개 품목 모두 "
+         f'<span class="key">{mil_max:.2f}% 이하</span> — HS 통계로는 군용을 따로 떼어 낼 수 없다' if mil_max < 1 else
+         f'{span} 「군용 전용」 세분류 수입 비중은 가장 높은 품목이 <span class="key">{mil_max:.1f}%</span>')
+    chart_title(t, "품목별 100% = 기간 합계 수입액 · 세분류(HS10) 품명의 용도 표기로 나눔 · 항공기용 비중 순")
+    fig = go.Figure()
+    for k, lbl, col in USE_TAGS:
+        fig.add_trace(go.Bar(y=labels, x=wide[k], orientation="h", name=lbl, marker=dict(color=col, line=dict(color="#fff", width=1)),
+                             hovertemplate=f"%{{y}}<br>{lbl} %{{x:.2f}}%<extra></extra>"))
+    fig.update_layout(barmode="stack", height=34 * len(wide) + 140, legend=dict(orientation="h", y=1.1, traceorder="normal"),
+                      xaxis=dict(range=[0, 100], ticksuffix="%"), margin=dict(l=210, r=20, t=40, b=8))
+    st.plotly_chart(style_fig(fig), width="stretch", theme=None, key="p5_use_share",
+                    config={"displaylogo": False, "modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "autoScale2d"]})
+    png_button(fig, f"데이터정보_세분류용도비중_{span}", align="flex-start", title=t, source="출처: " + SRC_USE)
+    st.html('<div class="caption">이 13개는 「항공기용 · 항행」 같은 전문 용도 세분류나 군용 전용 세분류가 있는 품목으로 골랐습니다. '
+            '군용 전용 세분류가 있어도 실제 신고는 거의 없으므로 수입액은 국가 전체(민수 포함)로 읽습니다.</div>')
+    chart_source(f"{SRC_USE} · 기간 {span}(완결 연도)")
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -92,7 +166,8 @@ def stamp_txt(name: str, s: dict) -> str:
 
 _FILE_BITS = re.compile(r"\s*\([^)]*(?:/|\.(?:csv|txt|py|xlsx|json|ipynb))[^)]*\)"   # (정리본: a.txt + b.csv) · (new_data/)
                         r"|\s*→\s*[^|]*?\.py\b[^|·]*"                               # → parse_krit.py 표 추출
-                        r"|\s*\S+\.(?:csv|txt|py|xlsx|json|ipynb)\b")                 # countries.csv
+                        r"|\s*\S+\.(?:csv|txt|py|xlsx|json|ipynb)\b"                  # countries.csv
+                        r"|\s*\([^)]*Claude[^)]*\)")                                   # (Claude in Chrome) — 작업 도구 이름
 
 
 def plain_cell(v) -> str:
@@ -100,7 +175,7 @@ def plain_cell(v) -> str:
     if not isinstance(v, str):
         return v
     t = _FILE_BITS.sub("", v)
-    return re.sub(r"\s{2,}", " ", t).strip(" +·→") or v
+    return re.sub(r"\s{2,}", " ", t).strip(" +·→") or "—"      # 칸 전체가 파일 이름이면 원문을 내보내지 않는다
 
 
 def caption(text: str, top: int = 8) -> None:
@@ -178,7 +253,7 @@ with zone("src", "데이터 출처"):
         })
         req = ((f"과제 요건 「2종 × 각 1만 건」 = 관세청 수출입실적 <b>{n_cus:,}행</b> · 국산화개발품목 <b>{n_loc:,}행</b>"
                 if n_cus is not None and n_loc is not None else "과제 요건 「2종 × 각 1만 건」 = 관세청 수출입실적 · 국산화개발품목")
-               + "(관측 대상이 서로 다른 자료라 합산하지 않음, 2026-09-21 회의 M2) · "
+               + "(관측 대상이 서로 다른 자료라 합산하지 않음) · "
                + (f"국내조달 계약정보({n_con:,}행)는 부록" if n_con is not None else "국내조달 계약정보는 부록"))
         c_note, c_dl = st.columns([4, 1], vertical_alignment="center")
         c_note.html(f'<div class="note">{req}<br>원본 건수 = 실제로 내려받아 파서로 센 수(5단계 보고의 「원본 전체」) · {partial_line}</div>')
@@ -221,11 +296,12 @@ with zone("match", "데이터 결합 검증"):
         step_df = pd.DataFrame(steps, columns=["단계", "행 수"]).assign(**{"공고 행 대비(%)": lambda d: (d["행 수"] / n_ann * 100).round(1)})
         c_cap, c_dl = st.columns([4, 1], vertical_alignment="center")
         c_cap.html('<div class="caption">전자부품과 잇는 공통 식별자가 없어 화면 분석에는 쓰지 않습니다 · 연결 판정 = 공고번호 + 차수 대조</div>')
-        chart_source("방위사업청 국내 입찰공고 · 입찰결과(파일데이터) · 연결 판정 = 공고번호 + 차수 대조 · "
-                     f"{stamp_txt('입찰결과', stamp_bid)}", where=c_cap)
         with c_dl:
             csv_button(step_df, "입찰 공고 ↔ 결과 매칭 · 단위 행", "방위사업청 국내 입찰공고 · 입찰결과(파일데이터)",
                        [("입찰결과", stamp_bid, None)], "데이터정보_입찰매칭", "p5_csv_match")
+        # 출처 「?」는 다른 구역처럼 줄 아래 오른쪽 끝에(설명 칸 안에 두면 CSV 단추 옆 어중간한 자리에 뜬다)
+        chart_source("방위사업청 국내 입찰공고 · 입찰결과(파일데이터) · 연결 판정 = 공고번호 + 차수 대조 · "
+                     f"{stamp_txt('입찰결과', stamp_bid)}")
 
 # ── 한계와 주의 ────────────────────────────────────────────────────────────
 with zone("limit", "한계와 주의"):
@@ -242,28 +318,30 @@ with zone("limit", "한계와 주의"):
         ("기간 기준", partial_line + " — 완결 연도만 씁니다."),
         ("국가", "관세청 통계의 선적국입니다. 원산지와 다를 수 있습니다(홍콩 · 싱가포르 경유 등)."),
     ]))
+    with st.container(border=True, key="card_use_share"):
+        use_share_card()
 
 # ── 상세 정의 — 데모에 없던 기존 내용. 출처 · 정의 정확성에 필요해 펼침으로 둔다 ─────────
 with zone("detail", "상세 정의"):
     # ── 선정 규칙과 지표 정의 ─────────────────────────────────────────────────
     with st.expander("품목 선정 규칙과 지표 정의"):
         if wl_df is not None and not wl_df.empty:
-            rule_title = (f'수집 {len(wl_df)}개 품목군 중 분석 대상은 진입 규칙 R1 또는 R2에 해당하는 <span class="key">{n_wl}개</span>, '
+            rule_title = (f'수집 {len(wl_df)}개 품목군 중 분석 대상은 군용 전용 · 전문 용도 세분류에 해당하는 <span class="key">{n_wl}개</span>, '
                           f"나머지 {len(excl_items)}개는 배경 자료로만 둔다")
         else:
             rule_title = "품목 선정 규칙과 지표 정의 — 분석 대상 품목군"
-        card_title(st, rule_title, "진입 = R1(군용전용) 또는 R2(항공 · 항행) · R3은 참고 · R4 제외 · 지표 산식은 오른쪽 카드 · 여러 해는 기간 합계 후 계산")
+        card_title(st, rule_title, "진입 = 군용 전용 세분류 또는 전문 용도 명시 · 전략물자 통제는 참고 · 국산화 이력 제외 · 지표 산식은 오른쪽 카드 · 여러 해는 기간 합계 후 계산")
         st.html(cards([
             (f"분석 대상 {n_wl if n_wl is not None else ''}품목군은 이렇게 골랐습니다".replace("  ", " "), bullets([
                 (f"범위: HS 84 · 85 · 88 · 90류의 HS6 {n_rule:,}개 전수" if st_rule == "ok"
                  else "범위: HS 84 · 85 · 88 · 90류의 HS6 전수(건수 조회 실패)"),
-                "<b>공식 자료에서 확인한 사실</b>: 관세청 분류표의 세분류 명칭(R1 · R2 입력), 전략물자수출입고시 별표2 HSK 연계표(R3 입력)",
-                "<b>규칙</b>: <b>R1 군용전용</b> — 「제9301호 · 제9306호 물품 전용」 세분류가 있음 / "
-                "<b>R2 항공 · 항행</b> — 「항공기용 · 항행 · 레이더 · 무인기」 세분류가 있거나 HS6 명칭에 같은 용도어 / "
-                "<b>R3 이중용도</b> — 별표2 3 · 5 · 6 · 7부(전자 · 정보통신 · 센서 · 항법) 통제품목(참고, 진입 근거 아님)",
-                "진입 = <b>R1 또는 R2</b>(2026-09-21 확정). R3만으로는 들어오지 않습니다. R4(국산화개발품목 군급 대응)는 규칙에서 뺐습니다 — "
+                "<b>공식 자료에서 확인한 사실</b>: 관세청 분류표의 세분류 명칭(군용 전용 · 전문 용도 판정), 전략물자수출입고시 별표2 HSK 연계표(전략물자 통제 판정)",
+                "<b>규칙</b>: <b>군용 전용 세분류</b> — 「제9301호 · 제9306호 물품 전용」 세분류가 있음 / "
+                "<b>전문 용도 명시</b> — 「항공기용 · 항행 · 레이더 · 무인기」 세분류가 있거나 HS6 명칭에 같은 용도어 / "
+                "<b>전략물자 통제</b> — 별표2 3 · 5 · 6 · 7부(전자 · 정보통신 · 센서 · 항법) 통제품목(참고, 진입 근거 아님)",
+                "진입 = <b>군용 전용 세분류 또는 전문 용도 명시</b>. 전략물자 통제만으로는 들어오지 않습니다. 국산화 이력(국산화개발품목 군급 대응)은 규칙에서 뺐습니다 — "
                 "관세청 HS 품목군은 군급(FSC) · 재고번호(NSN)와 잇지 않습니다",
-                (f"수집 {len(wl_df)}개 중 규칙 미해당 <b>{len(excl_items)}개</b>는 분석 대상에서 빼고 배경 자료로만 둡니다: {escape(', '.join(excl_items))}" if excl_items
+                (f"수집 {len(wl_df)}개 중 진입 규칙(군용 전용 · 전문 용도) 미해당 <b>{len(excl_items)}개</b>는 분석 대상에서 빼고 배경 자료로만 둡니다: {escape(', '.join(excl_items))}" if excl_items
                  else "분석 제외 품목군 목록은 조회 실패로 표시하지 못했습니다"),
                 "규칙 조합 · 문턱값은 공식 자료에 적용한 <b>팀의 분석 규칙</b>이며 정부 공식 목록도, 통계적 검증도 아닙니다"])),
             ("지표는 이렇게 계산합니다", bullets([
@@ -271,22 +349,22 @@ with zone("detail", "상세 정의"):
                 "<b>1위 공급국 점유율</b> = 1위 국가 수입액 ÷ 품목군 수입액(동률이면 국가코드가 큰 쪽 — DB 뷰와 같은 규칙)",
                 "<b>집중도(HHI)</b> = Σ(국가별 점유율 %)², 0~10,000. 2,500 이상을 「높은 집중」으로 봅니다(미 법무부 기준)",
                 "여러 해를 고르면 <b>국가별로 기간 합계</b>를 낸 뒤 점유율 · HHI를 계산합니다(연도별 값의 평균 아님). "
-                "① 화면의 연도별 HHI 와 홈 · ③ 검토 목록 · 조회 화면의 기간 합계 HHI 는 다른 지표입니다",
+                "① 화면의 연도별 HHI 와 홈 · ④ 검토 목록 · 조회 화면의 기간 합계 HHI 는 다른 지표입니다",
                 "<b>수입국 수</b> = 그 기간 수입 실적(>0)이 있는 국가 수. 수출만 있는 국가는 세지 않습니다",
                 "<b>수출/수입</b> = 같은 기간 수출액 ÷ 수입액. HS6 합계라 민수 반도체가 대부분입니다",
                 "<b>특정국 50% 이상</b> = 1위 공급국 점유율 50% 이상인 품목군 수(산업부 공급망 참고선)",
                 "<b>국외 조달계획 건수</b> = 국외 조달계획(품목 단위 OpenAPI)에서 전자 군급(FSG 58 · 59 · 60, NSN 13자 숫자 · 영숫자)으로 판정한 행 수"
-                "(조달요구번호 × 품목순번). 전자 판정 기준은 확정(2026-09-21)이며 금액은 통화 미검증이라 쓰지 않습니다",
+                "(조달요구번호 × 품목순번). 금액은 통화 미검증이라 쓰지 않습니다",
                 "국가는 <b>선적국</b> 기준입니다. 원산지와 다를 수 있습니다(홍콩 · 싱가포르 경유 등)"])),
         ]))
-        chart_source("관세청 HS 분류표 세분류 명칭 · 전략물자수출입고시 별표2 · 팀 품목 선정 규칙(분석 대상 = 진입 R1 또는 R2) · "
+        chart_source("관세청 HS 분류표 세분류 명칭 · 전략물자수출입고시 별표2 · 팀 품목 선정 규칙(분석 대상 = 군용 전용 세분류 또는 전문 용도 명시) · "
                      f"{stamp_txt('품목군 기준표', stamp_wl)} · {stamp_txt('규칙 판정표', stamp_flag)}")
 
     # ── 용어 ────────────────────────────────────────────────────────────────────
     with st.expander("용어"):
         terms = pd.DataFrame([
             ("코드", "HS6 · HS10", "국제 통일 상품분류. 6자리는 세계 공통, 10자리(HSK)는 한국 세분류. 군용 · 민수를 구분하지 않습니다"),
-            ("코드", "품목군", f"이 대시보드에서는 HS6 하나를 품목군 하나로 부릅니다. 수집 {len(wl_df) if wl_df is not None else '—'}개 중 분석 대상은 규칙(R1 또는 R2)으로 고른 {n_wl if n_wl is not None else '—'}개입니다"),
+            ("코드", "품목군", f"이 대시보드에서는 HS6 하나를 품목군 하나로 부릅니다. 수집 {len(wl_df) if wl_df is not None else '—'}개 중 분석 대상은 진입 규칙(군용 전용 · 전문 용도 세분류)으로 고른 {n_wl if n_wl is not None else '—'}개입니다"),
             ("코드", "FSG · FSC(군급)", "미 연방보급분류. FSG = 앞 2자리 그룹, FSC = 4자리 군급"),
             ("코드", "전자 군급(FSG 58 · 59 · 60)", "58 = 통신 · 탐지 및 코히런트 방사 장비, 59 = 전기 및 전자 장비 구성품, 60 = 광섬유 재료 · 구성품"),
             ("코드", "NSN(국가재고번호)", "군수품 13자리 번호(숫자 · 영숫자). 앞 4자리가 FSC라서 전자 군급(58 · 59 · 60) 여부를 가릴 수 있습니다"),
@@ -322,14 +400,14 @@ with zone("detail", "상세 정의"):
                 "관세청 <b>시군구별</b> 품목별 수출입실적(15134343)에서 수입자 소재지가 <b>경기 과천시</b>인 수입액의 비중 — "
                 "관세청 명세상 「<b>납세의무자 주소지</b>」 기준이며 사용처 · 생산지가 아닙니다",
                 "관측값의 이름은 「과천시 소재 수입자 비중(방위사업청 소재지), 추정」입니다",
-                "2026-09-21 회의에서 「추정」 표기를 붙여 채택한 참고 지표이며, 시군구별 실적(2016~2026)으로 다시 계산할 수 있습니다",
+                "「추정」 표기를 붙인 참고 지표이며, 시군구별 실적(2016~2026)으로 다시 계산할 수 있습니다",
                 "분모는 계산 단위에 따라 HS6별 수입액 또는 분류별 수입액으로 다릅니다"])),
             ("왜 「군 직접 수입의 하한」이라고 쓰지 않나", bullets([
                 "과천에 방위사업청(정부과천청사)과 국군수송사령부가 있다는 것은 사실이지만, 수입신고의 납세의무자가 실제로 그 기관인지는 "
                 "공개 자료로 확인되지 않았습니다 — 이 부분은 <b>가설</b>입니다",
                 "과천 소재 <b>민간 수입자</b>가 섞일 수 있어 비중이 군 몫보다 클 수 있고, 관세법 §92 위탁 업체 명의(창원 · 사천 등)로 들어오는 "
                 "군수품은 빠져 작을 수도 있습니다 → 어느 쪽으로도 치우칠 수 있으므로 <b>하한도 상한도 아닙니다</b>",
-                "2026-09-21 회의에서 「추정」 표기를 붙여 참고 지표로 채택했습니다. 관측값과 가설은 계속 나눠 적습니다",
+                "그래서 「추정」 표기를 붙인 참고 지표로만 씁니다. 관측값과 가설은 계속 나눠 적습니다",
                 "군수 몫은 관세 통계로 나뉘지 않습니다 — 품목군 지표는 국가 전체 수입(민수 포함)입니다"])),
         ]))
         chart_source("관세청 시군구별 품목별 수출입실적(15134343) · 금액 천 달러 · 수입 = 납세의무자 주소지 기준 · "
@@ -381,7 +459,7 @@ with st.expander("산식 · 출처 · 표현 범위"):
                 "**원본 건수** = 내려받은 원본 파일을 파서로 센 레코드 수. 5단계 보고의 「원본 전체」.  \n"
                 "**깔때기** = 입찰 공고 행 수 → 입찰 결과 행 수 → 공고와 연결된 결과 행 수 → 공고 1건과만 맞는 결과 행 수"
                 "(연결 판정 = 공고번호 + 차수 대조).  \n"
-                "**분석 대상 품목군 수** = 품목군 기준표에서 진입 규칙(R1 또는 R2)에 해당하는 품목군 수. 나머지는 배경 자료.  \n"
+                "**분석 대상 품목군 수** = 품목군 기준표에서 진입 규칙(군용 전용 세분류 또는 전문 용도 명시)에 해당하는 품목군 수. 나머지는 배경 자료.  \n"
                 "**규칙 판정 범위** = HS 84·85·88·90류 HS6 전수.  \n"
                 "**국산화개발 사업 수** = 국산화개발품목 자료의 서로 다른 사업명 수.  \n\n"
                 "**출처** — 위 「데이터 출처」 표의 공개 자료(기관 · 데이터 · 포털 ID).")
