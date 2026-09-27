@@ -4,11 +4,19 @@ headless = true
 [browser]
 gatherUsageStats = false
 
-# 다크 테마 — 색은 docs/report/mockup-2026-09-18/common.css 와 같은 값(app/ui.py 색 토큰)
+# 라이트 테마 — 값은 dashboard/mockup/common.css(디자인 값의 정본)와 같다. 글꼴(IBM Plex Sans KR)은 dashboard/ui.py CSS 의 @import 로 불러온다.
 [theme]
-base = "dark"
-primaryColor = "#5b9bff"
-backgroundColor = "#0e1320"
-secondaryBackgroundColor = "#1c2436"
-textColor = "#e7eaf0"
-borderColor = "#2a3347"
+base = "light"
+primaryColor = "#173f82"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f2f6fb"
+textColor = "#14213a"
+borderColor = "#d7e0ec"
+font = "IBM Plex Sans KR, Malgun Gothic, Apple SD Gothic Neo, sans-serif"
+baseRadius = "6px"
+showWidgetBorder = true
+
+# 오류 표시 — 예외 메시지에 RDS 호스트명이 섞일 수 있어 브라우저에는 예외 유형만 보인다(전체 메시지·트레이스백은 콘솔).
+# 로컬 디버깅: 환경변수 STREAMLIT_CLIENT_SHOW_ERROR_DETAILS=full 이 이 값보다 우선한다.
+[client]
+showErrorDetails = "type"
