@@ -1,0 +1,239 @@
+statCd,name_en,name_ko,lat,lon,source
+AD,Andorra,안도라,42.546245,1.601554,google_dspl_countries.csv
+AE,United Arab Emirates,아랍에미리트 연합,23.424076,53.847818,google_dspl_countries.csv
+AF,Afghanistan,아프카니스탄,33.93911,67.709953,google_dspl_countries.csv
+AG,Antigua and Barbuda,안티가 바부다,17.060816,-61.796428,google_dspl_countries.csv
+AI,Anguilla,앙귈라,18.220554,-63.068615,google_dspl_countries.csv
+AL,Albania,알바니아,41.153332,20.168331,google_dspl_countries.csv
+AM,Armenia,아르메니아,40.069099,45.038189,google_dspl_countries.csv
+AN,Netherlands Antilles,네덜란드 열도,12.226079,-69.060087,google_dspl_countries.csv
+AO,Angola,앙골라,-11.202692,17.873887,google_dspl_countries.csv
+AQ,Antarctica,안타티카,-75.250973,-0.071389,google_dspl_countries.csv
+AR,Argentina,아르헨티나,-38.416097,-63.616672,google_dspl_countries.csv
+AS,American Samoa,아메리칸 사모아,-14.270972,-170.132217,google_dspl_countries.csv
+AT,Austria,오스트리아,47.516231,14.550072,google_dspl_countries.csv
+AU,Australia,호주,-25.274398,133.775136,google_dspl_countries.csv
+AW,Aruba,아루바,12.52111,-69.968338,google_dspl_countries.csv
+AX,Aland Islands,알랜드 군도,60.1785,19.9156,manual_wikipedia
+AZ,Azerbaijan,아제르바이잔,40.143105,47.576927,google_dspl_countries.csv
+BA,Bosnia and Herzegovina,보스니아-헤르체고비나,43.915886,17.679076,google_dspl_countries.csv
+BB,Barbados,바베이도스,13.193887,-59.543198,google_dspl_countries.csv
+BD,Bangladesh,방글라데시,23.684994,90.356331,google_dspl_countries.csv
+BE,Belgium,벨기에,50.503887,4.469936,google_dspl_countries.csv
+BF,Burkina Faso,부르키나 파소,12.238333,-1.561593,google_dspl_countries.csv
+BG,Bulgaria,불가리아,42.733883,25.48583,google_dspl_countries.csv
+BH,Bahrain,바레인,25.930414,50.637772,google_dspl_countries.csv
+BI,Burundi,부룬디,-3.373056,29.918886,google_dspl_countries.csv
+BJ,Benin,베닝,9.30769,2.315834,google_dspl_countries.csv
+BM,Bermuda,버뮤다,32.321384,-64.75737,google_dspl_countries.csv
+BN,Brunei,브루나이,4.535277,114.727669,google_dspl_countries.csv
+BO,Bolivia,볼리비아,-16.290154,-63.588653,google_dspl_countries.csv
+BQ,"Bonaire, Sint Eustatius and Saba",보네르 신트외스타티위스,12.1784,-68.2385,manual_wikipedia
+BR,Brazil,브라질,-14.235004,-51.92528,google_dspl_countries.csv
+BS,Bahamas,바하마,25.03428,-77.39628,google_dspl_countries.csv
+BT,Bhutan,부탄,27.514162,90.433601,google_dspl_countries.csv
+BW,Botswana,보츠와나,-22.328474,24.684866,google_dspl_countries.csv
+BY,Belarus,벨라루스,53.709807,27.953389,google_dspl_countries.csv
+BZ,Belize,벨리제,17.189877,-88.49765,google_dspl_countries.csv
+CA,Canada,캐나다,56.130366,-106.346771,google_dspl_countries.csv
+CC,Cocos [Keeling] Islands,코스 군도,-12.164165,96.870956,google_dspl_countries.csv
+CD,Congo [DRC],콩고민주공화국,-4.038333,21.758664,google_dspl_countries.csv
+CF,Central African Republic,중앙아프리카공화국,6.611111,20.939444,google_dspl_countries.csv
+CG,Congo [Republic],콩고,-0.228021,15.827659,google_dspl_countries.csv
+CH,Switzerland,스위스,46.818188,8.227512,google_dspl_countries.csv
+CI,Côte d'Ivoire,코트디봐르,7.539989,-5.54708,google_dspl_countries.csv
+CK,Cook Islands,쿡 아일랜드,-21.236736,-159.777671,google_dspl_countries.csv
+CL,Chile,칠레,-35.675147,-71.542969,google_dspl_countries.csv
+CM,Cameroon,카메룬,7.369722,12.354722,google_dspl_countries.csv
+CN,China,중국,35.86166,104.195397,google_dspl_countries.csv
+CO,Colombia,콜롬비아,4.570868,-74.297333,google_dspl_countries.csv
+CR,Costa Rica,코스타리카,9.748917,-83.753428,google_dspl_countries.csv
+CU,Cuba,쿠바,21.521757,-77.781167,google_dspl_countries.csv
+CV,Cape Verde,카보 베르데,16.002082,-24.013197,google_dspl_countries.csv
+CW,Curacao,큐라소,12.1696,-68.99,manual_wikipedia
+CX,Christmas Island,크리스마스 아일랜드,-10.447525,105.690449,google_dspl_countries.csv
+CY,Cyprus,사이프러스,35.126413,33.429859,google_dspl_countries.csv
+CZ,Czech Republic,체코공화국,49.817492,15.472962,google_dspl_countries.csv
+DE,Germany,독일,51.165691,10.451526,google_dspl_countries.csv
+DJ,Djibouti,지부티,11.825138,42.590275,google_dspl_countries.csv
+DK,Denmark,덴마크,56.26392,9.501785,google_dspl_countries.csv
+DM,Dominica,도미니카,15.414999,-61.370976,google_dspl_countries.csv
+DO,Dominican Republic,도미니카 공화국,18.735693,-70.162651,google_dspl_countries.csv
+DZ,Algeria,알제리,28.033886,1.659626,google_dspl_countries.csv
+EC,Ecuador,에쿠아도르,-1.831239,-78.183406,google_dspl_countries.csv
+EE,Estonia,에스토니아,58.595272,25.013607,google_dspl_countries.csv
+EG,Egypt,이집트,26.820553,30.802498,google_dspl_countries.csv
+EH,Western Sahara,서사하라,24.215527,-12.885834,google_dspl_countries.csv
+ER,Eritrea,에리트리아,15.179384,39.782334,google_dspl_countries.csv
+ES,Spain,스페인,40.463667,-3.74922,google_dspl_countries.csv
+ET,Ethiopia,에티오피아,9.145,40.489673,google_dspl_countries.csv
+FI,Finland,핀란드,61.92411,25.748151,google_dspl_countries.csv
+FJ,Fiji,피지,-16.578193,179.414413,google_dspl_countries.csv
+FM,Micronesia,마이크로네시아,7.425554,150.550812,google_dspl_countries.csv
+FO,Faroe Islands,파로에 군도,61.892635,-6.911806,google_dspl_countries.csv
+FR,France,프랑스,46.227638,2.213749,google_dspl_countries.csv
+GA,Gabon,가봉,-0.803689,11.609444,google_dspl_countries.csv
+GB,United Kingdom,영국,55.378051,-3.435973,google_dspl_countries.csv
+GD,Grenada,그레나다,12.262776,-61.604171,google_dspl_countries.csv
+GE,Georgia,조지아,42.315407,43.356892,google_dspl_countries.csv
+GG,Guernsey,건지,49.465691,-2.585278,google_dspl_countries.csv
+GH,Ghana,가나,7.946527,-1.023194,google_dspl_countries.csv
+GI,Gibraltar,지브랄타,36.137741,-5.345374,google_dspl_countries.csv
+GL,Greenland,그린랜드,71.706936,-42.604303,google_dspl_countries.csv
+GM,Gambia,감비아,13.443182,-15.310139,google_dspl_countries.csv
+GN,Guinea,기니,9.945587,-9.696645,google_dspl_countries.csv
+GP,Guadeloupe,과델로프,16.995971,-62.067641,google_dspl_countries.csv
+GQ,Equatorial Guinea,적도 기니,1.650801,10.267895,google_dspl_countries.csv
+GR,Greece,그리스,39.074208,21.824312,google_dspl_countries.csv
+GS,South Georgia and the South Sandwich Islands,남조지아 & 남샌드위치 군도,-54.429579,-36.587909,google_dspl_countries.csv
+GT,Guatemala,과테말라,15.783471,-90.230759,google_dspl_countries.csv
+GU,Guam,괌,13.444304,144.793731,google_dspl_countries.csv
+GW,Guinea-Bissau,기네비소,11.803749,-15.180413,google_dspl_countries.csv
+GY,Guyana,가이아나,4.860416,-58.93018,google_dspl_countries.csv
+HK,Hong Kong,홍콩,22.396428,114.109497,google_dspl_countries.csv
+HN,Honduras,온두라스,15.199999,-86.241905,google_dspl_countries.csv
+HR,Croatia,크로아티아,45.1,15.2,google_dspl_countries.csv
+HT,Haiti,아이티,18.971187,-72.285215,google_dspl_countries.csv
+HU,Hungary,헝가리,47.162494,19.503304,google_dspl_countries.csv
+ID,Indonesia,인도네시아,-0.789275,113.921327,google_dspl_countries.csv
+IE,Ireland,아일랜드,53.41291,-8.24389,google_dspl_countries.csv
+IL,Israel,이스라엘,31.046051,34.851612,google_dspl_countries.csv
+IM,Isle of Man,맨섬,54.236107,-4.548056,google_dspl_countries.csv
+IN,India,인도,20.593684,78.96288,google_dspl_countries.csv
+IQ,Iraq,이라크,33.223191,43.679291,google_dspl_countries.csv
+IR,Iran,이란,32.427908,53.688046,google_dspl_countries.csv
+IS,Iceland,아이슬란드,64.963051,-19.020835,google_dspl_countries.csv
+IT,Italy,이탈리아,41.87194,12.56738,google_dspl_countries.csv
+JM,Jamaica,자마이카,18.109581,-77.297508,google_dspl_countries.csv
+JO,Jordan,요르단,30.585164,36.238414,google_dspl_countries.csv
+JP,Japan,일본,36.204824,138.252924,google_dspl_countries.csv
+KE,Kenya,케냐,-0.023559,37.906193,google_dspl_countries.csv
+KG,Kyrgyzstan,키르기스스탄,41.20438,74.766098,google_dspl_countries.csv
+KH,Cambodia,캄보디아,12.565679,104.990963,google_dspl_countries.csv
+KI,Kiribati,키리바티,-3.370417,-168.734039,google_dspl_countries.csv
+KM,Comoros,코모로스,-11.875001,43.872219,google_dspl_countries.csv
+KN,Saint Kitts and Nevis,세인트 키츠 네비스,17.357822,-62.782998,google_dspl_countries.csv
+KW,Kuwait,쿠웨이트,29.31166,47.481766,google_dspl_countries.csv
+KY,Cayman Islands,영령 캐이맨 군도,19.513469,-80.566956,google_dspl_countries.csv
+KZ,Kazakhstan,카자흐스탄,48.019573,66.923684,google_dspl_countries.csv
+LA,Laos,라오스,19.85627,102.495496,google_dspl_countries.csv
+LB,Lebanon,레바논,33.854721,35.862285,google_dspl_countries.csv
+LC,Saint Lucia,세인트 루시아,13.909444,-60.978893,google_dspl_countries.csv
+LI,Liechtenstein,리히텐슈타인,47.166,9.555373,google_dspl_countries.csv
+LK,Sri Lanka,스리랑카,7.873054,80.771797,google_dspl_countries.csv
+LR,Liberia,라이베리아,6.428055,-9.429499,google_dspl_countries.csv
+LS,Lesotho,레소토,-29.609988,28.233608,google_dspl_countries.csv
+LT,Lithuania,리투아니아,55.169438,23.881275,google_dspl_countries.csv
+LU,Luxembourg,룩셈부르그,49.815273,6.129583,google_dspl_countries.csv
+LV,Latvia,라트비아,56.879635,24.603189,google_dspl_countries.csv
+LY,Libya,리비아,26.3351,17.228331,google_dspl_countries.csv
+MA,Morocco,모로코,31.791702,-7.09262,google_dspl_countries.csv
+MC,Monaco,모나코,43.750298,7.412841,google_dspl_countries.csv
+MD,Moldova,몰도바,47.411631,28.369885,google_dspl_countries.csv
+ME,Montenegro,몬테네그로,42.708678,19.37439,google_dspl_countries.csv
+MF,Saint Martin (French part),세인트 마틴,18.0708,-63.0501,manual_wikipedia
+MG,Madagascar,마다카스카르,-18.766947,46.869107,google_dspl_countries.csv
+MH,Marshall Islands,마샬군도,7.131474,171.184478,google_dspl_countries.csv
+MK,Macedonia [FYROM],마세도니아,41.608635,21.745275,google_dspl_countries.csv
+ML,Mali,말리,17.570692,-3.996166,google_dspl_countries.csv
+MM,Myanmar [Burma],미얀마,21.913965,95.956223,google_dspl_countries.csv
+MN,Mongolia,몽골,46.862496,103.846656,google_dspl_countries.csv
+MO,Macau,마카오,22.198745,113.543873,google_dspl_countries.csv
+MP,Northern Mariana Islands,북마리아나 군도,17.33083,145.38469,google_dspl_countries.csv
+MQ,Martinique,마티니크,14.641528,-61.024174,google_dspl_countries.csv
+MR,Mauritania,모리타니,21.00789,-10.940835,google_dspl_countries.csv
+MS,Montserrat,몬트세라트,16.742498,-62.187366,google_dspl_countries.csv
+MT,Malta,몰타,35.937496,14.375416,google_dspl_countries.csv
+MU,Mauritius,모리셔스,-20.348404,57.552152,google_dspl_countries.csv
+MV,Maldives,몰디브,3.202778,73.22068,google_dspl_countries.csv
+MW,Malawi,말라위,-13.254308,34.301525,google_dspl_countries.csv
+MX,Mexico,멕시코,23.634501,-102.552784,google_dspl_countries.csv
+MY,Malaysia,말레이시아,4.210484,101.975766,google_dspl_countries.csv
+MZ,Mozambique,모잠비크,-18.665695,35.529562,google_dspl_countries.csv
+NA,Namibia,나미비아,-22.95764,18.49041,google_dspl_countries.csv
+NC,New Caledonia,뉴 칼레도니아,-20.904305,165.618042,google_dspl_countries.csv
+NE,Niger,니제르,17.607789,8.081666,google_dspl_countries.csv
+NF,Norfolk Island,노폴크 아일랜드,-29.040835,167.954712,google_dspl_countries.csv
+NG,Nigeria,나이지리아,9.081999,8.675277,google_dspl_countries.csv
+NI,Nicaragua,니카라과,12.865416,-85.207229,google_dspl_countries.csv
+NL,Netherlands,네덜란드,52.132633,5.291266,google_dspl_countries.csv
+NO,Norway,노르웨이,60.472024,8.468946,google_dspl_countries.csv
+NP,Nepal,네팔,28.394857,84.124008,google_dspl_countries.csv
+NR,Nauru,나우루,-0.522778,166.931503,google_dspl_countries.csv
+NU,Niue,니우에,-19.054445,-169.867233,google_dspl_countries.csv
+NZ,New Zealand,뉴질랜드,-40.900557,174.885971,google_dspl_countries.csv
+OM,Oman,오만,21.512583,55.923255,google_dspl_countries.csv
+PA,Panama,파나마,8.537981,-80.782127,google_dspl_countries.csv
+PE,Peru,페루,-9.189967,-75.015152,google_dspl_countries.csv
+PF,French Polynesia,불령 폴리네시아,-17.679742,-149.406843,google_dspl_countries.csv
+PG,Papua New Guinea,파푸아 뉴기니,-6.314993,143.95555,google_dspl_countries.csv
+PH,Philippines,필리핀,12.879721,121.774017,google_dspl_countries.csv
+PK,Pakistan,파키스탄,30.375321,69.345116,google_dspl_countries.csv
+PL,Poland,폴란드,51.919438,19.145136,google_dspl_countries.csv
+PM,Saint Pierre and Miquelon,세인트 피레 미켈론,46.941936,-56.27111,google_dspl_countries.csv
+PN,Pitcairn Islands,피트카이른,-24.703615,-127.439308,google_dspl_countries.csv
+PR,Puerto Rico,푸에르토리코,18.220833,-66.590149,google_dspl_countries.csv
+PS,Palestinian Territories,팔레스타인 해방기구,31.952162,35.233154,google_dspl_countries.csv
+PT,Portugal,포루투갈,39.399872,-8.224454,google_dspl_countries.csv
+PW,Palau,팔라우,7.51498,134.58252,google_dspl_countries.csv
+PY,Paraguay,파라과이,-23.442503,-58.443832,google_dspl_countries.csv
+QA,Qatar,카타르,25.354826,51.183884,google_dspl_countries.csv
+RE,Réunion,불령 리유니온 코모도 제도,-21.115141,55.536384,google_dspl_countries.csv
+RO,Romania,루마니아,45.943161,24.96676,google_dspl_countries.csv
+RS,Serbia,세르비아,44.016521,21.005859,google_dspl_countries.csv
+RU,Russia,러시아 연방,61.52401,105.318756,google_dspl_countries.csv
+RW,Rwanda,르완다,-1.940278,29.873888,google_dspl_countries.csv
+SA,Saudi Arabia,사우디아라비아,23.885942,45.079162,google_dspl_countries.csv
+SB,Solomon Islands,솔로몬 군도,-9.64571,160.156194,google_dspl_countries.csv
+SC,Seychelles,세이쉘,-4.679574,55.491977,google_dspl_countries.csv
+SD,Sudan,수단,12.862807,30.217636,google_dspl_countries.csv
+SE,Sweden,스웨덴,60.128161,18.643501,google_dspl_countries.csv
+SG,Singapore,싱가포르,1.352083,103.819836,google_dspl_countries.csv
+SH,Saint Helena,세인트 헬레나,-24.143474,-10.030696,google_dspl_countries.csv
+SI,Slovenia,슬로베니아,46.151241,14.995463,google_dspl_countries.csv
+SJ,Svalbard and Jan Mayen,스발비드 군도,77.553604,23.670272,google_dspl_countries.csv
+SK,Slovakia,슬로바키아,48.669026,19.699024,google_dspl_countries.csv
+SL,Sierra Leone,시에라 리온,8.460555,-11.779889,google_dspl_countries.csv
+SN,Senegal,세네갈,14.497401,-14.452362,google_dspl_countries.csv
+SO,Somalia,소말리아,5.152149,46.199616,google_dspl_countries.csv
+SR,Suriname,수리남,3.919305,-56.027783,google_dspl_countries.csv
+SS,South Sudan,남수단,6.877,31.307,manual_wikipedia
+ST,São Tomé and Príncipe,상토메 프린스페,0.18636,6.613081,google_dspl_countries.csv
+SV,El Salvador,엘살바도르,13.794185,-88.89653,google_dspl_countries.csv
+SX,Sint Maarten (Dutch part),세인트마틴(생마르탱),18.0425,-63.0548,manual_wikipedia
+SY,Syria,시리아,34.802075,38.996815,google_dspl_countries.csv
+SZ,Swaziland,스와질랜드,-26.522503,31.465866,google_dspl_countries.csv
+TC,Turks and Caicos Islands,투르크 & 카이코스 군도,21.694025,-71.797928,google_dspl_countries.csv
+TD,Chad,챠드,15.454166,18.732207,google_dspl_countries.csv
+TG,Togo,토고,8.619543,0.824782,google_dspl_countries.csv
+TH,Thailand,태국,15.870032,100.992541,google_dspl_countries.csv
+TJ,Tajikistan,타지크,38.861034,71.276093,google_dspl_countries.csv
+TK,Tokelau,토켈라우,-8.967363,-171.855881,google_dspl_countries.csv
+TL,Timor-Leste,티모르,-8.874217,125.727539,google_dspl_countries.csv
+TM,Turkmenistan,투르크멘,38.969719,59.556278,google_dspl_countries.csv
+TN,Tunisia,튀니지,33.886917,9.537499,google_dspl_countries.csv
+TO,Tonga,통가,-21.178986,-175.198242,google_dspl_countries.csv
+TR,Turkey,튀르키예,38.963745,35.243322,google_dspl_countries.csv
+TT,Trinidad and Tobago,트리니다드 토바고,10.691803,-61.222503,google_dspl_countries.csv
+TV,Tuvalu,투발루,-7.109535,177.64933,google_dspl_countries.csv
+TW,Taiwan,대만,23.69781,120.960515,google_dspl_countries.csv
+TZ,Tanzania,탄자니아,-6.369028,34.888822,google_dspl_countries.csv
+UA,Ukraine,우크라이나,48.379433,31.16558,google_dspl_countries.csv
+UG,Uganda,우간다,1.373333,32.290275,google_dspl_countries.csv
+UM,U.S. Minor Outlying Islands,마이너 아우틀링 합중국 군도,19.2823,166.647,manual_wikipedia
+US,United States,미국,37.09024,-95.712891,google_dspl_countries.csv
+UY,Uruguay,우루과이,-32.522779,-55.765835,google_dspl_countries.csv
+UZ,Uzbekistan,우즈베키스탄,41.377491,64.585262,google_dspl_countries.csv
+VA,Vatican City,교황청,41.902916,12.453389,google_dspl_countries.csv
+VE,Venezuela,베네주엘라,6.42375,-66.58973,google_dspl_countries.csv
+VG,British Virgin Islands,영령 버진군도,18.420695,-64.639968,google_dspl_countries.csv
+VI,U.S. Virgin Islands,미령 버진군도,18.335765,-64.896335,google_dspl_countries.csv
+VN,Vietnam,베트남,14.058324,108.277199,google_dspl_countries.csv
+VU,Vanuatu,바누아투,-15.376706,166.959158,google_dspl_countries.csv
+WS,Samoa,사모아,-13.759029,-172.104629,google_dspl_countries.csv
+YE,Yemen,예맨,15.552727,48.516388,google_dspl_countries.csv
+YT,Mayotte,메요트,-12.8275,45.166244,google_dspl_countries.csv
+ZA,South Africa,남아프리카공화국,-30.559482,22.937506,google_dspl_countries.csv
+ZM,Zambia,잠비아,-13.133897,27.849332,google_dspl_countries.csv
+ZW,Zimbabwe,짐바브웨,-19.015438,29.154857,google_dspl_countries.csv
+ZZ,Other countries,기타국,,,customs_code_no_location
