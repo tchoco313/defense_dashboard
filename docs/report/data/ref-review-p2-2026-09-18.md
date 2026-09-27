@@ -2,7 +2,7 @@
 
 작성: 안태호(조장) 검수 + Claude 재검수. 대상은 clean 전환 분배의 **P2 묶음 6개**: `ref_hs_rule_flag` · `ref_hs_indicator` · `ref_country` · `ref_category_map` · `ref_sido_map` · `raw_openfiscal_program_budget`.
 
-> **조회 기준**: 조회는 팀 서버(192.168.100.221, 백업)에서 했다. 같은 날 오후 RDS로 전환된 직후라 행 수가 `docs/runbook/aws-rds-setup.md` §7의 RDS 검증값(`raw_customs_trade` 294,420 · `raw_dapa_contract` 43,112)과 같다. 반영(alter)은 **RDS 대상**이다.
+> **조회 기준**: 조회는 팀 서버(<팀 서버>, 백업)에서 했다. 같은 날 오후 RDS로 전환된 직후라 행 수가 `docs/runbook/aws-rds-setup.md` §7의 RDS 검증값(`raw_customs_trade` 294,420 · `raw_dapa_contract` 43,112)과 같다. 반영(alter)은 **RDS 대상**이다.
 > 표기: **확인됨** = DB에서 직접 조회 / **제안** = 판단.
 
 ## 0. 요약 — 반영할 것

@@ -2,7 +2,7 @@
 
 국방 핵심 전자부품 수출입 및 국산화 현황 대시보드 · 채택 데이터 19종(참조표 2종 별도)의 정제·선별 기준을 한 문서에 모은 것. 팀원이 올린 `new_data/데이터 정제 기준.md`(폴더별 핵심 컬럼 선정안 초안, 2026-09-18)의 ★/▲/✕ 등급 형식을 이어받되, 2026-09-16~17 결정(HS6 24개·제목 "수출입 현황"·수입·수출 동등 배치·미채택 API 정리)에 맞게 고치고, 초안에 없던 정제 규칙(키·중복·형 변환·제외·부분연도·개인정보)을 붙였다.
 
-규칙은 새로 만든 것이 아니다. `CLAUDE.md` 데이터 검증 규칙, `docs/idea-review.md` §3·§5, `docs/db/schema-design.md` §2·§3-4·§3-5·§5, 드라이브 `00_README/README.md` §3, `docs/data-sources.md` 재집계 기록에 흩어져 있던 것을 데이터별로 모았다. 정제 코드(노트북)는 사용자·팀원 영역이므로 여기에는 규칙·기대 건수·판정 기준만 적는다.
+규칙은 새로 만든 것이 아니다. `CLAUDE.md` 데이터 검증 규칙, `docs/idea-review.md` §3·§5, `docs/db/schema-design.md` §2·§3-4·§3-5·§5, 드라이브 `00_README/README.md` §3, `docs/data-sources.md` 재집계 기록에 흩어져 있던 것을 데이터별로 모았다. 정제 코드(노트북)는 팀원 영역이므로 여기에는 규칙·기대 건수·판정 기준만 적는다.
 
 ## 0. 적용 범위·우선순위
 
@@ -34,7 +34,7 @@
 | 10 | **합산·직접 비교 금지 쌍**: 관세청 수입액(달러, CIF 실적) ↔ 조달 예산(원, 집행 예정) / 국외 조달계획 파일판(사업 단위) ↔ API판(품목 단위) / 국외 입찰결과 예산(달러) ↔ A7 예산(원) / 통계연보 국방 R&D ↔ 열린재정 「국방기술개발」 단위사업 / KOSIS 지수 ↔ 금액. 나란히 놓을 때는 정규화 추세만. | `idea-review.md` §3-15, `data-sources.md:93` |
 | 11 | **시나리오 값 비저장**: 제한률·가정 노출 금액은 화면 계산, `is_scenario=true` + 배너. DB 뷰 값은 전부 실측. | `schema-design.md` §2 |
 | 12 | **표현 경계**: "전자부품 데이터 1만 건"이라 쓰지 않는다(1만 건은 계약정보 원본 전체 기준). 무역 값은 "국가 전체 수입/수출(민수 포함)"이지 "방산 수입"이 아니다. 업체명·주소로 국가·원산지를 추정하지 않는다. | `idea-review.md` §3 |
-| 13 | **clean_ 저분산 원본 속성 열 제외(2026-09-21)**: raw_ 에 그대로 있는 원본 속성 열이 사실상 단일값(최빈값 ≥ 95%가 **트리거**, 판정 기준은 아님)이면 clean_ 에서 뺀다. 판정 기준 — ① 뷰·앱·규칙표(`contract_class5_rules.csv` 등)·연결 키·UNIQUE KEY가 쓰지 않음 ② raw 에서 결정적으로 재생성 가능(변환 규칙이 노트북에 있음) ③ 금액 열이 있는 표는 **금액 가중 비율**도 봄(`contract_org_name`: 건수 2.2%지만 금액 59.2% → 유지) ④ NULL-우세 열은 구조적 결측(#9 「해당 없음」)을 뺀 적용 행 안의 분산으로 봄. 제외하지 않는 것: PK·`raw_row_id`·정제 산출 플래그(#4·#6·#9)·판단 속성(#8)·연결 상태(§3)·설계 축(`regime`). 표 단위 사실("개찰장소 전부 X")은 `table_dict.csv` 주의란에 한 줄. 뷰가 읽으면 뷰를 먼저 고친 뒤 DROP, 절차는 `db/alter_<날짜>_<주제>.sql`. 프로파일 SQL `db/query_low_variance.sql`. 첫 적용 20열: `alter_2026-09-21_drop_low_variance.sql` | 2026-09-21 사용자 결정(P3 요청 계기) |
+| 13 | **clean_ 저분산 원본 속성 열 제외(2026-09-21)**: raw_ 에 그대로 있는 원본 속성 열이 사실상 단일값(최빈값 ≥ 95%가 **트리거**, 판정 기준은 아님)이면 clean_ 에서 뺀다. 판정 기준 — ① 뷰·앱·규칙표(`contract_class5_rules.csv` 등)·연결 키·UNIQUE KEY가 쓰지 않음 ② raw 에서 결정적으로 재생성 가능(변환 규칙이 노트북에 있음) ③ 금액 열이 있는 표는 **금액 가중 비율**도 봄(`contract_org_name`: 건수 2.2%지만 금액 59.2% → 유지) ④ NULL-우세 열은 구조적 결측(#9 「해당 없음」)을 뺀 적용 행 안의 분산으로 봄. 제외하지 않는 것: PK·`raw_row_id`·정제 산출 플래그(#4·#6·#9)·판단 속성(#8)·연결 상태(§3)·설계 축(`regime`). 표 단위 사실("개찰장소 전부 X")은 `table_dict.csv` 주의란에 한 줄. 뷰가 읽으면 뷰를 먼저 고친 뒤 DROP, 절차는 `db/alter_<날짜>_<주제>.sql`. 프로파일 SQL `db/query_low_variance.sql`. 첫 적용 20열: `alter_2026-09-21_drop_low_variance.sql` | 2026-09-21 팀 결정(P3 요청 계기) |
 
 인코딩·줄끝(`schema-design.md` §3-2 실측):
 
@@ -236,7 +236,7 @@
 ### 2-11. KOSIS 2종 — 핵심 ① 수출·생산 축(2026-09-17 승격)
 
 - **파일**: `kosis_409_utilization_by_sector_2016_2024.csv`(방산업체 분야별 평균가동률, 9행 가로형) / `kosis_101_production_index_c26_201601_202607.csv`(광공업생산지수 C26·C261·C262·C264 × 원지수·계절조정, 4행 × 254값 열). cp949·LF.
-- **테이블**: `raw_kosis_utilization`(81, 세로형) · `raw_kosis_production_index`(1,016, 세로형) → **`clean_kosis_utilization`(81) · `clean_kosis_production_index`(1,016)**(2026-09-19 신설·적재 실측, raw 1:1·제외 0, DDL `db/alter_2026-09-19_kosis_clean.sql` 2회 exit 0, 적재 `notebooks/clean_p5_kosis.ipynb` nbconvert exit 0. 실측: `in_scope` 9 · `is_avg_row` 9 / `is_provisional` 16 · `stat_month` 고유 127(2016-01~2026-07) · `is_partial_year` 56 · `scope_grade` ★ 254 / ▲ 254 / ✕ 508, `meta_load_log` 126~129). 명세 §6-5는 "기획서 미사용이라 마지막·보류 가능"이었으나 사용자 지시로 실행.
+- **테이블**: `raw_kosis_utilization`(81, 세로형) · `raw_kosis_production_index`(1,016, 세로형) → **`clean_kosis_utilization`(81) · `clean_kosis_production_index`(1,016)**(2026-09-19 신설·적재 실측, raw 1:1·제외 0, DDL `db/alter_2026-09-19_kosis_clean.sql` 2회 exit 0, 적재 `notebooks/clean_p5_kosis.ipynb` nbconvert exit 0. 실측: `in_scope` 9 · `is_avg_row` 9 / `is_provisional` 16 · `stat_month` 고유 127(2016-01~2026-07) · `is_partial_year` 56 · `scope_grade` ★ 254 / ▲ 254 / ✕ 508, `meta_load_log` 126~129). 명세 §6-5는 "기획서 미사용이라 마지막·보류 가능"이었으나 팀 지시로 실행.
 - **규칙**: 광폭 → 세로형 변환은 raw 단계에서 **형식만** 바꾸고 값은 원문 문자열 유지, `source_row_no`(광폭 행)·`source_col_no`(광폭 열)로 셀 위치 보존. 잠정치(**2026.06·2026.07** — 원본 1행 헤더에 `p)` 표기, 2026-09-19 실측)가 확정치로 갱신되면 새 `source_file`로 누적되므로 조회 시 파일을 지정한다. 2026 생산지수는 7월까지 부분연도.
 - **clean 규칙(2026-09-19)**: 두 표 모두 raw 1:1(PK `raw_row_id`, 제외 0), 형 변환 + 등급 플래그만 더하고 원문은 `value_text` 보존. 숫자가 아닌 셀은 NULL(0 아님).
   - 가동률: `year` SMALLINT, `utilization_pct` DECIMAL(5,1), `is_avg_row`(`평균` 행 9 — 분야 값으로 다시 평균 내지 않음), `in_scope`(`통신전자` 9행 = 1, 나머지 72행 0). 업무 키 (`source_file`,`sector_name`,`year`) UNIQUE.
@@ -300,7 +300,7 @@
 | 국내 입찰공고 ↔ 입찰결과 | `bid_notice_no`+`bid_notice_seq` | **키 단위 요약만**(1:1 6,569 / 다중 303 / 미연결 329). 행 단위 조인은 다중 303키에서 7,405행이 7,545행으로 늘어 낙찰금액이 중복 합산되므로 금지. 차수는 세 열 모두 한 자리(0/00 혼재 없음)라 LPAD 전후 매칭 수 동일. 참조공고번호는 `SUBSTRING(ref_notice_no,5,7)=bid_notice_no`가 100%지만 결과 표에 열이 없어 추가 연결 0 |
 | 국외 조달계획 파일판 ↔ 국외 입찰결과 | `판단번호` | 교집합 83, 중복 5쌍은 MAX. 국외 계약정보에는 판단번호가 없어 3자 연결 불가 |
 | 국외 API ↔ 파일판 | — | **조인 금지**(판단번호 체계 다름) |
-| 관세청(HS10/HS6) ↔ NSN·FSC | — | **어떤 수준에서도 엮지 않는다**(2026-09-21 사용자 지시) — 관세청 수입·수출액을 KDSIS NSN·B2 국산화개발품목·국외 조달계획 API의 NSN/FSC 축에 붙이거나 그 반대로 집계·조인·텍스트 매칭하지 않는다. 두 축은 별도 화면·별도 표로만 보여 준다 |
+| 관세청(HS10/HS6) ↔ NSN·FSC | — | **어떤 수준에서도 엮지 않는다**(2026-09-21 팀 지시) — 관세청 수입·수출액을 KDSIS NSN·B2 국산화개발품목·국외 조달계획 API의 NSN/FSC 축에 붙이거나 그 반대로 집계·조인·텍스트 매칭하지 않는다. 두 축은 별도 화면·별도 표로만 보여 준다 |
 | HS ↔ FSC ↔ 품명 | — | **직접 매핑 금지** |
 
 연결로 늘어난 행은 신규 원본이 아니다. 모든 연결은 연결 키·일대일/일대다·연결률·미연결 건수·다중 일치 건수를 함께 보고한다.
@@ -362,7 +362,7 @@
 | ~~KRIT PDF 4종·hwp 1종 표 추출~~ → **종결(2026-09-18 `raw_krit_task` 96행, 2026-09-19 `clean_krit_task` 96·`is_latest` 73)** | — | B1 건수 |
 | ~~`ref_category_map` 후보 17행 확정, `b2_scope` UPDATE~~ → **종결(2026-09-18 확정 안 함 → 2026-09-21 폐기·DROP, `db/alter_2026-09-21_drop_category_map.sql`)** — `v_review_list` B2 열 제거, B1 `hs6`는 전부 NULL | — | `v_review_list` B1 열 |
 | ~~국외 API 금액 열 통화~~ → **종결(2026-09-21 API 명세에 통화 없음 → 건수만, `amount_unverified=1` 유지, `open-decisions` D3)** | — | 2-6 금액 등급 |
-| A7 전자 후보 392건 표본 검수 — **화면 미사용**(앱은 API `clean_dapa_overseas_plan_api.is_elec`만 씀) → 발표 후 | 사용자 노트북 | 배경 ⓪ 전자 비중(미표시) |
+| A7 전자 후보 392건 표본 검수 — **화면 미사용**(앱은 API `clean_dapa_overseas_plan_api.is_elec`만 씀) → 발표 후 | 팀원 노트북 | 배경 ⓪ 전자 비중(미표시) |
 | ~~군별 계약집행 국내·국외 포함 여부~~ → **종결(2026-09-21 라벨 「계약집행액(억원) — 국내·국외 구분 없는 총액」, 추론 — `open-decisions` D11)** | — | 2-8 라벨 |
 | 통계연보 전사표 채택 여부, `46370` 중복 | 팀 | §5 |
 | ~~A7 5종 data.go.kr ID·다운로드일~~ → **종결(2026-09-21 포털 확인 15050919·15050925·15050923, `dataset_id` NULL 0 — `open-decisions` D10)**. 다운로드일은 미상(공유 수령일), `_manifest.csv` 대조는 하지 않음 | — | `meta_dataset` |

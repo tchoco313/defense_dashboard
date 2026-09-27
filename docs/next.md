@@ -5,7 +5,7 @@
 ## 지금 상태
 
 - DB 마감. **RDS 실측 44표 + 31뷰**(2026-09-23 국방반도체 참조표 `ref_semi_*` 7개 추가 — `db/alter_2026-09-23_semi_ref.sql`). `db/schema.sql`(CREATE 44) · `db/table_dict.csv` · `db/column_dict.csv` = RDS `meta_column_dict` **916** · `scripts/load_db.py` REF_EXPECTED 916 · `gen_table_catalog.py` 사전 누락 0 · RDS 누락 0.
-- **raw_ 계층 제거 완료**(2026-09-22 교수 중간 점검 피드백 → 사용자 결정, `docs/report/feedback/professor-feedback-2026-09-22.md`): 원본은 `data/raw/` 파일(+`meta_dataset` SHA-256·파서 건수)로만 두고 RDS raw_ 23표를 DROP했다(`db/alter_2026-09-22_raw_successors.sql` → `_drop_raw_layer.sql`, 덤프 `data/db_dump/`). 후속 표 4개(`ref_hs_code_master`·`ref_hs6_name`·`clean_customs_region`·`clean_dapa_defense_company`)·뷰 4개 재정의·앱 4쿼리 전환. 노트북 6개는 `load_db.read_raw`로 파일을 읽으며 재실행 검산 차이 0(`clean_company.ipynb` 삭제). **남은 것**: `raw_customs_region` 원본 CSV 24개를 맥 → 이 PC `data/raw/customs/`로 복사(사용자). `clean_p1` §6 priority 기대값은 13개 기준(8/5/11)으로 갱신·재실행 완료.
+- **raw_ 계층 제거 완료**(2026-09-22 교수 중간 점검 피드백 → 팀 결정, `docs/report/feedback/professor-feedback-2026-09-22.md`): 원본은 `data/raw/` 파일(+`meta_dataset` SHA-256·파서 건수)로만 두고 RDS raw_ 23표를 DROP했다(`db/alter_2026-09-22_raw_successors.sql` → `_drop_raw_layer.sql`, 덤프 `data/db_dump/`). 후속 표 4개(`ref_hs_code_master`·`ref_hs6_name`·`clean_customs_region`·`clean_dapa_defense_company`)·뷰 4개 재정의·앱 4쿼리 전환. 노트북 6개는 `load_db.read_raw`로 파일을 읽으며 재실행 검산 차이 0(`clean_company.ipynb` 삭제). **남은 것**: `raw_customs_region` 원본 CSV 24개를 맥 → 이 PC `data/raw/customs/`로 복사(사용자). `clean_p1` §6 priority 기대값은 13개 기준(8/5/11)으로 갱신·재실행 완료.
 - 회의 안건 M1~M8 결정·반영 완료(2026-09-21, `app/specs/00_common.md` §8). 1만 건 요건 2종(M2) 표기를 기준 문서 전체에 통일 완료(09-22).
 - 화면 명세 `app/specs/` 14개(23·35 폐기) 작성·검증 완료, 팀 저장소 `dashboard/specs/` 동기(09-22).
 - **화면(09-23~24 완료, 개인 `eae41e8` · 팀 `2fc070e` push)**: 틀 = 팀원 디자인 데모, 겉모양 = 참고 URL(Tremor · KOSIS · Datawrapper). 화면 틀은 파랑 · 하늘 · 흰색, 데이터는 검증 8색(수입 파랑 · 수출 주황), 증감 +빨강/−파랑, 결론형 차트 제목, 출처는 「?」 원, 머리띠 「자료 기준」 버튼, PNG 에 제목 · 출처, HOME 회전 지구본. **화면 · 출처 · PNG · CSV 에 DB 표 · 뷰 이름과 적재일을 쓰지 않는다**(보안 — `kdesign.public_source`). 모든 값은 RDS 에서 읽는다(반도체 참조표도 DB). 검증: 7페이지 헤드리스 예외 0 · 화면 문구 DB 이름 0건 · 제목 숫자 DB 대조 · 테스트 27개. 규칙 `app/specs/01_design_system.md`, 코드 정본 `app/kdesign.py`.
@@ -32,7 +32,7 @@
 
 | # | 안건 | 근거 | 물어볼 것 |
 |---|---|---|---|
-| A2 | 국내 지도(35) 폐기 재확인 — 09-22에 후보로 복구됐던 것을 사용자 결정으로 다시 폐기했다. `data/reference/sido_boundary.geojson` 과 `scripts/build_sido_geojson.py` 는 남겼다 | `app/specs/00_common.md` §9 폐기 행 | 시도 축이 필요하면 ① 수출입 현황(20) 안의 구역으로만. GeoJSON 은 EDA 공간 시각화(`eda_localized_item.ipynb` §8)에서 쓰고 있다. **VWorld API 검토(09-22, 사용자 위임 → 미채택)**: 국산화 3표에 지역 열 없음, 업체 주소 경유 연결 29%(118/407, 그것도 계약업체 소재지) → 그릴 값이 없고, VWorld 타일은 키가 URL로 공개 앱에 노출됨. 시도 축은 GeoJSON choropleth로만 |
+| A2 | 국내 지도(35) 폐기 재확인 — 09-22에 후보로 복구됐던 것을 팀 결정으로 다시 폐기했다. `data/reference/sido_boundary.geojson` 과 `scripts/build_sido_geojson.py` 는 남겼다 | `app/specs/00_common.md` §9 폐기 행 | 시도 축이 필요하면 ① 수출입 현황(20) 안의 구역으로만. GeoJSON 은 EDA 공간 시각화(`eda_localized_item.ipynb` §8)에서 쓰고 있다. **VWorld API 검토(09-22, 팀 위임 → 미채택)**: 국산화 3표에 지역 열 없음, 업체 주소 경유 연결 29%(118/407, 그것도 계약업체 소재지) → 그릴 값이 없고, VWorld 타일은 키가 URL로 공개 앱에 노출됨. 시도 축은 GeoJSON choropleth로만 |
 
 ## 발표 자료 (중간 발표 09-22)
 

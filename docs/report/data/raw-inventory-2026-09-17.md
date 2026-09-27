@@ -55,7 +55,7 @@ KOSIS 광공업 생산지수는 드라이브 매니페스트에 "4(가로형)"�
 | `budget/krit_core_tech_project_20241231.csv` | 1,194 | KRIT 핵심기술 과제 목록 | 같은 문서 §2(나) |
 | `budget/add_tech_transfer_patent_20241231.csv` | 1,190 | ADD 기술이전 특허 목록 | 같은 문서 §2(나) |
 | `budget/dapa_statistical_yearbook_2022.pdf`, `…_2025.pdf` | — | 전사표 근거 PDF | 적재 대상 아님 |
-| `krit/` 공고 원문 8개(pdf 5, hwpx 2, hwp 1) | — | `parse_krit.py` 입력. 표 추출된 것은 26-1차 1건뿐 | 나머지 추출은 사용자 노트북 영역 |
+| `krit/` 공고 원문 8개(pdf 5, hwpx 2, hwp 1) | — | `parse_krit.py` 입력. 표 추출된 것은 26-1차 1건뿐 | 나머지 추출은 팀원 노트북 영역 |
 | `_drive_meta/progress/dapa_plan_api_progress_20260915.csv` | 45 | API 호출 기록 | 적재 대상 아님 |
 
 ## 4. 확인이 필요한 것

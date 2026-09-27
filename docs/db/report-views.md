@@ -1,6 +1,6 @@
 # 보고용 뷰 목록 — 화면에 쓰지 않는 뷰의 역할과 처분 (2026-09-19)
 
-사용자 지시("중복되거나 사용되지 않을 테이블은 삭제")로 RDS 전체 객체를 점검한 결과다. 점검 방법: RDS `information_schema.view_table_usage`(뷰가 어떤 뷰를 읽는지) + `app/`·`notebooks/`·`scripts/`·`docs/db/table-guide.md` §2(화면↔테이블)·`docs/report/plan/dashboard-scope-2026-09-14.md`·`db/alter_*.sql` 참조 전수 집계(2026-09-19). 삭제한 것은 테이블 2개(`clean_kdsis_nsn_ref`, `test_table` — `db/alter_2026-09-19_drop_unused.sql`)이고, 아래 뷰는 **삭제하지 않고 목록으로만 관리**한다(사용자 결정).
+팀 지시("중복되거나 사용되지 않을 테이블은 삭제")로 RDS 전체 객체를 점검한 결과다. 점검 방법: RDS `information_schema.view_table_usage`(뷰가 어떤 뷰를 읽는지) + `app/`·`notebooks/`·`scripts/`·`docs/db/table-guide.md` §2(화면↔테이블)·`docs/report/plan/dashboard-scope-2026-09-14.md`·`db/alter_*.sql` 참조 전수 집계(2026-09-19). 삭제한 것은 테이블 2개(`clean_kdsis_nsn_ref`, `test_table` — `db/alter_2026-09-19_drop_unused.sql`)이고, 아래 뷰는 **삭제하지 않고 목록으로만 관리**한다(팀 결정).
 
 "보고용"의 뜻: 대시보드 화면 ①~⑤·⓪이 읽지 않고 다른 뷰도 읽지 않지만, 정합성 점검·Q&A·DATA INFO 탭 근거로 조회하는 뷰. 화면에 올리려면 `table-guide.md` §2에 먼저 등록한다.
 

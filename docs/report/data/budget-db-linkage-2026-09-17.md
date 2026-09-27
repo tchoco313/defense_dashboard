@@ -57,7 +57,7 @@ raw_dapa_yearbook_stat(source_file, yearbook_edition, table_no, stat_year, metri
 2. (가)를 먼저 적재한다: `db/alter_2026-09-17_yearbook_stat.sql` + `v_budget_context_yearly`.
 3. (나)는 품목군 대응표(B-1) 확정 뒤에 한다. 특허 기술분야 대응은 같은 회의에서 함께 결정하면 된다.
 
-역할: CSV 정제·적재 노트북은 사용자 영역, 테이블·뷰 설계와 검증은 Claude. Claude의 DB 연결은 읽기 전용이라 alter 실행은 사람이 한다.
+역할: CSV 정제·적재 노트북은 팀원 영역, 테이블·뷰 설계와 검증은 Claude. Claude의 DB 연결은 읽기 전용이라 alter 실행은 사람이 한다.
 
 ## 4. 결정·확인이 필요한 것
 

@@ -8,13 +8,13 @@
       "save-password": false,
       "read-only": false,
       "configuration": {
-        "host": "defense-dashboard.cja24us8a444.ap-northeast-2.rds.amazonaws.com",
+        "host": "<RDS_ENDPOINT>",
         "port": "3306",
         "database": "defense_dashboard",
-        "url": "jdbc:mysql://defense-dashboard.cja24us8a444.ap-northeast-2.rds.amazonaws.com:3306/defense_dashboard",
+        "url": "jdbc:mysql://<RDS_ENDPOINT>:3306/defense_dashboard",
         "type": "dev",
         "auth-model": "native",
-        "user": "dev_jisu",
+        "user": "<본인 계정>",
         "handlers": {
           "mysql_ssl": {
             "type": "config",

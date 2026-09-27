@@ -68,7 +68,7 @@ P3(방사청 국외조달, 담당 강지수) 담당이 보낸 검수 SQL(6묶음
 | 1 | `opening_datetime` 텍스트 → `MODIFY COLUMN DATETIME`(무효값 수 확인 결과는 미기재) | clean `opening_at DATETIME` + `opening_date`·`opening_ym`, 파싱 실패 0(09-19) | 이미 반영 |
 | 2 | `unit_price_type`·`prequalification` 전 행 `해당없음` → 삭제 | clean에 없음(단일값 2열 제외, alter §4) | 이미 반영 |
 | 3 | 완전 중복 없음 | 09-19: 4열 조합 UNIQUE, PK `raw_row_id` | 일치 |
-| 4 | **`ordering_agency`·`contract_method`·`bid_method`·`award_method` 4열 삭제**(99.8% 동일, 5건만 함께 변함) | 실측 동일: 2,489행 `국제확정전력운영계약팀/일반경쟁/단가제/최저가격제` + **5행 `화력총괄계약팀/2단계경쟁(동시)/총액제/최저가격제`**. 5행은 실제 변이이고, `v_overseas_bid_chain`이 `MAX(b.ordering_agency)`를 읽는다(`alter_2026-09-19_views_to_clean.sql:304`) | ~~기각(09-20)~~ → **채택(2026-09-21 사용자 결정)** — clean_은 분석용 표이고 raw에 원본이 그대로 있으므로 저분산 원본 속성 열은 뺀다(규칙 #13). `v_overseas_bid_chain`에서 `ordering_agency` 제거 후 4열 DROP: `db/alter_2026-09-21_drop_low_variance.sql`(같은 기준으로 clean 5표 20열) |
+| 4 | **`ordering_agency`·`contract_method`·`bid_method`·`award_method` 4열 삭제**(99.8% 동일, 5건만 함께 변함) | 실측 동일: 2,489행 `국제확정전력운영계약팀/일반경쟁/단가제/최저가격제` + **5행 `화력총괄계약팀/2단계경쟁(동시)/총액제/최저가격제`**. 5행은 실제 변이이고, `v_overseas_bid_chain`이 `MAX(b.ordering_agency)`를 읽는다(`alter_2026-09-19_views_to_clean.sql:304`) | ~~기각(09-20)~~ → **채택(2026-09-21 팀 결정)** — clean_은 분석용 표이고 raw에 원본이 그대로 있으므로 저분산 원본 속성 열은 뺀다(규칙 #13). `v_overseas_bid_chain`에서 `ordering_agency` 제거 후 4열 DROP: `db/alter_2026-09-21_drop_low_variance.sql`(같은 기준으로 clean 5표 20열) |
 | 5 | `budget_amount_usd` 숫자 형식·음수 없음 | clean `DECIMAL(18,2)` | 이미 반영 |
 | 6 | 공고번호·판단번호 길이·형식 정상 | — | 일치 |
 
@@ -102,5 +102,5 @@ RDS 실측(09-20): `ref_fsg` 60 = 1, `ref_fsc` `fsc2='60'` 24행 전부 1(58: 20
 ## 5. 후속 (미실행)
 
 - 담당자의 결측률·상위값 빈도 쿼리 틀을 `db/query_null_profile_template.sql`로 정리해 두면 다른 P 묶음 검수에도 쓸 수 있다 — **제안**, 이번에 만들지 않았다.
-- 담당자가 어느 DB에서 실행했는지(로컬 / 팀 서버 192.168.100.221)는 **미확인**. 팀 서버였다면 그쪽에 `clean_dapa_overseas_plan_2` 등 사본 표가 남아 있을 수 있으나 팀 서버는 백업·연습용이라 정리는 담당자 몫.
+- 담당자가 어느 DB에서 실행했는지(로컬 / 팀 서버 <팀 서버>)는 **미확인**. 팀 서버였다면 그쪽에 `clean_dapa_overseas_plan_2` 등 사본 표가 남아 있을 수 있으나 팀 서버는 백업·연습용이라 정리는 담당자 몫.
 - `standard_no`의 `사양서`·`구매요구서`가 결측인지 규격서 종류인지는 판단하지 않았다(clean에 없는 열).

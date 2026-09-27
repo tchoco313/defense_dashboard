@@ -30,14 +30,14 @@ v_      뷰 31       ① import_hs6_year · import_share_hs6_year · hhi_hs6_yea
 
 적재 순서(= 설명 순서 수집 → 전처리 → DB 저장 → 활용): 원본 파일 수집(`data/raw/`, `meta_dataset` 기록) → `ref_`·`meta_dataset`·`meta_column_dict`·HS 기준표 2종(`load_db.py --ref`, 기준표는 `read_raw`로 파일에서) → `dim_`/`fact_`·`clean_customs_region`(`--fact`, `read_raw` → pandas) → 나머지 `clean_`(노트북 6개, `read_raw` 입력) → 뷰는 DDL에 포함(데이터 없어도 생성됨). **팀 서버 적용·적재 완료 2026-09-15(§6)**, RDS 전환 2026-09-18. `clean_` 표에 0행은 없다(2026-09-19: P4 8표 · P3 4표 · P5-4 `clean_krit_task` 96 · P2-6 열린재정 2표 적재 §6).
 
-## 1-1. 결정 사항 (2026-09-15, 사용자 확정)
+## 1-1. 결정 사항 (2026-09-15, 팀 확정)
 
 | 결정 | 내용 | 이유 |
 | --- | --- | --- |
 | 컬럼명 | 모든 테이블(raw 포함) **영문 snake_case**. 원본 한글 헤더와의 대응은 `db/column_dict.csv` → `meta_column_dict`에 기록 | Streamlit·SQL 작성 시 백틱 불필요, 추적성은 사전표로 확보 |
 | 산출물 범위 | 설계 문서(이 파일) + DDL(`db/schema.sql`) + 열 사전. **적재 코드·`clean_*` 값 채우기는 사용자·팀 영역**이라 작성하지 않음 | CLAUDE.md 역할 분담 |
 | 보조 출처 | 입찰공고·입찰결과·방산업체 지정현황·KOSIS 2종도 원본 파일 데이터셋(`RAW_TABLES`)에 등록하고 핵심/보조 등급을 표기. `clean_`·뷰는 사용처가 있는 것만(2026-09-22) | 이미 확보한 원본이므로 보존, 화면 배정은 별도 |
-| 팀 DB 적용 | ~~DDL은 로컬 MariaDB 12.2에서만 검증. 팀 서버 실행은 팀 합의 후 사용자/조장~~ → **2026-09-15 저녁 변경**: Claude가 MariaDB 12.2 클라이언트로 팀 서버(MySQL 8.4.11)에 DDL을 직접 실행하고 `scripts/load_db.py`로 `ref_`·`meta_`·`raw_`·`dim_/fact_`까지 적재한다(사용자 결정 "다 넣어야"). `clean_` 값 채우기만 사용자 노트북 | DBHub MCP는 읽기 전용이라 검증에만 사용. 서버 `local_infile=0` → pymysql INSERT |
+| 팀 DB 적용 | ~~DDL은 로컬 MariaDB 12.2에서만 검증. 팀 서버 실행은 팀 합의 후 사용자/조장~~ → **2026-09-15 저녁 변경**: Claude가 MariaDB 12.2 클라이언트로 팀 서버(MySQL 8.4.11)에 DDL을 직접 실행하고 `scripts/load_db.py`로 `ref_`·`meta_`·`raw_`·`dim_/fact_`까지 적재한다(팀 결정 "다 넣어야"). `clean_` 값 채우기만 팀원 노트북 | DBHub MCP는 읽기 전용이라 검증에만 사용. 서버 `local_infile=0` → pymysql INSERT |
 
 ## 2. 설계 원칙 (CLAUDE.md 데이터 검증 규칙을 구조로 강제)
 
@@ -49,7 +49,7 @@ v_      뷰 31       ① import_hs6_year · import_share_hs6_year · hhi_hs6_yea
 | 코드는 문자열 | HS `CHAR(10)/CHAR(6)`, FSC `CHAR(4)`, 사업자번호 `CHAR(12)`, 차수 `CHAR(2)`. 앞자리 0 보존 |
 | 이력·최종 상태 분리 | `clean_dapa_contract.is_latest_seq`(계약번호당 1행), `seq_conflict_flag`+`conflict_raw_row_ids`. 계약 단위 금액 = 최종 차수의 `total_contract_amount`, 계약 월 = 최초 체결월(`v_contract_monthly`) |
 | 속성은 독립·미확인 허용 | `class5`(5분류) / `is_electronic` / `is_part` / `is_defense_related` / `is_target_b1` / `is_completed_b2` / `domestic_mfg_status` 모두 별도 열, 기본값 `미확인`·`판단 보류`. 우선순위로 합치지 않음 |
-| 품목군 수준 연결 없음(2026-09-21 폐기) | 카테고리 맵(`ref_category_map`)은 09-21 사용자 결정으로 삭제 — 수출입 현황 대시보드이므로 HS↔FSC 대응 자체를 두지 않는다. `clean_*` 테이블의 `category`·`category_link_status` 열은 남아 있으나 값은 기본값(`미연결`/`조회표 전용`)이고 뷰가 읽지 않는다 |
+| 품목군 수준 연결 없음(2026-09-21 폐기) | 카테고리 맵(`ref_category_map`)은 09-21 팀 결정으로 삭제 — 수출입 현황 대시보드이므로 HS↔FSC 대응 자체를 두지 않는다. `clean_*` 테이블의 `category`·`category_link_status` 열은 남아 있으나 값은 기본값(`미연결`/`조회표 전용`)이고 뷰가 읽지 않는다 |
 | 미확인 ≠ 0 | `v_review_list`의 B1·B2 건수는 미적재·대응표 없음(2026-09-18 결정으로 B2는 항상 이 상태)·B2 범위 밖이면 NULL, 확인된 부재만 0. 사유는 `b1_status`·`b2_status` 열 |
 | 시나리오 비저장 | 제한률·가정 노출 금액은 화면 계산. `is_scenario` 열은 DB에 없다(뷰 값은 전부 실측) |
 | 부분연도 | `fact_customs_monthly.is_partial_year`(2026=1)만이 부분연도 판정 기준. `v_import_hs6_year.month_count`는 "거래 발생 월 수"라 12 미만이어도 부분연도가 아니다 |
@@ -87,8 +87,8 @@ v_      뷰 31       ① import_hs6_year · import_share_hs6_year · hhi_hs6_yea
 | `raw_dapa_overseas_bid_result` | `dapa_overseas_bid_result_20250915.csv` (A7) | cp949 / CRLF | 2,494 (2025-01~09 부분연도) | 배경 보조 — 유찰률 |
 | `raw_dapa_domestic_plan` | `dapa_domestic_plan_20251231.csv` (A7) | cp949 / CRLF | 35,859 | 보조 — 국내 vs 국외 규모. 1만 건 요건 아님 |
 | `raw_dapa_contract_exec_by_service` | `dapa_contract_exec_by_service_20241231.csv` (A7) | cp949 / CRLF | 40 | KPI |
-| `raw_hsk_control` (2026-09-16) | `data/raw/kosti/hsk_control_15034135.csv` (**미확보**, 사용자 다운로드) | utf-8-sig(확인) | 2,161(파서·포털 일치) | 전략물자 통제번호 ↔ HSK10(쉼표 목록, `control_no` TEXT — alter hs*rule §2-0). 별표2 이중용도만, ML 0건. `ref_hs_indicator` `hsk_control*\*` 원천 + HS6 선정 규칙 R3(`v_hsk_control_by_hs6`). 적재 전 `meta_dataset.csv`에 `kosti_hsk_control` 행 필요 |
-| `raw_hs_code_master` (2026-09-16) | `data/raw/customs/hs_code_master_15049722.xlsx` (**미확보**, 사용자 다운로드) | XLSX(`read_excel` openpyxl) | 12,469(파서·포털 일치) | 관세청 HS부호 마스터 = 2026 현행 HSK(10자리 11,327 + 7~9자리 1,142). HS6 선정 규칙 R1·R2(`v_hs10_use_tag_all`, 과거 세분류는 `dim_hs10`과 UNION) 원천. 원본 열 20개(헤더 확인) |
+| `raw_hsk_control` (2026-09-16) | `data/raw/kosti/hsk_control_15034135.csv` (**미확보**, 팀원 다운로드) | utf-8-sig(확인) | 2,161(파서·포털 일치) | 전략물자 통제번호 ↔ HSK10(쉼표 목록, `control_no` TEXT — alter hs*rule §2-0). 별표2 이중용도만, ML 0건. `ref_hs_indicator` `hsk_control*\*` 원천 + HS6 선정 규칙 R3(`v_hsk_control_by_hs6`). 적재 전 `meta_dataset.csv`에 `kosti_hsk_control` 행 필요 |
+| `raw_hs_code_master` (2026-09-16) | `data/raw/customs/hs_code_master_15049722.xlsx` (**미확보**, 팀원 다운로드) | XLSX(`read_excel` openpyxl) | 12,469(파서·포털 일치) | 관세청 HS부호 마스터 = 2026 현행 HSK(10자리 11,327 + 7~9자리 1,142). HS6 선정 규칙 R1·R2(`v_hs10_use_tag_all`, 과거 세분류는 `dim_hs10`과 UNION) 원천. 원본 열 20개(헤더 확인) |
 | `raw_hs_unit_name` (2026-09-16) | `data/raw/customs/hs_unit_name_15130660.xlsx` (**미확보**, 선택) | XLSX 5시트(`special='hs_unit'`) | 17,072(파서·포털 일치) | 2·4·6·8·10단위 명칭(시트별 97/1,228/3,278/1,142/11,327). 규칙 후보 HS6의 공식 명칭·HS6 명칭 용도어 판정. `name_ko`·`name_en`은 HS6 시트 최대 603/745자 |
 | `raw_customs_progress` | `progress_all.csv` | UTF-8 / CRLF | 231 (`row_count` 합 268,909) | 메타 |
 
@@ -108,7 +108,7 @@ v_      뷰 31       ① import_hs6_year · import_share_hs6_year · hhi_hs6_yea
 - `fact_customs_monthly(hs10, stat_cd, yyyymm PK)` — 총계행 제외, `year`/`month` 분리, 금액 `BIGINT`, `is_partial_year`, 원본 추적은 자연키(hs10·국가·월)와 파일명 `customs_all_<HS6>.csv`로(`raw_row_id` 열은 2026-09-22 삭제 — 2회 적재로 순번이 어긋났고 자연키로 충분). FK: `hs6`→`ref_hs_whitelist`, `stat_cd`→`ref_country`, `hs10`→`dim_hs10`.
 - 채우기는 `load_db.py --fact`(`read_raw('raw_customs_trade')` → `build_customs_dim_fact`, pandas — 2026-09-22 raw_ 표 삭제로 SQL INSERT…SELECT 대체). 규칙: `hs6 = LEFT(hs_cd,6)`(원본에서 `req_hs`와 불일치 0), `yyyymm = YYYY.MM → YYYYMM`, 2026 → `is_partial_year=1`. `dim_hs10.name_ko`는 HS10별 **가장 최근 `stat_ym`의 품명**(`ROW_NUMBER() OVER (PARTITION BY hs_cd ORDER BY stat_ym DESC)`) — `MAX(item_name_ko)`는 문자열 정렬 최댓값이라 쓰지 않는다.
 
-### 3-5. `clean_` 정제 (값은 사용자 노트북이 채움)
+### 3-5. `clean_` 정제 (값은 팀원 노트북이 채움)
 
 | 테이블 | PK | 핵심 열 |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ v_      뷰 31       ① import_hs6_year · import_share_hs6_year · hhi_hs6_yea
 | `clean_dapa_localized_item` | (`project_name`, `part_mgmt_no`) | 완전 중복 제거 → 25,025행, `dup_count`로 원본 행 수 보존, `fsc4/fsc2`, `is_electronic_group`, `contractor_name_norm`(`category`·`category_link_status`는 09-21 삭제) |
 | `clean_krit_task` | (`round_id`, `notice_type`, `task_no`) | `round_year/seq`, `program_type`, `gov_fund_100m_krw`, `dev_period_months`, `is_counted`(`hs6`·`category`·`category_link_status`는 09-21 삭제)(같은 차수 예비·본·재공고 중 집계용 1건). FK `raw_row_id`→`raw_krit_task` |
 | `clean_company` | `biz_reg_no` | 계약정보·입찰결과에서 만든 업체 마스터(`name_norm`, `sido_code`) |
-| `clean_dapa_overseas_plan` | `decision_no` | (A7, 2026-09-15) 판단번호 단위 3,024행. `plan_year`, `exec_type`, `budget_krw`(BIGINT, 집행 예정액), `is_contracted`(진행상태 계약/부분계약), `is_electronics_candidate`·`electronics_review_status`(미검수/확정/오탐/판단 보류 — 사용자 노트북 검수), `system_family_hint`, `dup_count`·`has_conflict`(같은 판단번호 5쌍), `first_raw_row_id` FK |
+| `clean_dapa_overseas_plan` | `decision_no` | (A7, 2026-09-15) 판단번호 단위 3,024행. `plan_year`, `exec_type`, `budget_krw`(BIGINT, 집행 예정액), `is_contracted`(진행상태 계약/부분계약), `is_electronics_candidate`·`electronics_review_status`(미검수/확정/오탐/판단 보류 — 팀원 노트북 검수), `system_family_hint`, `dup_count`·`has_conflict`(같은 판단번호 5쌍), `first_raw_row_id` FK |
 | `clean_excluded_row` | `excl_id` (UNIQUE table_name+raw_row_id) | (2026-09-18, 전 담당 공용) clean 으로 옮기지 않은 raw 행의 사유 코드 `reason_code`(DUP_EXACT/COL_SHIFT/PLACEHOLDER/OUT_OF_SCOPE/KEY_CONFLICT/OTHER). 검산 `raw = clean + excluded`. 범용이라 FK 없음 |
 | `clean_dapa_bid_notice` | (`ref_notice_no`, `ref_notice_seq_norm`) | (2026-09-18) 참조공고번호+차수(고유 10,842)가 키. 날짜 DATE·금액 `_krw`·Y/N TINYINT, 면허제한 8열은 개수+결합 문자열, 시각 열·담당자명 제외. 열 밀림 2행 → `clean_excluded_row` COL_SHIFT → 10,840 기대 |
 | `clean_dapa_bid_result` | (`bid_notice_no`, `bid_notice_seq_norm`, `result_seq`) | (2026-09-18) 중복 키 199 = 복수 낙찰 108(같은 결과·낙찰자 여럿) · 결과 상이 73(개찰결과 값이 다름) · **동일 결과 반복 18**(결과·낙찰자 같음: 개찰일이 다른 재개찰 16키 + 같은 날 기초금액만 다른 2키 6행; 완전 중복 0, 2026-09-18 실측으로 18키 간극 해소)는 행 보존 — `result_seq`·`key_row_count`·`dup_kind`·`is_key_representative`(키당 1). `opening_result` ENUM 3값, 낙찰 금액·률 숫자형, `winner_sido_code`, `notice_link_status`(행 조인 없음). 열 밀림 2행 제외 → 7,403 기대 |

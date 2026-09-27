@@ -1,6 +1,6 @@
 # 국내조달 계약정보 5분류·속성 규칙 초안 (2026-09-17)
 
-**상태: 초안(Claude 작성, 팀 결정·표본 검수 전).** 적용은 사용자 정제 노트북 몫이며, 이 문서는 규칙의 근거·순서·측정치·알려진 오탐을 기록한다. 기계가 읽는 규칙표는 `data/reference/contract_class5_rules.csv`(Python `re` 문법, 대소문자 무시).
+**상태: 초안(Claude 작성, 팀 결정·표본 검수 전).** 적용은 팀원 정제 노트북 몫이며, 이 문서는 규칙의 근거·순서·측정치·알려진 오탐을 기록한다. 기계가 읽는 규칙표는 `data/reference/contract_class5_rules.csv`(Python `re` 문법, 대소문자 무시).
 
 기준: `docs/idea-review.md` §5 정제 원칙(5분류·속성 독립·키워드는 후보), `db/schema.sql` `clean_dapa_contract`(`class5`·`is_electronic`·`is_part`·`is_defense_related`·`matched_keywords`·`evidence`·`review_status`), CLAUDE.md 데이터 검증 규칙.
 
@@ -94,7 +94,7 @@
 - 방위사업청 계약 837행을 계약명 단서 없이 방산 후보로 올리는 R3 (c) 유지 여부.
 - 교육용 장비·정책연구 용역의 귀속(§4).
 - `class5`는 계약번호 단위로 하나여야 하는지(차수 간 계약명 불일치 건수 확인 후).
-- 표준품명 R4의 정규식 보강 담당(사용자 노트북).
+- 표준품명 R4의 정규식 보강 담당(팀원 노트북).
 
 ## 부록. 측정 재현 SQL (팀 서버 `raw_dapa_contract`, DBHub 읽기 전용)
 

@@ -267,11 +267,11 @@
 
 **처리 결과(2026-09-18)**: A-1·A-5는 2026-09-17 저녁 개정 시 이미 반영되어 있음(기획서 관문 행 주석·HS6 개수 병기 확인). A-2 `hs-whitelist-definition.md` §8 결론 문구 정정, A-3 `data-sources.md` KDSIS 절·`table-guide.md` `clean_kdsis_nsn` 행 문장 추가, A-4 기획서 2단계 행·검토 목록 열에서 "관련 R&D 예산" 제거(배경 ⓪ 추이로 한정, docx v2에는 원래 없음), A-6 `db/meta_dataset.csv` + `db/alter_2026-09-18_meta_dataset.sql` 팀 서버 적용, A-7 `schema-design.md` §3 676행(전자군 46) 실측 정정, A-8 `idea-review.md` §6 15번.
 
-### B. 데이터·DB (사용자 노트북 또는 팀 결정 필요)
+### B. 데이터·DB (팀원 노트북 또는 팀 결정 필요)
 
 | # | 조치 | 담당 | 효과 |
 |---|---|---|---|
-| B-1 | ~~`db/alter_2026-09-17_category_map.sql` 팀 확정 후 적용~~ **폐기(2026-09-18, 사용자 결정 — FSC↔HS 공식 연계표 없음·KRIT 2025 매칭 연구 비공개, `category-map-decision-2026-09-17.md` 머리 절)**. R4는 유지하되 잠정 표기(`alter_2026-09-18_r4_provisional.sql`) | — | B2 열은 `대응표 없음`·NULL로 고정. B2는 FSC 축(화면 ②)에서만 |
+| B-1 | ~~`db/alter_2026-09-17_category_map.sql` 팀 확정 후 적용~~ **폐기(2026-09-18, 팀 결정 — FSC↔HS 공식 연계표 없음·KRIT 2025 매칭 연구 비공개, `category-map-decision-2026-09-17.md` 머리 절)**. R4는 유지하되 잠정 표기(`alter_2026-09-18_r4_provisional.sql`) | — | B2 열은 `대응표 없음`·NULL로 고정. B2는 FSC 축(화면 ②)에서만 |
 | B-2 | 계약정보·KRIT 정제 노트북 → `clean_dapa_contract`·`clean_krit_task` 적재 | 사용자 | B1 열 활성화, 5분류·국산화 상태 |
 | B-3 | ~~`v_review_list`에 `대응불가` 분기 추가, `ref_hs_whitelist.b2_scope` 24행 채움~~ **폐기(2026-09-18)** — 대응표를 확정하지 않으므로 분기·`b2_scope` 값이 필요 없음. 라벨만 `대응 미확정`→`대응표 없음`으로 정정 | — | §5-3 구분은 "설계상 연결 없음"으로 문서화 |
 | B-4 | 검토 목록 정렬을 근거 등급 층화(priority 1·2 먼저, 팀판단 5개는 별도 탭) 후 HHI↓ | 팀 결정 | §5-2 |

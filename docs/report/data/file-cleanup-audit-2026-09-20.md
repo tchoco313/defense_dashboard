@@ -35,7 +35,7 @@
 | `data/drive_stage/05_reference/hs_whitelist.csv` | 3,042 | 구버전(21행·8열) | 현행 24행·17열. git `d1a1e27`~`d2cb4eb`에 21행판 존재. Drive 일치 | DB `ref_hs_whitelist` 24 = 현행 CSV | git + Drive | `data-cleaning-rules.md:285,366` 인용 | **D**(보존) |
 | `data/drive_stage/99_verification/progress_all.csv` | 7,471 | 구버전(231행 ⊂ 264행) | 231행 전부 현행에 포함 | DB 264 = 현행 파일. DB `meta_dataset.customs_progress.sha256`은 이 파일 값 | Drive | `meta_dataset` 정정 필요 | **D**(보존) |
 | `data/drive_stage/00_README/` 3 | 24,443 | 스테이징 설명·SHA 표 | §4 SHA 표 표본 3건 현행과 일치 | — | 로컬 유일 | `data-cleaning-rules.md:5` | **E** |
-| `new_data/` 국외 조달계획·계약정보·입찰결과, 국내 조달계획, 군별 계약집행 `(1)` 5개 | 6,370,084 | 팀원 공유 원본 사본 | SHA = `data/raw/dapa/` 동일 | 5표 해시 일치 | `data/raw/dapa/`(로컬 유일, gitignore). 팀 공유처 사본 미확인 | 문서만 | **A → 삭제**(사용자 승인) |
+| `new_data/` 국외 조달계획·계약정보·입찰결과, 국내 조달계획, 군별 계약집행 `(1)` 5개 | 6,370,084 | 팀원 공유 원본 사본 | SHA = `data/raw/dapa/` 동일 | 5표 해시 일치 | `data/raw/dapa/`(로컬 유일, gitignore). 팀 공유처 사본 미확인 | 문서만 | **A → 삭제**(팀 승인) |
 | `new_data/방위사업청_국내조달 계약정보_20251231.csv` | 17,391,252 | 엑셀 재저장 손상본 | 계약번호 앞자리 0 소실 39행, 차수 `0`↔`00` 42,221행, 금액 지수표기 75셀 | DB는 `data/raw/dapa/` 원본과 일치 | 원본 `data/raw/dapa/` | `data-sources.md:62` 미사용 | **D** |
 | `new_data/` 사전의향서(18,753)·입찰참여업체(176,021)·용어사전(420)·신기술(99)·국외 입찰공고(340) | 10,776,008 | 미채택 원본 | 파서 건수 문서와 일치. 코드 참조 0 | 미적재 | data.go.kr 재다운로드 가능(추론) | 문서만 | **D** |
 | `new_data/raw_kdsis_nsn.csv` | 54,216,434 | 적재 원본(`load_db.py:125`) | SHA = DB `meta_dataset.sha256` | 228,027 해시 일치 | 로컬 유일 | 코드 입력 | **E** |
@@ -54,7 +54,7 @@
 | `db/query_p4_ko_views.sql` | 10 KB | 탐색 SQL | 참조 0 | — | git | 0 | **F** |
 | `db/` 그 외 | ≈600 KB | 스키마·이력·사전 | — | alter 적용 §2 | git | 높음 | **E** |
 
-## 4. 정리 실행 기록 (A 목록, 사용자 승인 2026-09-20)
+## 4. 정리 실행 기록 (A 목록, 팀 승인 2026-09-20)
 
 - 절차: 후보·보존 사본의 존재와 SHA-256을 실행 직전 재계산해 일치한 것만 `os.remove`로 개별 삭제(와일드카드·재귀 삭제 없음). dry-run 65/65 일치 확인 후 실행.
 - 결과: **65개 삭제, 97,697,737 B(93.17 MiB) 확보**, 중단 0. 비워진 폴더 `01_customs`·`02_dapa`·`03_krit`·`04_aux` 4개 제거(`rmdir`, 빈 폴더만).
@@ -70,5 +70,5 @@
 | 2 | `meta_dataset` 해시 정정 | **완료** — `db/alter_2026-09-20_meta_dataset_sha.sql`(UPDATE 3문, 멱등)을 사용자가 `apply_alter.py`로 적용(rows=1×3), DBHub 실측 일치. 2026-09-21 `db/meta_dataset.csv`의 빈 `sha256`·`file_bytes` 15행을 RDS 값으로 채움(로컬 파일 해시 15개 모두 RDS와 일치 확인, 남은 차이는 `ref_hs_whitelist.updated_on` CSV 09-16 vs RDS 09-15). `db/meta_dataset.csv`의 `customs_region` 행은 tier `보조`로 고치고 note에 "RDS 미적재·이 PC에 파일 없음" 명시 |
 | 3 | 문서·경로 | **부분 완료** — `commands.md` 적용표에 alter 3행 추가, `data-cleaning-rules.md` 드라이브 구판 문구 갱신, `CLAUDE.md` drive_stage 표기, drive_stage README에 정리 사실 기재. **완료(2026-09-21)**: gitignore였던 담당분배 명세를 `docs/reference/clean-conversion-spec-2026-09-18.md`로 옮기고(담당 이름 열 제거) 인용 경로 17곳 갱신 |
 | 4 | 환경 | **완료** — `.venv`에 `openpyxl==3.1.5` 재설치(`INSTALLED.md` 기록), xlsx 2표 내용 대조 완료. `db/reset_data.sql`은 2026-09-21 `schema.sql` DROP 목록과 1:1로 갱신(TRUNCATE 45표 = clean 20·fact/dim 2·raw 22·meta_load_log, ref 9·meta_dataset·meta_column_dict 보존, RDS 미실행) |
-| 5 | 팀 결정 | **대기** — 조장의 개인 저장소 `kimhh080888-blip/Defense_Dashboard` 직접 push는 의도된 것(2026-09-21 사용자 확인: 그 저장소 `main`은 Claude를 쓰지 않는 팀원용 공개본). `raw_kosis_production_index` `stat_ym='p)'` 16행은 원본 동결 원칙대로 두고 clean이 월을 복원한 상태(`load_db.py frame_kosis_wide2` docstring) — 재적재(TRUNCATE 후 `load_db.py --raw --tables raw_kosis_production_index`, admin)는 사용자 판단. D(손상본 17.4 MB·미채택 CSV 10.3 MB·구버전 소파일), C(`dump_20260918_rds_nodefiner.sql` 281.5 MiB는 2026-09-21 사용자 승인으로 삭제 완료 — 원본 `_rds.sql`과 DEFINER 제거 외 diff 0, 필요 시 `aws-rds-setup.md:80` 명령으로 재생성. 원본 `_rds.sql` 1개는 이력으로 남길지 미결), B(검증용 관세청 20개국 CSV 21개 폴더 밖 보관) |
-| 6 | 보안 그룹 | `211.217.244.4/32`는 `aws-rds-setup.md:189`에 자취방 상시 규칙으로 기록됨(임시 아님). 카페 임시 규칙 `121.158.146.147/32`의 삭제 여부는 `rds-access-registry.md` 기준으로 확인 필요 |
+| 5 | 팀 결정 | **대기** — 조장의 개인 저장소 `kimhh080888-blip/Defense_Dashboard` 직접 push는 의도된 것(2026-09-21 사용자 확인: 그 저장소 `main`은 Claude를 쓰지 않는 팀원용 공개본). `raw_kosis_production_index` `stat_ym='p)'` 16행은 원본 동결 원칙대로 두고 clean이 월을 복원한 상태(`load_db.py frame_kosis_wide2` docstring) — 재적재(TRUNCATE 후 `load_db.py --raw --tables raw_kosis_production_index`, admin)는 사용자 판단. D(손상본 17.4 MB·미채택 CSV 10.3 MB·구버전 소파일), C(`dump_20260918_rds_nodefiner.sql` 281.5 MiB는 2026-09-21 팀 승인으로 삭제 완료 — 원본 `_rds.sql`과 DEFINER 제거 외 diff 0, 필요 시 `aws-rds-setup.md:80` 명령으로 재생성. 원본 `_rds.sql` 1개는 이력으로 남길지 미결), B(검증용 관세청 20개국 CSV 21개 폴더 밖 보관) |
+| 6 | 보안 그룹 | `<공인 IP>`는 `aws-rds-setup.md:189`에 개인 상시 규칙으로 기록됨(임시 아님). 임시 규칙 `<공인 IP>`의 삭제 여부는 `rds-access-registry.md` 기준으로 확인 필요 |
