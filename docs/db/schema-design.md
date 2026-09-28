@@ -26,7 +26,7 @@ v_      뷰 31       ① import_hs6_year · import_share_hs6_year · hhi_hs6_yea
                     ⓪ 배경: budget_rnd_yearly
 ```
 
-행 수·PK·전체 열은 `docs/db/table-catalog.md`(생성물), 관계도는 `docs/db/erd.md`. 2026-09-21 폐기·삭제: `ref_category_map`, `v_defense_relevance_b2`, `ref_hs_whitelist.b2_scope`(#36·#37). **2026-09-22 raw_ 계층 제거**(#26): 교수 중간 점검 피드백 — 원본은 파일로, DB 에는 정제·기준·기록 표와 뷰만. 표 56 → 37.
+행 수·PK·전체 열은 `docs/db/table-catalog.md`(생성물), 관계도는 `docs/db/erd.md`. 2026-09-21 폐기·삭제: `ref_category_map`, `v_defense_relevance_b2`, `ref_hs_whitelist.b2_scope`(#36·#37). **2026-09-22 raw_ 계층 제거**(#26): 교수 중간 점검 피드백 — 원본은 파일로, DB 에는 정제·기준·기록 표와 뷰만. 표 56 → 37 — 경위 정리 `docs/db/raw-layer-history.md`.
 
 적재 순서(= 설명 순서 수집 → 전처리 → DB 저장 → 활용): 원본 파일 수집(`data/raw/`, `meta_dataset` 기록) → `ref_`·`meta_dataset`·`meta_column_dict`·HS 기준표 2종(`load_db.py --ref`, 기준표는 `read_raw`로 파일에서) → `dim_`/`fact_`·`clean_customs_region`(`--fact`, `read_raw` → pandas) → 나머지 `clean_`(노트북 6개, `read_raw` 입력) → 뷰는 DDL에 포함(데이터 없어도 생성됨). **팀 서버 적용·적재 완료 2026-09-15(§6)**, RDS 전환 2026-09-18. `clean_` 표에 0행은 없다(2026-09-19: P4 8표 · P3 4표 · P5-4 `clean_krit_task` 96 · P2-6 열린재정 2표 적재 §6).
 

@@ -30,7 +30,7 @@
 | 핵심 ③ 추가 검토 목록·시나리오 | `v_review_list` | 위 전부(화이트리스트 × 연도별 HHI + B1 열) | 무역 열은 동작. B2 열은 **2026-09-21 카테고리 맵 폐기로 뷰에서 제거**(`alter_2026-09-21_drop_category_map.sql`). B1 열은 `clean_krit_task.hs6`가 전부 NULL이라 0. 화면 코드는 이 뷰 대신 `metrics.concentration`(기간 합산) 사용 |
 | 핵심 ① 규칙 근거 — HSK 통제 품목 | `v_hsk_control_by_hs6`(2026-09-19 clean 전환) · **`clean_hsk_control`**(2026-09-19 적재 10,104행, HSK10 2,161 × 통제번호 세로형, 부 3·5·6·7 = R3) | `raw_hsk_control` ← 무역안보관리원 HSK 연계표 | **사용 가능**. `hsk_control_hs10_ratio`·`hsk_control_imp_share` 지표 각 24행이 `ref_hs_indicator`에 들어갔고 HS6 24개 판정은 바뀌지 않음(유지 19·신규 후보 39·강등 검토 5). ML(군용물자) 0건은 "자료에 없음" |
 | 핵심 ② 보강 — 적용장비명 표기 통일 | **`ref_equipment_alias`**(2026-09-19, 원문 843종) | `clean_dapa_overseas_plan_api.equipment_name` | 표준명 `후보` 40종(관측된 표기 변이 20묶음)만 채웠고 803종은 `미확인`(NULL). 장비코드로 묶지 않음. 화면에서 원문 대신 표준명을 쓰려면 후보 확정 후 |
-| 보조 ④ 수출·생산 추세 | `v_import_hs6_year`(수출 열) · **`clean_kosis_utilization`**(81) · **`clean_kosis_production_index`**(1,016) | KOSIS 2종 ← 원본 파일 `raw_kosis_utilization` · `raw_kosis_production_index` | **적재 완료(2026-09-19, `db/alter_2026-09-19_kosis_clean.sql` + `notebooks/clean_p5_kosis.ipynb` — 실측 81 / 1,016, 제외 0, `stat_month` 127개월, `meta_load_log` 126~129)**. 화면에 쓰면 `in_scope=1`(통신전자)·`scope_grade='★'`(전국×C26·C261×계절조정)만, 2026은 부분연도·잠정(`is_provisional` 16행 = 2026-06·07) 라벨. raw `stat_ym='p)'` 결함 16행은 clean 이 `source_col_no`로 월 복원(`is_month_restored`). 지수·가동률은 금액과 합산·비율 금지 |
+| 보조 ④ 수출·생산 추세 | `v_import_hs6_year`(수출 열) · **`clean_kosis_utilization`**(81) · **`clean_kosis_production_index`**(1,016) | KOSIS 2종 ← 원본 파일 `raw_kosis_utilization` · `raw_kosis_production_index` | **적재 완료(2026-09-19, `db/alter_2026-09-19_kosis_clean.sql` + `notebooks/06_clean_kosis.ipynb` — 실측 81 / 1,016, 제외 0, `stat_month` 127개월, `meta_load_log` 126~129)**. 화면에 쓰면 `in_scope=1`(통신전자)·`scope_grade='★'`(전국×C26·C261×계절조정)만, 2026은 부분연도·잠정(`is_provisional` 16행 = 2026-06·07) 라벨. raw `stat_ym='p)'` 결함 16행은 clean 이 `source_col_no`로 월 복원(`is_month_restored`). 지수·가동률은 금액과 합산·비율 금지 |
 | 보조 ⑤ 국내 지도 | `clean_dapa_contract.sido_code` + `ref_sido_map` | 원본 파일 `raw_dapa_contract.vendor_address` | **사용 가능(2026-09-19 적재, `sido_code` NULL 2행 — `**`·`1`)**. 첫 토큰 시도 커버리지 99.95%(2026-09-18 실측). 09-19 저녁 P2 검수 반영: `충남대전시` 16행 →30 백필, `광주`·`광주시` 토큰은 둘째 토큰 규칙(29/41), 용산구 2행은 테스트 업체로 제외(`db/alter_2026-09-19_sido_backfill_test_vendor.sql`) |
 | KPI 카드 | `clean_dapa_contract_exec_by_service`(군별 계약집행) · `clean_dapa_defense_company`(2026-09-22 신설) · `v_defense_company_sector` | A7 · 방산업체 지정현황 원본 파일 | 사용 가능 |
 | 배경 ④ 예산 흐름(기획안 v8) | `v_budget_rnd_yearly`(2026-09-19 clean 전환) · **`clean_openfiscal_program_budget`**(2026-09-19 적재 2,860행, 억원 환산 열·2027 정부안 `is_unconfirmed` 268·3선 후보 `budget_group_candidate` 93) · **`clean_openfiscal_program_link`**(세부사업 개편 연결표 22행) | `raw_openfiscal_program_budget` ← 열린재정 12파일 | **사용 가능(2026-09-16 적재)**. 국방기술개발 2020 10,053억 → 2027 30,741억(정부안), 국방반도체 2027 565.1억 신설. clean 연도 합계는 뷰와 차이 0(2026-09-19 대조). 3선 후보는 서로 겹쳐 **합산 금지**. 뷰는 2026-09-19 clean 정수 열로 전환(§7-26⑦ 종결) |
@@ -63,7 +63,7 @@
 | `ref_sido_map` | 주소 첫 토큰 → 17개 시도 코드 | 수작업 시드 | 44 (09-18 광주·광주시 제외·충남대전시 추가 — 시드·RDS 모두. RDS는 `db/alter_2026-09-18_sido_gwangju.sql` 2026-09-19 적용) | 적재 완료 | `token` PK · `sido_code` · `sido_name` |
 | `ref_fsg` | (2026-09-16) FSG 군급 **2자리** 라벨. 핵심 ② 국산화 완료 섹션의 "사업 × FSC군 히트맵"·FSC별 막대 라벨용. 계약정보·조달계획·입찰 CSV에는 FSC가 없어 이 표와 엮이지 않음 | `data/reference/fsg_master.csv`(팀원 공유 DLA 표 77행 + 95·96·99 보완) | 80 | 적재 완료(`db/alter_2026-09-16_fsg.sql`) | `fsg_code` PK · `name_ko`/`name_en` · `is_historical`(21·33) · `is_electronic_group`(**58·59·60** — 60 광섬유는 2026-09-19 추가, `alter_2026-09-19_p3_clean.sql` §5. `v_b2_fsg_summary` 값은 B2에 60군 행이 0건이라 불변) · `note_ko`(보완 3행 출처·미대조) |
 | `ref_fsc` | FSC 군급분류 **4자리** 라벨 | `raw_dapa_fsc_catalog`(군급분류집 15119907)에서 `INSERT…SELECT`(`db/alter_2026-09-16_api_budget.sql` §3, 그룹행 xx00 제외) | 676 | 적재 완료(2026-09-16). 58/59군 46, 폐지(`status='C'`) 22. **2026-09-19: `fsc2='60'` 24행 `is_electronic_group` 0→1**(그중 폐지 13) | `fsc4` · `fsc2` · `name_ko` · `status` · `is_electronic_group`(58·59·60) |
-| `ref_equipment_alias` | (2026-09-19) 국외 조달계획 API **적용장비명 표기 통일 사전**. 원문 1종 = 1행. `name_norm`은 기계적 정규화(판단 없음), `name_std`는 표기 변이가 자료에 실제로 나타난 묶음에만 채운 **잠정** 값 | `raw_dapa_overseas_plan_api.equipment_name`(`notebooks/clean_p3_overseas.ipynb` §2) | 843 | 적재 완료. `후보` 40종(표준명 있음) · `미확인` 803종(표준명 NULL). 전자 범위 365종 | `name_raw` PK(`utf8mb4_bin`) · `name_norm` · `variant_key` · `name_std` · `link_status`(후보/확정/미확인) · `in_elec_scope` · `row_count`/`elec_row_count`/`code_count` |
+| `ref_equipment_alias` | (2026-09-19) 국외 조달계획 API **적용장비명 표기 통일 사전**. 원문 1종 = 1행. `name_norm`은 기계적 정규화(판단 없음), `name_std`는 표기 변이가 자료에 실제로 나타난 묶음에만 채운 **잠정** 값 | `raw_dapa_overseas_plan_api.equipment_name`(`notebooks/03_clean_overseas.ipynb` §2) | 843 | 적재 완료. `후보` 40종(표준명 있음) · `미확인` 803종(표준명 NULL). 전자 범위 365종 | `name_raw` PK(`utf8mb4_bin`) · `name_norm` · `variant_key` · `name_std` · `link_status`(후보/확정/미확인) · `in_elec_scope` · `row_count`/`elec_row_count`/`code_count` |
 
 ### 3-2. 원본 파일 계층 (DB 밖 — 2026-09-22 RDS `raw_` 표 삭제. 데이터셋 키는 옛 표 이름 그대로, `read_raw`가 `row_id`·`source_file`·`source_row_no` 를 붙인다)
 
@@ -114,26 +114,26 @@
 
 | 테이블 | 행(2026-09-19 RDS 실측; B2·A7·KDSIS는 2026-09-17) | 채운 노트북 | 남은 판단 |
 |---|---|---|---|
-| `clean_dapa_localized_item` | **25,025**(고유 부품 12,788, `dup_count` 합 33,965) | `notebooks/clean_b2_a7.ipynb` §1 | HS6 대응 열 없음(09-21 카테고리 맵 폐기로 `category`·`category_link_status` 삭제) |
+| `clean_dapa_localized_item` | **25,025**(고유 부품 12,788, `dup_count` 합 33,965) | `notebooks/02_clean_localized_overseas_plan.ipynb` §1 | HS6 대응 열 없음(09-21 카테고리 맵 폐기로 `category`·`category_link_status` 삭제) |
 | `clean_dapa_overseas_plan` | **3,023**(원본 3,029 − 필수값 결측 1 − 판단번호 중복 5) | 같은 노트북 §2 | 전자 후보 392건(13.0%, 예산 21.3% **잠정**) 표본 검수 → `electronics_review_status` |
 | `clean_kdsis_nsn` | **135,864**(숫자13 135,331 + 검토 533) | 노트북 아님 — `db/alter_2026-09-17_kdsis_nsn.sql` §2-3 SQL이 `raw_kdsis_nsn`에서 만든다 | 검토 533(NIIN 영문 포함 13자 530·NIIN 없는 4자 3)의 취급. `has_attr_conflict` 0 확인 |
 | ~~`clean_kdsis_nsn_ref`~~ | ~~225,635~~ — **삭제됨(2026-09-19, `alter_2026-09-19_drop_unused.sql`, 사유는 `report-views.md` §3)**. 뷰·앱·노트북 참조 0, `ref_count`·`cage_count`는 `clean_kdsis_nsn`에 있음 | (삭제) | 되돌리기는 `alter_2026-09-17_kdsis_nsn.sql`의 INSERT…SELECT |
-| `clean_dapa_contract` | **43,105**(계약 단위 `is_latest_seq=1` 37,602, 충돌 1행 + 테스트 업체 6행 제외 — 09-19 저녁 `db/alter_2026-09-19_sido_backfill_test_vendor.sql`) | `notebooks/clean_p4_domestic.ipynb` §1 (2026-09-19) | `class5`·전자/부품/방산 속성 전부 기본값(판단 보류/미확인) — 키워드 규칙 후 UPDATE |
+| `clean_dapa_contract` | **43,105**(계약 단위 `is_latest_seq=1` 37,602, 충돌 1행 + 테스트 업체 6행 제외 — 09-19 저녁 `db/alter_2026-09-19_sido_backfill_test_vendor.sql`) | `notebooks/04_clean_domestic.ipynb` §1 (2026-09-19) | `class5`·전자/부품/방산 속성 전부 기본값(판단 보류/미확인) — 키워드 규칙 후 UPDATE |
 | `clean_dapa_bid_notice` | **10,840**(열 밀림 2행 제외) | 같은 노트북 §2 | — |
 | `clean_dapa_bid_result` | **7,403**(키 7,199, 열 밀림 2행 제외. `dup_kind` 단일 7,000·복수 낙찰 108·결과 상이 73·동일 결과 반복 18) | 같은 노트북 §3 | `결과 상이` 키의 대표 행(row_id 최소) 규칙 팀 확인 |
 | `clean_dapa_domestic_plan` | **35,859**(raw 1:1, `budget_krw` NULL 4,965) | 같은 노트북 §4 | — |
 | `clean_dapa_contract_exec_by_service` | **40** | 같은 노트북 §5 | — |
 | `clean_company` | **14,836**(계약정보 14,721 + 낙찰업체에만 115; 테스트 업체 2 제외) | 같은 노트북 §6 | `name_norm` 규칙 P5와 통일(9/24) |
 | `clean_company_name_link` | **491**(방산업체 84: exact 49/multi 2/none 33 · B2 업체명 407: exact 118/multi 12/none 277) | 같은 노트북 §6 | multi·none 수동 검토 |
-| `clean_dapa_overseas_plan_api` | **13,615**(raw 1:1, 제외 0. NSN 있음 13,236 · 전자 FSG 58·59·60 2,267) | `notebooks/clean_p3_overseas.ipynb` §1 (2026-09-19) | 금액 통화 검증 전까지 `amount_unverified=1` — 합산 금지. `equipment_name_std`는 40종만 채워짐 |
+| `clean_dapa_overseas_plan_api` | **13,615**(raw 1:1, 제외 0. NSN 있음 13,236 · 전자 FSG 58·59·60 2,267) | `notebooks/03_clean_overseas.ipynb` §1 (2026-09-19) | 금액 통화 검증 전까지 `amount_unverified=1` — 합산 금지. `equipment_name_std`는 40종만 채워짐 |
 | `clean_dapa_overseas_contract` | **6,327**(계약번호 고유, 제외 6 = 업체명 `TEST2` 테스트 계약 `PLACEHOLDER`, 2026-09-20 `alter_2026-09-20_p3_test_vendor.sql`) | 같은 노트북 §3 | 금액·국가 열이 원본에 없음 — 건수·업체 수만 |
 | `clean_dapa_overseas_bid_result` | **2,494**(제외 0. 유찰 2,146 · 낙찰 348) | 같은 노트북 §4 | 개찰 2025-03~09 부분연도 — 연간 유찰률로 쓰지 않음 |
 | `clean_excluded_row` | **11**(KEY_CONFLICT 1 · COL_SHIFT 4 · PLACEHOLDER 6 테스트 업체) | 같은 노트북 §7 + alter 09-19 | — |
-| `clean_krit_task` | **96**(raw 1:1, 차수별 과제 수 `is_latest=1` **73**) | `notebooks/clean_p5_krit_p2_budget.ipynb` §1 (2026-09-19) | `hs6`·`category` 전부 NULL·`미연결`(대응표 미확정). `notice_order`(수정↔재공고 순서)는 잠정 |
+| `clean_krit_task` | **96**(raw 1:1, 차수별 과제 수 `is_latest=1` **73**) | `notebooks/05_clean_krit_budget.ipynb` §1 (2026-09-19) | `hs6`·`category` 전부 NULL·`미연결`(대응표 미확정). `notice_order`(수정↔재공고 순서)는 잠정 |
 | `clean_openfiscal_program_budget` | **2,860**(raw 1:1, 2027 268행 `is_unconfirmed=1`) | 같은 노트북 §2 | `budget_group_candidate`는 키워드 후보 — ⑤ 탭 세부사업 목록 팀 확정 |
 | `clean_openfiscal_program_link` | **22**(표기변경 확정 9 · 승계 후보 5 · 신설 미확인 8) | 같은 노트북 §3 | 승계는 공식 개편 근거 없음. `핵심기술개발`→2023 3분할은 `candidate_count=3` |
-| `clean_hsk_control` | **10,104**(= HSK10 2,161 × 통제번호. 부 3·5·6·7 3,160행/707 HSK10) | `notebooks/clean_p1_customs_hs.ipynb` §5 (2026-09-19) | 행 수는 「통제번호 부여 건수」이고 **원본 규모는 HSK10 2,161개**다. ML(군용물자)은 「자료에 없음」 |
-| `clean_kosis_utilization` | **81**(raw 1:1, 제외 0. `in_scope=1` 통신전자 9 · `is_avg_row=1` 9, 2016~2024) — 2026-09-19 적재 실측(`meta_load_log` 126·127) | `notebooks/clean_p5_kosis.ipynb` §1 (2026-09-19) | 없음(형 변환·등급 플래그만). 화면 사용은 보류(기획서 v3 미사용) |
+| `clean_hsk_control` | **10,104**(= HSK10 2,161 × 통제번호. 부 3·5·6·7 3,160행/707 HSK10) | `notebooks/01_clean_customs.ipynb` §5 (2026-09-19) | 행 수는 「통제번호 부여 건수」이고 **원본 규모는 HSK10 2,161개**다. ML(군용물자)은 「자료에 없음」 |
+| `clean_kosis_utilization` | **81**(raw 1:1, 제외 0. `in_scope=1` 통신전자 9 · `is_avg_row=1` 9, 2016~2024) — 2026-09-19 적재 실측(`meta_load_log` 126·127) | `notebooks/06_clean_kosis.ipynb` §1 (2026-09-19) | 없음(형 변환·등급 플래그만). 화면 사용은 보류(기획서 v3 미사용) |
 | `clean_kosis_production_index` | **1,016**(raw 1:1, 제외 0. `stat_month` 127개월 2016-01~2026-07, `is_provisional` 16 = `is_month_restored` 16, `is_partial_year` 56, `scope_grade` ★ 254 / ▲ 254 / ✕ 508) — 2026-09-19 적재 실측(`meta_load_log` 128·129) | 같은 노트북 §2 | raw `stat_ym='p)'` 16행의 월 복원(`source_col_no` 규칙)은 정상 행 1,000 검산으로 뒷받침. 갱신본 적재 시 `is_provisional` 규칙을 헤더 기준으로 바꿔야 함 |
 
 | 테이블 | 역할 | PK | 노트북이 정해야 하는 것 |
@@ -263,7 +263,7 @@ erDiagram
 
 | 항목 | 누가 | 언제 |
 |---|---|---|
-| ~~`clean_` 남은 1개(`clean_krit_task`, B1)~~ | **0행 없음(2026-09-19, clean 20표 전부 적재)** | P4 8개(계약정보·업체 2개·제외 행 공용·입찰공고·입찰결과·국내 조달계획·군별 계약집행)·P3 3개·P5-4 `clean_krit_task`·P2-6 2개·P1 `clean_hsk_control`·P5-5 KOSIS 2개는 2026-09-19 적재 완료(§3-5). B2·A7은 2026-09-17(`notebooks/clean_b2_a7.ipynb`) |
+| ~~`clean_` 남은 1개(`clean_krit_task`, B1)~~ | **0행 없음(2026-09-19, clean 20표 전부 적재)** | P4 8개(계약정보·업체 2개·제외 행 공용·입찰공고·입찰결과·국내 조달계획·군별 계약집행)·P3 3개·P5-4 `clean_krit_task`·P2-6 2개·P1 `clean_hsk_control`·P5-5 KOSIS 2개는 2026-09-19 적재 완료(§3-5). B2·A7은 2026-09-17(`notebooks/02_clean_localized_overseas_plan.ipynb`) |
 | ~~`ref_category_map` 후보 17행 → `확정`/`대응불가` + `b2_scope`~~ | **폐기·삭제(2026-09-21)** | 카테고리 맵 자체를 두지 않기로 결정(수출입 현황 대시보드). 표·뷰·`related_fsc`·지표 28행 삭제. `b2_scope` 열은 NULL 그대로(미사용) |
 | ~~`ref_hs_whitelist.b2_scope`~~ | **삭제(2026-09-21)** | 카테고리 맵 폐기 후속(`alter_2026-09-21_drop_category_link_cols.sql`) — `clean_*`의 `category`·`category_link_status`·`clean_krit_task.hs6`·`contract_group`도 함께 삭제 |
 | `ref_hs_whitelist.civil_mix` NULL 15개(2026-09-19 RDS 실측; 21개 시절 14) | — | HSK 연계표를 확인한 결과(2026-09-16) 84·85·88·90류 HS6 486개를 덮는 "해당 가능성" 목록이라 민수 혼합 판별력이 없다 → `hsk` 경로는 보류(09-19 `hsk_control_*` 지표 48행은 넣었으나 문턱값 미정, `schema-change-log.md` §7-25②), 15개는 NULL(판단불가) 유지 |

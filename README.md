@@ -14,65 +14,39 @@ K-디지털트레이닝 국방·첨단산업 AI 솔루션 ML 엔지니어 양성
 ## 처음 받는 사람은 이 순서대로
 
 ```bash
-git clone https://github.com/tchoco313/defense_dashboard.git          # 저장소를 내 컴퓨터로 복사한다
+git clone https://github.com/tchoco313/defense_dashboard.git   # 저장소를 내 컴퓨터로 복사한다
 cd defense_dashboard
 pip install -r requirements.txt   # 필요한 패키지를 한 번에 깐다
-cp config_example.py config.py    # 접속정보 틀을 복사한다 (윈도우: copy)
+cp .env.example .env              # 접속정보 틀을 복사한다 (윈도우: copy)
 ```
 
-그다음 `config.py` 를 열어 **네 줄**을 자기 것으로 고친다. 엔드포인트와 비밀번호는 조장에게 받는다
-(문서·깃에 적지 않는다). 포트·DB이름은 이미 채워져 있으니 **건드리지 마라.**
+그다음 `.env` 를 열어 `MARIADB_HOST` · `MARIADB_USER` · `MARIADB_PASSWORD` 세 줄을 채운다.
+값은 조장에게 받는다 (문서·깃·채팅에 적지 않는다). 포트·DB이름·SSL 은 이미 채워져 있으니 **건드리지 마라.**
 
-```python
-DB_HOST = "여기에_RDS_엔드포인트"        # 조장이 준 ...rds.amazonaws.com
-DB_USER = "defense1"                   # 자기 번호로
-DB_PASSWORD = "여기에_내_비밀번호"        # 내 것
-DASH_PASSWORD = "여기에_dash_비밀번호"    # 공용. 다섯 명이 같다
+```bash
+python3 scripts/check_db_access.py      # 인터넷 → 서버 포트 → 실제 로그인 순서로 본다
+streamlit run dashboard/main.py     # 대시보드를 띄운다
 ```
 
-| 번호 | 사람 | 번호 | 사람 |
-|---|---|---|---|
-| `defense1` | 안태호 | `defense4` | 이동현 |
-| `defense2` | 강지수 | `defense5` | 조수아 |
-| `defense3` | 김훈희 | | |
-
-**남의 번호로 붙지 마라.** 서버 로그에 누가 무엇을 했는지 남는 게 계정을 나눈 이유다.
+`[O]` 가 셋 다 뜨면 붙은 것이다.
 
 **MySQL 을 깔 필요가 없다.** DB 는 **AWS RDS** 한 곳에 모여 있고, 다섯 명이 거기에 붙어 쓴다.
 각자 자기 컴퓨터에 DB 를 만들면 데이터가 다섯 벌로 갈라져서 "내 화면에선 되는데" 가 생긴다.
 
-붙는지 확인은 이 한 줄이면 된다.
+### 접속 정보는 한 곳에서만 읽는다
 
-```bash
-python3 src/check_db_access.py     # 인터넷 → 서버 포트 → 실제 로그인 순서로 본다
-```
-
-`[O]` 가 셋 다 뜨면 끝이다.
+코드는 접속 정보를 직접 적지 않고 **`scripts/dbconf.py`** 하나를 거친다. 읽는 순서는
+① 프로젝트 루트 `.env` → ② 없으면 Streamlit Secrets(배포 앱). 두 곳 다 깃에 안 올라간다.
 
 | 계정 | 무엇에 쓰나 | 권한 |
 |---|---|---|
-| `defense1`~`defense5` | **내가** 데이터를 넣고 고칠 때 (수집·전처리 스크립트) | `defense_dashboard` 에 ALL |
-| `dash` | **Streamlit 대시보드**가 읽을 때 (공용) | `defense_dashboard` 에 SELECT 만 |
+| 적재 계정 | 수집·정제 노트북, `scripts/load_db.py` | 조회·추가·수정·삭제 |
+| 팀원 개발 계정 | 각자 스키마를 시험할 때 | `defense_dashboard` 안에서만 테이블·뷰 생성·변경 |
+| 조회 전용 계정 | **Streamlit 대시보드** (배포 앱) | 조회만 |
 
-- **쓰기 계정을 사람별로 나눈 이유**는 **누가 무엇을 했는지 남기기 위해서**다.
-  다섯이 같은 계정을 쓰면 테이블이 이상해졌을 때 되짚을 방법이 없다
-- **`dash` 를 따로 둔 이유**는 보안이 아니라 **실수 방지**다. 대시보드가 쓰기 계정으로 붙어 있으면
-  코드 한 줄에 팀 전체 데이터가 날아갈 수 있다. 조회 전용이면 애초에 불가능하다
-  → **대시보드 파일에서는 `DASH_USER` 를 부른다.** 파일 맨 위 `import` 줄이 그 파일의 권한을 정한다
-- **`root` 는 우리 코드 어디에도 안 들어간다**
-- **`config.py` 는 깃에 안 올라간다.** 코드에서는 `from config import DB_PASSWORD` 처럼 불러 쓴다
-
-### 다섯 다 쓰기 권한이라 — 규칙 하나가 필요하다
-
-권한으로는 서로를 못 막는다. **정본 테이블은 적재 담당만 만들고 고친다.**
-혼자 시험해 볼 테이블은 **자기 번호를 앞에 붙인다.**
-
-```
-contract_domestic          <- 정본. 적재 담당만 건드린다
-tmp3_contract_test         <- 김훈희(3번)가 혼자 쓰는 것. 남이 안 건드린다
-```
-
-이름만 지키면 남의 것을 덮어쓸 일이 없다. **`DROP TABLE` 을 치기 전에 이름 앞자리를 한 번 보라.**
+- **대시보드는 조회 전용 계정으로만 붙인다.** 공개 URL 이라 쓰기 권한이 섞이면 사고 범위가 DB 전체다
+- RDS 마스터 계정은 우리 코드 어디에도 안 들어간다 (DDL·계정 관리에만, 로컬 `.env` 전용)
+- 계정을 만든 방법은 `scripts/rds_accounts.py`, 접속 전반은 `docs/runbook/db-connection.md`
 
 ### 어디서든 붙는다 — 그래서 비밀번호가 중요해졌다
 
@@ -82,38 +56,9 @@ tmp3_contract_test         <- 김훈희(3번)가 혼자 쓰는 것. 남이 안 �
 바꿔 말하면 우리 DB 는 이제 **인터넷에서 닿는 주소**다. 비밀번호 하나가 유일한 문턱이다.
 
 - 비밀번호를 단톡·문서·커밋에 남기지 않는다. 채팅에 남은 건 회수할 방법이 없다
-- 엔드포인트도 문서에 적지 않는다. `config.py`(gitignore)·`.env`·Streamlit Secrets 에만 둔다
-- **대시보드는 조회 전용 계정(`dash`)으로만 붙인다.** 공개 URL 이라 쓰기 권한이 섞이면 사고 범위가 DB 전체다
-
-### 서버는 이렇게 만들었다 *(조장이 이미 했다 — 조원은 안 해도 된다)*
-
-발표 때 설명할 수 있게 남겨 둔다. 계정 구성은 서버가 바뀌어도 같다.
-
-```sql
-CREATE DATABASE defense_dashboard
-  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- 데이터를 넣고 고치는 계정 — 사람마다 하나씩 다섯 개
-CREATE USER 'defense1'@'%' IDENTIFIED BY '<1번_비밀번호>';
-GRANT ALL PRIVILEGES ON defense_dashboard.* TO 'defense1'@'%';
---  ... defense2 ~ defense5 도 같은 두 줄을 번호만 바꿔 반복한다
-
--- 조회만 하는 계정 (대시보드용) — 이건 하나를 다 같이 쓴다
-CREATE USER 'dash'@'%' IDENTIFIED BY '<또_다른_비밀번호>';
-GRANT SELECT ON defense_dashboard.* TO 'dash'@'%';
-```
-
-확인은 이 두 줄로 한다.
-
-```sql
-SELECT user, host FROM mysql.user WHERE user LIKE 'defense%' OR user = 'dash';
-SHOW GRANTS FOR 'dash'@'%';          -- SELECT 만 나와야 한다
-```
-
-- **`'<비밀번호>'` 를 그대로 두면 안 된다.** 진짜 비밀번호로 바꿔서 실행한다 (한 번 그대로 붙여넣어서 막혔다)
-- **`utf8mb4` 를 빼면 한글이 `???` 로 들어간다.** 넣을 땐 오류가 안 나고 조회할 때 알게 된다
-- RDS 쪽은 보안그룹(3306 접속 허용 범위)과 TLS 강제가 `bind-address`·윈도우 방화벽을 대신한다.
-  구 내부망 구성과 이관 경위는 `docs/runbook/db-connection.md` §8
+- 엔드포인트도 문서에 적지 않는다. `.env` · Streamlit Secrets 에만 둔다
+- `utf8mb4` 를 빼면 한글이 `???` 로 들어간다. 넣을 땐 오류가 안 나고 조회할 때 알게 된다
+- 구 내부망 구성과 이관 경위는 `docs/runbook/db-connection.md` §8
 
 ---
 
@@ -121,11 +66,14 @@ SHOW GRANTS FOR 'dash'@'%';          -- SELECT 만 나와야 한다
 
 | 폴더 | 무엇 | 깃에 올라가나 |
 |---|---|---|
-| `data/` | 원본·정제 데이터 | **안 올라간다.** 원본은 구글드라이브에 |
-| `notebooks/` | 전처리·EDA 노트북 | 올라간다 |
-| `src/` | 수집·전처리 스크립트 (`.py`) | 올라간다 |
-| `dashboard/` | Streamlit 대시보드 | 올라간다 |
-| `docs/` | 설계 메모 | 올라간다 (제출 문서 정본은 드라이브) |
+| `data/` | 원본·정제 데이터 | **원본은 안 올라간다** (드라이브가 정본). `data/reference/` 수작업 참조표만 올라간다 |
+| `db/` | 스키마(`schema.sql`) · 변경 이력(`alter_*.sql`) · 표·열 사전 CSV | 올라간다 |
+| `scripts/` | 수집 · 적재 · 접속 확인 · 문서 생성 스크립트, 접속 설정(`dbconf.py`). 초기 코드는 `scripts/legacy/` | 올라간다 |
+| `notebooks/` | 정제(`0x_clean_*`) · EDA(`1x_eda_*`) 노트북 — 순서 · 역할은 `notebooks/README.md` | 올라간다 |
+| `dashboard/` | Streamlit 대시보드 (진입점 `main.py`, 화면 명세 `specs/`) — 페이지 표는 `dashboard/README.md` | 올라간다 |
+| `tests/` | 대시보드 계산·메뉴 테스트 | 올라간다 |
+| `certs/` | RDS 공개 CA 인증서 (TLS 검증용, 비밀 아님) | 올라간다 |
+| `docs/` | DB 설계서 · 보고 · 회의 기록 · 실행 명령 | 올라간다 (제출 문서 정본은 드라이브) |
 
 ---
 
@@ -133,7 +81,7 @@ SHOW GRANTS FOR 'dash'@'%';          -- SELECT 만 나와야 한다
 
 **1. 노트북은 한 파일에 한 사람.**
 깃은 `.ipynb` 를 합치지 못한다. 두 사람이 같은 노트북을 고치면 하나가 날아간다.
-파일 이름에 담당자를 넣는다 — `notebooks/eda_kim.ipynb`
+새 노트북은 `번호_단계_데이터.ipynb` 로 짓고 `notebooks/README.md` 표에 담당과 함께 한 줄 더한다
 
 **2. 노트북 출력은 지우지 않는다.**
 EDA 보고서가 곧 이 노트북이고 그래프가 제출물이다. 지우면 결과물이 사라진다.
@@ -142,7 +90,7 @@ EDA 보고서가 곧 이 노트북이고 그래프가 제출물이다. 지우면
 파일 주인을 정해서 충돌 자체를 안 만든다.
 
 **4. 데이터와 비밀번호는 올리지 않는다.**
-`.gitignore` 가 `data/` 와 `config.py` 를 막고 있다. 이 파일을 함부로 고치지 말 것.
+`.gitignore` 가 `data/` 와 `.env` 를 막고 있다. 이 파일을 함부로 고치지 말 것.
 
 ---
 
@@ -154,7 +102,7 @@ VS Code 왼쪽 **소스 제어** 패널에서 버튼으로 해도 되고, 터미
 git pull                              # 시작 전: 남이 올린 걸 받는다
 # ... 작업 ...
 git add .                             # 오늘 바꾼 것을 담는다
-git commit -m "급식 데이터 결측치 처리"  # 무엇을 했는지 적는다
+git commit -m "관세청 HS6 결측치 처리"  # 무엇을 했는지 적는다
 git push                              # 올린다
 ```
 
@@ -185,27 +133,21 @@ git push                              # 올린다
 
 시연 동영상은 **3~4분을 넘기지 않는다.**
 
-자세한 조 규칙은 → *(아티팩트 링크를 여기 붙인다)*
-
 ---
 
-## 데이터 준비 — 두 줄이면 끝난다
+## 데이터는 이렇게 흘렀다
 
-```bash
-python3 src/fetch_data.py     # 방위사업청 파일 10종을 data/raw/ 에 받는다 (인증키 불필요)
-python3 src/preprocess.py     # 정제해서 data/clean/ 에 4개 파일로 만든다
-```
+수집 → 정제 → DB 적재 → 대시보드. 단계별 명령은 `docs/runbook/commands.md` 에 있다.
 
-| 만들어지는 것 | 행수 | 무엇 |
+| 단계 | 무엇으로 | 명령 모음 |
 |---|---|---|
-| `contract_domestic.csv` | 43,112 | 국내조달 계약 + 파생 10열 |
-| `contract_facility.csv` | 49,409 | 시설공사 계약 |
-| `intent_item.csv` | 18,753 | 품목·수량·단가 + 군급명 |
-| `bid.csv` | 7,405 | 입찰 결과 + 공고 정보 |
+| 수집 | 관세청 OpenAPI(`scripts/fetch_customs*.py`) · 방사청·KRIT·KOSIS 파일 | §1 · §2 · §9 |
+| 스키마 | `db/schema.sql` + `db/alter_*.sql` (`scripts/apply_alter.py`) | §4 |
+| 적재 | `scripts/load_db.py` | §5 |
+| 정제 | `notebooks/0x_clean_*.ipynb` → RDS `clean_*` 표 | §6 |
+| EDA | `notebooks/1x_eda_*.ipynb` | — |
+| 화면 | `dashboard/` (Streamlit Community Cloud 배포) | §10 |
 
-`data/` 는 깃에 안 올라간다. 각자 위 두 줄을 돌리면 같은 파일이 생긴다.
+원본 파일은 `data/raw/` 에 두고 깃에는 안 올린다. 테이블 설명은 `docs/db/table-catalog.md` · `docs/db/erd.md`.
 
-**전처리에서 조심할 것 네 가지**는 `src/preprocess.py` 주석에 ★ 로 표시해 두었다.
-그중 둘은 오류가 안 나고 조용히 틀리는 것이라 꼭 읽어라.
-
-
+처음에는 원본도 RDS `raw_` 표로 넣었다가 09-22 중간 점검 피드백을 받고 모두 지웠다(표 56 → 37). 왜 넣었고 어떻게 없앴는지는 `docs/db/raw-layer-history.md`.

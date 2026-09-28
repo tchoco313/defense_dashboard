@@ -75,7 +75,7 @@
 
 - **하지 않는 것**: "해외 의존율"·"방산 수입 HHI"라 쓰지 않는다(국가 전체 수입, 민수 포함). 2026을 연간 실적으로 쓰지 않는다. `99_verification/customs_<HS6>.csv`(20개국 부분집합)는 화면에 쓰지 않는다.
 - **기대 건수**: 원본 294,420 → 상세행 294,174(총계 246 제외; `fact_customs_monthly` 실측 일치) → 2025 완결연도 상세행 26,211(HS10) / HS6×국가 조합 **1,783**(24개 기준, 2026-09-18 `fact_customs_monthly` 실측; 구 21개 기준 1,557은 `data-sources.md:202`) → 분석 대상 13 HS6(2026-09-21 M5).
-- **fact 검증 실측(2026-09-19, `notebooks/clean_p1_customs_hs.ipynb` §1 — 재적재 없이 검증만)**:
+- **fact 검증 실측(2026-09-19, `notebooks/01_clean_customs.ipynb` §1 — 재적재 없이 검증만)**:
   - 총계행 제외: 원본 294,420 = 상세 294,174 + 총계 246, `fact_customs_monthly` 294,174와 1:1(상세행인데 fact 없음 0 / fact인데 상세행 아님 0). 총계행은 `stat_ym='총계'`·`stat_cd='-'`·`hs_cd='-'` 한 형태뿐.
   - 연·월 분리: `stat_ym` `YYYY.MM` 형식 위반 0, `fact.yyyymm ≠ REPLACE(stat_ym,'.','')` 0, `year`/`month` 파생 불일치 0, `is_partial_year` 규칙 위반 0(2026만 1, 1~8월 17,812행).
   - **금액 단위 = 달러(천 달러 아님)**. 판정 근거는 자릿수 실측: 848620 2024 수입 `12,129,034,952`(달러로 읽으면 121억 달러 = 한국 2024 총수입의 약 1.9%, 천 달러면 12조 달러), 854231 단가 `10,063 USD/kg`. `meta_column_dict`·`db/column_dict.csv`의 `imp_dlr`·`exp_dlr`·`bal_payments` 설명에 명시(`db/alter_2026-09-19_p1_customs_hs.sql` §5).
@@ -110,14 +110,14 @@
 | `계약기관담당자명` · `수요기관담당자명` · `대표업체대표자명` | ✕ | 개인정보 |
 
 - **하지 않는 것**: 한 계약 = 한 부품으로 세지 않는다. 차수를 무시하고 금액을 합산하지 않는다. "전자부품 1만 건"이라 쓰지 않는다(전자 관련 키워드 1,479행·반도체 35행뿐). 조달 금액 ≠ 방산 매출.
-- **기대 건수**: 원본 43,112 → 2025 원본 30,808 → 계약 단위(최종 차수) 37,608 → 5분류 후보(노트북 결과, 미정) → 검증된 분석 대상(`review_status` 확정분). **적재 결과(2026-09-19, `notebooks/clean_p4_domestic.ipynb`)**: `clean_dapa_contract` 43,111행(충돌 1행은 `clean_excluded_row` KEY_CONFLICT — 원본 완전 중복), `is_latest_seq=1` 37,608, 기간 이상치 1, 총계약금액 NULL 1, `sido_code` NULL 20, `class5` 전부 `판단 보류`(규칙 미정). `v_contract_monthly` 28행·계약 37,608·15.83조 원. **09-19 저녁 P2 검수 반영(`db/alter_2026-09-19_sido_backfill_test_vendor.sql`)**: 테스트 업체 6행 PLACEHOLDER 제외 → **43,105**, `is_latest_seq=1` **37,602**, `sido_code` NULL **2**, `clean_excluded_row` 11, 검산 `raw 43,112 = clean 43,105 + excluded 7`, `v_contract_monthly` 28행·계약 37,602·15.83조 원(불변).
+- **기대 건수**: 원본 43,112 → 2025 원본 30,808 → 계약 단위(최종 차수) 37,608 → 5분류 후보(노트북 결과, 미정) → 검증된 분석 대상(`review_status` 확정분). **적재 결과(2026-09-19, `notebooks/04_clean_domestic.ipynb`)**: `clean_dapa_contract` 43,111행(충돌 1행은 `clean_excluded_row` KEY_CONFLICT — 원본 완전 중복), `is_latest_seq=1` 37,608, 기간 이상치 1, 총계약금액 NULL 1, `sido_code` NULL 20, `class5` 전부 `판단 보류`(규칙 미정). `v_contract_monthly` 28행·계약 37,608·15.83조 원. **09-19 저녁 P2 검수 반영(`db/alter_2026-09-19_sido_backfill_test_vendor.sql`)**: 테스트 업체 6행 PLACEHOLDER 제외 → **43,105**, `is_latest_seq=1` **37,602**, `sido_code` NULL **2**, `clean_excluded_row` 11, 검산 `raw 43,112 = clean 43,105 + excluded 7`, `v_contract_monthly` 28행·계약 37,602·15.83조 원(불변).
 - **미확정**: `계약금액` vs `총계약금액` 합산 전 표본 재확인(`schema-change-log.md` §7-5). `class5` 키워드 규칙은 노트북이 정하고 규칙표를 `evidence`로 남긴다.
 - **조인·형 변환 실측(2026-09-18, `db/query_p4_join_check.sql` E)**: 최대 차수 행이 1개인 계약번호 37,607 + 충돌 1(`2024UMM1504`-`01`). `contract_date` DATE 변환 실패 0, `contract_amount` 비숫자 0, `contract_period`는 `YYYY-MM-DD~YYYY-MM-DD` 단일 패턴 100% → `period_start`/`period_end` 분해 안전.
 
 ### 2-3. B2 방위사업청 국산화개발품목 — 핵심 ② 보강(국산화 완료 근거)
 
 - **파일**: `dapa_localized_items_20260509.csv`(`15119899`, 원본 파일명 `…국산화개발품목_20230824.csv`), cp949, 10열, **33,965**행. 시점 없음(`최종수정일` 공란 25,191 + 2021년 8,774) → 스냅샷.
-- **테이블**: `raw_dapa_localized_item`(33,965) → `clean_dapa_localized_item`(**25,025** 적재 완료 2026-09-17, `notebooks/clean_b2_a7.ipynb` §1) → `v_b2_fsg_summary` · `v_defense_relevance_b2` · `v_review_list`(B2 열).
+- **테이블**: `raw_dapa_localized_item`(33,965) → `clean_dapa_localized_item`(**25,025** 적재 완료 2026-09-17, `notebooks/02_clean_localized_overseas_plan.ipynb` §1) → `v_b2_fsg_summary` · `v_defense_relevance_b2` · `v_review_list`(B2 열).
 - **키·중복**: 완전 중복 **8,940**행 → 고유 25,025 = (`사업명`, `부품관리번호`) 조합과 일치. `dup_count`로 원본 행 수 보존(합 33,965). 부품 수 = `부품관리번호` 고유 **12,788**, 사업×부품 건수 = 25,025 — 둘을 구분해 쓴다.
 - **형 변환·파생**: `fsc4`=`군급분류`(이미 4자리 열), `fsc2`=앞 2자리 / `is_electronic_group`(58·59·60) / `category` + `category_link_status`(기본 `조회표 전용`; `ref_category_map` 확정 행만 `확정`) / `contractor_name_norm`.
 - **제외·필터**: `군급분류` 공란·`0` 18행은 FSC 미대응(name NULL). 5995 케이블·5935 커넥터·5930 스위치·5998 회로카드 등은 품목군에 올리지 않고 조회표 전용. 항공·함정·유도 HS6(841191·880730·901420)는 **B2 범위 밖**으로 표기(사업 28개가 전부 기동·화력 지상체계).
@@ -148,7 +148,7 @@
 - **제외·필터**: 표 추출이 안 된 PDF·hwp 차수는 "미확인"으로 두고 건수 0으로 쓰지 않는다.
 - **컬럼 등급**: `국산화 개발대상 과제명` ★ / `정부지원 연구개발비` ★ / `개발기간` ▲ / `round_label`·`notice_type`·`is_counted`(clean 생성) ★ / 원문 PDF·hwpx·hwp ▲(표 추출 후 ★ 승격) / `26-2차_예비RFP.pdf` ▲(과제명·예산이 공고문과 중복이면 생략).
 - **하지 않는 것**: 과제명 키워드로 HS6를 자동 매핑하지 않는다. 차수별 과제 수를 더해 "국산화 대상 N건"이라 쓰지 않는다.
-- **기대 건수**: raw 96(23-4차 본공고 18 / 24-1차 예비 11 / 25-1차 수정 22·재공고 3 / 26-1차 본공고 2 / 26-2차 예비 20·본공고 20) → clean 96(제외 0) → **차수별 과제 수 `is_latest=1` 73**(23-4 18 / 24-1 11 / 25-1 22 / 26-1 2 / 26-2 20). 2026-09-19 실측(`notebooks/clean_p5_krit_p2_budget.ipynb`).
+- **기대 건수**: raw 96(23-4차 본공고 18 / 24-1차 예비 11 / 25-1차 수정 22·재공고 3 / 26-1차 본공고 2 / 26-2차 예비 20·본공고 20) → clean 96(제외 0) → **차수별 과제 수 `is_latest=1` 73**(23-4 18 / 24-1 11 / 25-1 22 / 26-1 2 / 26-2 20). 2026-09-19 실측(`notebooks/05_clean_krit_budget.ipynb`).
 - **미확정**: 미확보 차수(23-1~23-3·23-4차 재공고·24-1차 본공고·24-2~4차) 수집. `notice_order`의 수정↔재공고 순서 팀 확인. `hs6`는 대응표 미확정이라 96행 전부 NULL·`미연결`(미적재가 아니라 **대응 근거 없음**).
 
 ### 2-5. A7 방위사업청 국외조달 조달계획(파일판) — 배경 ⓪
@@ -166,7 +166,7 @@
 ### 2-6. A8 국외조달 조달계획 OpenAPI 품목 단위 — 핵심 ② 보강(FSC 축)
 
 - **파일**: `dapa_overseas_plan_api_20260916.csv`(`15158418`, 조장 수집 → 드라이브 `02_dapa/`), utf-8-sig, 24열, **13,615**행, 요구연도 2016~2026(2018 1·2019 0·2020 11건은 원자료 공백).
-- **테이블**: `raw_dapa_overseas_plan_api`(13,615) → **`clean_dapa_overseas_plan_api`(13,615 적재 2026-09-19, 제외 0)** → `v_overseas_plan_api_fsc` · `v_kdsis_link_summary`. 표기 통일 사전 **`ref_equipment_alias`(843행)** 신설. DDL `db/alter_2026-09-19_p3_clean.sql`, 적재 `notebooks/clean_p3_overseas.ipynb`.
+- **테이블**: `raw_dapa_overseas_plan_api`(13,615) → **`clean_dapa_overseas_plan_api`(13,615 적재 2026-09-19, 제외 0)** → `v_overseas_plan_api_fsc` · `v_kdsis_link_summary`. 표기 통일 사전 **`ref_equipment_alias`(843행)** 신설. DDL `db/alter_2026-09-19_p3_clean.sql`, 적재 `notebooks/03_clean_overseas.ipynb`.
 - **키·중복**: `prcureDemandNo` + `iemNo` 고유 13,615, 완전 중복 0. 파일판(2-5)의 판단번호와 **다른 체계**(겹치지 않음) — 조인 금지.
 - **형 변환·파생**: `invntryNo` 13자 중 숫자13(9,970행)과 NCB 37 영숫자13(3,266행)을 NSN으로 인정(`nsn`, 아래 2026-09-19 보강) → `fsc4 = LEFT(nsn, 4)`(고유 325) · `fsg2` · `is_elec = fsg2 IN (58, 59, 60)`(2026-09-21 회의 M4 확정 — 영숫자 NSN 포함, `team-report-2026-09-19.md` §4 #1) / `NSN`·`NSN001` 같은 자리표시자 347행·기타 32행은 `nsn = NULL` / `_demandYear_req` → `demand_year`(SMALLINT, raw `demand_year_req`는 문자열) / 소요군 `army_std`(육군·해군·공군·해병대·국직·미확인) / 적용장비 결측은 `is_equipment_missing`. 앱(홈·②)은 이 clean 열을 읽는다(2026-09-20, `docs/report/app/app-metrics-review-2026-09-20.md`).
 - **제외·필터**: `budgetAmount`·`untpc`는 결측 0이지만 최댓값 173.7억·138억으로 **원화 혼입 의심 → 통화 검증 전 집계 금지, 건수만**.
@@ -207,7 +207,7 @@
 | 국내조달 조달계획 | `dapa_domestic_plan_20251231.csv`(ID 미확인), 35,859 × 11, 집행예정월 2024~2025(2024 불완전) | `raw_dapa_domestic_plan` → `v_domestic_plan_yearly` | 연도 × `집행유형`(**TRIM** 필요) × 계약방법 건수·예산. 예산 지수 표기(`1.2E+09`류) 11행은 CAST 근사 — 건수 집계에는 영향 없음, 금액 합에는 라벨. 담당자명·연락처 NULL | `집행예정월`·`집행유형`·`예산금액`·`진행상태` ★ / `대표품명` ▲ / 담당자명·연락처 ✕ | 국내 조달계획 **OpenAPI 441,455행**(미채택)과 섞기. 2024를 완결연도로 쓰기 |
 | 군별 계약집행 현황 | `dapa_contract_exec_by_service_20241231.csv`(`15070269`), 40 × 3, 2015~2024 | `raw_dapa_contract_exec_by_service` | 3열 전부 ★. 그대로 KPI/배경 카드 | — | 국내·국외 조달 포함 여부가 포털에 없어 **미확인** — "전체 계약집행"으로만 라벨 |
 
-**2026-09-19 clean 적재 실측**(`notebooks/clean_p3_overseas.ipynb`, DDL `db/alter_2026-09-19_p3_clean.sql`)
+**2026-09-19 clean 적재 실측**(`notebooks/03_clean_overseas.ipynb`, DDL `db/alter_2026-09-19_p3_clean.sql`)
 
 - **국외조달 계약정보** → `clean_dapa_overseas_contract` **6,327**(계약번호 고유, 제외 6 — 2026-09-20 P3 검수 회신 반영: 대표업체명 `TEST2` 테스트 계약 6행 `PLACEHOLDER`, `db/alter_2026-09-20_p3_test_vendor.sql`, 판정은 `docs/report/data/p3-review-response-2026-09-20.md`; 09-19 적재 시점은 6,333·제외 0). 계약체결일 2017-02-01~2025-12-31, 연도별 703·850·824·813·801·667·499·575·595(제외 전 705·852·826). 고유 대표업체명은 콜레이션 기준 443 → **442**. 계약기간은 `YYYY-MM-DD~YYYY-MM-DD` 5,602 + 종료일 없음 731 → `period_start`/`period_end`/`is_open_ended`. 고유 대표업체명은 **원문 기준 445 / DB 콜레이션(utf8mb4_unicode_ci) 기준 443** — 초안의 446은 재현되지 않았다(대소문자·전각 차이를 어떻게 세느냐의 문제). 담당자명 1열과 단일값 5열(계약기관구분명·계약기관명·수요기관구분명·수요기관명 = `국가기관`/`방위사업청`, 업무구분명 = `외자`)은 clean 에 두지 않는다.
 - **국외조달 입찰결과** → `clean_dapa_overseas_bid_result` **2,494**(제외 0). 업무 식별자 단독 고유성 없음(공고번호 14 · 판단번호 97 · 판단번호+항목번호 1,362) → **PK는 `raw_row_id`**, (공고번호,판단번호,항목번호,개찰일시) 2,494만 UNIQUE. 개찰 **2025-03-27~2025-09-15**(초안의 `2025.01~09`은 실제로는 3월부터 — 03월 1,073 · 04월 901 · 05월 5 · 06월 1 · 07월 3 · 08월 314 · 09월 197) → `is_partial_year=1` 전 행. 입찰결과는 **유찰 2,146 · 낙찰 348** 2종뿐(행 2,494 기준) — 초안의 "낙찰 342·유찰 1,020·재공고 1,126"은 행 기준이 아니라 `v_overseas_bid_chain`의 판단번호×항목 1,362 단위 값(한 번이라도 낙찰이면 낙찰, 2회 이상 공고 = 재공고)이므로 **단위를 병기하면 둘 다 유효**하다(2026-09-19 전환 후 실측도 1,362·342·1,331). 행 단위 보고에는 348/2,146을 쓴다. 판단번호 기준 파일판 교집합 83/97(행 기준 연결 2,432 · 미연결 62) — `plan_link_status`로 상태만 두고 행 단위 조인은 하지 않는다. 예산금액(달러)은 원화 A7 예산과 합산 금지.
@@ -236,7 +236,7 @@
 ### 2-11. KOSIS 2종 — 핵심 ① 수출·생산 축(2026-09-17 승격)
 
 - **파일**: `kosis_409_utilization_by_sector_2016_2024.csv`(방산업체 분야별 평균가동률, 9행 가로형) / `kosis_101_production_index_c26_201601_202607.csv`(광공업생산지수 C26·C261·C262·C264 × 원지수·계절조정, 4행 × 254값 열). cp949·LF.
-- **테이블**: `raw_kosis_utilization`(81, 세로형) · `raw_kosis_production_index`(1,016, 세로형) → **`clean_kosis_utilization`(81) · `clean_kosis_production_index`(1,016)**(2026-09-19 신설·적재 실측, raw 1:1·제외 0, DDL `db/alter_2026-09-19_kosis_clean.sql` 2회 exit 0, 적재 `notebooks/clean_p5_kosis.ipynb` nbconvert exit 0. 실측: `in_scope` 9 · `is_avg_row` 9 / `is_provisional` 16 · `stat_month` 고유 127(2016-01~2026-07) · `is_partial_year` 56 · `scope_grade` ★ 254 / ▲ 254 / ✕ 508, `meta_load_log` 126~129). 명세 §6-5는 "기획서 미사용이라 마지막·보류 가능"이었으나 팀 지시로 실행.
+- **테이블**: `raw_kosis_utilization`(81, 세로형) · `raw_kosis_production_index`(1,016, 세로형) → **`clean_kosis_utilization`(81) · `clean_kosis_production_index`(1,016)**(2026-09-19 신설·적재 실측, raw 1:1·제외 0, DDL `db/alter_2026-09-19_kosis_clean.sql` 2회 exit 0, 적재 `notebooks/06_clean_kosis.ipynb` nbconvert exit 0. 실측: `in_scope` 9 · `is_avg_row` 9 / `is_provisional` 16 · `stat_month` 고유 127(2016-01~2026-07) · `is_partial_year` 56 · `scope_grade` ★ 254 / ▲ 254 / ✕ 508, `meta_load_log` 126~129). 명세 §6-5는 "기획서 미사용이라 마지막·보류 가능"이었으나 팀 지시로 실행.
 - **규칙**: 광폭 → 세로형 변환은 raw 단계에서 **형식만** 바꾸고 값은 원문 문자열 유지, `source_row_no`(광폭 행)·`source_col_no`(광폭 열)로 셀 위치 보존. 잠정치(**2026.06·2026.07** — 원본 1행 헤더에 `p)` 표기, 2026-09-19 실측)가 확정치로 갱신되면 새 `source_file`로 누적되므로 조회 시 파일을 지정한다. 2026 생산지수는 7월까지 부분연도.
 - **clean 규칙(2026-09-19)**: 두 표 모두 raw 1:1(PK `raw_row_id`, 제외 0), 형 변환 + 등급 플래그만 더하고 원문은 `value_text` 보존. 숫자가 아닌 셀은 NULL(0 아님).
   - 가동률: `year` SMALLINT, `utilization_pct` DECIMAL(5,1), `is_avg_row`(`평균` 행 9 — 분야 값으로 다시 평균 내지 않음), `in_scope`(`통신전자` 9행 = 1, 나머지 72행 0). 업무 키 (`source_file`,`sector_name`,`year`) UNIQUE.
@@ -263,7 +263,7 @@
 - **테이블**: `raw_hsk_control` → **`clean_hsk_control`**(2026-09-19 신설, 세로형) · `v_hsk_control_by_hs6` → `ref_hs_indicator`(`hsk_control_*`).
 - **규칙**: `품목번호`(HSK10) 숫자만 남겨 6자리 절단 → HS6. `통제번호`는 쉼표 목록(최대 1,218자, TEXT) — 별표2 **이중용도만, ML(군용) 0건**. 84·85·88·90류 HS6 486개를 덮는 "해당 가능성" 목록이라 민수 혼합 판별에는 쓰지 않는다(보류).
 - **컬럼 등급**: `품목번호` ★ / `통제번호` ★(배지·R3 플래그) / `품명(국문)` ▲ / `품명(영문)` ✕.
-- **`clean_hsk_control` 적재(2026-09-19, `notebooks/clean_p1_customs_hs.ipynb` §5, DDL `db/alter_2026-09-19_p1_customs_hs.sql` §2)**: 1행 = HSK10 × 통제번호 1개. **10,104행**(분해 토큰 10,133 − 같은 HSK10 안 정규화 중복 29). **행 수 증가는 1:N 분해이므로 원본 규모가 아니다** — 원본 건수는 HSK10 **2,161**개이고 10,104는 「통제번호 부여 건수」다. 검산 `raw HSK10 고유 2,161 = clean HSK10 고유 2,161 + 제외 0`, 키(`hsk10`,`control_no_norm`) 중복 0.
+- **`clean_hsk_control` 적재(2026-09-19, `notebooks/01_clean_customs.ipynb` §5, DDL `db/alter_2026-09-19_p1_customs_hs.sql` §2)**: 1행 = HSK10 × 통제번호 1개. **10,104행**(분해 토큰 10,133 − 같은 HSK10 안 정규화 중복 29). **행 수 증가는 1:N 분해이므로 원본 규모가 아니다** — 원본 건수는 HSK10 **2,161**개이고 10,104는 「통제번호 부여 건수」다. 검산 `raw HSK10 고유 2,161 = clean HSK10 고유 2,161 + 제외 0`, 키(`hsk10`,`control_no_norm`) 중복 0.
   - 파생: `hs6`=앞 6자리 · `hs2`=앞 2자리 · `part_no`=통제번호 첫 글자(부 0~9) · `group_code`=둘째 글자(A~E) · `is_du_elec = part_no IN (3,5,6,7)` · `control_no_norm`=대문자 + 끝 마침표 제거.
   - 부 분포(행 / HSK10 고유): 0 원자력전용 392/191 · 1 특수재질 3,052/1,186 · 2 재료가공 1,873/577 · **3 전자 1,287/375** · 4 컴퓨터 263/70 · **5 통신·정보보안 574/205** · **6 센서·레이저 811/250** · **7 항법·항공전자 488/103** · 8 해양 209/107 · 9 항공우주·추진 1,155/279. 그룹 A 3,739 · B 2,617 · C 2,095 · D 836 · E 817.
   - R3 부(3·5·6·7) 행 **3,160**(HSK10 고유 707). 화이트리스트 24 HS6 아래 통제 HSK10은 **87**개.
@@ -286,7 +286,7 @@
 
 **드라이브 `05_reference/hs_whitelist.csv`는 21행 구판(2026-09-13, 8열)** — 2026-09-20 Google Drive MD5 대조로 확인됨(로컬 `data/drive_stage/`는 같은 날 정리해 이 구판과 `progress_all.csv`·README만 남김, `docs/report/data/file-cleanup-audit-2026-09-20.md`). 드라이브 갱신 전에는 갱신 전에는 팀원 노트북이 21개 기준으로 정제될 위험이 있다.
 
-**`ref_hs_whitelist` 검수 실측(2026-09-19, `notebooks/clean_p1_customs_hs.ipynb` §6 — 값은 고치지 않고 대조만)**: `data/reference/hs_whitelist.csv`(24행, 원본 열 이름 `hs_code`) ↔ DB `ref_hs_whitelist` **셀 불일치 0**(빈 문자열·NULL은 둘 다 `(빈값)`으로 정규화 비교). 문서 `hs-whitelist-definition.md` §2 별표 분포와도 전부 일치 — priority 1 9 / 2 10 / 3 5, `evidence_basis` rule 19 / 팀판단 5, category 반도체 8 / 전자부품 13 / 소재장비 3, axis both 12 / import 9 / export 3, `civil_mix` 높음 4 / 중간 3 / 낮음 2 / NULL 15. 근거 미확인 5개(847180·848620·851762·854142·854159)는 전부 `priority=3` + `evidence_basis='팀판단'` + `civil_mix` NULL(`판단불가`)로 표시돼 있고 위반 0, `evidence_basis='rule'`인데 priority 3인 행도 0.
+**`ref_hs_whitelist` 검수 실측(2026-09-19, `notebooks/01_clean_customs.ipynb` §6 — 값은 고치지 않고 대조만)**: `data/reference/hs_whitelist.csv`(24행, 원본 열 이름 `hs_code`) ↔ DB `ref_hs_whitelist` **셀 불일치 0**(빈 문자열·NULL은 둘 다 `(빈값)`으로 정규화 비교). 문서 `hs-whitelist-definition.md` §2 별표 분포와도 전부 일치 — priority 1 9 / 2 10 / 3 5, `evidence_basis` rule 19 / 팀판단 5, category 반도체 8 / 전자부품 13 / 소재장비 3, axis both 12 / import 9 / export 3, `civil_mix` 높음 4 / 중간 3 / 낮음 2 / NULL 15. 근거 미확인 5개(847180·848620·851762·854142·854159)는 전부 `priority=3` + `evidence_basis='팀판단'` + `civil_mix` NULL(`판단불가`)로 표시돼 있고 위반 0, `evidence_basis='rule'`인데 priority 3인 행도 0.
 
 ## 3. 데이터 간 연결 규칙
 

@@ -435,7 +435,7 @@ with zone("map", "세계 지도"):
                     {n: m6(v) for n, v in geo["exp_dlr"].items() if v > 0}, height=520, where=where)
         chart_source(SRC_TRADE + " · 국가 좌표는 나라 대표 위치 · 수입 = 선적국, 수출 = 도착국")
 
-# ── 과천시 소재 수입자 비중(추정) — 품목군 × 연도 히트맵(app/specs/24_gwacheon_share.md, M7) ─────────────
+# ── 과천시 소재 수입자 비중(추정) — 품목군 × 연도 히트맵(dashboard/specs/24_gwacheon_share.md, M7) ─────────────
 s_region = data_stamp("customs_region", "clean_customs_region")
 SRC_GC = ("관세청 시군구별 품목별 수출입실적(15134343) · 수입 = 납세의무자 주소지 기준 · 분모 = 전국 수입액 · "
           f"자료 기간 {s_region['period'] if s_region['has_period'] else '—'}")

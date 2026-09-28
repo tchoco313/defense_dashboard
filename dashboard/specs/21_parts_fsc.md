@@ -25,7 +25,7 @@
 | (대안 뷰) `v_overseas_plan_api_fsc` | `fsc4, fsg_code, fsc_name_ko, army_name, demand_year, plan_item_count, equipment_name_count, equipment_sample` | 같은 집계를 뷰로 — 코드는 clean 직접 집계 사용 | 같음 | table-guide §3-6 |
 
 ## 3. 레이아웃
-코드(`app/pages/2_부품_무기체계.py`, 화면 제목 「③ 조달·국산화 근거」) 순서. 구역 = `zone("<키>", "<태그>")`. 아래 `d*` 구역은 부록(국내 조달, M2) — 내용 기준은 34.
+코드(`dashboard/pages/3_조달_국산화_근거.py`, 화면 제목 「③ 조달·국산화 근거」) 순서. 구역 = `zone("<키>", "<태그>")`. 아래 `d*` 구역은 부록(국내 조달, M2) — 내용 기준은 34.
 
 | 순서 | 구역 키 · 태그 | 내용 |
 |---|---|---|

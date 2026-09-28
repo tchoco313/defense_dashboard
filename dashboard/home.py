@@ -1,7 +1,7 @@
 """홈 — 팀원 디자인 데모(K-Defense) 「HOME」 화면 배치를 그대로 옮기고 값만 RDS 로 바꿨다.
 
 구역: 원천 확인 한 줄(live.py — 관세청 API 로 공개 최신 월을 직접 확인) → 핵심 KPI 5장 → 부품별 공급망 현황(품목군 표 + 스파크라인 · 핵심 지표) → 어디서 들어오나(지구본 · 1위 공급국 점유율 막대).
-명세 app/specs/10_home.md. 데이터 판정: docs/report/data/data-usage-decision-2026-09-18.md §4.
+명세 dashboard/specs/10_home.md. 데이터 판정: docs/report/data/data-usage-decision-2026-09-18.md §4.
 - 분석 대상 = ref_hs_whitelist 중 priority IN (1, 2) — 13개(2026-09-21 회의 M5). 수입액은 국가 전체 수입(민수 포함).
 - 기간 기준(기준 연도 / 최근 5년 / 전체)은 수입액 · 점유율 · HHI · 지구본 · 막대에 적용. 부분연도(예: 2026.01~08)는 빼고 센다.
   점유율·HHI 계산은 metrics.concentration(③·조회 와 같은 산식: 선택 연도 합산 → 국가 점유율, 수입 실적>0 국가만).

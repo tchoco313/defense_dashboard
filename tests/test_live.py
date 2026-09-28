@@ -1,4 +1,4 @@
-"""app/live.py 순수 함수 — 관세청 응답 파싱 · 조회 기간 · 최신 월 판정. 네트워크 · streamlit 없이 돈다.
+"""dashboard/live.py 순수 함수 — 관세청 응답 파싱 · 조회 기간 · 최신 월 판정. 네트워크 · streamlit 없이 돈다.
 
 실행(저장소 루트): .venv\\Scripts\\python.exe -m unittest discover -s tests -v
 """
@@ -8,7 +8,7 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "dashboard"))   # app/ 은 패키지가 아니다
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "dashboard"))   # dashboard/ 는 패키지가 아니다
 
 import live  # noqa: E402
 

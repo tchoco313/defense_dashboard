@@ -29,7 +29,7 @@
 건수 3종(`ref_hs_rule_flag`·`ref_hs_whitelist`·`clean_dapa_localized_item`)은 리터럴이 아니라 DB에서 읽고, **캐시 밖 `try_query`**로 조회해 실패해도 페이지는 그리고 숫자만 뺀다. 출처 표만 `@st.cache_data(ttl=3600)` + `safe_query`.
 
 ## 3. 레이아웃
-코드(`app/pages/5_DATA_INFO.py`) 순서. 구역 = `zone("<키>", "<태그>")`.
+코드(`dashboard/pages/5_데이터_정보.py`) 순서. 구역 = `zone("<키>", "<태그>")`.
 
 | 순서 | 구역 키 · 태그 | 내용 |
 |---|---|---|

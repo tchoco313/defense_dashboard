@@ -1,6 +1,6 @@
-/* app/mockup/common.css — 디자인 값의 정본(2026-09-23).
-   규칙·근거·참고 URL은 app/specs/01_design_system.md 에, 값은 이 파일에만 둔다.
-   토큰 이름 = 01_design_system.md §2(색)·§3(글꼴 역할) = app/ui.py 색 토큰 = Figma 색 스타일 이름.
+/* dashboard/mockup/common.css — 디자인 값의 정본(2026-09-23).
+   규칙·근거·참고 URL은 dashboard/specs/01_design_system.md 에, 값은 이 파일에만 둔다.
+   토큰 이름 = 01_design_system.md §2(색)·§3(글꼴 역할) = dashboard/ui.py 색 토큰 = Figma 색 스타일 이름.
    대비 검증: dataviz 검증기(OKLab ΔE·WCAG) 2026-09-23 — 결과는 docs/report/app/ 보고서 참조.
    넣지 않는 것: 그라데이션·그림자·유리 효과·hover·transition·애니메이션·이모지·이미지. */
 

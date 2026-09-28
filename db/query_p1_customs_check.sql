@@ -1,4 +1,5 @@
 -- ============================================================================
+-- ※ 기록용(2026-09-28 표시): 이 파일은 2026-09-22 에 삭제한 RDS raw_ 표를 읽는다 — 지금 실행하면 실패한다. 경위: docs/db/raw-layer-history.md
 -- P1 관세청 수입 축 — 검산 목록(docs/report/data/p1-recheck-list-2026-09-21.md) 복붙용 쿼리 (2026-09-21)
 --   대상: raw_customs_trade → fact_customs_monthly → v_import_* · v_hhi_*. 새 표·열을 만들지 않고 기존 표를 읽기 전용으로 검산한다.
 --   주석의 실측값은 2026-09-21 RDS(MySQL 8.4.11, app_ro/DBHub), alter_2026-09-21_hhi_views.sql(D6·D7) 적용 후.

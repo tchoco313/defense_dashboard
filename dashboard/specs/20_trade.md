@@ -10,7 +10,7 @@
 | 프레임(노드) URL — 데스크톱 | 미정 |
 | 프레임(노드) URL — 모바일/좁은 폭 | 없음 |
 | 마지막 동기화 | — (Figma → md 반영 없음) |
-| 목업(Artifact) URL | https://claude.ai/artifact/DjFGs42myZF8vQoF1eugck (2026-09-23 게시, app/mockup/20_trade.html + common.css) |
+| 목업(Artifact) URL | https://claude.ai/artifact/DjFGs42myZF8vQoF1eugck (2026-09-23 게시, dashboard/mockup/20_trade.html + common.css) |
 
 ## 1. 이 화면이 답하는 질문
 
@@ -35,7 +35,7 @@
 
 ## 3. 레이아웃
 
-코드(`app/pages/1_수출입_현황.py`) 순서. 구역 = `zone("<키>", "<태그>")`.
+코드(`dashboard/pages/1_수출입_현황.py`) 순서. 구역 = `zone("<키>", "<태그>")`.
 
 | 순서 | 구역 키 · 태그 | 내용 |
 | --- | --- | --- |

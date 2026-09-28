@@ -2,9 +2,9 @@
 
 화면은 **틀 = 팀원 디자인 데모**, **겉모양 = UI/UX 참고 URL**로 만든다(2026-09-23 팀 결정). 데이터는 언제나 RDS 에서만 읽는다 — URL 은 디자인 참고용이다.
 
-- 틀 원본: 팀 저장소 `K-Defense_대시보드_demo.py`(단독 실행 Streamlit, 숫자는 샘플) — https://github.com/tchoco313/defense_dashboard/blob/main/K-Defense_%EB%8C%80%EC%8B%9C%EB%B3%B4%EB%93%9C_demo.py
-- 코드 정본: `app/kdesign.py`(색 토큰 · CSS · 사이드바 · 머리띠 · 구역 · 카드 · KPI · 탭 · 지도 · 도넛 · PNG 단추). `app/ui.py`는 페이지가 쓰던 이름을 kdesign 으로 잇는 호환 층이다.
-- `app/mockup/common.css`·`20_trade.html`은 데모 전환 전(09-23 2차) 목업 기록이며 기준이 아니다.
+- 틀 원본: 팀 저장소 `dashboard/demo/design_demo.py`(단독 실행 Streamlit, 숫자는 샘플) — https://github.com/tchoco313/defense_dashboard/blob/main/dashboard/demo/design_demo.py
+- 코드 정본: `dashboard/kdesign.py`(색 토큰 · CSS · 사이드바 · 머리띠 · 구역 · 카드 · KPI · 탭 · 지도 · 도넛 · PNG 단추). `dashboard/ui.py`는 페이지가 쓰던 이름을 kdesign 으로 잇는 호환 층이다.
+- `dashboard/mockup/common.css`·`20_trade.html`은 데모 전환 전(09-23 2차) 목업 기록이며 기준이 아니다.
 - 화면이 답하는 질문 · 데이터 · 집계 정의는 `00_common.md`와 페이지별 md 에 있다. **데이터 사실은 md 우선.**
 
 ## 0. 판단 기준 — 믿고 쓸 수 있는가
@@ -24,7 +24,7 @@
 
 ## 2. 색 · 글씨
 
-값은 `app/kdesign.py` 머리(토큰)에만 둔다.
+값은 `dashboard/kdesign.py` 머리(토큰)에만 둔다.
 
 - **화면 틀**(바탕 · 사이드바 · 카드 · 버튼 · 탭 · 결론 제목의 강조 구절): 파랑 · 하늘 · 흰색.
 - **데이터 범주**(국가 · 수입/수출 · 근거 태그): 한 톤이면 읽기 어려워(2026-09-23 팀 결정) dataviz 검증 팔레트 8색을 고정 순서로 쓴다 — 파랑 · 주황 · 청록 · 노랑 · 분홍 · 초록 · 보라 · 빨강(흰 바탕 색맹 ΔE 9.1 · 일반 19.6 통과). 9번째부터는 기타(회색)로 묶고 색을 돌려 쓰지 않는다.

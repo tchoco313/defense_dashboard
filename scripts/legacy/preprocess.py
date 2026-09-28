@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """방위사업청 조달 데이터 전처리 — 원본 CSV → 분석용 CSV
 
-    python3 src/preprocess.py
+    python3 scripts/legacy/preprocess.py
 
-읽는 곳  data/raw/*.csv        (src/fetch_data.py 로 먼저 받는다)
+읽는 곳  data/raw/*.csv        (scripts/legacy/fetch_data.py 로 먼저 받는다)
 쓰는 곳  data/clean/*.csv
 
 ★ 이 파일은 EDA 보고서의 「전처리」 절이 된다. 무엇을 왜 했는지 주석으로 남긴다.
@@ -21,7 +21,7 @@ import pathlib
 import numpy as np
 import pandas as pd
 
-BASE = pathlib.Path(__file__).resolve().parent.parent
+BASE = pathlib.Path(__file__).resolve().parents[2]
 RAW = BASE / "data" / "raw"
 CLEAN = BASE / "data" / "clean"
 CLEAN.mkdir(parents=True, exist_ok=True)
@@ -37,7 +37,7 @@ def read(name: str) -> pd.DataFrame:
     """
     path = RAW / name
     if not path.exists():
-        raise SystemExit(f"없다: {path}\n먼저 `python3 src/fetch_data.py` 를 돌려라.")
+        raise SystemExit(f"없다: {path}\n먼저 `python3 scripts/legacy/fetch_data.py` 를 돌려라.")
     return pd.read_csv(path, encoding=ENC, low_memory=False, dtype=str)
 
 

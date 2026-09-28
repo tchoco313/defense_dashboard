@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """관세청 무역통계 API 가 실제로 되는지 확인한다.
 
-    python3 src/check_trade_api.py
+    python3 scripts/check_trade_api.py        # .env 의 DATA_GO_KR_SERVICE_KEY 를 쓴다
 
 ★ 2026-09-13 밤에 확인한 것 (조장)
    - 개발단계 자동승인. 신청 직후 호출됐다
@@ -17,11 +17,15 @@
    - 국가명 statCdCntnKor1 · 품명 statKor · 수입액 impDlr(달러)
    - 조회 기간은 1년 이내. 연도별로 나눠 호출해야 한다
 """
+import os
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import requests
+from dotenv import load_dotenv
 
-from config import DATA_GO_KR_KEY
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+DATA_GO_KR_KEY = os.getenv("DATA_GO_KR_SERVICE_KEY", "").strip()   # .env 의 공공데이터포털 인증키
 
 URL = "https://apis.data.go.kr/1220000/nitemtrade/getNitemtradeList"
 

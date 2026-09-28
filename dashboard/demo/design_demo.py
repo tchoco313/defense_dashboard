@@ -1,7 +1,6 @@
 """K-Defense 대시보드 — 디자인 데모(단독 실행본).
 
-실행:  같은 폴더의 `K-Defense_데모_실행.bat` 더블클릭(권장). 직접 칠 때는:
-         streamlit run "K-Defense_대시보드_demo.py" --theme.base light
+실행:  streamlit run dashboard/demo/design_demo.py --theme.base light
        저장소 루트의 `.streamlit/config.toml` 은 운영 앱용 **다크** 테마라, 저장소에서 플래그 없이 실행하면
        테마가 다크로 잡힌다. OS 다크모드이거나 테마 설정이 없을 때도 마찬가지다. 그래도 버튼 · 선택창 · 체크박스는
        아래 「라이트 테마 고정(위젯)」 CSS 로 라이트로 보인다. 단 st.dataframe 표(품목군 현황표 · DATA INFO)는
@@ -12,7 +11,7 @@
 (못 받으면 경위선만 그리고 화면에 알린다).
 
 ★ 화면의 모든 숫자는 **화면 배치·색·움직임을 보여 주기 위한 샘플**이다. 실제 DB 값이 아니며,
-  어떤 보고·발표 자료에도 그대로 쓰면 안 된다. 실제 값은 운영 앱(app/main.py)이 AWS RDS 에서 읽는다.
+  어떤 보고·발표 자료에도 그대로 쓰면 안 된다. 실제 값은 운영 앱(dashboard/main.py)이 AWS RDS 에서 읽는다.
 
 디자인 기준: 목업 PNG 6장(K-Defense) — 짙은 남색 사이드바 + 밝은 본문 + 흰 카드.
 """
@@ -4231,7 +4230,7 @@ def page_info() -> None:
                 f'<tbody>{prep}</tbody></table></div>')
 
     st.html('<div class="caption">이 데모 파일의 모든 수치는 샘플입니다. '
-            '실제 값과 기준일은 운영 앱(app/main.py)이 AWS RDS 에서 읽어 화면마다 표시합니다.</div>')
+            '실제 값과 기준일은 운영 앱(dashboard/main.py)이 AWS RDS 에서 읽어 화면마다 표시합니다.</div>')
 
 
 # ════════════════════════════════════════════════════════════════════════════

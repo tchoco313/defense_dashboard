@@ -1,7 +1,7 @@
-"""주요 방산 전자부품 수출입 및 국산화 현황 대시보드 — 진입점(라우터). 제목·페이지 라벨은 2026-09-21 회의 M1(app/specs/00_common.md §1·§8).
+"""주요 방산 전자부품 수출입 및 국산화 현황 대시보드 — 진입점(라우터). 제목·페이지 라벨은 2026-09-21 회의 M1(dashboard/specs/00_common.md §1·§8).
 
-실행: streamlit run app/main.py
-틀은 팀원 디자인 데모 — 왼쪽 파랑 사이드바 메뉴 · ⓘ 데이터 정보 대화상자(app/kdesign.py). 겉모양은 UI/UX 참고 URL 기준.
+실행: streamlit run dashboard/main.py
+틀은 팀원 디자인 데모 — 왼쪽 파랑 사이드바 메뉴 · ⓘ 데이터 정보 대화상자(dashboard/kdesign.py). 겉모양은 UI/UX 참고 URL 기준.
 페이지 파일·제목·URL·메뉴 순서는 nav.py(PAGE_SPECS·NAV_ORDER) 한 곳에서 정한다. 머리띠(hero)는 각 페이지가 그린다.
 DB 접속 확인(db_ready)은 여기서 한 번만 — 페이지 파일은 검사하지 않는다.
 """

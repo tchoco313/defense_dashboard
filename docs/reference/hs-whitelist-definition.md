@@ -173,7 +173,7 @@ B2 고유 부품 수(`b2_part_count`, 후보 대응, HS6 간 합산 금지): 852
 
 부수 확인: `hsk_control_hs10_ratio`(§7-1)는 연계표가 워낙 넓어(84·85·88·90류 통제 비율 100%인 HS6 179개) 민수 혼합의 판별력이 없다 — `civil_mix` 3번 규칙은 문턱값을 정하지 않고 보류한다.
 
-**운영 DB(RDS) 대조 — 2026-09-19 (`notebooks/clean_p1_customs_hs.ipynb`, P1)**
+**운영 DB(RDS) 대조 — 2026-09-19 (`notebooks/01_clean_customs.ipynb`, P1)**
 
 | 항목 | 값 | 비고 |
 |---|---|---|

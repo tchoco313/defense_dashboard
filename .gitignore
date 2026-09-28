@@ -18,6 +18,7 @@ dump_*.sql
 config.py
 *.key
 secrets.*
+!.streamlit/secrets.toml.example
 
 # ── 파이썬이 만드는 찌꺼기 ────────────────────────────────────
 __pycache__/
@@ -46,3 +47,5 @@ config.py.*
 
 # ── 기타 ─────────────────────────────────────────────────────
 agent.md
+# 팀원 개발 계정 비밀번호 (scripts/rds_accounts.py --add-dev 가 만든다)
+.credentials/

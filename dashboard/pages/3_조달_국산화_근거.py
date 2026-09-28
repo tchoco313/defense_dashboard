@@ -4,7 +4,7 @@
    군별 전자 군급 비중(100% 막대)은 요구연도 범위를 고르면 그 구역만 다시 조회한다(분모 = 군급 판별 가능 행, 전자 외 군급 포함).
 아래(부록, 2026-09-21 M2): 방위사업청 국내 조달 계약 방법 · 수의계약 사유 · 경쟁입찰 결과 · 공고 상태(건수만, 금액 미사용).
 
-데이터 판정: docs/report/data/data-usage-decision-2026-09-18.md §1 핵심(국외 조달계획 API · 군급 기준표 · B2), 부록은 app/specs/34_domestic_procurement.md.
+데이터 판정: docs/report/data/data-usage-decision-2026-09-18.md §1 핵심(국외 조달계획 API · 군급 기준표 · B2), 부록은 dashboard/specs/34_domestic_procurement.md.
 - 조달계획: clean_dapa_overseas_plan_api 중 is_elec = 1 행(FSG 58·59·60, 2026-09-21 M4). 금액 열은 통화 미검증이라 쓰지 않고 건수(행 = 조달요구번호 × 품목순번)만 센다.
 - 국산화 이력: clean_dapa_localized_item(B2, 지상 사업의 완료 부품 목록, is_electronic_group = 1). 부품 수 = part_mgmt_no 고유. 국산화율 아님.
 - 국내 조달: clean_dapa_contract(계약 단위 = is_latest_seq = 1) · v_contract_private_reason(계약번호당 1행) · clean_dapa_bid_result

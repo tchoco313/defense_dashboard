@@ -1,21 +1,21 @@
 # 화면 작업 로드맵
 
 갱신: 2026-09-23. 이 문서는 **화면 디자인·구현 순서**만 다룬다. 프로젝트 전체 일정과 제출물은
-`docs/next.md`, 절차의 원래 정의는 `app/specs/00_common.md` §11에 있다.
+`docs/next.md`, 절차의 원래 정의는 `dashboard/specs/00_common.md` §11에 있다.
 
 ## 0. 지금 상태
 
-- **있는 것**: 화면 명세 `app/specs/` 14개(질문·읽는 데이터·집계 정의·레이아웃·차트 명세 완료),
+- **있는 것**: 화면 명세 `dashboard/specs/` 14개(질문·읽는 데이터·집계 정의·레이아웃·차트 명세 완료),
   Streamlit 뼈대 `app/`(디자인 확정 전 자리표시), 09-18 HTML 시안(참고용)
-- **없는 것**: `app/mockup/` 폴더 — 대표 화면 HTML과 `common.css`가 아직 없다
+- **없는 것**: `dashboard/mockup/` 폴더 — 대표 화면 HTML과 `common.css`가 아직 없다
 - **기다리는 것**: `01_design_system.md` §1 입력 A(팀원 화면 URL)·B(요소 URL ≥3)·C(대표색·테마)
 
 ## 1. 확정 사항 (2026-09-22 팀 결정)
 
 | 항목 | 값 | 비고 |
 | --- | --- | --- |
-| 디자인 방향 | 디자인은 **새로 만든다** — 큰 틀은 팀원 화면(URL), UI/UX는 벤치마킹 요소 URL 3개 이상, 색은 대표색 1개에서 파생(수입 파랑·수출 주황은 고정). 입력 칸 A·B·C와 생성 프롬프트는 `01_design_system.md` §1·§7(09-23). 메뉴는 **상단바**(A1 데모의 사이드바는 따르지 않음, 09-23 팀 결정) | 지금 앱(`app/ui.py`·`config.toml`)은 임시 값, 기준 아님. NABOSTATS 기준 사이트 폐기 |
-| 디자인 문서 | `app/specs/01_design_system.md`(09-23 `01_figma_setup.md`에서 재편) — 입력 A·B·C · 색 두 층 규칙 · 생성 프롬프트(값은 대표색 입력만, 나머지는 `common.css`) | 색 값이 여러 곳에 흩어지는 것을 막는다 |
+| 디자인 방향 | 디자인은 **새로 만든다** — 큰 틀은 팀원 화면(URL), UI/UX는 벤치마킹 요소 URL 3개 이상, 색은 대표색 1개에서 파생(수입 파랑·수출 주황은 고정). 입력 칸 A·B·C와 생성 프롬프트는 `01_design_system.md` §1·§7(09-23). 메뉴는 **상단바**(A1 데모의 사이드바는 따르지 않음, 09-23 팀 결정) | 지금 앱(`dashboard/ui.py`·`config.toml`)은 임시 값, 기준 아님. NABOSTATS 기준 사이트 폐기 |
+| 디자인 문서 | `dashboard/specs/01_design_system.md`(09-23 `01_figma_setup.md`에서 재편) — 입력 A·B·C · 색 두 층 규칙 · 생성 프롬프트(값은 대표색 입력만, 나머지는 `common.css`) | 색 값이 여러 곳에 흩어지는 것을 막는다 |
 | 참고 자료 | 캡처 이미지를 저장소에 넣지 않고 **URL만** 둔다(§4) | 필요할 때 브라우저로 연다 |
 | 작업 관리 | Shrimp Task Manager는 도입하지 않고 `docs/next.md`를 유지한다 | 남은 일정이 짧고 절차가 이미 선형 |
 
@@ -24,8 +24,8 @@
 | # | 할 일 | 산출물 | 쓰는 것 | 마감 |
 | --- | --- | --- | --- | --- |
 | 0 | 입력 채우기 — A 큰 틀 2 · B 요소 3 · C 대표색·테마 | `01_design_system.md` §1 | 팀 | **완료(09-23)** |
-| 1 | 디자인 문서 재편 | `app/specs/01_design_system.md` | — | **완료(09-23)** |
-| 2 | 대표 화면 ① HTML | `app/mockup/20_trade.html` + `common.css` | `01_design_system.md` §0 판단 기준 · §7 생성 프롬프트 · **우선**: DBHub(수치·조건·기간 대조) · `dataviz`(단위·축·범례·부분연도) · **보조**: `frontend-design` · `dataviz` · `minimalist-ui` §9 · context7 · DBHub 표본 → Artifact 게시 | **완료(09-23)** — https://claude.ai/artifact/DjFGs42myZF8vQoF1eugck |
+| 1 | 디자인 문서 재편 | `dashboard/specs/01_design_system.md` | — | **완료(09-23)** |
+| 2 | 대표 화면 ① HTML | `dashboard/mockup/20_trade.html` + `common.css` | `01_design_system.md` §0 판단 기준 · §7 생성 프롬프트 · **우선**: DBHub(수치·조건·기간 대조) · `dataviz`(단위·축·범례·부분연도) · **보조**: `frontend-design` · `dataviz` · `minimalist-ui` §9 · context7 · DBHub 표본 → Artifact 게시 | **완료(09-23)** — https://claude.ai/artifact/DjFGs42myZF8vQoF1eugck |
 | 3 | 공통 규칙 확정 | `common.css` 정본 고정 | 사용자가 §8 자연어 구상을 고치면 재생성 반복 | 09-26 |
 | 4 | Streamlit 조기 검증 | `pages/1_수출입_현황.py` · `ui.py` · `config.toml` | **우선**: Claude in Chrome·`run`(필터 변경·긴 표·다운로드 동작) · DBHub(화면·CSV 수치 일치) · 구현은 context7. 데이터 로직 불변 | 로컬 검증 완료(09-23) · push·공개 앱 확인 대기 |
 | 5 | 확장·이식 | 나머지 페이지 목업 → Streamlit | `dashboard-reviewer` → unittest → 개인·팀 push | **Streamlit 이식 완료(09-23, 목업 없이 common.css 기반 직접 이식 — 사용자 선택)** · 팀 push 대기 |
@@ -36,18 +36,18 @@
 
 | 파일 | 정본 내용 | 상태 |
 | --- | --- | --- |
-| `app/mockup/common.css` | 색 · 글꼴 · 간격 · 카드 · 버튼의 **실제 값** | 아직 없음(2단계) |
-| `app/specs/01_design_system.md` | 규칙 · 참고 URL(세부 요소별) · 색/텍스트 역할 이름 · Streamlit 어휘 · Figma 담당 | 최신 |
-| `app/specs/<번호>_<키>.md` | 화면별 질문 · 읽는 데이터 · 집계 정의 · 레이아웃 · 차트 명세 | 14개 작성 완료 |
-| `app/specs/00_common.md` | 공통 규칙 · 회의 결정 M1~M8 · 페이지 목록 · §11 절차 | 최신 |
-| `app/ui.py` · `.streamlit/config.toml` | 실행되는 앱의 토큰 | 4단계에서 `common.css` 값으로 교체 |
+| `dashboard/mockup/common.css` | 색 · 글꼴 · 간격 · 카드 · 버튼의 **실제 값** | 아직 없음(2단계) |
+| `dashboard/specs/01_design_system.md` | 규칙 · 참고 URL(세부 요소별) · 색/텍스트 역할 이름 · Streamlit 어휘 · Figma 담당 | 최신 |
+| `dashboard/specs/<번호>_<키>.md` | 화면별 질문 · 읽는 데이터 · 집계 정의 · 레이아웃 · 차트 명세 | 14개 작성 완료 |
+| `dashboard/specs/00_common.md` | 공통 규칙 · 회의 결정 M1~M8 · 페이지 목록 · §11 절차 | 최신 |
+| `dashboard/ui.py` · `.streamlit/config.toml` | 실행되는 앱의 토큰 | 4단계에서 `common.css` 값으로 교체 |
 | `docs/next.md` | 프로젝트 전체 일정 · 제출물 | 최신 |
 
 **규칙**: 색 값과 집계 정의를 이 로드맵에 복사하지 않는다. 바뀌면 정본 한 곳만 고친다.
 
 ## 4. 참고 사이트
 
-요소별 참고 URL·따르지 않는 색은 `app/specs/01_design_system.md` §1 한 곳에 둔다.
+요소별 참고 URL·따르지 않는 색은 `dashboard/specs/01_design_system.md` §1 한 곳에 둔다.
 
 ## 5. 주의점
 
@@ -64,7 +64,7 @@
   「가상 데이터」 배너를 붙인다.
 - **상태 5종**(로딩 중 · 데이터 없음 · 조회 실패 · 미적재 · 부분연도)을 목업에 모두 넣는다.
   화면별 문구는 각 md §6에 있다.
-- **공개 앱**: `app/ui.py`에 새 이름을 추가해 push하면 Streamlit Cloud가 예전 모듈을 들고 있어
+- **공개 앱**: `dashboard/ui.py`에 새 이름을 추가해 push하면 Streamlit Cloud가 예전 모듈을 들고 있어
   ImportError가 난다. push 뒤 Manage app → Reboot 하거나 새 이름을 페이지 쪽에 둔다.
   근거 `docs/report/app/benchmark-ui-changes-2026-09-20.md` §4.
 

@@ -1,4 +1,5 @@
 -- ============================================================================
+-- ※ 기록용(2026-09-28 표시): 이 파일은 2026-09-22 에 삭제한 RDS raw_ 표를 읽는다 — 지금 실행하면 실패한다. 경위: docs/db/raw-layer-history.md
 -- P4(김훈희) 방사청 국내조달·업체 — raw 탐색·검산 복붙용 쿼리 (2026-09-18)
 --   대상: raw_dapa_contract · raw_dapa_bid_notice · raw_dapa_bid_result
 --         raw_dapa_domestic_plan · raw_dapa_contract_exec_by_service · raw_dapa_defense_company

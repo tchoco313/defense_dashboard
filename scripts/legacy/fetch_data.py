@@ -11,7 +11,7 @@
   - 인코딩은 cp949 다. pandas 에서 encoding='cp949' 를 반드시 줘라.
   - data.go.kr 이 Referer 헤더를 본다. 아래 download() 의 헤더를 지우면 실패한다.
 
-    python3 fetch_defense_procurement.py          # data_raw/defense_procurement/ 에 저장
+    python3 scripts/legacy/fetch_data.py          # data/raw/defense_procurement/ 에 저장
 """
 import csv
 import io
@@ -21,8 +21,8 @@ import ssl
 import sys
 import urllib.request
 
-OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                       "data_raw", "defense_procurement")
+OUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                       "data", "raw", "defense_procurement")
 
 # publicDataPk -> (파일이름, 2026-09-11 에 실제로 센 행 수)
 DATASETS = {

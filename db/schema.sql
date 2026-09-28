@@ -139,7 +139,7 @@ CREATE TABLE ref_fsg (
   PRIMARY KEY (fsg_code)
 ) ENGINE=InnoDB COMMENT='FSG 군급 2자리 라벨 80행 (data/reference/fsg_master.csv). 4자리 라벨 ref_fsc는 군급분류집 시드(2026-09-16)';
 
--- 적용장비명 표기 통일 사전 (2026-09-19, db/alter_2026-09-19_p3_clean.sql §2 — 명세 §4-3). 한 행 = 원문 1종. 843행은 notebooks/clean_p3_overseas.ipynb §2가 채운다.
+-- 적용장비명 표기 통일 사전 (2026-09-19, db/alter_2026-09-19_p3_clean.sql §2 — 명세 §4-3). 한 행 = 원문 1종. 843행은 notebooks/03_clean_overseas.ipynb §2가 채운다.
 --    name_norm 은 기계적 정규화(판단 아님). name_std 는 같은 정규화 키에 원문이 2종 이상 모여 표기 변이가 실제로 관측된 묶음에만 채우고(link_status='후보'),
 --    변이 근거가 없는 원문은 name_std NULL + link_status='미확인' 으로 둔다(근거 없는 팀 판단 값 대신 NULL — 사용자 원칙).
 --    장비코드로는 묶지 않는다(같은 장비가 파생형별로 코드 여러 개).
@@ -879,7 +879,7 @@ CREATE TABLE clean_dapa_contract_exec_by_service (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='군별 계약집행 현황 정제(연도×군, 40행 기대). KPI 배경 — 조달 금액 ≠ 방산 매출';
 
 -- P3 국외조달 clean 3개 (2026-09-19, db/alter_2026-09-19_p3_clean.sql — 열별 근거·검산은 그 파일 §1~§7).
--- 적재는 notebooks/clean_p3_overseas.ipynb. P3 는 제외 행 0(열 밀림·키 충돌 없음)이라 raw = clean 이 그대로 검산이다.
+-- 적재는 notebooks/03_clean_overseas.ipynb. P3 는 제외 행 0(열 밀림·키 충돌 없음)이라 raw = clean 이 그대로 검산이다.
 -- §1 clean_dapa_overseas_plan_api — 국외 조달계획 OpenAPI 품목 단위(raw 13,615).
 --    키: (procure_demand_no, item_seq) 는 raw 에서 고유 13,615(2026-09-19 실측) → PK. 품목순번 공란 842행은 빈 문자열 + is_item_seq_missing=1.
 --    NSN: stock_no 13자 중 숫자13 9,970 · 영숫자13 3,266(NCB 37 국내 부여) → nsn 채움. 나머지 379행(13자 1 + 13자 아님 378, NSN·NSN001 같은 자리표시 포함)은 nsn NULL.
@@ -983,7 +983,7 @@ CREATE TABLE clean_dapa_overseas_bid_result (
   KEY ix_cobr_decision (decision_no)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='국외조달 입찰결과 정제(2,494 기대, 개찰 2025-03~09 부분연도). 달러 예산은 원화와 합산 금지. 낙찰업체 열 원본에 없음';
 
--- P5-5 KOSIS 2종 clean 세로형 (2026-09-19, db/alter_2026-09-19_kosis_clean.sql — 열별 근거·검산은 그 파일 머리 주석·§4). 적재 notebooks/clean_p5_kosis.ipynb.
+-- P5-5 KOSIS 2종 clean 세로형 (2026-09-19, db/alter_2026-09-19_kosis_clean.sql — 열별 근거·검산은 그 파일 머리 주석·§4). 적재 notebooks/06_clean_kosis.ipynb.
 -- raw 는 이미 세로형이라 두 표 모두 raw 1:1(PK raw_row_id, FK). 형 변환(연도·월·숫자) + data-cleaning-rules §2-11 등급 플래그 + 잠정치 플래그만 더하고 원문은 value_text 에 보존.
 -- 지수·가동률(%)을 금액과 합산·비율 계산하지 않는다(§1-10). 가동률은 KOSIS 원본 통계 명칭 그대로("율" 오용 아님).
 CREATE TABLE clean_kosis_utilization (
@@ -1028,7 +1028,7 @@ CREATE TABLE clean_kosis_production_index (
   KEY ix_ckp_ind (industry_code, item_code, stat_month)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='KOSIS 101 광공업생산지수 C26 계열 정제 1,016행(raw 1:1, 2016.01~2026.07, 2020=100). 보조 ④ — ★는 전국×C26·C261×계절조정. 지수를 금액과 합산·비율 계산 금지';
 
--- 2026-09-22 raw_ 계층 제거 후속 — 뷰가 raw 를 직독하던 2곳의 정제 표(clean_customs_region 은 load_db.py --fact, clean_dapa_defense_company 는 clean_p4 §6)
+-- 2026-09-22 raw_ 계층 제거 후속 — 뷰가 raw 를 직독하던 2곳의 정제 표(clean_customs_region 은 load_db.py --fact, clean_dapa_defense_company 는 04_clean_domestic §6)
 CREATE TABLE clean_customs_region (
   hs6                 CHAR(6)      NOT NULL COMMENT '요청 HS6(원본 req_hs = hs_cd)',
   sido_code           CHAR(2)      NOT NULL COMMENT '요청 시도코드(11 26 27 28 29 30 31 36 41 43 44 46 47 48 50 51 52)',

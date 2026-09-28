@@ -1,6 +1,6 @@
 """공용 화면 요소 — 팀원 디자인 데모(K-Defense) 틀 위의 호환 층.
 
-디자인(CSS·사이드바·머리띠·구역·카드·KPI·탭·지도·도넛)은 app/kdesign.py(데모 1~3절을 그대로 옮긴 것)가 정본이다.
+디자인(CSS·사이드바·머리띠·구역·카드·KPI·탭·지도·도넛)은 dashboard/kdesign.py(데모 1~3절을 그대로 옮긴 것)가 정본이다.
 이 파일은 페이지들이 import 하던 이름(색 토큰·kpi·zone·style_fig·csv_header·period_control 등)을 유지하고 kdesign 으로 잇는다.
 이름은 Cloud 재배포 호환을 위해 지우지 않는다(값·동작만 바뀜). 새 이름을 페이지에서 import 하면 Manage app → Reboot.
 """

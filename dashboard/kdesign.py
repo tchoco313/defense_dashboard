@@ -1,7 +1,7 @@
-"""화면 디자인 — 틀은 팀원 디자인 데모(tchoco313/defense_dashboard `K-Defense_대시보드_demo.py`), 겉모양은 UI/UX 참고 URL.
+"""화면 디자인 — 틀은 팀원 디자인 데모(tchoco313/defense_dashboard `dashboard/demo/design_demo.py`), 겉모양은 UI/UX 참고 URL.
 
 데모에서 가져온 것: 사이드바 메뉴 · 머리띠 · 알약 태그 구역 · 카드 배치 · 조회 화면(조건 패널 | 결과 탭) · 세계지도 · 도넛 컴포넌트.
-참고 URL 로 바꾼 것(app/specs/01_design_system.md): Tremor 카드 · KPI · 밑줄 탭, KOSIS 차트 유형 타일, Datawrapper 차트 제목 · 격자 · 출처 줄.
+참고 URL 로 바꾼 것(dashboard/specs/01_design_system.md): Tremor 카드 · KPI · 밑줄 탭, KOSIS 차트 유형 타일, Datawrapper 차트 제목 · 격자 · 출처 줄.
 전체 색은 파랑 · 하늘 · 흰색. 그라데이션 · 애니메이션 · 이모지 아이콘은 쓰지 않는다(흔한 AI 대시보드처럼 보이지 않게).
 화면 숫자는 각 페이지가 RDS 에서 읽어 인자로 넘긴다. 이 모듈은 import 만으로 그리지 않는다 — CSS 는 inject() 로 넣는다.
 """
@@ -19,7 +19,7 @@ import streamlit.components.v1 as components
 
 # ════════════════════════════════════════════════════════════════════════════
 # 1. 색 토큰 · CSS
-#    틀(사이드바 · 머리띠 · 구역 · 카드 배치)은 데모, 겉모양은 UI/UX 참고 URL 을 따른다(app/specs/01_design_system.md):
+#    틀(사이드바 · 머리띠 · 구역 · 카드 배치)은 데모, 겉모양은 UI/UX 참고 URL 을 따른다(dashboard/specs/01_design_system.md):
 #    Tremor = 흰 카드 · 얇은 테두리 · 작은 라벨 + 큰 숫자 · 증감 알약 배지 · 밑줄 탭 · 가는 행 구분선 · 강조색 파랑 하나,
 #    KOSIS = 차트 유형 타일(그림 위 · 이름 아래), Datawrapper = 결론형 제목(핵심 구절만 색) · 옅은 가로 격자 · 아래 출처 한 줄.
 #    전체 색은 파랑 · 하늘 · 흰색(2026-09-23 사용자). 그라데이션 · 그림자 들썩임 · 애니메이션 · 이모지 아이콘은 쓰지 않는다.

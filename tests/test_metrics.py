@@ -1,4 +1,4 @@
-"""회귀 검증 — app/metrics.py(집중도·기간·건수 상태), app/ui.py(기간 선택지·CSV 머리줄), app/db.py(조회 실패 경로).
+"""회귀 검증 — dashboard/metrics.py(집중도·기간·건수 상태), dashboard/ui.py(기간 선택지·CSV 머리줄), dashboard/db.py(조회 실패 경로).
 
 DB 접속 없이 돈다. 실행(저장소 루트): .venv\\Scripts\\python.exe -m unittest discover -s tests -v
 기대값은 합성 데이터에서만 만든다(실측 건수 1,819·2,267 같은 과거 기록을 하드코딩하지 않는다).
@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "dashboard"))   # app/ 은 패키지가 아니다
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "dashboard"))   # dashboard/ 는 패키지가 아니다
 
 import metrics  # noqa: E402
 from metrics import concentration, count_state, period_years  # noqa: E402

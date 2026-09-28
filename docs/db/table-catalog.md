@@ -90,7 +90,7 @@
 
 - **역할**: HS6 공식 명칭 2,254개(기준표)
 - **원천**: 원본 파일 raw_hs_unit_name 06시트 중 6자리(load_db.py --ref, read_raw) · **한 행**: HS6 1개 · **PK**: `hs6` · **행 수**: 2,254
-- **쓰는 곳**: v_hs6_candidate_rule(R2 용도어), ref_hs_rule_flag.hs6_name_ko(clean_p1 §4)
+- **쓰는 곳**: v_hs6_candidate_rule(R2 용도어), ref_hs_rule_flag.hs6_name_ko(01_clean_customs §4)
 - **주의**: 5자리 중간 수준(one-dash) 1,024은 제외. 세분되지 않는 HS6(예 852692)는 이 표에 없어 ref_hs_code_master 단일 자식 이름으로 보정
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -103,7 +103,7 @@
 
 - **역할**: 관세청 HS부호 마스터 중 2026 현행 HSK10 11,327개 — 코드·한글/영문 품명·적용기간(기준표)
 - **원천**: 원본 파일 raw_hs_code_master 12,469행 중 10자리(load_db.py --ref, read_raw) · **한 행**: HS10 1개 · **PK**: `hs10` · **행 수**: 11,327
-- **쓰는 곳**: 화면 ①·조회 HS10 품명 라벨, dim_hs10 보강(clean_p1 §3), v_hs10_use_tag_all(HS6 선정 규칙 R1·R2)
+- **쓰는 곳**: 화면 ①·조회 HS10 품명 라벨, dim_hs10 보강(01_clean_customs §3), v_hs10_use_tag_all(HS6 선정 규칙 R1·R2)
 - **주의**: 7~9자리 중간 수준 1,142·규격/단위 열은 사용처 없어 넣지 않음(원본 파일에만)
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -352,7 +352,7 @@
 
 - **역할**: 관세청 API 호출별 반환 행수(재현성 증빙)
 - **원천**: progress_all.csv · **한 행**: HS6 × 연도 호출 1건 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 264(파서 기대)
-- **쓰는 곳**: clean_p1_customs_hs.ipynb §2 검산(read_raw)
+- **쓰는 곳**: 01_clean_customs.ipynb §2 검산(read_raw)
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -558,7 +558,7 @@
 
 - **역할**: 방산업체 지정현황 84개(주소·사업자번호 없음)
 - **원천**: dapa_defense_company_20260831.csv · **한 행**: 업체 1개 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 84(파서 기대)
-- **쓰는 곳**: clean_dapa_defense_company(clean_p4_domestic.ipynb §6)
+- **쓰는 곳**: clean_dapa_defense_company(04_clean_domestic.ipynb §6)
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -963,7 +963,7 @@
 ### `dim_hs10`
 
 - **역할**: HS10 → HS6·품명(가장 최근 연월 기준) + 2026 현행 마스터 대조
-- **원천**: 원본 파일 raw_customs_trade(load_db.py --fact) + ref_hs_code_master(clean_p1 §3) · **한 행**: HS10 1개 · **PK**: `hs10` · **행 수**: 211
+- **원천**: 원본 파일 raw_customs_trade(load_db.py --fact) + ref_hs_code_master(01_clean_customs §3) · **한 행**: HS10 1개 · **PK**: `hs10` · **행 수**: 211
 - **쓰는 곳**: 화면 ① HS10 드릴다운, v_hs10_use_*
 - **주의**: 마스터에 없는 코드 = HS 2022 개정 전 폐지 코드(화면 '폐지 코드(구 명칭)')
 
@@ -1062,7 +1062,7 @@
 ### `clean_dapa_bid_notice`
 
 - **역할**: 국내 입찰공고 정제 — 참조공고번호+차수 키, 날짜·금액 형 변환, 면허제한 결합
-- **원천**: raw_dapa_bid_notice (notebooks/clean_p4_domestic.ipynb) · **한 행**: 참조공고번호 × 정규화 차수 · **PK**: `ref_notice_no,ref_notice_seq_norm` · **행 수**: 10,840
+- **원천**: raw_dapa_bid_notice (notebooks/04_clean_domestic.ipynb) · **한 행**: 참조공고번호 × 정규화 차수 · **PK**: `ref_notice_no,ref_notice_seq_norm` · **행 수**: 10,840
 - **쓰는 곳**: v_bid_notice_monthly, v_bid_notice_result_link
 - **주의**: 공고 예산 ≠ 낙찰·계약액. 09-21 저분산 원본 속성 10열 제거(개찰장소 전부 국방전자조달 시스템, 지역제한 0·참가가능지역 전부 NULL, 전자입찰·나라장터 99.7%, 설명회·공동계약 5% 미만 — raw에 보존)
 
@@ -1100,7 +1100,7 @@
 ### `clean_dapa_bid_result`
 
 - **역할**: 국내 입찰결과 정제 — 중복 키는 행 보존(result_seq)·대표 행 플래그
-- **원천**: raw_dapa_bid_result (notebooks/clean_p4_domestic.ipynb) · **한 행**: 공고번호 × 차수 × 결과 순번 · **PK**: `bid_notice_no,bid_notice_seq_norm,result_seq` · **행 수**: 7,403
+- **원천**: raw_dapa_bid_result (notebooks/04_clean_domestic.ipynb) · **한 행**: 공고번호 × 차수 × 결과 순번 · **PK**: `bid_notice_no,bid_notice_seq_norm,result_seq` · **행 수**: 7,403
 - **쓰는 곳**: v_bid_result_summary, v_bid_notice_result_link, clean_company
 - **주의**: 낙찰금액 ≠ 계약금액
 
@@ -1144,7 +1144,7 @@
 ### `clean_dapa_contract`
 
 - **역할**: 국내조달 계약정보 정제 — 차수 정규화, 날짜·금액 형 변환, 계약 5분류(class5)·전자/부품/방산 속성, 수의계약 사유, 시도 코드
-- **원천**: raw_dapa_contract (notebooks/clean_p4_domestic.ipynb) · **한 행**: 계약번호 × 정규화 차수(계약 단위는 is_latest_seq=1) · **PK**: `contract_no,contract_seq_norm` · **행 수**: 43,105
+- **원천**: raw_dapa_contract (notebooks/04_clean_domestic.ipynb) · **한 행**: 계약번호 × 정규화 차수(계약 단위는 is_latest_seq=1) · **PK**: `contract_no,contract_seq_norm` · **행 수**: 43,105
 - **쓰는 곳**: 화면 ②⑤, v_contract_monthly, v_contract_private_reason, clean_company
 - **주의**: class5는 전행 '판단 보류'(표본 검수 전). 금액 합산은 최종 차수만. 09-21 저분산 3열 제거(계약체결형태 97.4% 총액계약, 수요기관명=계약기관명 전 행 동일, 공동계약 1.4% — raw에 보존). contract_org_name은 금액 59.2%가 방위사업청이라 유지
 
@@ -1204,7 +1204,7 @@
 ### `clean_dapa_defense_company`
 
 - **역할**: 방산업체 지정현황 84개 정제 — 지정일 DATE, 분야 공란 NULL
-- **원천**: 원본 파일 raw_dapa_defense_company(notebooks/clean_p4_domestic.ipynb §6; 첫 적재는 alter_2026-09-22_raw_successors.sql) · **한 행**: 업체 1개 · **PK**: `seq_no` · **행 수**: 84
+- **원천**: 원본 파일 raw_dapa_defense_company(notebooks/04_clean_domestic.ipynb §6; 첫 적재는 alter_2026-09-22_raw_successors.sql) · **한 행**: 업체 1개 · **PK**: `seq_no` · **행 수**: 84
 - **쓰는 곳**: v_defense_company_sector(화면 ④ 배경), clean_company_name_link
 - **주의**: 주소·사업자번호 없음. 분야 미기재 3
 
@@ -1248,7 +1248,7 @@
 ### `clean_dapa_localized_item`
 
 - **역할**: B2 국산화개발품목 — 완전 중복 제거한 사업×부품(dup_count 보존)
-- **원천**: raw_dapa_localized_item (notebooks/clean_b2_a7.ipynb) · **한 행**: 사업 × 부품관리번호 · **PK**: `project_name,part_mgmt_no` · **행 수**: 25,025
+- **원천**: raw_dapa_localized_item (notebooks/02_clean_localized_overseas_plan.ipynb) · **한 행**: 사업 × 부품관리번호 · **PK**: `project_name,part_mgmt_no` · **행 수**: 25,025
 - **쓰는 곳**: 화면 ②(FSC 축), v_b2_fsg_summary, v_b2_localized_kdsis
 - **주의**: HS6 대응 없음(09-21 카테고리 맵 폐기 — category·category_link_status 열 삭제). FSC 축에서만
 
@@ -1271,7 +1271,7 @@
 ### `clean_dapa_overseas_bid_result`
 
 - **역할**: 국외조달 입찰결과 정제(2025-01~09 부분연도)
-- **원천**: raw_dapa_overseas_bid_result (notebooks/clean_p3_overseas.ipynb) · **한 행**: raw 행 1개(공고 × 판단번호 × 항목) · **PK**: `raw_row_id` · **행 수**: 2,494
+- **원천**: raw_dapa_overseas_bid_result (notebooks/03_clean_overseas.ipynb) · **한 행**: raw 행 1개(공고 × 판단번호 × 항목) · **PK**: `raw_row_id` · **행 수**: 2,494
 - **쓰는 곳**: v_overseas_bid_chain
 - **주의**: 달러 — 원화와 합산 금지. 09-21 발주기관·계약방법·입찰방법·낙찰방법 4열 제거(2,489/2,494 동일, 5행 화력총괄계약팀 2단계경쟁 — raw에 보존)
 
@@ -1298,7 +1298,7 @@
 ### `clean_dapa_overseas_contract`
 
 - **역할**: 국외조달 계약정보 정제 — 계약기간 분리·연도 파생, 담당자·단일값 열 제외
-- **원천**: raw_dapa_overseas_contract (notebooks/clean_p3_overseas.ipynb) · **한 행**: 계약번호 1개 · **PK**: `contract_no` · **행 수**: 6,327
+- **원천**: raw_dapa_overseas_contract (notebooks/03_clean_overseas.ipynb) · **한 행**: 계약번호 1개 · **PK**: `contract_no` · **행 수**: 6,327
 - **쓰는 곳**: v_overseas_contract_yearly
 - **주의**: 업체명으로 국가 추정 금지. 테스트 계약 6행 제외
 
@@ -1322,7 +1322,7 @@
 ### `clean_dapa_overseas_plan`
 
 - **역할**: 국외조달 조달계획(파일판) 판단번호 단위 — 집행유형·예산·전자 후보·검수 상태
-- **원천**: raw_dapa_overseas_plan (notebooks/clean_b2_a7.ipynb) · **한 행**: 판단번호 1개 · **PK**: `decision_no` · **행 수**: 3,023
+- **원천**: raw_dapa_overseas_plan (notebooks/02_clean_localized_overseas_plan.ipynb) · **한 행**: 판단번호 1개 · **PK**: `decision_no` · **행 수**: 3,023
 - **쓰는 곳**: 화면 ⓪, v_overseas_plan_yearly, v_overseas_bid_chain
 - **주의**: 전자 후보는 미검수(잠정)
 
@@ -1349,7 +1349,7 @@
 ### `clean_dapa_overseas_plan_api`
 
 - **역할**: 국외 조달계획 OpenAPI 품목 단위 정제 — NSN 판별, FSC4/FSG2, 전자 플래그(58·59·60), KDSIS 연결 상태, 적용장비 표준명
-- **원천**: raw_dapa_overseas_plan_api (notebooks/clean_p3_overseas.ipynb) · **한 행**: 조달요구번호 × 품목순번 · **PK**: `procure_demand_no,item_seq` · **행 수**: 13,615
+- **원천**: raw_dapa_overseas_plan_api (notebooks/03_clean_overseas.ipynb) · **한 행**: 조달요구번호 × 품목순번 · **PK**: `procure_demand_no,item_seq` · **행 수**: 13,615
 - **쓰는 곳**: 화면 ② 국외조달 FSC 축, v_overseas_plan_api_fsc, v_overseas_plan_api_kdsis
 - **주의**: 금액 통화 미검증 — 건수만 쓴다
 
@@ -1410,7 +1410,7 @@
 ### `clean_hsk_control`
 
 - **역할**: 전략물자 HSK 연계표 세로형 — HSK10 × 통제번호 1개, 부·군 코드·이중용도 전자 플래그 파생
-- **원천**: raw_hsk_control (notebooks/clean_p1_customs_hs.ipynb) · **한 행**: HSK10 × 통제번호 · **PK**: `hsk_ctrl_id` · **행 수**: 10,104
+- **원천**: raw_hsk_control (notebooks/01_clean_customs.ipynb) · **한 행**: HSK10 × 통제번호 · **PK**: `hsk_ctrl_id` · **행 수**: 10,104
 - **쓰는 곳**: v_hsk_control_by_hs6, ref_hs_indicator
 - **주의**: ML(군용물자) 0건 = 자료에 없음
 
@@ -1470,7 +1470,7 @@
 ### `clean_kosis_production_index`
 
 - **역할**: 광공업생산지수 C26 계열 월별(raw 1:1) — 코드 분리, 월 복원, 잠정·부분연도·범위 등급
-- **원천**: raw_kosis_production_index (notebooks/clean_p5_kosis.ipynb) · **한 행**: 산업 × 항목 × 월 · **PK**: `raw_row_id` · **행 수**: 1,016
+- **원천**: raw_kosis_production_index (notebooks/06_clean_kosis.ipynb) · **한 행**: 산업 × 항목 × 월 · **PK**: `raw_row_id` · **행 수**: 1,016
 - **쓰는 곳**: 화면 ④
 - **주의**: 지수는 금액과 합산 금지. 화면은 ★만
 
@@ -1496,7 +1496,7 @@
 ### `clean_kosis_utilization`
 
 - **역할**: 방산업체 분야별 평균가동률(raw 1:1) — 숫자화, 범위 플래그
-- **원천**: raw_kosis_utilization (notebooks/clean_p5_kosis.ipynb) · **한 행**: 분야 × 연도 · **PK**: `raw_row_id` · **행 수**: 81
+- **원천**: raw_kosis_utilization (notebooks/06_clean_kosis.ipynb) · **한 행**: 분야 × 연도 · **PK**: `raw_row_id` · **행 수**: 81
 - **쓰는 곳**: 화면 ④
 - **주의**: %를 금액과 합산·비율 계산 금지
 
@@ -1516,7 +1516,7 @@
 ### `clean_krit_task`
 
 - **역할**: B1 KRIT 부품국산화 과제 — 차수·공고유형·과제번호 단위, 최신 차수 플래그
-- **원천**: raw_krit_task (notebooks/clean_p5_krit_p2_budget.ipynb) · **한 행**: 차수 × 공고유형 × 과제번호 · **PK**: `round_id,notice_type,task_no` · **행 수**: 96
+- **원천**: raw_krit_task (notebooks/05_clean_krit_budget.ipynb) · **한 행**: 차수 × 공고유형 × 과제번호 · **PK**: `round_id,notice_type,task_no` · **행 수**: 96
 - **쓰는 곳**: 화면 ②
 - **주의**: 정부지원금 단위가 차수마다 달라 합산 금지. hs6·category·category_link_status 열은 09-21 삭제(HS6와 잇지 않음)
 
@@ -1548,7 +1548,7 @@
 ### `clean_openfiscal_program_budget`
 
 - **역할**: 열린재정 방위사업청 세부사업 예산(raw 1:1) — 천원·억원 두 벌, 정부안/확정 구분, 3선 후보 태그
-- **원천**: raw_openfiscal_program_budget (notebooks/clean_p5_krit_p2_budget.ipynb) · **한 행**: 회계연도 × 세부사업 · **PK**: `raw_row_id` · **행 수**: 2,860
+- **원천**: raw_openfiscal_program_budget (notebooks/05_clean_krit_budget.ipynb) · **한 행**: 회계연도 × 세부사업 · **PK**: `raw_row_id` · **행 수**: 2,860
 - **쓰는 곳**: 화면 ④(배경), v_budget_rnd_yearly
 - **주의**: 3선 후보는 겹치므로 합산 금지. 배경 ④ 전용. 09-21 경비구분·지출구분 열 제거(주요사업비·일반지출 외 인건비·기본경비·내부거래 72행 = 금액 0.6%, 합계에 포함 — raw에 보존)
 

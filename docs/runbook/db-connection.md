@@ -30,7 +30,7 @@ MARIADB_SSL=1                        # RDS 는 1
 ## 2. 붙기
 
 ```bash
-python3 src/check_db_access.py        # DNS → 포트 → 로그인 순서로 본다
+python3 scripts/check_db_access.py        # DNS → 포트 → 로그인 순서로 본다
 ```
 
 파이썬 코드는 `.env` 를 읽어 쓴다(`scripts/load_db.py` 와 같은 키). GUI 는 Workbench·DBeaver·HeidiSQL 아무거나 — 호스트에 RDS 엔드포인트, 포트 3306, **SSL 사용**.

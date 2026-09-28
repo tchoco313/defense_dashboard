@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """팀 DB 에 붙을 수 있는지 세 단계로 확인한다.
 
-    python3 src/check_db_access.py              # config.py 에 적힌 서버로
-    python3 src/check_db_access.py <호스트> <포트>   # 다른 서버를 시험할 때
+    python3 scripts/check_db_access.py              # .env 에 적힌 서버로
+    python3 scripts/check_db_access.py <호스트> <포트>   # 다른 서버를 시험할 때
 
 ★ 왜 필요한가.
    "안 돼요" 에는 원인이 세 가지나 있다 — 네트워크, 서버, 계정.
@@ -11,16 +11,16 @@
 ★ 결과를 어떻게 읽나.
    ① 부터 막히면        → 인터넷 자체가 안 된다. 와이파이부터 확인.
    ① 만 되고 ② 가 막히면 → 서버에 못 닿는다. DB 는 AWS RDS 라 어디서든 열려 있어야 한다.
-                           config.py 의 DB_HOST(엔드포인트)를 잘못 적었거나,
+                           .env 의 MARIADB_HOST(엔드포인트)를 잘못 적었거나,
                            RDS 보안그룹이 내 접속을 막는 것이다 — 조장에게 알린다.
-   ② 까지 되고 ③ 이 실패 → 네트워크는 통과. config.py 의 계정·비밀번호 문제다.
+   ② 까지 되고 ③ 이 실패 → 네트워크는 통과. .env 의 계정·비밀번호 문제다.
 """
 import os
 import socket
 import sys
 
-# config.py 는 저장소 맨 위에 있다. src/ 에서 실행해도 찾도록 경로를 더한다
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# 접속 설정은 같은 폴더의 dbconf.py 한 곳에서 읽는다(.env → st.secrets). 어디서 실행해도 찾도록 경로를 더한다
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 TIMEOUT = 6
 
@@ -38,16 +38,21 @@ def tcp(host, port, label):
 
 def main():
     try:
-        import config
-    except Exception:
-        print("   [X] config.py 가 없습니다.  cp config_example.py config.py 부터 하세요.")
+        import dbconf
+        conf = dbconf.settings()
+    except ImportError:
+        print("   [-] python-dotenv 가 없습니다.  pip install -r requirements.txt")
+        return
+    except Exception as exc:
+        print("   [X]", exc)
+        print("       cp .env.example .env 한 뒤 값을 채우세요.")
         return
 
-    # 인자를 주면 그걸 쓰고, 없으면 config.py 에 적힌 팀 서버를 본다
+    # 인자를 주면 그걸 쓰고, 없으면 .env 에 적힌 팀 서버를 본다
     if len(sys.argv) >= 3:
         host, port = sys.argv[1], sys.argv[2]
     else:
-        host, port = config.DB_HOST, config.DB_PORT
+        host, port = conf["host"], conf["port"]
 
     print("=" * 62)
     print("① 인터넷 자체 (대조군)")
@@ -59,7 +64,7 @@ def main():
     print("② 팀 DB 서버 포트")
     if not tcp(host, port, "팀 DB"):
         print("\n   → 서버에 못 닿습니다. RDS 는 어디서든 열려 있어야 합니다.")
-        print("      · config.py 의 DB_HOST(엔드포인트)를 다시 확인하세요")
+        print("      · .env 의 MARIADB_HOST(엔드포인트)를 다시 확인하세요")
         print("      · 엔드포인트가 맞는데 막히면 RDS 보안그룹 문제입니다 — 조장에게 알리세요")
         return
 
@@ -71,25 +76,18 @@ def main():
         print("   [-] pymysql 이 없습니다.  pip install -r requirements.txt")
         return
 
-    # DB_SSL 은 config.py 가 정한다. RDS 는 True 다
-    ssl_opt = {"ssl": {}} if getattr(config, "DB_SSL", False) else None
+    # TLS 는 MARIADB_SSL=1 이면 RDS CA 번들(certs/)로 서버 인증서까지 검증한다
     try:
-        conn = pymysql.connect(
-            host=host, port=int(port),
-            user=config.DB_USER, password=config.DB_PASSWORD, database=config.DB_NAME,
-            charset="utf8mb4",
-            ssl=ssl_opt,
-            connect_timeout=TIMEOUT,
-        )
+        conn = pymysql.connect(**dbconf.pymysql_kwargs(host=host, port=int(port), connect_timeout=TIMEOUT))
         with conn.cursor() as cur:
             cur.execute("SELECT VERSION(), @@hostname")
             ver, name = cur.fetchone()
-            print("   [O] %s 로 로그인 성공 — MySQL %s @ %s" % (config.DB_USER, ver, name))
+            print("   [O] %s 로 로그인 성공 — MySQL %s @ %s" % (conf["user"], ver, name))
         conn.close()
         print("\n   → 다 통과했습니다. 그대로 작업하면 됩니다.")
     except Exception as exc:
         print("   [X] 로그인 실패 —", type(exc).__name__, str(exc)[:120])
-        print("      서버까지는 닿았으니 config.py 의 계정·비밀번호 문제입니다.")
+        print("      서버까지는 닿았으니 .env 의 계정·비밀번호 문제입니다.")
 
 
 if __name__ == "__main__":

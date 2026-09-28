@@ -319,7 +319,7 @@ def frame_kosis_wide2(path: Path, spec: dict, dict_cols) -> tuple[list[str], lis
     2026-09-19 수정: 잠정치 열의 1행 헤더는 'M202606 M202606 2026.06 p)' 처럼 뒤에 p) 가 붙는다. 이전 코드 split()[-1] 은
     마지막 토큰 'p)' 를 stat_ym 으로 넣어 raw_kosis_production_index 16행(2026.06·07 × T10/T20 × 4산업)이 stat_ym='p)' 로 적재됐다.
     이제는 YYYY.MM 토큰을 정규식으로 찾는다. 잠정 표기 p) 는 raw 에 담을 열이 없어 버린다(잠정 여부는 clean_kosis_production_index.is_provisional).
-    이미 적재된 raw 는 원본 동결 원칙에 따라 재적재하지 않고, clean 이 source_col_no 로 월을 복원한다(notebooks/clean_p5_kosis.ipynb §2).
+    이미 적재된 raw 는 원본 동결 원칙에 따라 재적재하지 않고, clean 이 source_col_no 로 월을 복원한다(notebooks/06_clean_kosis.ipynb §2).
     """
     with open(path, encoding=spec["encoding"], newline="") as f:
         rd = csv.reader(f)
