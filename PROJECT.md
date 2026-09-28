@@ -3,9 +3,7 @@
 K-디지털 트레이닝 「국방·첨단산업 AI 솔루션 머신러닝 엔지니어 양성과정 1기」의 1차 프로젝트.
 이 문서는 강사 제공 안내 자료(구글 드라이브 공유 문서함 > `1_안내및서식`)를 요약한 것이다.
 
-- 원본 파일: `resource/drive/` (6개)
-- 추출 텍스트: `docs/drive-text/` (`python scripts/extract_drive_docs.py`로 재생성)
-- 드라이브 폴더 ID: `13ylY6j7YuevXJTM9T6fD6h4Hf7sClY2d` (작성자 이경미 강사, 반입일 2026-09-12)
+- 원본 안내 자료(6개)는 수업 드라이브에만 있고 이 저장소에는 없다(반입일 2026-09-12). 텍스트 추출은 `scripts/extract_drive_docs.py`
 
 ---
 
