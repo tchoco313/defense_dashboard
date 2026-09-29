@@ -51,7 +51,7 @@ PAGE_SPECS: tuple[PageSpec, ...] = (
              "화면의 숫자가 어디서 왔고 어떻게 계산했으며, 무엇을 뜻하지 않는지 적었습니다"),
     PageSpec("search", "pages/6_조회.py", "조회", "search", "조회", "search",
              "조회",
-             "조건을 골라 원하는 차트를 만들고, 표와 그림으로 내려받습니다 — 조건은 고르는 값만 씁니다(자유 입력 없음)"),
+             "조건을 골라 원하는 차트를 만들고, 표와 그림으로 내려받습니다 — 데이터 유형(수출입 · 군수품 · 국산화개발)끼리는 합치거나 잇지 않습니다"),
 )
 SPEC_BY_KEY: dict[str, PageSpec] = {s.key: s for s in PAGE_SPECS}
 

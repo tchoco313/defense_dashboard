@@ -3936,19 +3936,20 @@ MOCK_COMPANIES = [f"샘플업체 {c}" for c in "ABCDEFGH"]
 def _mock_localized() -> pd.DataFrame:
     """국산화개발 기록(목업용 샘플) — 기록 하나 = 부품 × 사업 × 관련 업체. 같은 부품이 여러 사업에 나온다."""
     rows = []
-    fscs = list(_MOCK_WORDS)
+    fscs = [c for c in _MOCK_WORDS if MOCK_FSC_FSG[c] != "60"]   # 국산화개발은 FSG 60(광섬유) 행이 없다(DB 0행 · 홈 KPI 와 맞춤)
     for n in range(84):
-        fsc = fscs[(n * 5) % len(fscs)]
+        fsc = fscs[(n * 7) % len(fscs)]                         # 7 은 FSC 10개와 서로소 — 모든 FSC 가 나온다
         part = n % 52                                           # 52개 부품이 84행에 나눠 나온다(고유 부품 < 기록 수)
         rows.append({"부품관리번호": f"LP-{part + 1:04d}",
                      "NSN": f"{fsc}-01-{(part * 6151) % 900 + 100:03d}-{(part * 7873) % 9000 + 1000:04d}",
                      "품목명": f"{_MOCK_WORDS[fsc]} 국산화품", "FSG": MOCK_FSC_FSG[fsc], "FSC": fsc,
-                     "사업명": MOCK_LOCALIZED_PROJECTS[(n * 3) % len(MOCK_LOCALIZED_PROJECTS)],
+                     "사업명": MOCK_LOCALIZED_PROJECTS[(n * 5) % len(MOCK_LOCALIZED_PROJECTS)],   # n*3 은 K9 · K2 만 나왔다
                      "관련 업체": MOCK_COMPANIES[(n * 5 + part) % len(MOCK_COMPANIES)]})
     return pd.DataFrame(rows)
 
 
 MOCK_LOCALIZED = _mock_localized()
+MOCK_LOCALIZED_FSG = {g: n for g, n in MOCK_FSG.items() if g in set(MOCK_LOCALIZED["FSG"])}   # 58 · 59
 
 
 # ── 조회 — 분석 조건 설정 ───────────────────────────────────────────────────
@@ -3995,7 +3996,7 @@ QF_DEFAULT = {"qf_unit": "FSG", "qf_fsg": list(MOCK_FSG), "qf_fsg_all": True, "q
 QL_METRICS = [("국산화개발 기록 수", "건", "library_books"), ("고유 부품 수", "개", "extension"),
               ("사업 수", "개", "inventory"), ("관련 업체 수", "개", "factory")]
 QL_CHARTS = ["막대 그래프", "도넛 그래프", "트리맵 차트"]
-QL_DEFAULT = {"ql_proj": list(MOCK_LOCALIZED_PROJECTS[:3]), "ql_proj_all": False, "ql_fsg": list(MOCK_FSG),
+QL_DEFAULT = {"ql_proj": list(MOCK_LOCALIZED_PROJECTS[:3]), "ql_proj_all": False, "ql_fsg": list(MOCK_LOCALIZED_FSG),
               "ql_fsg_all": True, "ql_fsc": [], "ql_name": "", "ql_comp": [], "ql_comp_all": True,
               "ql_part": "", "ql_nsn": "", "ql_chart": "막대 그래프",
               **{f"ql_m_{m}": m in ("국산화개발 기록 수", "고유 부품 수") for m, *_ in QL_METRICS}}
@@ -4153,6 +4154,7 @@ def _q_form_css(hints: dict[str, str]) -> str:
   padding-left:4px;white-space:nowrap;align-self:center}}
 {hint_css}
 {sel(ms, '[data-testid="stMultiSelectTagsContainer"]:has(input:focus)::before')}{{content:none}}
+{sel(ms, 'input:disabled::placeholder')}{{color:transparent}}   /* 전체 선택으로 잠기면 안내 문구만(관련 업체 칸에서 겹쳤다) */
 {sel(chips, '')}{{gap:6px}}
 {sel(chips, '[data-testid="stHorizontalBlock"]')}{{gap:6px;margin-bottom:0 !important}}
 {sel(chips, 'button')}{{min-height:0;height:30px;padding:0 8px 0 12px;border-radius:6px;border:0;background:#1f3a6e;color:#fff;
@@ -4474,22 +4476,27 @@ def query_panel_hs() -> dict:
             "period": f"{y0} ~ {y1}", "years": (y0, y1), "metrics": metrics, "chart": chart}
 
 
-def _q_fsg_fsc(pre: str, fsc_ph: str) -> tuple[list[str], list[str]]:
+def _q_fsg_fsc(pre: str, fsc_ph: str, groups: dict[str, str] = MOCK_FSG) -> tuple[list[str], list[str]]:
     """FSG(칩 다중선택 + 전체) → FSC(고른 FSG 안의 것만, 칩 다중선택). FSC 를 비우면 고른 FSG 의 FSC 전부.
-    군수품 · 국산화개발 두 화면이 같이 쓴다(pre = qf_ / ql_)."""
+    군수품 · 국산화개발 두 화면이 같이 쓴다(pre = qf_ / ql_). groups = 그 자료에 있는 FSG 만."""
     with _q_row(":material/category:", "FSG", "fsg"):
-        fsg = _q_chip_select(f"{pre}fsg", list(MOCK_FSG), lambda g: f"{g} - {MOCK_FSG[g]}", "FSG 를 검색하세요.",
-                             f"{pre}fsg_all", f"전체 FSG 선택 ({len(MOCK_FSG)}개)")
+        fsg = _q_chip_select(f"{pre}fsg", list(groups), lambda g: f"{g} - {MOCK_FSG[g]}", "FSG 를 검색하세요.",
+                             f"{pre}fsg_all", f"전체 FSG 선택 ({len(groups)}개)")
     opts = [c for g in fsg for c in MOCK_FSC[g]]
     with _q_row(":material/account_tree:", "FSC", "fsc"):
         fsc = _q_check_select(f"{pre}fsc", opts, lambda c: f"{c} - {MOCK_FSC_NAME[c]}", "FSC", fsc_ph)
     return fsg, fsc or opts
 
 
+# 지표 체크박스에 쓰는 짧은 이름 — 두 칸 폭에서 「국산화개발 기…」로 잘리던 것. 지표 키 · 카드 제목은 원래 이름
+Q_METRIC_SHORT = {"국산화개발 기록 수": "기록 수"}
+
+
 def _q_metric_row(pre: str, metrics: list[tuple]) -> list[str]:
     with _q_row(":material/leaderboard:", "지표 선택", "metric"):
         cols = st.columns(2)
-        return [m for i, (m, *_) in enumerate(metrics) if cols[i % 2].checkbox(m, key=f"{pre}m_{m}")]
+        return [m for i, (m, *_) in enumerate(metrics)
+                if cols[i % 2].checkbox(Q_METRIC_SHORT.get(m, m), key=f"{pre}m_{m}")]
 
 
 # 차트 설명 칸의 「CSV 데이터 모양」 — 군수품 · 국산화개발용(분류 = FSG 또는 FSC)
@@ -4542,7 +4549,7 @@ def query_panel_localized() -> dict:
     with _q_row(":material/inventory:", "사업명", "proj"):
         proj = _q_chip_select("ql_proj", MOCK_LOCALIZED_PROJECTS, str, "사업명을 검색하세요.",
                               "ql_proj_all", f"전체 사업 선택 ({len(MOCK_LOCALIZED_PROJECTS)}개)")
-    fsg, fsc = _q_fsg_fsc("ql_", "FSC 를 고르세요 · 비우면 고른 FSG 전체")
+    fsg, fsc = _q_fsg_fsc("ql_", "FSC 를 고르세요 · 비우면 고른 FSG 전체", MOCK_LOCALIZED_FSG)
     name = _q_row(":material/search:", "품목명", "name").text_input(
         "품목명", key="ql_name", placeholder="국산화개발 품목명을 입력하세요.", label_visibility="collapsed")
     with _q_row(":material/factory:", "관련 업체", "comp"):
