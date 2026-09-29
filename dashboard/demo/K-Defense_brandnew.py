@@ -427,6 +427,8 @@ button[data-variant="segmented_control"]:hover{color:var(--accent)}
 [data-rac][data-trigger="ComboBox"] [role="option"] *{color:var(--text)}
 /* 도움말 말풍선(help=) · 안내 상자(st.info) */
 [data-testid="stTooltipContent"]{background:#fff;color:var(--text)}
+/* 도움말 말풍선 글씨 — 기본(14px)보다 2pt 작게 */
+[data-testid="stTooltipContent"],[data-testid="stTooltipContent"] p{font-size:calc(14px - 2pt)}
 [data-testid="stAlertContainer"]{background:#eaf1ff;color:#1c4ea3}
 </style>""")
 
@@ -550,6 +552,10 @@ st.html(r"""<style>
 .st-key-card_res:has([role="tab"]:nth-of-type(2)[aria-selected="true"]) [data-testid="stLayoutWrapper"]:has(> .st-key-dl_map),
 .st-key-card_res:has([role="tab"]:nth-of-type(3)[aria-selected="true"]) [data-testid="stLayoutWrapper"]:has(> .st-key-dl_tbl){display:flex!important}
 .st-key-imgdl_js,[data-testid="stLayoutWrapper"]:has(> .st-key-imgdl_js){display:none!important}
+.st-key-chipfit_js,[data-testid="stLayoutWrapper"]:has(> .st-key-chipfit_js){display:none!important}
+/* 안 잘린 칩에 커서가 있을 때(_CHIP_FIT_JS) — 말풍선 층을 숨긴다 */
+html[data-chipfit] [role="tooltip"]:has([data-testid="stTooltipContent"]),
+html[data-chipfit] [data-testid="stTooltipContent"]{display:none!important}
 .img-dl{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 16px;border-radius:8px;border:1px solid #2b6ef6;
   background:#2b6ef6;color:#fff;font:600 14px Pretendard,'Malgun Gothic',system-ui,sans-serif;cursor:pointer;white-space:nowrap;
   transition:background .15s}
@@ -3874,7 +3880,81 @@ def page_background() -> None:
         ]))
 
 
+# ── 조회 — DATA CENTER 목업용 샘플(실제 데이터 아님) ──────────────────────────────
+# TODO: DB 연결 시 제거할 DATA CENTER 목업용 샘플 — 아래 MOCK_* 는 화면 구조 · 인터랙션 확인용으로 지어낸 값이다.
+#       코드 · 이름 · 건수 모두 실제 DB 값이 아니며, DB 연결 단계에서 조회 결과로 통째로 바꾼다.
+# 품목코드(HS6) — 분석 대상 13개(TARGET_HS)와 이름(HS_BASIS)을 그대로 쓴다. 홈 표의 5개(FOCUS_HS)를 앞에
+_HS_NAME = {c: n for c, n, *_ in HS_BASIS}
+MOCK_HS6 = {c: _HS_NAME[c] for c in FOCUS_HS + sorted(TARGET_HS - set(FOCUS_HS))}
+# 품목코드(HS10) — 목업용 샘플: HS6 하나를 「군용」 · 「기타」 두 세분으로 나눈 임시 코드(실제 HSK 10단위 아님)
+MOCK_HS10 = {f"{c}{s}": f"{n}({t})" for c, n in MOCK_HS6.items() for s, t in (("1000", "군용"), ("9000", "기타"))}
+# 품목코드 선택 비중(목업용 샘플) — 품목을 골라 내면 교역액을 이 비중만큼만 보여 준다. 13개 모두 = 1(기존 값 그대로)
+MOCK_HS_WEIGHT = {c: 1 + (int(c) % 7) / 3 for c in MOCK_HS6}
+
+# 군수품 FSG / FSC — 목업용 샘플(이름은 군급분류집 표기를 줄여 쓴 것, 건수는 지어낸 값)
+MOCK_FSG = {"58": "통신·탐지", "59": "전기·전자 구성품", "60": "광섬유"}
+MOCK_FSC = {
+    "58": {"5820": "무선 통신장비", "5821": "항공기용 무선장비", "5840": "레이더 장비", "5845": "수중 음향장비",
+           "5865": "전자전 장비"},
+    "59": {"5905": "저항기", "5910": "축전기", "5915": "필터 및 회로망", "5961": "반도체 디바이스",
+           "5962": "마이크로전자회로"},
+    "60": {"6010": "광섬유 전도체", "6015": "광섬유 케이블", "6060": "광섬유 연결기"},
+}
+MOCK_FSC_NAME = {c: n for g in MOCK_FSC.values() for c, n in g.items()}
+MOCK_FSC_FSG = {c: g for g, fs in MOCK_FSC.items() for c in fs}
+MOCK_BRANCHES = ["육군", "해군", "공군", "해병대", "국직"]
+MOCK_REQ_YEARS = list(range(2020, 2028))                      # 요구연도 목업 범위
+MOCK_ITEM_KINDS = ["전체", "완성품", "구성품", "수리부속"]
+MOCK_EQUIP = ["K9 자주포", "K2 전차", "천무 다연장로켓", "KF-21 전투기", "이지스 구축함", "K21 보병전투차", "수리온 헬기"]
+_MOCK_WORDS = {"5820": "송수신기", "5821": "항공 무전기", "5840": "레이더 송신부", "5845": "소나 센서", "5865": "재밍 모듈",
+               "5905": "정밀 저항기", "5910": "세라믹 축전기", "5915": "RF 필터", "5961": "전력 트랜지스터",
+               "5962": "FPGA 모듈", "6010": "광섬유 전도체", "6015": "광케이블 조립체", "6060": "광 커넥터"}
+_MOCK_FUNC = ["신호처리", "전원공급", "송수신", "탐지", "제어"]
+
+
+def _mock_fsg_items() -> pd.DataFrame:
+    """군수품 품목 목록(목업용 샘플) — FSC 마다 품목 몇 개를 규칙적으로 지어낸다. NSN 도 가짜 번호."""
+    rows = []
+    for i, (fsc, word) in enumerate(_MOCK_WORDS.items()):
+        for k in range(4 + i % 4):
+            n = i * 11 + k
+            rows.append({"NSN": f"{fsc}-00-{(n * 7919) % 900 + 100:03d}-{(n * 104729) % 9000 + 1000:04d}",
+                         "품목명": f"{word} {chr(65 + k)}형", "FSG": MOCK_FSC_FSG[fsc], "FSC": fsc,
+                         "기능명": _MOCK_FUNC[n % len(_MOCK_FUNC)], "품목종류": MOCK_ITEM_KINDS[1 + n % 3],
+                         "군종": MOCK_BRANCHES[n % len(MOCK_BRANCHES)], "요구연도": MOCK_REQ_YEARS[n % len(MOCK_REQ_YEARS)],
+                         "적용장비": MOCK_EQUIP[n % len(MOCK_EQUIP)], "KDSIS 연결": n % 3 != 0})
+    return pd.DataFrame(rows)
+
+
+MOCK_FSG_ITEMS = _mock_fsg_items()
+
+# 국산화개발 — 목업용 샘플(사업명은 예시, 업체명은 가상의 「샘플업체」, 부품관리번호 · NSN 은 가짜 번호)
+MOCK_LOCALIZED_PROJECTS = ["K9", "K9A1", "천무", "K2", "K21", "소형전술차량"]
+MOCK_COMPANIES = [f"샘플업체 {c}" for c in "ABCDEFGH"]
+
+
+def _mock_localized() -> pd.DataFrame:
+    """국산화개발 기록(목업용 샘플) — 기록 하나 = 부품 × 사업 × 관련 업체. 같은 부품이 여러 사업에 나온다."""
+    rows = []
+    fscs = list(_MOCK_WORDS)
+    for n in range(84):
+        fsc = fscs[(n * 5) % len(fscs)]
+        part = n % 52                                           # 52개 부품이 84행에 나눠 나온다(고유 부품 < 기록 수)
+        rows.append({"부품관리번호": f"LP-{part + 1:04d}",
+                     "NSN": f"{fsc}-01-{(part * 6151) % 900 + 100:03d}-{(part * 7873) % 9000 + 1000:04d}",
+                     "품목명": f"{_MOCK_WORDS[fsc]} 국산화품", "FSG": MOCK_FSC_FSG[fsc], "FSC": fsc,
+                     "사업명": MOCK_LOCALIZED_PROJECTS[(n * 3) % len(MOCK_LOCALIZED_PROJECTS)],
+                     "관련 업체": MOCK_COMPANIES[(n * 5 + part) % len(MOCK_COMPANIES)]})
+    return pd.DataFrame(rows)
+
+
+MOCK_LOCALIZED = _mock_localized()
+
+
 # ── 조회 — 분석 조건 설정 ───────────────────────────────────────────────────
+# 데이터 유형 — 고르면 조회조건 · 지표 · 차트 · 결과 탭이 통째로 바뀐다. 유형마다 session_state 키 앞머리가 다르다
+Q_TYPES = ["수출입 HS", "군수품 FSG/FSC", "국산화개발"]
+Q_TYPE_PREFIX = {"수출입 HS": "qs_", "군수품 FSG/FSC": "qf_", "국산화개발": "ql_"}
 Q_AREAS = ["수출입", "수출", "수입"]
 Q_YEARS = list(range(2016, 2027))                            # 기간 — 시작 연도 ~ 끝 연도(2026 은 1~8월 부분연도)
 # 지표 이름, 단위, 아이콘, 쓸 수 있는 분석영역 — 목업처럼 3개씩 두 줄
@@ -3897,8 +3977,29 @@ Q_METRIC_COLOR = {"수출액": "#0fa595", "수입액": ACCENT, "무역수지": S
 Q_PALETTE = SERIES + ["#34d399", "#f59e0b", "#a78bfa", "#94a3b8", "#fb7185", "#22d3ee", "#84cc16", "#e879f9"]
 
 Q_DEFAULT = {"qs_area": "수출입", "qs_hs": "HS6", "qs_ctry": ["미국", "폴란드", "사우디아라비아"], "qs_all": False,
+             "qs_item": list(FOCUS_HS), "qs_item_all": True,     # 품목코드 — 기본은 전체 품목(기존 결과 값 그대로)
              "qs_y0": Q_YEARS[0], "qs_y1": Q_YEARS[-1], "qs_chart": "막대 그래프",
              **{f"qs_m_{m}": m in Q_MONEY for m, *_ in Q_METRICS}}
+
+# 군수품 FSG/FSC — 지표(이름, 단위, 아이콘) · 차트. HS 지표는 이 유형에서 그리지 않는다
+QF_UNITS = ["FSG", "FSC"]
+QF_BRANCH_ROWS = {"qf_branch_a": MOCK_BRANCHES[:3], "qf_branch_b": MOCK_BRANCHES[3:]}   # 군종 버튼 두 줄(3 + 2)
+QF_METRICS = [("품목 건수", "건", "inventory_2"), ("FSC 수", "개", "category"),
+              ("적용장비 수", "종", "precision_manufacturing"), ("KDSIS 연결 건수", "건", "link")]
+QF_CHARTS = ["막대 그래프", "누적 막대 그래프", "도넛 그래프", "트리맵 차트", "꺾은선 그래프"]
+QF_DEFAULT = {"qf_unit": "FSG", "qf_fsg": list(MOCK_FSG), "qf_fsg_all": True, "qf_fsc": [],
+              **{k: list(v) for k, v in QF_BRANCH_ROWS.items()}, "qf_y0": MOCK_REQ_YEARS[0], "qf_y1": MOCK_REQ_YEARS[-1],
+              "qf_name": "", "qf_func": "", "qf_kind": "전체", "qf_nsn": "", "qf_chart": "막대 그래프",
+              **{f"qf_m_{m}": m in ("품목 건수", "FSC 수") for m, *_ in QF_METRICS}}
+# 국산화개발 — 스냅샷 자료라 건수 · 개수만 센다(국산화율 · 성공률 · BOM 대비 비율 · 연도별 추이는 만들지 않는다)
+QL_METRICS = [("국산화개발 기록 수", "건", "library_books"), ("고유 부품 수", "개", "extension"),
+              ("사업 수", "개", "inventory"), ("관련 업체 수", "개", "factory")]
+QL_CHARTS = ["막대 그래프", "도넛 그래프", "트리맵 차트"]
+QL_DEFAULT = {"ql_proj": list(MOCK_LOCALIZED_PROJECTS[:3]), "ql_proj_all": False, "ql_fsg": list(MOCK_FSG),
+              "ql_fsg_all": True, "ql_fsc": [], "ql_name": "", "ql_comp": [], "ql_comp_all": True,
+              "ql_part": "", "ql_nsn": "", "ql_chart": "막대 그래프",
+              **{f"ql_m_{m}": m in ("국산화개발 기록 수", "고유 부품 수") for m, *_ in QL_METRICS}}
+Q_TYPE_DEFAULT = {"수출입 HS": Q_DEFAULT, "군수품 FSG/FSC": QF_DEFAULT, "국산화개발": QL_DEFAULT}
 # 빠른 설정 — 고르면 아래 조건이 한꺼번에 바뀐다(적지 않은 값은 기본값)
 Q_QUICK = {
     "빠른 설정 불러오기": None,
@@ -3915,7 +4016,7 @@ def _q_quick() -> None:
     preset = Q_QUICK.get(st.session_state.get("qs_quick"))
     if preset is None:
         return
-    st.session_state.update(Q_DEFAULT)
+    _q_apply(Q_DEFAULT, force=True)
     if any(k.startswith("qs_m_") for k in preset):           # 지표를 정한 설정이면 그 지표만 켠다
         st.session_state.update({f"qs_m_{m}": False for m, *_ in Q_METRICS})
     st.session_state.update(preset)
@@ -3927,13 +4028,19 @@ def _q_short(nm: str) -> str:
     return nm.removesuffix(" 그래프").removesuffix(" 차트")
 
 
-def _q_pick(nm: str) -> None:
-    st.session_state["qs_chart"] = nm
+def _q_pick(nm: str, key: str = "qs_chart") -> None:
+    st.session_state[key] = nm
 
 
-def trade_frame(names: list[str], y0: int, y1: int, hs: str) -> pd.DataFrame:
+def trade_frame(names: list[str], y0: int, y1: int, hs: str, items: list[str] | None = None) -> pd.DataFrame:
     """국가 × 연도 교역 표(샘플). 2016~2025 합 = TRADE_IMP·TRADE_EXP, 2026 은 1~8월 부분연도.
-    HS10 은 같은 금액을 더 잘게 나눠 신고한 것이라 거래건수만 늘어난다."""
+    HS10 은 같은 금액을 더 잘게 나눠 신고한 것이라 거래건수만 늘어난다.
+    items(품목코드)를 주면 그 품목 몫(MOCK_HS_WEIGHT, 목업용 비중)만큼만 남긴다 — None(전체 품목)이면 기존 값 그대로."""
+    share = 1.0
+    if items is not None:
+        # HS10 은 위 HS6 몫을 세분 수만큼 똑같이 나눈다(목업) — HS6 하나 = HS10 두 개
+        per = {c: MOCK_HS_WEIGHT[c[:6]] / (1 if len(c) == 6 else 2) for c in items}
+        share = sum(per.values()) / sum(MOCK_HS_WEIGHT.values())
     rows = []
     for k, n in enumerate(names):
         wi = [(1 + 0.07 * i) * (1 + 0.06 * math.sin(i * 1.3 + k)) for i in range(len(YEARS))]
@@ -3943,8 +4050,8 @@ def trade_frame(names: list[str], y0: int, y1: int, hs: str) -> pd.DataFrame:
             if not y0 <= y <= y1:
                 continue
             part = 0.62 if y == 2026 else 1
-            imp = TRADE_IMP.get(n, 0) * wi[i] / si * part
-            exp = TRADE_EXP.get(n, 0) * we[i] / se * part
+            imp = TRADE_IMP.get(n, 0) * wi[i] / si * part * share
+            exp = TRADE_EXP.get(n, 0) * we[i] / se * part * share
             cnt = round(((imp + exp) * 1.8 + 3) * (1.6 if hs == "HS10" else 1))
             rows.append({"국가": n, "연도": y, "수출액": round(exp, 1), "수입액": round(imp, 1),
                          "무역수지": round(exp - imp, 1), "수출중량": round(exp * 0.52, 1),
@@ -3956,118 +4063,500 @@ def _q_label(icon: str, text: str) -> None:
     st.markdown(f"{icon}&nbsp; **{text}**")
 
 
-def _q_drop(n: str) -> None:
-    st.session_state["qs_ctry"] = [c for c in st.session_state["qs_ctry"] if c != n]
+def _q_drop(key: str, n: str) -> None:
+    """칩의 ✕ — 다중선택(key)에서 n 을 뺀다. 국가 · 품목코드 · FSG · FSC · 사업명 · 업체 칩이 함께 쓴다."""
+    st.session_state[key] = [c for c in st.session_state[key] if c != n]
+
+
+def _q_apply(defaults: dict, force: bool = False) -> None:
+    """기본값 채우기(force=True 면 덮어쓰기). 목록 값은 복사해 넣어 기본값 dict 가 같이 바뀌지 않게 한다."""
+    ss = st.session_state
+    for k, v in defaults.items():
+        if force or k not in ss:
+            ss[k] = list(v) if isinstance(v, list) else v
+
+
+def _q_type_change() -> None:
+    """데이터 유형 전환 — 새 유형의 키(qs_ · qf_ · ql_ 중 하나)를 기본값으로 덮어써 새로 시작한다.
+    유형마다 키 앞머리가 달라 값이 섞이지 않는다. 다른 유형 키는 지우지 않는다 — 같은 rerun 에서 뒤이어 도는
+    그 유형 위젯의 on_change(예: _q_hs_unit)가 지워진 키를 읽다 KeyError 가 났다. 그리지 않은 위젯 키는 Streamlit 이 치운다."""
+    _q_apply(Q_TYPE_DEFAULT[st.session_state["qd_type"]], force=True)
+
+
+def _q_reset() -> None:
+    """초기화 버튼 — 지금 데이터 유형의 분석 조건을 처음(사용자가 바꾸기 전) 상태로 되돌린다. 데이터 유형은 그대로 둔다."""
+    ss = st.session_state
+    _q_apply(Q_TYPE_DEFAULT[ss["qd_type"]], force=True)
+    if ss["qd_type"] == "수출입 HS":
+        ss["qs_quick"] = "빠른 설정 불러오기"
+    ss["q_reset_n"] = ss.get("q_reset_n", 0) + 1                # 누를 때마다 아이콘 회전 애니메이션을 다시 건다
+
+
+def _q_hs_unit() -> None:
+    """HS6 ↔ HS10 전환 — 고른 품목코드를 새 단위로 옮긴다(HS6 → 그 아래 HS10 전부, HS10 → 위 HS6)."""
+    ss = st.session_state
+    cur = ss.get("qs_item", [])
+    if ss.get("qs_hs", "HS6") == "HS10":
+        ss["qs_item"] = [c for c in MOCK_HS10 if c[:6] in {x[:6] for x in cur}]
+    else:
+        ss["qs_item"] = [c for c in MOCK_HS6 if c in {x[:6] for x in cur}]
+
+
+def _q_keep(key: str, options: list) -> list:
+    """위젯을 그리기 전에 선택값을 지금 목록(options)에 있는 것만 남긴다 — 상위 조건(FSG · HS 단위)이 바뀌어
+    목록에서 사라진 값이 남아 있으면 multiselect 가 오류를 낸다."""
+    ss = st.session_state
+    ss[key] = [v for v in ss.get(key, []) if v in options]
+    return ss[key]
 
 
 # 왼쪽 글씨 칸 높이 = 오른쪽 첫 입력칸 높이(px). 위로 붙여 놓고 그 높이 안에서 가운데 → 글씨와 입력칸이 같은 가로선
-Q_ROW_H = {"area": 32, "hs": 32, "ctry": 40, "period": 40, "metric": 40}
+Q_ROW_H = {"dtype": 32, "area": 32, "hs": 32, "item": 40, "ctry": 40, "period": 40, "metric": 40,
+           "unit": 32, "fsg": 40, "fsc": 40, "branch": 32, "year": 40, "name": 40, "proj": 40, "comp": 40}
 Q_CHIP_COLS = 3                                               # 고른 국가를 입력칸 밑에 한 줄 3개씩
+Q_CHIP_SCROLL = 10                                            # 체크박스 드롭다운에서 이만큼 이상 고르면 칩 칸을 스크롤로
+Q_CHIP_ROWS = 3                                               # 스크롤 칸에 한 번에 보이는 칩 줄 수(칩 30px · 줄 간격 6px)
+# 칩 다중선택 — 선택창 key → 칩 묶음 key. 국가는 예전 key(qs_chips) 그대로
+Q_CHIP_KEY = {"qs_ctry": "qs_chips", "qs_item": "qs_item_chips", "qf_fsg": "qf_fsg_chips", "qf_fsc": "qf_fsc_chips",
+              "ql_proj": "ql_proj_chips", "ql_fsg": "ql_fsg_chips", "ql_fsc": "ql_fsc_chips", "ql_comp": "ql_comp_chips"}
+# 파란 선택창 — 데이터 유형 드롭다운 · 기간 · 요구연도
+Q_YEAR_KEYS = ["qd_type", "qs_y0", "qs_y1", "qf_y0", "qf_y1"]
 
 
-def _q_form_css(n_picked: int, all_c: bool) -> str:
+def _q_form_css(hints: dict[str, str]) -> str:
+    """분석 조건 카드 CSS. hints = {칩 다중선택 key: 입력칸 안 안내 문구} — 그 화면에 그린 선택창만 넘긴다.
+    국가/지역에만 걸려 있던 칩 UX(선택창 파랑 · 선택값은 칸 밖 칩)를 hints 의 key 마다 똑같이 만든다."""
     rows = "".join(f".st-key-card_form .st-key-qlab_{k}{{height:{h}px !important;flex:0 0 auto !important;justify-content:center !important}}"
                    for k, h in Q_ROW_H.items())
-    hint = "전체 국가 선택 중" if all_c else (f"국가명을 검색하세요 · {n_picked}개 선택" if n_picked else "")
+    ms = list(hints)
+    chips = [Q_CHIP_KEY[k] for k in ms]
+    sel = lambda keys, tail: ",".join(f".st-key-{k} {tail}" for k in keys)
+    hint_css = "".join(
+        f'.st-key-{k} [data-testid="stMultiSelectTagsContainer"]::before{{content:"{h}"}}' for k, h in hints.items())
     return f"""<style>{rows}
 /* Streamlit 기본 margin-bottom:-16px 이 글씨 칸을 3px 로 눌러 글씨가 아래로 삐져나왔다(약 8px 낮아 보이던 원인) */
 .st-key-card_form div[class*="st-key-qlab_"] [data-testid="stMarkdownContainer"],
 .st-key-card_form [data-testid="stMarkdownContainer"]:has(h3){{margin-bottom:0 !important}}
 .st-key-card_form div[class*="st-key-qlab_"] [data-testid="stMarkdownContainer"] p{{line-height:1.2}}
-/* 국가/지역 · 기간 선택창 — 분석영역에서 고른 칸과 같은 색(연한 파랑 바탕 · 파란 테두리 · 파란 글씨) */
-.st-key-qs_ctry [data-testid="stMultiSelect"] > div:last-child > div,
-.st-key-qs_y0 [data-testid="stSelectbox"] > div:last-child > div,
-.st-key-qs_y1 [data-testid="stSelectbox"] > div:last-child > div{{background:rgba(43,110,246,.1) !important;
+/* 칩 다중선택(국가/지역 · 품목코드 · FSG · FSC · 사업명 · 관련 업체) · 연도 선택창 — 분석영역에서 고른 칸과 같은 색 */
+{sel(ms, '[data-testid="stMultiSelect"] > div:last-child > div')},
+{sel(Q_YEAR_KEYS, '[data-testid="stSelectbox"] > div:last-child > div')}{{background:rgba(43,110,246,.1) !important;
   border:1px solid var(--accent) !important}}
-.st-key-qs_y0 [data-testid="stSelectbox"] > div:last-child svg,.st-key-qs_y1 [data-testid="stSelectbox"] > div:last-child svg,
-.st-key-qs_ctry [data-testid="stMultiSelect"] > div:last-child svg{{color:var(--accent)}}
-/* 기간 연도 숫자는 검은색 */
-.st-key-qs_y0 [data-testid="stSelectbox"] > div:last-child div,.st-key-qs_y1 [data-testid="stSelectbox"] > div:last-child div,
-.st-key-qs_y0 [data-testid="stSelectbox"] input,.st-key-qs_y1 [data-testid="stSelectbox"] input{{color:#111;font-weight:600}}
-/* 국가/지역 — 고른 국가는 입력칸 안이 아니라 밑에 칩으로 쌓는다 */
-.st-key-qs_ctry [data-testid="stMultiSelectTagsContainer"] > span{{display:none}}
-.st-key-qs_ctry [data-testid="stMultiSelectTagsContainer"]::before{{content:"{hint}";color:#5a7fc9;font-size:14px;
+{sel(Q_YEAR_KEYS, '[data-testid="stSelectbox"] > div:last-child svg')},
+{sel(ms, '[data-testid="stMultiSelect"] > div:last-child svg')}{{color:var(--accent)}}
+/* 연도 숫자는 검은색 */
+{sel(Q_YEAR_KEYS, '[data-testid="stSelectbox"] > div:last-child div')},
+{sel(Q_YEAR_KEYS, '[data-testid="stSelectbox"] input')}{{color:#111;font-weight:600}}
+/* 고른 값은 입력칸 안이 아니라 밑에 칩으로 쌓는다 */
+{sel(ms, '[data-testid="stMultiSelectTagsContainer"] > span')}{{display:none}}
+{sel(ms, '[data-testid="stMultiSelectTagsContainer"]::before')}{{color:#5a7fc9;font-size:14px;
   padding-left:4px;white-space:nowrap;align-self:center}}
-.st-key-qs_ctry [data-testid="stMultiSelectTagsContainer"]:has(input:focus)::before{{content:none}}
-.st-key-qs_chips{{gap:6px}}
-.st-key-qs_chips [data-testid="stHorizontalBlock"]{{gap:6px;margin-bottom:0 !important}}
-.st-key-qs_chips button{{min-height:0;height:30px;padding:0 8px 0 12px;border-radius:6px;border:0;background:#1f3a6e;color:#fff;
+{hint_css}
+{sel(ms, '[data-testid="stMultiSelectTagsContainer"]:has(input:focus)::before')}{{content:none}}
+{sel(chips, '')}{{gap:6px}}
+{sel(chips, '[data-testid="stHorizontalBlock"]')}{{gap:6px;margin-bottom:0 !important}}
+{sel(chips, 'button')}{{min-height:0;height:30px;padding:0 8px 0 12px;border-radius:6px;border:0;background:#1f3a6e;color:#fff;
   justify-content:space-between}}
-.st-key-qs_chips button:hover{{background:#142850;color:#fff}}   /* 국가 칩 — 남색 */
-.st-key-qs_chips button > div,.st-key-qs_chips button > div > span{{width:100%;justify-content:space-between}}
-.st-key-qs_chips button p{{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
-.st-key-qs_chips button [data-testid="stIconMaterial"]{{color:#fff !important;font-size:15px}}
+{sel(chips, 'button:hover')}{{background:#142850;color:#fff}}   /* 칩 — 남색 */
+{sel(chips, 'button > div')},{sel(chips, 'button > div > span')}{{width:100%;justify-content:space-between}}
+{sel(chips, 'button p')}{{font-size:13px;font-weight:400;text-align:left;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}}
+{sel(chips, 'button [data-testid="stMarkdownContainer"]')}{{min-width:0;flex:1 1 auto;overflow:hidden;text-align:left}}   /* wrap=True 라도 한 줄 · … */
+{sel(chips, 'button [data-testid="stIconMaterial"]')}{{color:#fff !important;font-size:15px}}
+/* 군종 두 줄 — 칸마다 폭을 한 줄 3칸 기준(1/3)으로 고정해 윗줄 · 아랫줄 칸 넓이를 맞춘다.
+   다중선택 segmented_control 은 고른 칸에 aria-checked 없이 data-selected 만 붙어 전역 파랑 규칙이 안 걸렸다 → 여기서 같은 색 */
+div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"]{{flex:0 0 calc(100% / 3) !important;
+  max-width:calc(100% / 3);min-width:0}}
+div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"][data-selected]{{
+  background:rgba(43,110,246,.1);border-color:var(--accent);color:var(--accent)}}
+div[class*="st-key-qf_branch_"] [data-testid="stButtonGroup"] > div{{justify-content:flex-start}}
+.st-key-qf_branch_box{{gap:0 !important}}
+.st-key-qf_branch_box [data-testid="stElementContainer"]:has(.st-key-qf_branch_b),.st-key-qf_branch_b{{margin-top:-1px}}
+/* 체크박스 드롭다운(FSC) — 펼친 목록이 아래 줄을 덮도록 위로 올린다 */
+div[class*="st-key-"][class*="fsc_box"]{{position:relative;z-index:40;overflow:visible}}
+/* 상세검색 접이 칸 — 카드 안에서 얇게 */
+.st-key-card_form [data-testid="stExpander"] summary p{{font-size:13.5px;font-weight:700;color:#16233f}}
 </style>"""
 
 
+def _q_row(icon: str, text: str, key: str):
+    """분석 조건 한 줄 — 왼쪽 글씨 칸(높이 Q_ROW_H[key]) · 오른쪽 입력 칸을 돌려준다."""
+    a, b = st.columns([1, 2.55], vertical_alignment="top")
+    with a.container(key=f"qlab_{key}"):
+        _q_label(icon, text)
+    return b
+
+
+def _q_chip_select(key: str, options: list, fmt, placeholder: str, all_key: str | None = None,
+                   all_label: str = "") -> list:
+    """국가/지역과 같은 칩 다중선택 — 검색 가능한 선택창 + 고른 값은 밑에 칩(✕ 로 빼기) + (있으면) 전체 선택 체크.
+    all_key 가 켜져 있으면 options 전부를 돌려준다. 선택창 안내 문구는 _q_hint 로 CSS 에 넣는다."""
+    ss = st.session_state
+    all_on = bool(all_key and ss[all_key])
+    _q_keep(key, options)
+    picked = st.multiselect(key, options, key=key, format_func=fmt, label_visibility="collapsed",
+                            placeholder=placeholder, disabled=all_on)
+    if not all_on:
+        _q_chips(key, picked, fmt)
+    if all_key:
+        st.checkbox(all_label, key=all_key)
+    return list(options) if all_on else picked
+
+
+# 칩 말풍선 — 글씨가 칩 안에서 … 로 잘린 칩에만 보인다. 잘렸는지는 화면 폭에 따라 달라 서버에서 알 수 없으므로
+# (글자 수로 어림하던 방식은 사우디아라비아처럼 잘리는데도 말풍선이 안 떴다) 모든 칩에 help 를 달고,
+# 브라우저에서 커서를 올린 순간 글씨 폭(scrollWidth > clientWidth)을 재서 안 잘린 칩이면 <html data-chipfit> 를 켜
+# 말풍선 층을 숨긴다. 말풍선은 한 번에 하나만 뜨므로 칩 위에 있을 때만 켜지는 이 표시로 충분하다
+_CHIP_FIT_JS = """
+export default function () {
+  if (window.__kdChipFit) return
+  window.__kdChipFit = true
+  const root = document.documentElement
+  document.addEventListener("pointerover", e => {
+    const btn = e.target.closest && e.target.closest('[class*="st-key-"][class*="chips"] button')
+    const p = btn && btn.querySelector("p")
+    if (p && p.scrollWidth <= p.clientWidth + 1) root.setAttribute("data-chipfit", "")
+    else root.removeAttribute("data-chipfit")
+  }, true)
+}
+"""
+_CHIP_FIT = st.components.v2.component("kd_chip_fit", html="<span></span>", js=_CHIP_FIT_JS)
+
+
+def _q_chips(key: str, picked: list, fmt, scroll: bool = False) -> None:
+    """고른 값을 선택창 밑에 칩(✕ 로 빼기)으로 한 줄 Q_CHIP_COLS 개씩 쌓는다.
+    scroll=True 이고 Q_CHIP_SCROLL 개 이상이면 칩 칸 높이를 Q_CHIP_ROWS 줄로 묶고 나머지는 스크롤로 본다(조건 카드가 길어지지 않게)."""
+    if not picked:
+        return
+    ck = Q_CHIP_KEY[key]
+    if scroll and len(picked) >= Q_CHIP_SCROLL:
+        h = Q_CHIP_ROWS * 30 + (Q_CHIP_ROWS - 1) * 6
+        st.html(f"""<style>
+.st-key-{ck}{{max-height:{h}px;overflow-y:auto;overflow-x:hidden;padding-right:6px;scrollbar-width:thin;
+  scrollbar-color:#b7c4da transparent}}
+.st-key-{ck} > *{{flex-shrink:0}}
+</style>""")
+    with st.container(key=ck):
+        for r in range(0, len(picked), Q_CHIP_COLS):
+            for c, n in zip(st.columns(Q_CHIP_COLS, gap="small"), picked[r:r + Q_CHIP_COLS]):
+                label = fmt(n)
+                # 말풍선 = 전체 이름(안 잘린 칩은 _CHIP_FIT_JS 가 숨긴다).
+                # wrap=True — 끄면(기본) Streamlit 이 라벨에 브라우저 기본 말풍선(title)까지 달아 말풍선이 둘 뜬다.
+                # 한 줄 · … 말줄임은 칩 CSS(_q_form_css)가 맡는다
+                c.button(label, icon=":material/close:", icon_position="right",
+                         key=f"qs_chip_{n}" if key == "qs_ctry" else f"{key}_chip_{n}",
+                         on_click=_q_drop, args=(key, n), width="stretch", wrap=True, help=label)
+
+
+# 체크박스 드롭다운(CCv2) — FSC 선택용. 목록 앞 체크박스로 여러 개를 고르는 동안에는 반영하지 않고,
+# 드롭다운 밖으로 포커스가 나가면(바깥 클릭 · Tab · Esc) 고른 것을 한 번에 넘긴다(commit 트리거 → rerun 1번).
+# 기본 multiselect 는 하나 고를 때마다 rerun 해서 조회 결과가 매번 다시 그려졌다
+_CHECK_DD_HTML = """
+<div class="dd">
+  <button class="field" type="button"><span class="txt"></span><span class="arr">▾</span></button>
+  <div class="panel" tabindex="-1" hidden>
+    <input class="q" type="text" autocomplete="off" />
+    <div class="tools"><button type="button" class="all">전체 선택</button><button type="button" class="none">선택 해제</button>
+      <span class="cnt"></span></div>
+    <div class="list"></div>
+  </div>
+</div>
+"""
+_CHECK_DD_CSS = """
+.dd{position:relative;font:14px Pretendard,'Malgun Gothic',system-ui,sans-serif}
+.field{width:100%;height:40px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 12px;
+  border-radius:8px;border:1px solid #2b6ef6;background:rgba(43,110,246,.1);color:#5a7fc9;font:inherit;cursor:pointer;text-align:left}
+.dd.off .field{opacity:.55;cursor:not-allowed}
+.field .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.field .arr{color:#2b6ef6;font-size:12px;transition:transform .15s}
+.dd.open .field .arr{transform:rotate(180deg)}
+.panel{position:absolute;left:0;right:0;top:44px;z-index:1000;background:#fff;border:1px solid #c9d3e6;border-radius:10px;
+  box-shadow:0 12px 30px rgba(20,40,80,.18);padding:8px;outline:none}
+.q{width:100%;box-sizing:border-box;height:34px;border:1px solid #d6dbe6;border-radius:6px;padding:0 10px;font:inherit;color:#111}
+.q:focus{outline:none;border-color:#2b6ef6}
+.tools{display:flex;align-items:center;gap:6px;margin:6px 2px}
+.tools button{border:0;background:none;color:#2b6ef6;font:600 12.5px inherit;cursor:pointer;padding:2px 4px}
+.tools .cnt{margin-left:auto;color:#6b7a99;font-size:12px}
+.list{max-height:240px;overflow-y:auto}
+.list label{display:flex;align-items:center;gap:8px;padding:6px 6px;border-radius:6px;cursor:pointer;color:#16233f;font-size:13.5px}
+.list label:hover{background:rgba(43,110,246,.07)}
+.list input{width:16px;height:16px;margin:0;accent-color:#2b6ef6;cursor:pointer}
+.empty{padding:10px 6px;color:#6b7a99;font-size:13px}
+"""
+_CHECK_DD_JS = """
+const S = new WeakMap()
+export default function (component) {
+  const { data, parentElement, setTriggerValue } = component
+  const root = parentElement.querySelector(".dd")
+  if (!root) return
+  const field = root.querySelector(".field"), txt = root.querySelector(".txt"), panel = root.querySelector(".panel")
+  const q = root.querySelector(".q"), list = root.querySelector(".list"), cnt = root.querySelector(".cnt")
+  const opts = data.options || [], committed = data.selected || []
+  let s = S.get(parentElement)
+  if (!s) { s = { open: false, draft: new Set() }; S.set(parentElement, s) }
+  if (!s.open) s.draft = new Set(committed)          // 닫혀 있을 때는 Python 값이 기준
+  q.placeholder = data.search || "검색"
+  field.disabled = !!data.disabled
+  root.classList.toggle("off", !!data.disabled)
+  if (data.disabled && s.open) { s.open = false; root.classList.remove("open") }
+
+  const label = () => {
+    const n = s.open ? s.draft.size : committed.length
+    if (data.disabled) { txt.textContent = data.all_text || ""; return }
+    txt.textContent = n ? `${data.noun} ${n}개 선택` + (s.open ? " · 닫으면 반영" : "") : (data.placeholder || "")
+    cnt.textContent = `${s.draft.size} / ${opts.length}`
+  }
+  const draw = () => {
+    const f = q.value.trim().toLowerCase()
+    const shown = opts.filter(o => !f || o.l.toLowerCase().includes(f))
+    list.innerHTML = shown.length ? "" : '<div class="empty">검색 결과가 없습니다.</div>'
+    for (const o of shown) {
+      const lab = document.createElement("label"), cb = document.createElement("input")
+      cb.type = "checkbox"; cb.checked = s.draft.has(o.v)
+      cb.onchange = () => { cb.checked ? s.draft.add(o.v) : s.draft.delete(o.v); label() }
+      lab.append(cb, document.createTextNode(o.l)); list.append(lab)
+    }
+    label()
+  }
+  const open = () => { s.open = true; root.classList.add("open"); panel.hidden = false; q.value = ""; draw(); q.focus() }
+  const close = () => {
+    if (!s.open) return
+    s.open = false; root.classList.remove("open"); panel.hidden = true
+    const next = opts.map(o => o.v).filter(v => s.draft.has(v))
+    label()
+    if (next.length !== committed.length || next.some((v, i) => v !== committed[i])) setTriggerValue("commit", next)
+  }
+  field.onclick = () => (s.open ? close() : open())
+  q.oninput = draw
+  root.querySelector(".all").onclick = () => { opts.forEach(o => s.draft.add(o.v)); draw() }
+  root.querySelector(".none").onclick = () => { s.draft.clear(); draw() }
+  root.onkeydown = e => { if (e.key === "Escape") { close(); field.focus() } }
+  // 드롭다운 밖으로 포커스가 나가면 닫으면서 한 번에 반영(패널 여백 클릭은 panel 이 포커스를 받아 안 닫힌다)
+  root.onfocusout = e => { if (s.open && !root.contains(e.relatedTarget)) close() }
+  panel.hidden = !s.open
+  if (s.open) draw(); else label()
+}
+"""
+_CHECK_DD = st.components.v2.component("kd_check_dropdown", html=_CHECK_DD_HTML, css=_CHECK_DD_CSS, js=_CHECK_DD_JS)
+
+
+def _q_check_commit(key: str) -> None:
+    v = st.session_state[f"{key}_dd"].commit
+    if v is not None:
+        st.session_state[key] = list(v)
+
+
+def _q_check_select(key: str, options: list, fmt, noun: str, placeholder: str, search: str = "",
+                    all_key: str | None = None, all_label: str = "", all_text: str = "") -> list:
+    """체크박스 드롭다운 + 칩(+ 있으면 전체 선택 체크). 고른 값은 session_state[key](목록)에 두고,
+    드롭다운을 닫을 때 한 번에 바뀐다. all_key 가 켜져 있으면 드롭다운을 잠그고 options 전부를 돌려준다."""
+    all_on = bool(all_key and st.session_state[all_key])
+    picked = _q_keep(key, options)
+    with st.container(key=f"{key}_box"):
+        _CHECK_DD(key=f"{key}_dd", data={"options": [{"v": o, "l": fmt(o)} for o in options], "selected": picked,
+                                         "noun": noun, "placeholder": placeholder, "disabled": all_on,
+                                         "all_text": all_text, "search": search or f"{noun} 코드 · 이름 검색"},
+                  on_commit_change=lambda: _q_check_commit(key))
+    if not all_on:
+        _q_chips(key, picked, fmt, scroll=True)
+    if all_key:
+        st.checkbox(all_label, key=all_key)
+    return list(options) if all_on else picked
+
+
+def _q_hint(key: str, all_key: str | None, noun: str, all_text: str) -> str:
+    """선택창 안내 문구 — 전체 선택 중 · n개 선택 · (비었으면) 빈칸."""
+    ss = st.session_state
+    if all_key and ss.get(all_key):
+        return all_text
+    n = len(ss.get(key, []))
+    return f"{noun} 검색 · {n}개 선택" if n else ""
+
+
+def _q_chart_grid(charts: list[str], state_key: str, subject: str = "국가", shapes: dict | None = None) -> str:
+    """차트 유형 버튼 묶음 — charts 에 든 것만 그린다(안 되는 차트는 아예 빼고 잠그지 않는다). 고른 차트 이름을 돌려준다."""
+    ss = st.session_state
+    if ss.get(state_key) not in charts:
+        ss[state_key] = charts[0]
+    chart = ss[state_key]
+    st.html(_csv_css())
+    # 버튼에 커서를 올리면 그 차트 설명(차트 목록 설명 칸)이 버튼 묶음 위로 떠서 조건 칸을 덮는다
+    with st.container(key="qs_ct_grid"):
+        for r in range(0, len(charts), Q_CHART_COLS):
+            cols = st.columns(Q_CHART_COLS, gap="small")
+            for i, (c, nm) in enumerate(zip(cols, charts[r:r + Q_CHART_COLS]), start=r):
+                c.button(_q_short(nm), icon=Q_CHART_ICON[nm], key=f"qs_ct_{i}", width="stretch", on_click=_q_pick,
+                         args=(nm, state_key), type="primary" if chart == nm else "secondary")
+                with c.container(key=f"qs_pop_{i}"):
+                    st.html(csv_info(nm, subject, (shapes or {}).get(nm)))
+    return chart
+
+
 def query_panel() -> dict:
-    """분석 조건 설정 카드(목업 「분석 조건 설정」). 고른 조건을 dict 로 돌려준다."""
-    for k, v in Q_DEFAULT.items():
-        st.session_state.setdefault(k, v)
+    """분석 조건 설정 카드(목업 「분석 조건 설정」). 맨 위 데이터 유형에 따라 HS · FSG/FSC · 국산화개발 조건을 그리고,
+    고른 조건을 dict 로 돌려준다(q["type"] = 데이터 유형)."""
+    st.session_state.setdefault("qd_type", Q_TYPES[0])
+    dtype = st.session_state["qd_type"]
+    _q_apply(Q_TYPE_DEFAULT[dtype])
     with st.container(border=True, key="card_form"):
         h1, h2 = st.columns([1.25, 1], vertical_alignment="center")
         h1.markdown("### :material/settings: 분석 조건 설정")
-        h2.selectbox("빠른 설정", list(Q_QUICK), key="qs_quick", on_change=_q_quick, label_visibility="collapsed")
+        if dtype == "수출입 HS":                                   # 빠른 설정은 HS 조건 묶음이라 HS 에서만
+            h2.selectbox("빠른 설정", list(Q_QUICK), key="qs_quick", on_change=_q_quick, label_visibility="collapsed")
+        # 드롭다운 — 버튼 셋을 한 줄에 두면 카드 폭이 좁아 글자가 가려졌다
+        # filter_mode=None — 클릭하면 목록만 열리고 글자 입력(검색)은 받지 않는다
+        _q_row(":material/database:", "데이터 유형", "dtype").selectbox(
+            "데이터 유형", Q_TYPES, key="qd_type", on_change=_q_type_change, label_visibility="collapsed",
+            filter_mode=None)
+        panel = {"수출입 HS": query_panel_hs, "군수품 FSG/FSC": query_panel_fsg, "국산화개발": query_panel_localized}[dtype]
+        q = panel()
+        _q_reset_button()
+        with st.container(key="chipfit_js"):
+            _CHIP_FIT(key="chipfit")
+    return q | {"type": dtype}
 
-        all_c = st.session_state["qs_all"]
-        st.html(_q_form_css(len(st.session_state["qs_ctry"]), all_c))
 
-        def row(icon: str, text: str, key: str):
-            a, b = st.columns([1, 2.55], vertical_alignment="top")
-            with a.container(key=f"qlab_{key}"):
-                _q_label(icon, text)
-            return b
+def _q_reset_button() -> None:
+    """차트 유형 밑 초기화 버튼. 누르면 🔁 화살표 아이콘이 한 바퀴 돌고 조건이 처음 상태로 돌아간다.
+    누를 때마다 애니메이션 이름을 바꿔(q_spin0 ↔ q_spin1) 같은 아이콘에서도 회전이 다시 시작되게 한다."""
+    n = st.session_state.get("q_reset_n", 0)
+    spin = f"animation:q_spin{n % 2} .7s ease-in-out;" if n else ""
+    st.html(f"""<style>
+@keyframes q_spin0{{from{{transform:rotate(0)}}to{{transform:rotate(360deg)}}}}
+@keyframes q_spin1{{from{{transform:rotate(0)}}to{{transform:rotate(360deg)}}}}
+.st-key-q_reset{{margin-top:6px}}
+.st-key-q_reset button{{height:38px;border-radius:8px;border:1px solid var(--line);background:#fff;color:#4b5a78}}
+.st-key-q_reset button:hover{{border-color:var(--accent);color:var(--accent)}}
+.st-key-q_reset button [data-testid="stIconMaterial"]{{font-size:19px;color:inherit !important;{spin}}}
+.st-key-q_reset button:active [data-testid="stIconMaterial"]{{transform:rotate(180deg);transition:transform .25s}}
+</style>""")
+    st.button("조건 초기화", icon=":material/sync:", key="q_reset", on_click=_q_reset, width="stretch")
 
-        area = row(":material/travel_explore:", "분석영역", "area").segmented_control(
-            "분석영역", Q_AREAS, key="qs_area", required=True, label_visibility="collapsed", width="stretch")
-        hs = row(":material/qr_code_2:", "HS6/HS10", "hs").segmented_control(
-            "HS 단위", ["HS6", "HS10"], key="qs_hs", required=True, label_visibility="collapsed")
 
-        with row(":material/public:", "국가/지역", "ctry"):
-            picked = st.multiselect("국가/지역", Q_COUNTRIES, key="qs_ctry", label_visibility="collapsed",
-                                    placeholder="국가명을 검색하세요.", disabled=all_c)
-            if picked and not all_c:
-                with st.container(key="qs_chips"):
-                    for r in range(0, len(picked), Q_CHIP_COLS):
-                        for c, n in zip(st.columns(Q_CHIP_COLS, gap="small"), picked[r:r + Q_CHIP_COLS]):
-                            c.button(n, icon=":material/close:", icon_position="right", key=f"qs_chip_{n}",
-                                     on_click=_q_drop, args=(n,), width="stretch", help=f"{n} 빼기")
-            st.checkbox(f"전체 국가 선택 ({len(Q_COUNTRIES)}개국)", key="qs_all")
-        with row(":material/calendar_month:", "기간", "period"):
-            # 두 칸에서 연도를 고른다 — 시작 칸은 끝 연도까지만, 끝 칸은 시작 연도부터만 보여 앞뒤가 뒤집히지 않는다
-            ss = st.session_state
-            c0, mid, c1 = st.columns([1, .16, 1], vertical_alignment="center", gap="small")
-            y0 = c0.selectbox("시작 연도", [y for y in Q_YEARS if y <= ss["qs_y1"]], key="qs_y0", label_visibility="collapsed")
-            mid.html('<div style="text-align:center;font-size:16px;font-weight:700;color:#6b7a99">~</div>')
-            y1 = c1.selectbox("끝 연도", [y for y in Q_YEARS if y >= y0], key="qs_y1", label_visibility="collapsed")
+def query_panel_hs() -> dict:
+    """수출입 HS 조건 — 분석영역 · HS 단위 · 품목코드 · 국가/지역 · 기간 · 지표 · 차트."""
+    ss = st.session_state
+    hs = ss["qs_hs"]
+    codes = MOCK_HS6 if hs == "HS6" else MOCK_HS10
+    st.html(_q_form_css({
+        "qs_item": _q_hint("qs_item", "qs_item_all", "품목코드", f"전체 {hs} 품목 선택 중"),
+        "qs_ctry": ("전체 국가 선택 중" if ss["qs_all"] else
+                    f"국가명을 검색하세요 · {len(ss['qs_ctry'])}개 선택" if ss["qs_ctry"] else "")}))
 
-        with row(":material/leaderboard:", "지표 선택", "metric"):
-            cols = st.columns(3)
-            metrics = []
-            for i, (m, _, _, areas) in enumerate(Q_METRICS):
-                ok = area in areas
-                if cols[i % 3].checkbox(m, key=f"qs_m_{m}", disabled=not ok) and ok:
-                    metrics.append(m)
+    area = _q_row(":material/travel_explore:", "분석영역", "area").segmented_control(
+        "분석영역", Q_AREAS, key="qs_area", required=True, label_visibility="collapsed", width="stretch")
+    hs = _q_row(":material/qr_code_2:", "HS6/HS10", "hs").segmented_control(
+        "HS 단위", ["HS6", "HS10"], key="qs_hs", required=True, on_change=_q_hs_unit, label_visibility="collapsed")
+    with _q_row(":material/barcode:", "품목코드", "item"):
+        items = _q_check_select("qs_item", list(codes), lambda c: f"{c} - {codes[c]}", "품목코드",
+                                f"{hs} 품목코드를 고르세요.", f"{hs} 코드 · 품목명 검색", "qs_item_all",
+                                f"전체 품목 선택 ({hs} {len(codes)}개)", f"전체 {hs} 품목 선택 중")
+    with _q_row(":material/public:", "국가/지역", "ctry"):
+        names = _q_check_select("qs_ctry", Q_COUNTRIES, str, "국가", "국가를 고르세요.", "국가명 검색",
+                                "qs_all", f"전체 국가 선택 ({len(Q_COUNTRIES)}개국)", "전체 국가 선택 중")
+    with _q_row(":material/calendar_month:", "기간", "period"):
+        # 두 칸에서 연도를 고른다 — 시작 칸은 끝 연도까지만, 끝 칸은 시작 연도부터만 보여 앞뒤가 뒤집히지 않는다
+        c0, mid, c1 = st.columns([1, .16, 1], vertical_alignment="center", gap="small")
+        y0 = c0.selectbox("시작 연도", [y for y in Q_YEARS if y <= ss["qs_y1"]], key="qs_y0", label_visibility="collapsed")
+        mid.html('<div style="text-align:center;font-size:16px;font-weight:700;color:#6b7a99">~</div>')
+        y1 = c1.selectbox("끝 연도", [y for y in Q_YEARS if y >= y0], key="qs_y1", label_visibility="collapsed")
 
-        _q_label(":material/donut_large:", "차트 유형")
-        if st.session_state["qs_chart"] not in Q_CHARTS:
-            st.session_state["qs_chart"] = Q_DEFAULT["qs_chart"]
-        chart = st.session_state["qs_chart"]
-        st.html(_csv_css())
-        # 버튼에 커서를 올리면 그 차트 설명(차트 목록 설명 칸)이 버튼 묶음 위로 떠서 조건 칸을 덮는다
-        with st.container(key="qs_ct_grid"):
-            for r in range(0, len(Q_CHARTS), Q_CHART_COLS):
-                cols = st.columns(Q_CHART_COLS, gap="small")
-                for i, (c, nm) in enumerate(zip(cols, Q_CHARTS[r:r + Q_CHART_COLS]), start=r):
-                    c.button(_q_short(nm), icon=Q_CHART_ICON[nm], key=f"qs_ct_{i}", width="stretch", on_click=_q_pick, args=(nm,),
-                             type="primary" if chart == nm else "secondary")
-                    with c.container(key=f"qs_pop_{i}"):
-                        st.html(csv_info(nm))
+    with _q_row(":material/leaderboard:", "지표 선택", "metric"):
+        # 분석영역에 맞는 지표만 그린다(맞지 않는 지표는 잠그지 않고 아예 뺀다)
+        shown = [m for m, _, _, areas in Q_METRICS if area in areas]
+        cols = st.columns(3)
+        metrics = [m for i, m in enumerate(shown) if cols[i % 3].checkbox(m, key=f"qs_m_{m}")]
 
-        names = Q_COUNTRIES if all_c else [n for n in Q_COUNTRIES if n in picked]
-        q = {"area": area, "hs": hs, "names": names, "period": f"{y0} ~ {y1}", "years": (y0, y1),
-             "metrics": metrics, "chart": chart}
-    return q
+    _q_label(":material/donut_large:", "차트 유형")
+    chart = _q_chart_grid(Q_CHARTS, "qs_chart")
+    names = [n for n in Q_COUNTRIES if n in names]
+    return {"area": area, "hs": hs, "names": names, "items": items, "items_all": ss["qs_item_all"],
+            "period": f"{y0} ~ {y1}", "years": (y0, y1), "metrics": metrics, "chart": chart}
+
+
+def _q_fsg_fsc(pre: str, fsc_ph: str) -> tuple[list[str], list[str]]:
+    """FSG(칩 다중선택 + 전체) → FSC(고른 FSG 안의 것만, 칩 다중선택). FSC 를 비우면 고른 FSG 의 FSC 전부.
+    군수품 · 국산화개발 두 화면이 같이 쓴다(pre = qf_ / ql_)."""
+    with _q_row(":material/category:", "FSG", "fsg"):
+        fsg = _q_chip_select(f"{pre}fsg", list(MOCK_FSG), lambda g: f"{g} - {MOCK_FSG[g]}", "FSG 를 검색하세요.",
+                             f"{pre}fsg_all", f"전체 FSG 선택 ({len(MOCK_FSG)}개)")
+    opts = [c for g in fsg for c in MOCK_FSC[g]]
+    with _q_row(":material/account_tree:", "FSC", "fsc"):
+        fsc = _q_check_select(f"{pre}fsc", opts, lambda c: f"{c} - {MOCK_FSC_NAME[c]}", "FSC", fsc_ph)
+    return fsg, fsc or opts
+
+
+def _q_metric_row(pre: str, metrics: list[tuple]) -> list[str]:
+    with _q_row(":material/leaderboard:", "지표 선택", "metric"):
+        cols = st.columns(2)
+        return [m for i, (m, *_) in enumerate(metrics) if cols[i % 2].checkbox(m, key=f"{pre}m_{m}")]
+
+
+# 차트 설명 칸의 「CSV 데이터 모양」 — 군수품 · 국산화개발용(분류 = FSG 또는 FSC)
+QF_SHAPES = {"막대 그래프": "행 = 분류 · 열 = 지표", "누적 막대 그래프": "행 = 요구연도 · 열 = 분류 + 합계",
+             "도넛 그래프": "행 = 분류 · 값 · 비중(%)", "트리맵 차트": "행 = 분류 · 값 · 비중(%)",
+             "꺾은선 그래프": "행 = 요구연도 · 열 = 분류"}
+QL_SHAPES = {"막대 그래프": "행 = FSC · 열 = 지표", "도넛 그래프": "행 = FSC · 값 · 비중(%)",
+             "트리맵 차트": "행 = FSC · 값 · 비중(%)"}
+
+
+def query_panel_fsg() -> dict:
+    """군수품 FSG/FSC 조건 — 분류 단위 · FSG · FSC · 군종 · 요구연도 · 품목명 · 상세검색 · 지표 · 차트."""
+    ss = st.session_state
+    st.html(_q_form_css({"qf_fsg": _q_hint("qf_fsg", "qf_fsg_all", "FSG", "전체 FSG 선택 중"),
+                         "qf_fsc": _q_hint("qf_fsc", None, "FSC", "")}))
+    unit = _q_row(":material/stacks:", "분류 단위", "unit").segmented_control(
+        "분류 단위", QF_UNITS, key="qf_unit", required=True, label_visibility="collapsed")
+    fsg, fsc = _q_fsg_fsc("qf_", "FSC 를 고르세요 · 비우면 고른 FSG 전체")
+    with _q_row(":material/military_tech:", "군종", "branch"), st.container(key="qf_branch_box", gap=None):
+        # 다섯 칸을 한 줄에 두면 카드 폭이 좁아 가려져 두 줄(3 + 2)로 나눈다. 고른 값은 두 줄을 합친다.
+        # gap=None + 아랫줄 -1px — 두 줄 사이 틈 없이 테두리가 한 줄로 겹쳐 붙는다
+        branch = [b for k, opts in QF_BRANCH_ROWS.items()
+                  for b in (st.segmented_control(f"군종 {k[-1]}", opts, key=k, selection_mode="multi",
+                                                 label_visibility="collapsed", width="stretch") or [])]
+    with _q_row(":material/calendar_month:", "요구연도", "year"):
+        c0, mid, c1 = st.columns([1, .16, 1], vertical_alignment="center", gap="small")
+        y0 = c0.selectbox("시작 연도", [y for y in MOCK_REQ_YEARS if y <= ss["qf_y1"]], key="qf_y0", label_visibility="collapsed")
+        mid.html('<div style="text-align:center;font-size:16px;font-weight:700;color:#6b7a99">~</div>')
+        y1 = c1.selectbox("끝 연도", [y for y in MOCK_REQ_YEARS if y >= y0], key="qf_y1", label_visibility="collapsed")
+    name = _q_row(":material/search:", "품목명", "name").text_input(
+        "품목명", key="qf_name", placeholder="품목명을 입력하세요.", label_visibility="collapsed")
+    with st.expander("상세검색 — 기능명 · 품목종류 · NSN", icon=":material/tune:"):
+        d1, d2, d3 = st.columns(3)
+        func = d1.text_input("기능명", key="qf_func", placeholder="예: 신호처리")
+        kind = d2.selectbox("품목종류", MOCK_ITEM_KINDS, key="qf_kind")
+        nsn = d3.text_input("NSN", key="qf_nsn", placeholder="예: 5962-00")
+    metrics = _q_metric_row("qf_", QF_METRICS)
+    _q_label(":material/donut_large:", "차트 유형")
+    chart = _q_chart_grid(QF_CHARTS, "qf_chart", "분류", QF_SHAPES)
+    return {"unit": unit, "fsg": fsg, "fsc": fsc, "branch": branch or [], "years": (y0, y1), "name": name.strip(),
+            "func": func.strip(), "kind": kind, "nsn": nsn.strip(), "metrics": metrics, "chart": chart}
+
+
+def query_panel_localized() -> dict:
+    """국산화개발 조건 — 사업명 · FSG · FSC · 품목명 · 관련 업체 · 상세검색 · 지표 · 차트. 기간 조건은 없다(스냅샷)."""
+    st.html(_q_form_css({"ql_proj": _q_hint("ql_proj", "ql_proj_all", "사업명", "전체 사업 선택 중"),
+                         "ql_fsg": _q_hint("ql_fsg", "ql_fsg_all", "FSG", "전체 FSG 선택 중"),
+                         "ql_fsc": _q_hint("ql_fsc", None, "FSC", ""),
+                         "ql_comp": _q_hint("ql_comp", "ql_comp_all", "관련 업체", "전체 관련 업체 선택 중")}))
+    with _q_row(":material/inventory:", "사업명", "proj"):
+        proj = _q_chip_select("ql_proj", MOCK_LOCALIZED_PROJECTS, str, "사업명을 검색하세요.",
+                              "ql_proj_all", f"전체 사업 선택 ({len(MOCK_LOCALIZED_PROJECTS)}개)")
+    fsg, fsc = _q_fsg_fsc("ql_", "FSC 를 고르세요 · 비우면 고른 FSG 전체")
+    name = _q_row(":material/search:", "품목명", "name").text_input(
+        "품목명", key="ql_name", placeholder="국산화개발 품목명을 입력하세요.", label_visibility="collapsed")
+    with _q_row(":material/factory:", "관련 업체", "comp"):
+        comp = _q_chip_select("ql_comp", MOCK_COMPANIES, str, "관련 업체를 검색하세요.",
+                              "ql_comp_all", f"전체 관련 업체 선택 ({len(MOCK_COMPANIES)}개)")
+    with st.expander("상세검색 — 부품관리번호 · NSN", icon=":material/tune:"):
+        d1, d2 = st.columns(2)
+        part = d1.text_input("부품관리번호", key="ql_part", placeholder="예: LP-0012")
+        nsn = d2.text_input("NSN", key="ql_nsn", placeholder="예: 5962-01")
+    metrics = _q_metric_row("ql_", QL_METRICS)
+    _q_label(":material/donut_large:", "차트 유형")
+    chart = _q_chart_grid(QL_CHARTS, "ql_chart", "FSC", QL_SHAPES)
+    return {"proj": proj, "fsg": fsg, "fsc": fsc, "name": name.strip(), "comp": comp, "part": part.strip(),
+            "nsn": nsn.strip(), "metrics": metrics, "chart": chart}
 
 
 def query_chart(df: pd.DataFrame, q: dict) -> None:
@@ -4435,9 +4924,12 @@ def csv_preview(chart: str, out: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def csv_info(nm: str) -> str:
-    """차트 설명 칸 — 차트 목록 > 이름 · 그림 · 설명 · 용도 · CSV 모양. 차트 유형 버튼에 커서를 올리면 뜬다."""
+def csv_info(nm: str, subject: str = "국가", shape: str | None = None) -> str:
+    """차트 설명 칸 — 차트 목록 > 이름 · 그림 · 설명 · 용도 · CSV 모양. 차트 유형 버튼에 커서를 올리면 뜬다.
+    군수품 · 국산화개발 화면은 용도 문구의 「국가」를 subject(분류 · FSC)로 바꾸고, CSV 모양은 shape 로 바꿔 쓴다."""
     desc, uses, _, shape_txt = CSV_CHARTS[nm]
+    uses = [u.replace("국가", subject) for u in uses]
+    shape_txt = shape or shape_txt
     return (f'<div class="csv-pop"><div class="csv-crumb">차트 목록 &gt; <b>{nm}</b></div>'
             f'<div class="csv-h" style="border:0;margin:8px 0 10px;padding:0">{nm}</div>'
             f'<div class="csv-top"><div class="csv-fig">{_svg_img(_svg(CSV_ICON[nm]), 150, 105)}</div>'
@@ -4561,15 +5053,23 @@ def search_block() -> None:
         with c_form:
             q = query_panel()
         with c_res.container(border=True, key="card_res"):
-            y0, y1 = q["years"]
-            st.html(f'<div class="h">조회 결과 <span class="sub">{q["area"]} · {q["hs"]} · {len(q["names"])}개국 · '
-                    f'{y0}~{y1} · {q["chart"]}</span></div>')
-            if not q["names"]:
-                st.info("국가를 하나 이상 고르거나 「전체 국가 선택」을 켜 주세요.")
-            elif not q["metrics"]:
-                st.info("지표를 하나 이상 고르세요. 분석영역에 맞지 않는 지표는 흐리게 잠깁니다.")
+            if q["type"] == "군수품 FSG/FSC":
+                query_result_fsg(q)
+            elif q["type"] == "국산화개발":
+                query_result_localized(q)
             else:
-                query_result(q, y0, y1)
+                y0, y1 = q["years"]
+                n_item = "전체 품목" if q["items_all"] else f"품목 {len(q['items'])}개"
+                st.html(f'<div class="h">조회 결과 <span class="sub">{q["area"]} · {q["hs"]} · {n_item} · '
+                        f'{len(q["names"])}개국 · {y0}~{y1} · {q["chart"]}</span></div>')
+                if not q["names"]:
+                    st.info("국가를 하나 이상 고르거나 「전체 국가 선택」을 켜 주세요.")
+                elif not q["items"]:
+                    st.info("품목코드를 하나 이상 고르거나 「전체 품목 선택」을 켜 주세요.")
+                elif not q["metrics"]:
+                    st.info("지표를 하나 이상 고르세요. 분석영역에 맞는 지표만 목록에 나옵니다.")
+                else:
+                    query_result(q, y0, y1)
 
 
 def query_result(q: dict, y0: int, y1: int) -> None:
@@ -4578,7 +5078,7 @@ def query_result(q: dict, y0: int, y1: int) -> None:
     # 샘플 데이터는 즉시 끝나 지구본이 안 보이므로 데모에서만 잠깐 멈춘다(실제 앱은 DB 조회 시간만큼).
     with globe_loading("조회 결과를 계산하는 중"):
         time.sleep(DEMO_WAIT)
-        df = trade_frame(q["names"], y0, y1, q["hs"])
+        df = trade_frame(q["names"], y0, y1, q["hs"], None if q["items_all"] else q["items"])
     tot = df[list(Q_UNIT)].sum()
     icon = {m: ic for m, _, ic, _ in Q_METRICS}
     cards = "".join(
@@ -4613,6 +5113,187 @@ def query_result(q: dict, y0: int, y1: int) -> None:
                                "text/csv", icon=":material/download:", type="primary")
     with st.container(key="imgdl_js"):
         components.html(IMG_DL_JS, height=0)
+
+
+# ── 조회 결과 — 군수품 FSG/FSC · 국산화개발(목업용 샘플 MOCK_FSG_ITEMS · MOCK_LOCALIZED 를 걸러 센다) ──────────
+# TODO: DB 연결 시 mock_result_fsg · mock_result_localized 두 함수만 DB 조회로 바꾸면 아래 화면은 그대로 쓴다
+QF_AGG = {"품목 건수": ("NSN", "size"), "FSC 수": ("FSC", "nunique"), "적용장비 수": ("적용장비", "nunique"),
+          "KDSIS 연결 건수": ("KDSIS 연결", "sum")}
+QL_AGG = {"국산화개발 기록 수": ("부품관리번호", "size"), "고유 부품 수": ("부품관리번호", "nunique"),
+          "사업 수": ("사업명", "nunique"), "관련 업체 수": ("관련 업체", "nunique")}
+_has = lambda col, txt: col.str.contains(txt, case=False, regex=False)   # 부분검색(대소문자 무시)
+
+
+def mock_result_fsg(q: dict) -> pd.DataFrame:
+    """군수품 품목 목록을 조건으로 거른다(목업). 빈 검색칸은 조건에서 뺀다."""
+    d = MOCK_FSG_ITEMS
+    d = d[d["FSC"].isin(q["fsc"]) & d["군종"].isin(q["branch"]) & d["요구연도"].between(*q["years"])]
+    for col, txt in (("품목명", q["name"]), ("기능명", q["func"]), ("NSN", q["nsn"])):
+        if txt:
+            d = d[_has(d[col], txt)]
+    if q["kind"] != "전체":
+        d = d[d["품목종류"] == q["kind"]]
+    return d
+
+
+def mock_result_localized(q: dict) -> pd.DataFrame:
+    """국산화개발 기록을 조건으로 거른다(목업)."""
+    d = MOCK_LOCALIZED
+    d = d[d["사업명"].isin(q["proj"]) & d["FSC"].isin(q["fsc"]) & d["관련 업체"].isin(q["comp"])]
+    for col, txt in (("품목명", q["name"]), ("부품관리번호", q["part"]), ("NSN", q["nsn"])):
+        if txt:
+            d = d[_has(d[col], txt)]
+    return d
+
+
+def _cat_label(col: str, v: str) -> str:
+    return f"FSG {v} {MOCK_FSG[v]}" if col == "FSG" else f"{v} {MOCK_FSC_NAME[v]}"
+
+
+def cat_table(df: pd.DataFrame, note: str, colors: dict | None = None) -> None:
+    """결과 표(목록형) — HS 결과 표와 같은 통계표 모양(STAT_CSS). 글자 열은 왼쪽, 숫자 열은 오른쪽 정렬."""
+    flag = {c for c in df.columns if df[c].dtype == bool}
+    num = {c for c in df.columns if pd.api.types.is_numeric_dtype(df[c]) and c not in flag}
+
+    def cell(c, v, first):
+        dot = f'<span class="dot" style="background:{colors[v]}"></span>' if first and colors and v in colors else ""
+        if c in num:
+            return f"<td>{v:,.0f}</td>"
+        v = ("연결" if v else "—") if c in flag else escape(str(v))
+        return f'<td style="text-align:left">{dot}{v}</td>'
+    head = "".join(f"<th>{escape(str(c))}</th>" for c in df.columns)
+    body = "".join("<tr>" + "".join(cell(c, r[c], i == 0) for i, c in enumerate(df.columns)) + "</tr>"
+                   for _, r in df.iterrows())
+    st.html(STAT_CSS + f'<div class="st-scroll"><table class="st-tbl"><thead><tr>{head}</tr></thead>'
+            f'<tbody>{body}</tbody></table></div><div class="st-note">{note}</div>')
+
+
+def cat_chart(by: pd.DataFrame, q: dict, units: dict, yearly: pd.DataFrame | None = None) -> None:
+    """분류(FSG · FSC)별 차트 — by: 행 = 분류 이름, 열 = 지표. 막대 · 트리맵 · 누적 막대 · 꺾은선은 HS 의 csv_preview 를,
+    도넛은 hover_donut 을 그대로 쓴다. yearly = 요구연도 × 분류 표(누적 막대 · 꺾은선용)."""
+    chart, ms = q["chart"], q["metrics"]
+    pm = ms[0]
+    color = {n: Q_PALETTE[i % len(Q_PALETTE)] for i, n in enumerate(by.index)}
+    note = f"값 = {pm}({units[pm]})"
+    if chart == "도넛 그래프":
+        rows = sorted(((n, float(v), color[n]) for n, v in by[pm].items()), key=lambda r: -r[1])
+        rows = rows[:7] + ([("기타", sum(r[1] for r in rows[7:]), ETC)] if len(rows) > 7 else [])
+        hover_donut(rows, f"{sum(r[1] for r in rows):,.0f}", f"{pm} 합계 · {units[pm]}", value_unit=units[pm], height=420)
+    else:
+        if chart == "막대 그래프":
+            out = by[ms].rename(columns=lambda m: f"{m}({units[m]})").rename_axis("분류").reset_index()
+            note = "값 = 조건에 맞는 건수 · 개수" + (" · 지표마다 단위가 달라 크기만 비교" if len(ms) > 1 else "")
+        elif chart == "트리맵 차트":
+            s = by[pm]
+            out = pd.DataFrame({"분류": s.index, f"{pm}({units[pm]})": s.values, "비중(%)": (s / s.sum() * 100).round(1).values})
+        else:                                   # 누적 막대 · 꺾은선 — 요구연도 흐름
+            out = (yearly.assign(합계=yearly.sum(axis=1)) if chart == "누적 막대 그래프" else yearly).reset_index()
+            note += " · 요구연도별"
+        fig = csv_preview(chart, out)
+        fig.update_layout(height=400)
+        st.plotly_chart(fig, width="stretch", theme=None)
+    st.html(info_line(f"그래프 기준: {note}. 목업용 샘플 값이며 실제 DB 집계가 아닙니다."))
+
+
+def _cat_kpis(tot: dict, ms: list[str], units: dict, icons: dict, sub: str) -> None:
+    cards = "".join(kpi(m, f"{tot[m]:,.0f}", units[m], sub, icon=icons[m]) for m in ms)
+    st.html(f'<div class="kpis q" style="grid-template-columns:repeat({min(len(ms), 4)},1fr)">{cards}</div>')
+
+
+def _cat_downloads(base: str, chart: str, tab2: tuple[str, bytes], tab3: tuple[str, bytes]) -> None:
+    """내려받기 — HS 결과와 같은 자리 · 같은 방식(차트 탭 = 그림, 둘째 · 셋째 탭 = CSV). 탭별 표시는 dl_* CSS 가 맡는다."""
+    with st.container(key="res_dl", horizontal=True, horizontal_alignment="right"):
+        with st.container(key="dl_chart", width="content"):
+            st.html(f'<button class="img-dl" type="button" data-tab="0" data-file="{base}_{chart.replace(" ", "")}_차트.png">'
+                    '<span class="ms">image</span>차트 이미지 내려받기</button>')
+        for key, (label, data) in (("dl_map", tab2), ("dl_tbl", tab3)):
+            with st.container(key=key, width="content"):
+                st.download_button(f"{label} CSV 내려받기", data, f"{base}_{label.replace('·', '')}_샘플.csv",
+                                   "text/csv", icon=":material/download:", type="primary")
+    with st.container(key="imgdl_js"):
+        components.html(IMG_DL_JS, height=0)
+
+
+def query_result_fsg(q: dict) -> None:
+    """군수품 FSG/FSC 조회 결과 — 지표 카드 · [분포 차트] [분류 상세] [결과 표]. 국가 지도는 없다."""
+    unit, ms = q["unit"], q["metrics"]
+    y0, y1 = q["years"]
+    st.html(f'<div class="h">조회 결과 <span class="sub">군수품 · {unit} 단위 · FSG {len(q["fsg"])}개 · FSC {len(q["fsc"])}개 · '
+            f'{"·".join(q["branch"]) or "군종 없음"} · 요구연도 {y0}~{y1} · {q["chart"]}</span></div>')
+    if not q["fsg"]:
+        return st.info("FSG 를 하나 이상 고르거나 「전체 FSG 선택」을 켜 주세요.")
+    if not q["branch"]:
+        return st.info("군종을 하나 이상 고르세요.")
+    if not ms:
+        return st.info("지표를 하나 이상 고르세요.")
+    with globe_loading("조회 결과를 계산하는 중"):
+        time.sleep(DEMO_WAIT)
+        d = mock_result_fsg(q)
+    if d.empty:
+        return st.info("조건에 맞는 샘플 품목이 없습니다. 품목명 · 상세검색 조건을 줄여 보세요.")
+    units, icons = {m: u for m, u, _ in QF_METRICS}, {m: ic for m, _, ic in QF_METRICS}
+    tot = {m: float(d.agg({c: f})[c]) for m, (c, f) in QF_AGG.items()}
+    _cat_kpis(tot, ms, units, icons, f"요구연도 {y0}~{y1} · 목업 샘플")
+
+    lab = lambda s: s.map(lambda v: _cat_label(unit, v))
+    by = d.groupby(unit).agg(**QF_AGG).rename(index=lambda v: _cat_label(unit, v))
+    yearly = (d.assign(분류=lab(d[unit])).groupby(["요구연도", "분류"]).agg(v=QF_AGG[ms[0]]).reset_index()
+              .pivot(index="요구연도", columns="분류", values="v").reindex(columns=by.index)
+              .reindex(range(y0, y1 + 1)).fillna(0))
+    detail = (d.groupby(["FSG", "FSC"]).agg(**QF_AGG).reset_index()
+              .assign(FSG=lambda x: x["FSG"].map(lambda g: f"{g} {MOCK_FSG[g]}"), FSC명=lambda x: x["FSC"].map(MOCK_FSC_NAME))
+              [["FSG", "FSC", "FSC명", *QF_AGG]])
+    items = d.assign(FSC=d["FSC"].map(lambda c: f"{c} {MOCK_FSC_NAME[c]}"))[
+        ["NSN", "품목명", "FSC", "기능명", "품목종류", "군종", "요구연도", "적용장비", "KDSIS 연결"]].sort_values(["FSC", "NSN"])
+
+    t_chart, t_det, t_tbl = st.tabs(["📈 분포 차트", "🗂️ 분류 상세", "📋 결과 표"])
+    with t_chart:
+        cat_chart(by, q, units, yearly)
+    with t_det:
+        cat_table(detail, f"분류 상세 · FSG {detail['FSG'].nunique()}개 → FSC {len(detail)}개 · 목업용 샘플")
+    with t_tbl:
+        cat_table(items, f"결과 표 · 품목 {len(items)}건 · NSN 은 가짜 번호(목업용 샘플)")
+    _cat_downloads(f"조회결과_군수품_{unit}_{y0}_{y1}", q["chart"],
+                   ("분류 상세", detail.to_csv(index=False).encode("utf-8-sig")),
+                   ("결과 표", items.to_csv(index=False).encode("utf-8-sig")))
+
+
+def query_result_localized(q: dict) -> None:
+    """국산화개발 조회 결과 — 지표 카드 · [분포 차트] [사업·업체] [품목 상세]. 비율 · 추세 지표는 두지 않는다(스냅샷)."""
+    ms = q["metrics"]
+    st.html(f'<div class="h">조회 결과 <span class="sub">국산화개발 · 사업 {len(q["proj"])}개 · FSG {len(q["fsg"])}개 · '
+            f'FSC {len(q["fsc"])}개 · 관련 업체 {len(q["comp"])}개 · {q["chart"]}</span></div>')
+    for ok, msg in ((q["proj"], "사업명을 하나 이상 고르거나 「전체 사업 선택」을 켜 주세요."),
+                    (q["fsg"], "FSG 를 하나 이상 고르거나 「전체 FSG 선택」을 켜 주세요."),
+                    (q["comp"], "관련 업체를 하나 이상 고르거나 「전체 관련 업체 선택」을 켜 주세요."),
+                    (ms, "지표를 하나 이상 고르세요.")):
+        if not ok:
+            return st.info(msg)
+    with globe_loading("조회 결과를 계산하는 중"):
+        time.sleep(DEMO_WAIT)
+        d = mock_result_localized(q)
+    if d.empty:
+        return st.info("조건에 맞는 샘플 기록이 없습니다. 품목명 · 상세검색 조건을 줄여 보세요.")
+    units, icons = {m: u for m, u, _ in QL_METRICS}, {m: ic for m, _, ic in QL_METRICS}
+    tot = {m: float(d.agg({c: f})[c]) for m, (c, f) in QL_AGG.items()}
+    _cat_kpis(tot, ms, units, icons, "스냅샷 · 국산화율 아님 · 목업 샘플")
+
+    by = d.groupby("FSC").agg(**QL_AGG).rename(index=lambda v: _cat_label("FSC", v))
+    pc = pd.crosstab(d["사업명"], d["관련 업체"])
+    pc = pc.assign(합계=pc.sum(axis=1)).reset_index().rename(columns={"사업명": "사업명 \\ 관련 업체"})
+    items = d.assign(FSC=d["FSC"].map(lambda c: f"{c} {MOCK_FSC_NAME[c]}"))[
+        ["부품관리번호", "NSN", "품목명", "FSC", "사업명", "관련 업체"]].sort_values(["부품관리번호", "사업명"])
+
+    t_chart, t_pc, t_tbl = st.tabs(["📈 분포 차트", "🏭 사업·업체", "📋 품목 상세"])
+    with t_chart:
+        cat_chart(by, q, units)
+    with t_pc:
+        cat_table(pc, "사업 × 관련 업체 · 칸 = 국산화개발 기록 수(건) · 목업용 샘플(업체명은 가상)")
+    with t_tbl:
+        cat_table(items, f"품목 상세 · 기록 {len(items)}건 · 부품관리번호 · NSN 은 가짜 번호(목업용 샘플)")
+    _cat_downloads("조회결과_국산화개발", q["chart"],
+                   ("사업·업체", pc.to_csv(index=False).encode("utf-8-sig")),
+                   ("품목 상세", items.to_csv(index=False).encode("utf-8-sig")))
 
 
 def page_info() -> None:
