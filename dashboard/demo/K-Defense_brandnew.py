@@ -9,8 +9,8 @@
 실행:  streamlit run "dashboard/demo/K-Defense_brandnew.py" --theme.base light
        저장소 루트의 `.streamlit/config.toml` 은 운영 앱용 **다크** 테마라, 저장소에서 플래그 없이 실행하면
        테마가 다크로 잡힌다. OS 다크모드이거나 테마 설정이 없을 때도 마찬가지다. 그래도 버튼 · 선택창 · 체크박스는
-       아래 「라이트 테마 고정(위젯)」 CSS 로 라이트로 보인다. 단 st.dataframe 표(품목군 현황표 · DATA CENTER)는
-       캔버스로 그려져 CSS 가 닿지 않으니, 위처럼 `--theme.base light` 를 붙여 실행하는 편이 안전하다.
+       아래 「라이트 테마 고정(위젯)」 CSS 로 라이트로 보인다. 표는 모두 HTML 표(cat_table · stat_table)라
+       다크 테마에서도 흰 표로 보인다. 그래도 위처럼 `--theme.base light` 를 붙여 실행하는 편이 안전하다.
 
 이 파일 하나만 있으면 돌아간다. DB·`.env`·프로젝트 폴더가 전혀 필요 없다(다른 PC로 복사해도 같다).
 필요한 것은 streamlit·pandas·plotly 뿐이고, 지구본의 세계지도 데이터만 인터넷(CDN)에서 받는다
@@ -2708,7 +2708,6 @@ _REGION_MAP = _MAP_HEAD + r"""
   #side{flex:0 0 172px;display:flex;flex-direction:column;gap:7px}
   .lgd{background:rgba(255,255,255,.94);border:1px solid #dde5f2;border-radius:10px;padding:6px 11px;font-size:11px;color:#44567a;
        transition:opacity .25s, box-shadow .25s}
-  .lgd.off{opacity:.42}
   .lgd.on{box-shadow:0 4px 14px rgba(19,42,84,.10);border-color:var(--c)}
   .lgd b{display:block;font-size:11.5px;color:#16233f;font-weight:800;margin-bottom:4px;line-height:1.35}
   .lgd div{display:flex;align-items:center;gap:8px;line-height:1.5}
@@ -2762,8 +2761,8 @@ function layout() {
     .text(f => (R[f.properties.code] || [f.properties.name])[0]);
   return true;
 }
-function legend(m) {
-  return '<div class="lgd ' + (m === mode ? 'on' : 'off') + '" style="--c:' + PAL[m].c + '"><b>' + KOR[m] + ' 금액<br>(천USD)</b>'
+function legend(m) {       // 고른 쪽(수입 · 수출) 범례 하나만 — 두 범례가 같은 자리에 번갈아 나온다
+  return '<div class="lgd on" style="--c:' + PAL[m].c + '"><b>' + KOR[m] + ' 금액<br>(천USD)</b>'
     + TXT.map((t, i) => '<div><i style="background:' + PAL[m].bins[i] + '"></i>' + t + '</div>').join('') + '</div>';
 }
 function paint() {
@@ -2772,7 +2771,7 @@ function paint() {
   gl.selectAll('path').attr('fill', f => { const r = R[f.properties.code]; return r ? P.bins[bin(r[k])] : '#eef3fa'; });
   gt.selectAll('text').attr('class', 'rl lt');      // 짙은 칸에서도 흰 테두리 글자로 읽힌다
   const rows = Object.values(R).sort((a, b) => b[k] - a[k]).slice(0, 5), mx = rows[0][k] || 1;
-  document.getElementById('side').innerHTML = legend('imp') + legend('exp')
+  document.getElementById('side').innerHTML = legend(mode)
     + '<div class="top"><b>' + KOR[mode] + ' 상위 5개 시·도</b>' + rows.map(r => '<div class="tr"><span>' + r[0]
     + '</span><span class="bar"><i style="width:' + (r[k] / mx * 100).toFixed(0) + '%;background:' + P.bins[1] + '"></i></span><span>'
     + fmt(r[k]) + '</span></div>').join('') + '</div>';
@@ -2796,7 +2795,7 @@ fetch("https://cdn.jsdelivr.net/gh/southkorea/southkorea-maps@master/kostat/2013
 
 
 def region_map(height: int = 440) -> None:
-    """시·도별 수입·수출 분포. 색 = 금액 구간(천 USD), 오른쪽에 두 범례(고른 쪽만 진하게)와 상위 5개 시·도."""
+    """시·도별 수입·수출 분포. 색 = 금액 구간(천 USD), 오른쪽에 고른 쪽(수입/수출) 범례 하나와 상위 5개 시·도."""
     html = (_REGION_MAP.replace("__DATA__", json.dumps(REGIONS, ensure_ascii=False))
             .replace("__H__", str(height - 10)))
     components.html(html, height=height, scrolling=False)
@@ -3672,7 +3671,7 @@ def page_domestic() -> None:
 
 def page_table() -> None:
     st.html('<div class="lede"><div class="note">분석 대상 품목군을 한 표로 비교합니다. '
-            '표는 열 머리를 눌러 정렬할 수 있고, 표 아래 「CSV 내려받기」로 내려받을 수 있습니다.</div></div>')
+            '표 아래 「CSV 내려받기」로 내려받을 수 있습니다.</div></div>')
     for _ in zone("tbl", "품목군 현황표"):
         c_note, c_seg = st.columns([3, 2], vertical_alignment="center")
         c_note.html('<div class="note">기간 기준을 바꾸면 점유율·HHI가 같은 기준으로 다시 계산됩니다(데모에서는 표시만 바뀝니다)</div>')
@@ -3681,13 +3680,7 @@ def page_table() -> None:
                                  key="tbl_period", label_visibility="collapsed", width="stretch")
         with globe_loading("품목군 집계를 다시 계산하는 중"):
             time.sleep(DEMO_WAIT)
-        st.dataframe(
-            items_df, width="stretch", hide_index=True, height=440,
-            column_config={
-                "1위 점유율(%)": st.column_config.ProgressColumn("1위 점유율(%)", min_value=0, max_value=100, format="%.1f%%"),
-                "HHI": st.column_config.NumberColumn("HHI", format="%d"),
-                "수입국 수": st.column_config.NumberColumn("수입국 수", format="%d개"),
-            })
+        cat_table(items_df, fmt={"1위 점유율(%)": _share_bar, "수입국 수": lambda v: f"{v}개"})
         st.download_button("CSV 내려받기", items_df.to_csv(index=False).encode("utf-8-sig"),
                            "품목군_현황표_샘플.csv", "text/csv")
 
@@ -4023,7 +4016,7 @@ Q_METRIC_COLOR = {"수출액": "#0fa595", "수입액": ACCENT, "무역수지": S
                   "수입중량": SERIES[2], "거래건수": SERIES[4]}
 Q_PALETTE = SERIES + ["#34d399", "#f59e0b", "#a78bfa", "#94a3b8", "#fb7185", "#22d3ee", "#84cc16", "#e879f9"]
 
-Q_DEFAULT = {"qs_area": "수출입", "qs_hs": "HS6", "qs_ctry": ["미국", "폴란드", "사우디아라비아"], "qs_all": False,
+Q_DEFAULT = {"qs_area": "수출입", "qs_hs": "HS6", "qs_ctry": ["미국", "폴란드", "사우디아라비아"],
              "qs_item": list(FOCUS_HS), "qs_item_all": True,     # 품목코드 — 기본은 전체 품목(기존 결과 값 그대로)
              "qs_y0": Q_YEARS[0], "qs_y1": Q_YEARS[-1], "qs_chart": "막대 그래프",
              **{f"qs_m_{m}": m in Q_MONEY for m, *_ in Q_METRICS}}
@@ -4504,8 +4497,7 @@ def query_panel_hs() -> dict:
     codes = MOCK_HS6 if hs == "HS6" else MOCK_HS10
     st.html(_q_form_css({
         "qs_item": _q_hint("qs_item", "qs_item_all", "품목코드", f"전체 {hs} 품목 선택 중"),
-        "qs_ctry": ("전체 국가 선택 중" if ss["qs_all"] else
-                    f"국가명을 검색하세요 · {len(ss['qs_ctry'])}개 선택" if ss["qs_ctry"] else "")}))
+        "qs_ctry": f"국가명을 검색하세요 · {len(ss['qs_ctry'])}개 선택" if ss["qs_ctry"] else ""}))
 
     area = _q_row(":material/travel_explore:", "분석영역", "area").segmented_control(
         "분석영역", Q_AREAS, key="qs_area", required=True, label_visibility="collapsed", width="stretch")
@@ -4516,8 +4508,7 @@ def query_panel_hs() -> dict:
                                 f"{hs} 품목코드를 고르세요.", f"{hs} 코드 · 품목명 검색", "qs_item_all",
                                 f"전체 품목 선택 ({hs} {len(codes)}개)", f"전체 {hs} 품목 선택 중")
     with _q_row(":material/public:", "국가/지역", "ctry"):
-        names = _q_check_select("qs_ctry", Q_COUNTRIES, str, "국가", "국가를 고르세요.", "국가명 검색",
-                                "qs_all", f"전체 국가 선택 ({len(Q_COUNTRIES)}개국)", "전체 국가 선택 중")
+        names = _q_check_select("qs_ctry", Q_COUNTRIES, str, "국가", "국가를 고르세요.", "국가명 검색")
     with _q_row(":material/calendar_month:", "기간", "period"):
         # 두 칸에서 연도를 고른다 — 시작 칸은 끝 연도까지만, 끝 칸은 시작 연도부터만 보여 앞뒤가 뒤집히지 않는다
         c0, mid, c1 = st.columns([1, .16, 1], vertical_alignment="center", gap="small")
@@ -5019,8 +5010,9 @@ STAT_CSS = """<style>
 .st-tbl th small{font-weight:500;opacity:.85}
 .st-tbl thead tr:nth-child(2) th{top:31px;background:#5d7c98;font-weight:600;font-size:11.5px}
 .st-tbl td{padding:6px 10px;border-bottom:1px solid #ece7d6;border-right:1px solid #f1ede0;text-align:right;color:#2f3e4f;white-space:nowrap}
-.st-tbl td:first-child,.st-tbl th:first-child{position:sticky;left:0;z-index:1;text-align:left}
-.st-tbl th:first-child{z-index:3}
+/* 국가 열만 고정 — 머리 둘째 줄의 첫 칸(첫 연도 첫 지표)은 국가 칸이 rowspan 이라 :first-child 에 걸리므로 첫 줄로 한정 */
+.st-tbl td:first-child,.st-tbl thead tr:first-child th:first-child{position:sticky;left:0;z-index:1;text-align:left}
+.st-tbl thead tr:first-child th:first-child{z-index:3}
 .st-tbl td:first-child{background:#fff;font-weight:700}
 .st-tbl tr:nth-child(even) td{background:#faf8f0}
 .st-tbl td.neg{color:#d64545}
@@ -5135,7 +5127,7 @@ def search_block() -> None:
                 st.html(f'<div class="h">조회 결과 <span class="sub">{q["area"]} · {q["hs"]} · {n_item} · '
                         f'{len(q["names"])}개국 · {y0}~{y1} · {q["chart"]}</span></div>')
                 if not q["names"]:
-                    st.info("국가를 하나 이상 고르거나 「전체 국가 선택」을 켜 주세요.")
+                    st.info("국가를 하나 이상 고르세요.")
                 elif not q["items"]:
                     st.info("품목코드를 하나 이상 고르거나 「전체 품목 선택」을 켜 주세요.")
                 elif not q["metrics"]:
@@ -5258,13 +5250,17 @@ def _cat_label(col: str, v: str) -> str:
     return f"FSG {v} {MOCK_FSG[v]}" if col == "FSG" else f"{v} {MOCK_FSC_NAME[v]}"
 
 
-def cat_table(df: pd.DataFrame, note: str, colors: dict | None = None) -> None:
-    """결과 표(목록형) — HS 결과 표와 같은 통계표 모양(STAT_CSS). 글자 열은 왼쪽, 숫자 열은 오른쪽 정렬."""
+def cat_table(df: pd.DataFrame, note: str = "", colors: dict | None = None, fmt: dict | None = None) -> None:
+    """결과 표(목록형) — HS 결과 표와 같은 통계표 모양(STAT_CSS). 글자 열은 왼쪽, 숫자 열은 오른쪽 정렬.
+    HTML 표라 앱 테마(다크 모드)와 상관없이 늘 흰 표로 보인다 — st.dataframe 은 캔버스라 CSS 가 닿지 않아 다크에서 검게 그려진다.
+    fmt = {열: 값 → 칸 안 HTML} — 그 열만 따로 그린다(예: 점유율 막대)."""
     flag = {c for c in df.columns if df[c].dtype == bool}
     num = {c for c in df.columns if pd.api.types.is_numeric_dtype(df[c]) and c not in flag}
 
     def cell(c, v, first):
         dot = f'<span class="dot" style="background:{colors[v]}"></span>' if first and colors and v in colors else ""
+        if fmt and c in fmt:
+            return f"<td>{fmt[c](v)}</td>"
         if c in num:
             return f"<td>{v:,.0f}</td>"
         v = ("연결" if v else "—") if c in flag else escape(str(v))
@@ -5273,7 +5269,14 @@ def cat_table(df: pd.DataFrame, note: str, colors: dict | None = None) -> None:
     body = "".join("<tr>" + "".join(cell(c, r[c], i == 0) for i, c in enumerate(df.columns)) + "</tr>"
                    for _, r in df.iterrows())
     st.html(STAT_CSS + f'<div class="st-scroll"><table class="st-tbl"><thead><tr>{head}</tr></thead>'
-            f'<tbody>{body}</tbody></table></div><div class="st-note">{note}</div>')
+            f'<tbody>{body}</tbody></table></div>' + (f'<div class="st-note">{note}</div>' if note else ""))
+
+
+def _share_bar(v: float) -> str:
+    """점유율(%) 칸 — 막대 + 숫자(예전 st.dataframe ProgressColumn 모양)."""
+    return (f'<div style="display:flex;align-items:center;gap:8px;min-width:150px">'
+            f'<span style="flex:1;height:8px;border-radius:4px;background:#eef2f9;overflow:hidden">'
+            f'<i style="display:block;height:100%;width:{v:.1f}%;background:{ACCENT}"></i></span>{v:.1f}%</div>')
 
 
 def cat_chart(by: pd.DataFrame, q: dict, units: dict, yearly: pd.DataFrame | None = None) -> None:
@@ -5421,7 +5424,7 @@ def page_info() -> None:
     for _ in zone("src", "데이터 출처"):
         st.html('<div class="lede"><div class="note">이 대시보드의 숫자가 어디서 왔고, '
                 '서로 다른 자료를 <b>어떻게 결합했는지</b> 적어 둔 곳입니다.</div></div>')
-        st.dataframe(pd.DataFrame([
+        cat_table(pd.DataFrame([
             ["관세청", "품목별 국가별 수출입실적", "OpenAPI", "2016.01~2026.08", "월 단위 갱신"],
             ["방위사업청", "국외 조달계획", "OpenAPI 15158418", "요구연도 2024~2027", "품목 단위, 건수만"],
             ["방위사업청", "국외 입찰공고 · 입찰결과", "OpenAPI", "스냅샷", "공통 고유키로 결합"],
@@ -5429,7 +5432,7 @@ def page_info() -> None:
             ["방위사업청", "군급분류집(FSG/FSC)", "파일데이터", "스냅샷", "전자 판정은 팀 확인 전 잠정"],
             ["열린재정", "국외조달 예산", "파일데이터", "2016~2026", "보조 지표로만 사용"],
             ["KOSIS", "방산 가동률 · 광공업생산지수", "OpenAPI", "2016~2026", "잠정치(p) 구간 포함"],
-        ], columns=["기관", "데이터", "형태", "기간", "비고"]), width="stretch", hide_index=True)
+        ], columns=["기관", "데이터", "형태", "기간", "비고"]))
 
     for _ in zone("match", "데이터 결합 검증"):
         # 1줄 — 입찰 공고 ↔ 결과 매칭 · 자료별 기준일
@@ -5709,7 +5712,7 @@ LNB_TIPS = {
     "domestic": [("자료", "방위사업청 국내 계약 · 입찰 실측 집계"),
                  ("건수 기준", "공고 예산 · 낙찰금액 · 계약금액이 서로 달라 금액 미사용"),
                  ("유찰률", "경쟁입찰 공고 기준")],
-    "table": [("정렬", "열 머리 클릭"),
+    "table": [("정렬", "HHI 높은 순(집중도 순)"),
               ("기간", "기간 기준 변경 → 점유율 · HHI 같은 기준으로 비교"),
               ("내려받기", "표 아래 「CSV 내려받기」")],
     "background": [("단위", "예산 · 가동률 · 생산지수 모두 기준이 다름"),
