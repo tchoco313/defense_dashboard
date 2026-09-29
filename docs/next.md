@@ -9,7 +9,7 @@
 - 회의 안건 M1~M8 결정·반영 완료(2026-09-21, `dashboard/specs/00_common.md` §8). 1만 건 요건 2종(M2) 표기를 기준 문서 전체에 통일 완료(09-22).
 - 화면 명세 `dashboard/specs/` 14개(23·35 폐기) 작성·검증 완료, 팀 저장소 `dashboard/specs/` 동기(09-22).
 - **화면(09-23~24 완료, 개인 `eae41e8` · 팀 `2fc070e` push)**: 틀 = 팀원 디자인 데모, 겉모양 = 참고 URL(Tremor · KOSIS · Datawrapper). 화면 틀은 파랑 · 하늘 · 흰색, 데이터는 검증 8색(수입 파랑 · 수출 주황), 증감 +빨강/−파랑, 결론형 차트 제목, 출처는 「?」 원, 머리띠 「자료 기준」 버튼, PNG 에 제목 · 출처, HOME 회전 지구본. **화면 · 출처 · PNG · CSV 에 DB 표 · 뷰 이름과 적재일을 쓰지 않는다**(보안 — `kdesign.public_source`). 모든 값은 RDS 에서 읽는다(반도체 참조표도 DB). 검증: 7페이지 헤드리스 예외 0 · 화면 문구 DB 이름 0건 · 제목 숫자 DB 대조 · 테스트 27개. 규칙 `dashboard/specs/01_design_system.md`, 코드 정본 `dashboard/kdesign.py`.
-- **EDA 4종 · 2차 완료(09-23)**: `11_11_eda_customs.ipynb`(관세청 — §11 EDA 2차 A1~A10 추가) · **`14_14_eda_overseas_plan.ipynb`(국외 조달계획 — 신설, B1~B8)** · `13_13_eda_localized_item.ipynb`(국산화개발품목) · `12_12_eda_contract.ipynb`(국내조달 계약 — 부록). 2차 쿼리는 `db/query_eda2_2026-09-23.sql` 18블록(노트북과 화면이 같은 SQL). 기존 검정 · 상관 절에는 「보고서 부록 — 결론 · 발표 · 화면에 쓰지 않음」 머리말. 남은 것: C1(반도체 군급 67건 분포 표) · 산출물 4 보고서로 묶기.
+- **EDA 4종 · 2차 완료(09-23)**: `11_eda_customs.ipynb`(관세청 — §11 EDA 2차 A1~A10 추가) · **`14_eda_overseas_plan.ipynb`(국외 조달계획 — 신설, B1~B8)** · `13_eda_localized_item.ipynb`(국산화개발품목) · `12_eda_contract.ipynb`(국내조달 계약 — 부록). 2차 쿼리는 `db/query_eda2_2026-09-23.sql` 18블록(노트북과 화면이 같은 SQL). 기존 검정 · 상관 절에는 「보고서 부록 — 결론 · 발표 · 화면에 쓰지 않음」 머리말. 남은 것: C1(반도체 군급 67건 분포 표) · 산출물 4 보고서로 묶기.
 
 - **09-23 조장 → 훈희 전달**: `docs/report/feedback/handoff-2026-09-23.md`(확정 결정 · 기획안 · EDA 2차 · 확인 요청 4건).
 - **09-24 조장 → 훈희 전달**: `docs/report/feedback/handoff-2026-09-24.md` — 공개 앱 × 기획서 v5 대조. 앱에 추가할 것 6건(공급국 순위 변화 · 「군용」 신고 비중 · 과천 구역 · 군별 전자 군급 비중 · 상위 3개국 비중 열 · 적용장비 상위 20), **결정 1건(적용장비 이름 싣기)**, 문구 4건.
@@ -32,7 +32,7 @@
 
 | # | 안건 | 근거 | 물어볼 것 |
 |---|---|---|---|
-| A2 | 국내 지도(35) 폐기 재확인 — 09-22에 후보로 복구됐던 것을 팀 결정으로 다시 폐기했다. `data/reference/sido_boundary.geojson` 과 `scripts/build_sido_geojson.py` 는 남겼다 | `dashboard/specs/00_common.md` §9 폐기 행 | 시도 축이 필요하면 ① 수출입 현황(20) 안의 구역으로만. GeoJSON 은 EDA 공간 시각화(`13_13_eda_localized_item.ipynb` §8)에서 쓰고 있다. **VWorld API 검토(09-22, 팀 위임 → 미채택)**: 국산화 3표에 지역 열 없음, 업체 주소 경유 연결 29%(118/407, 그것도 계약업체 소재지) → 그릴 값이 없고, VWorld 타일은 키가 URL로 공개 앱에 노출됨. 시도 축은 GeoJSON choropleth로만 |
+| A2 | 국내 지도(35) 폐기 재확인 — 09-22에 후보로 복구됐던 것을 팀 결정으로 다시 폐기했다. `data/reference/sido_boundary.geojson` 과 `scripts/build_sido_geojson.py` 는 남겼다 | `dashboard/specs/00_common.md` §9 폐기 행 | 시도 축이 필요하면 ① 수출입 현황(20) 안의 구역으로만. GeoJSON 은 EDA 공간 시각화(`13_eda_localized_item.ipynb` §8)에서 쓰고 있다. **VWorld API 검토(09-22, 팀 위임 → 미채택)**: 국산화 3표에 지역 열 없음, 업체 주소 경유 연결 29%(118/407, 그것도 계약업체 소재지) → 그릴 값이 없고, VWorld 타일은 키가 URL로 공개 앱에 노출됨. 시도 축은 GeoJSON choropleth로만 |
 
 ## 발표 자료 (중간 발표 09-22)
 

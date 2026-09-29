@@ -64,14 +64,14 @@ clean_dapa_overseas_bid_result,table,clean,국외조달 입찰결과 정제(2025
 clean_hsk_control,table,clean,"전략물자 HSK 연계표 세로형 — HSK10 × 통제번호 1개, 부·군 코드·이중용도 전자 플래그 파생",raw_hsk_control (notebooks/01_clean_customs.ipynb),HSK10 × 통제번호,"v_hsk_control_by_hs6, ref_hs_indicator",ML(군용물자) 0건 = 자료에 없음
 clean_kosis_utilization,table,clean,"방산업체 분야별 평균가동률(raw 1:1) — 숫자화, 범위 플래그",raw_kosis_utilization (notebooks/06_clean_kosis.ipynb),분야 × 연도,화면 ④,%를 금액과 합산·비율 계산 금지
 clean_kosis_production_index,table,clean,"광공업생산지수 C26 계열 월별(raw 1:1) — 코드 분리, 월 복원, 잠정·부분연도·범위 등급",raw_kosis_production_index (notebooks/06_clean_kosis.ipynb),산업 × 항목 × 월,화면 ④,지수는 금액과 합산 금지. 화면은 ★만
-clean_customs_region,table,clean,"관세청 시군구별 수출입실적 정제 — HS6 × 시군구 × 월, 건수·금액 숫자형(천 달러), 부분연도 플래그","원본 파일 raw_customs_region(load_db.py --fact, read_raw → pandas; 첫 적재는 alter_2026-09-22_raw_successors.sql)",HS6 × 시군구 × 월,"v_customs_region_gwacheon_year(화면 24 과천시 비중 KPI, M7)",금액 천 달러(fact_customs_monthly 는 달러) — 합산 금지. 수입은 납세의무자 주소지 기준이라 「군 직접 수입」이 아님
+clean_customs_region,table,clean,"관세청 시군구별 수출입실적 정제 — HS6 × 시군구 × 월, 건수·금액 숫자형(천 달러), 부분연도 플래그","원본 파일 raw_customs_region(load_db.py --fact, read_raw → pandas; 첫 적재는 alter_2026-09-22_raw_successors.sql)",HS6 × 시군구 × 월,"v_customs_region_gwacheon_year(화면 미사용 — M7 2026-09-28 화면 제외 · EDA 참고)",금액 천 달러(fact_customs_monthly 는 달러) — 합산 금지. 수입은 납세의무자 주소지 기준이라 「군 직접 수입」이 아님
 clean_dapa_defense_company,table,clean,"방산업체 지정현황 84개 정제 — 지정일 DATE, 분야 공란 NULL",원본 파일 raw_dapa_defense_company(notebooks/04_clean_domestic.ipynb §6; 첫 적재는 alter_2026-09-22_raw_successors.sql),업체 1개,"v_defense_company_sector(화면 ④ 배경), clean_company_name_link",주소·사업자번호 없음. 분야 미기재 3
 v_import_hs6_year,view,v,HS6 × 연도 × 국가 수입·수출액 합(월 수·부분연도 플래그),fact_customs_monthly,HS6 × 연도 × 국가,화면 ①,
 v_import_share_hs6_year,view,v,수입 국가 점유율·순위,v_import_hs6_year,HS6 × 연도 × 국가,화면 ①,
 v_export_share_hs6_year,view,v,수출 국가 점유율·순위,v_import_hs6_year,HS6 × 연도 × 국가,화면 ①,
 v_hhi_hs6_year,view,v,"수입 집중도 HHI = Σ(점유율×100)²(share DOUBLE 정밀), 상위 1국·점유율·수입 실적(>0) 국가 수",v_import_share_hs6_year,HS6 × 연도,"화면 ①③, v_review_list",검토 목록 정렬 기준(HHI↓)
 v_hhi_export_hs6_year,view,v,"수출 집중도 HHI(수입과 동일 정의), 수출 실적(>0) 국가 수",v_export_share_hs6_year,HS6 × 연도,화면 ①,
-v_customs_region_gwacheon_year,view,v,"과천시 소재 수입자 비중(방위사업청 소재지, 추정) — 전국 대비 과천 수입액·건수·시군구 수",clean_customs_region,HS6 × 연도,"⑤ 참고, 화면 반영은 팀 결정(M7)",「군 직접 수입 하한」 표현 금지
+v_customs_region_gwacheon_year,view,v,"과천시 소재 수입자 비중(방위사업청 소재지, 추정) — 전국 대비 과천 수입액·건수·시군구 수",clean_customs_region,HS6 × 연도,"화면 미사용(2026-09-28 M7 화면 제외) · EDA 참고",「군 직접 수입 하한」 표현 금지
 v_review_list,view,v,화이트리스트 × 연도 HHI + B1 과제 수 + B2 완료 부품 수 — 화면 ③ 검토 목록,v_hhi_hs6_year + ref_hs_whitelist + clean_krit_task + ref_category_map,HS6 × 연도,화면 ③,"B2 열은 '대응표 없음'·NULL, B1 hs6 NULL이라 b1_target_count=0 — '대응 근거 없음'으로 표기"
 v_contract_monthly,view,v,계약번호별 최초 체결월 기준 월별 건수·최종 금액(물품/용역 × class5),clean_dapa_contract,월 × 업무구분 × class5,화면 ②,class5 전행 판단 보류
 v_contract_private_reason,view,v,연도 × 계약방법 × 업무구분 × 수의계약 사유(조문 원문) × 사유 그룹 건수·금액,clean_dapa_contract,연도 × 방법 × 구분 × 사유,화면 ②,'국산화 필요 근거'라 쓰지 않는다

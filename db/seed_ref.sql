@@ -28,7 +28,8 @@ INSERT IGNORE INTO ref_sido_map (token, sido_code, sido_name) VALUES
 
 -- (ref_category_map 시드는 2026-09-21 폐기 — 카테고리 맵을 두지 않는다. db/alter_2026-09-21_drop_category_map.sql)
 
--- ref_fsg 시드 (fsg_master.csv 80행과 동일. 재실행 시 덮어씀)
+-- ref_fsg 시드 (fsg_master.csv 80행과 동일. 재실행 시 덮어씀 — 값을 DB에서만 고치면 --ref 때 되돌아가므로 이 파일도 함께 고친다)
+-- is_electronic_group = 58·59·60 (2026-09-21 M4 확정. 60은 이 파일에 반영이 늦어 09-23 --ref 때 0으로 되돌아갔던 것을 09-28 정정)
 INSERT INTO ref_fsg (fsg_code, name_en, name_ko, status, is_historical, is_electronic_group, note_ko, source_url) VALUES
   ('10', 'Weapons', '무기', 'A', 0, 0, NULL, 'https://www.dla.mil/Portals/104/Documents/InformationOperations/LogisticsInformationServices/CatalogTools%20Tables/New/ZSMT_FSG.txt'),
   ('11', 'Nuclear Ordnance', '핵 병기', 'A', 0, 0, NULL, 'https://www.dla.mil/Portals/104/Documents/InformationOperations/LogisticsInformationServices/CatalogTools%20Tables/New/ZSMT_FSG.txt'),
@@ -77,7 +78,7 @@ INSERT INTO ref_fsg (fsg_code, name_en, name_ko, status, is_historical, is_elect
   ('56', 'Construction and Building Materials', '건설 및 건축 자재', 'A', 0, 0, NULL, 'https://www.dla.mil/Portals/104/Documents/InformationOperations/LogisticsInformationServices/CatalogTools%20Tables/New/ZSMT_FSG.txt'),
   ('58', 'Communication, Detection, and Coherent Radiation Equipment', '통신·탐지 및 코히런트 방사 장비', 'A', 0, 1, NULL, 'https://www.dla.mil/Portals/104/Documents/InformationOperations/LogisticsInformationServices/CatalogTools%20Tables/New/ZSMT_FSG.txt'),
   ('59', 'Electrical and Electronic Equipment Components', '전기 및 전자 장비 구성품', 'A', 0, 1, NULL, 'https://www.dla.mil/Portals/104/Documents/InformationOperations/LogisticsInformationServices/CatalogTools%20Tables/New/ZSMT_FSG.txt'),
-  ('60', 'Fiber Optics Materials, Components, Assemblies, and Accessories', '광섬유 재료·구성품·조립품 및 부속품', 'A', 0, 0, NULL, 'https://www.dla.mil/Portals/104/Documents/InformationOperations/LogisticsInformationServices/CatalogTools%20Tables/New/ZSMT_FSG.txt'),
+  ('60', 'Fiber Optics Materials, Components, Assemblies, and Accessories', '광섬유 재료·구성품·조립품 및 부속품', 'A', 0, 1, NULL, 'https://www.dla.mil/Portals/104/Documents/InformationOperations/LogisticsInformationServices/CatalogTools%20Tables/New/ZSMT_FSG.txt'),
   ('61', 'Electric Wire, and Power and Distribution Equipment', '전선 및 전력·배전 장비', 'A', 0, 0, NULL, 'https://www.dla.mil/Portals/104/Documents/InformationOperations/LogisticsInformationServices/CatalogTools%20Tables/New/ZSMT_FSG.txt'),
   ('62', 'Lighting Fixtures and Lamps', '조명기구 및 램프', 'A', 0, 0, NULL, 'https://www.dla.mil/Portals/104/Documents/InformationOperations/LogisticsInformationServices/CatalogTools%20Tables/New/ZSMT_FSG.txt'),
   ('63', 'Alarm, Signal and Security Detection Systems', '경보·신호 및 보안탐지 시스템', 'A', 0, 0, NULL, 'https://www.dla.mil/Portals/104/Documents/InformationOperations/LogisticsInformationServices/CatalogTools%20Tables/New/ZSMT_FSG.txt'),

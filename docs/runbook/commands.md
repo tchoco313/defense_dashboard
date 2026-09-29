@@ -116,6 +116,7 @@ cmd /c '"C:\Program Files\MariaDB 12.2\bin\mariadb.exe" ... defense_dashboard < 
 | `db/alter_2026-09-21_drop_low_variance.sql` | 규칙 #13(clean_ 저분산 원본 속성 열 제외) 첫 적용: `v_overseas_bid_chain`에서 `ordering_agency` 제거 → 5표 20열 DROP(`clean_dapa_bid_notice` 10 · `clean_dapa_contract` 3 · `clean_dapa_overseas_bid_result` 4 · `clean_dapa_domestic_plan` 1 · `clean_openfiscal_program_budget` 2) + `meta_column_dict` 20행 삭제·5표 ordinal 재부여(851→831) + `meta_load_log` 5행. 행 수 불변. 적용 직전 5표 `db/dump_20260921_pre_drop.sql`(gitignore) | **2026-09-21 적용**(`apply_alter.py` 1회, 12문 전부 ok: DELETE 20 · ordinal UPDATE 118·118 · 로그 5). 실측 열 수 28/38/17/16/19 · `meta_column_dict` 831(ordinal 빈틈 0) · `v_overseas_bid_chain` 1,362행 · 5표 행 수 불변 · 표 56/뷰 31. DROP COLUMN 은 재실행 시 1091 오류가 정상이라 `--twice` 안 씀. 카탈로그 재생성(사전 누락 0·RDS 누락 0) |
 | `db/alter_2026-09-20_meta_dataset_sha.sql` | `meta_dataset` UPDATE 3문(표·뷰 변경 없음): `customs_progress` sha256·file_bytes를 현행 264행 파일 값으로, `ref_hs_whitelist` sha256을 현행 17열 파일 값으로, `krit_task` sha256 NULL(다중 파일)·note. 근거 `file-cleanup-audit-2026-09-20.md` §2·§5 | **2026-09-20 적용 완료**(사용자 실행 `apply_alter.py`, 5문 exit 0, UPDATE 3문 각 rows=1). DBHub 실측: customs_progress 8,538/`fc1d199e…`, ref_hs_whitelist 14,363/`47ca912f…`, krit_task sha256 NULL |
 | `db/alter_2026-09-23_semi_ref.sql` | 국방반도체 발전전략 참조표 7개 신설(`ref_semi_chip_type`·`_domestic_case`·`_market_share`·`_policy_timeline`·`_public_fab`·`_strategy_task`·`_stat`) + 열 사전 58행 + `meta_dataset` `semi_strategy`. 원본 `data/reference/semi_*.csv`(수작업, 발전전략 PDF·보도자료). 적재는 `load_db.py --ref`(`SEMI_REF`, 빈 표만). ⓪ 반도체 구역이 CSV 직독 대신 DB 를 읽게 한 팀 결정(2026-09-23) | **2026-09-23 적용**(admin, `--twice` 13문 × 2회 exit 0, 2회째 Note 1050·경고 1287·1681뿐). `--ref` 적재 7·13·16·12·14·12·2 = 76행 전부 기대 일치. `meta_column_dict` 916 = `db/column_dict.csv` 916, `gen_table_catalog.py` 사전 누락 0 · RDS 누락 0, BASE TABLE 44 · 뷰 31 |
+| `db/alter_2026-09-28_qa_fsg60_excluded.sql` | 최종 QA 수정협의안 D-01·D-03(DDL 없음): ① `ref_fsg` 60 `is_electronic_group` 0→1(09-23 `--ref`가 옛 시드 값으로 되돌린 것 — `seed_ref.sql` 60 행도 1로 정정) ② `clean_excluded_row`에 A7 조달계획 6행(필수값 결측 768 `OTHER` + 중복 판단번호 비대표 5행 `KEY_CONFLICT`). clean·뷰 값 불변. `02_clean_localized_overseas_plan.ipynb` §4에 같은 기록 규칙 | **2026-09-28 적용**(etl — admin 접속 거부, `apply_alter.apply` 2회 exit 0, 2회째 0행·경고 1062뿐). ①은 팀원이 먼저 DB만 고쳐 두어 0행(시드는 이 alter에서 정정). 실측: FSG↔FSC 플래그 불일치 0, 원본 3,029 = clean 3,023 + 제외 6 |
 
 ```powershell
 $env:MYSQL_PWD = "<MARIADB_PASSWORD>"
@@ -157,6 +158,7 @@ python scripts/load_db.py --verify           # DB 건수 대조표(ref·meta·di
 ```
 
 - 순서: `--ref` → `--fact` → 정제 노트북(§6). **원본은 DB에 넣지 않는다**(2026-09-22 교수 피드백, `docs/report/feedback/professor-feedback-2026-09-22.md`) — `RAW_TABLES`는 원본 파일 데이터셋 23종의 파일·인코딩·기대 건수 명세이고 `read_raw(<키>)`가 파일을 DataFrame 으로 읽어 파서 순번 `row_id`를 붙인다(`clean_*.raw_row_id`의 정의). `meta_load_log`의 `원본 전체` 단계는 노트북·`--fact`가 `log_raw_stage`로 기록한다(`meta_dataset`에 키가 있어야 함).
+- `--ref`의 `db/seed_ref.sql`은 DB 값을 덮어쓰므로(ref_fsg), **시드와 DB가 다르면 시드를 건너뛰고 차이를 출력**한다. DB 값이 맞으면 시드를 고쳐 커밋하고, 시드가 맞으면 `--seed-overwrite`를 붙인다(`data-cleaning-rules.md` §1 #14). 적재 뒤에는 `python scripts/check_integrity.py`(§11)로 FAIL 0을 확인한다.
 - ~~`raw_hsk_control`(2026-09-16 등록, **미확보**)~~ → **확보·적재 완료(2026-09-16 밤, 2,161행 — 다음 항목)**. 당시 절차(기록용): 사용자가 data.go.kr `15034135` CSV를 `data/raw/kosti/hsk_control_15034135.csv`에 두고 `db/meta_dataset.csv`에 `kosti_hsk_control` 행(제공기관 무역안보관리원, `acquired_on`·`raw_row_count` 필수)을 추가한 뒤 `--raw --tables raw_hsk_control`. 인코딩(잠정 utf-8)·헤더(잠정 `품목번호`·`품명(국문)`·`품명(영문)`·`통제번호`)가 다르면 `RAW_TABLES`·`column_dict.csv`를 맞춘다.
 - `raw_hs_code_master`·`raw_hs_unit_name`·`raw_hsk_control`(HS6 선정 규칙 원본 — `hs-whitelist-definition.md` §8): 2026-09-16 `data/raw/customs/`·`data/raw/kosti/`에 배치하고 팀 서버 적재 완료(12,469 / 17,072 / 2,161). XLSX는 `pandas.read_excel(openpyxl)`, 단위별 품목명은 5시트를 `special='hs_unit'`이 세로로 합친다. `raw_hsk_control.control_no`는 쉼표 목록(최대 1,218자)이라 TEXT. **주의**: `--ref`는 비어 있지 않은 `meta_dataset`을 건너뛰므로 새 dataset_key 행은 `INSERT`로 따로 넣어야 `meta_load_log`가 기록된다(09-16에는 pymysql로 직접 삽입).
 - 관세청 HS6 **추가 수집·추가 적재**(2026-09-16 신규 852910·901410·901490): `python scripts/fetch_customs.py --all-countries --hs <신규>`(HS6당 11호출) 뒤, 팀 서버처럼 이미 적재된 DB에는 TRUNCATE 재적재 대신 신규 파일만 `raw_customs_trade`에 넣고 `DIM_SQL`·`FACT_SQL`을 `LEFT(hs_cd,6) IN (<신규>)`로 한정해 실행한다(09-16 실행 기록: raw +25,511 · progress +33 · dim +14 · fact +25,478 → 294,420 / 264 / 211 / 294,174). 그 다음 `db/alter_2026-09-16_indicator.sql` 재실행으로 지표·`civil_mix` 갱신. `load_db.py` 기대치는 24개 기준(294,420 / 264 / 294,174 / 2025 26,211)으로 바뀌었다.
@@ -244,6 +246,15 @@ claude mcp get jupyter      # Status: Connected 확인. 안 붙으면 Claude Cod
 python scripts/contract_name_tokens.py --top 300 --min-df 2 --out tokens.md     # 상위 300, 바이그램 문서 빈도 2 이상, 파일로도 저장
 python scripts/contract_name_tokens.py --keep-verbs                            # 행위·수량어(구매·용역·등…)를 메인 표에 남김
 python scripts/contract_name_tokens.py --rules data/reference/contract_class5_rules.csv   # 팀원 규칙표 pattern 커버리지: 규칙별 걸린 토큰 수·원문 걸린 행 수(단독 대조), 분류 충돌 토큰, 안 걸리는 토큰(파일 없으면 경고 1줄)
+```
+
+### 정합성 점검 (`scripts/check_integrity.py`, 2026-09-28)
+
+DB 수정협의안(`docs/report/data/db-qa-response-2026-09-28.md`) 유형의 재발을 잡는 읽기 전용 점검(etl_rw SELECT만). FAIL이 있으면 종료 코드 1. ① **seed** — `db/seed_ref.sql`·`data/reference/*.csv`·`db/column_dict.csv` ↔ DB 값(키별 누락·값 차이) ② **balance** — 원본(`RAW_TABLES.expected`) = clean + 제외(`clean_excluded_row`). 방식은 표마다 `BALANCE`(행 1:1 / `raw_row_id` 고유 / `dup_count`), 검산하지 않는 파생 표는 `BALANCE_SKIP`에 이유와 함께. **새 clean_ 표를 만들면 둘 중 하나에 등록**(미등록 = FAIL) ③ **flag** — `ref_fsg` 전자 군급 = 58·59·60, `ref_fsc`·clean 3표 플래그 일치. 2026-09-28 실측 FAIL 0 · PASS 34 · SKIP 5. 돌리는 때: alter 적용·`load_db.py --ref`·노트북 적재 직후, 제출 전.
+
+```bash
+python scripts/check_integrity.py                 # 전부(수 초)
+python scripts/check_integrity.py --only seed     # seed / balance / flag 중 골라서
 ```
 
 ### 테이블 카탈로그 생성 (`scripts/gen_table_catalog.py`, 2026-09-20)

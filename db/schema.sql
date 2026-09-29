@@ -1367,6 +1367,8 @@ LEFT JOIN ref_hs_rule_flag f
 --     의미 변경(§7-24⑤ 해소): ① 모집단을 숫자13 NSN(9,970)에서 clean nsn 전체(숫자13 9,970 + 영숫자13 3,266 = 13,236)로 넓힌다 — P3 정제가 NCB 37 영숫자 NSN 을 유효로 확정.
 --     ② is_electronic_group = is_elec(fsg2 58·59·60, 종전 58·59) → 전자군 품목 1,819→2,267 기대. ③ army_name = army_std(군 표준값, 종전 원문 부대명).
 --     ④ 적용장비 집계는 is_equipment_missing=0(공란·'*' 제외, 종전과 같은 규칙). 금액은 통화 미검증이라 뷰에 넣지 않는다(건수만). 파일판과 합산 금지.
+--     화면 미사용 — 화면(dashboard/pages/3_조달_국산화_근거.py)은 clean_dapa_overseas_plan_api 를 직접 읽고, 군별 전자 비중 분모는
+--     「FSG 판별 가능 − FSC 9999」 13,017(2026-09-24). 이 뷰의 모집단(NSN 있음 13,236)과 다르다(data-cleaning-rules.md §1 #16).
 CREATE OR REPLACE VIEW v_overseas_plan_api_fsc AS
 SELECT a.fsc4,
        a.fsg2                                                       AS fsg_code,

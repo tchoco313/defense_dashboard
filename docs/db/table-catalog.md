@@ -1,4 +1,4 @@
-# 테이블 카탈로그 — 역할·키·주요 열 (RDS `defense_dashboard` 실측 2026-09-23)
+# 테이블 카탈로그 — 역할·키·주요 열 (RDS `defense_dashboard` 실측 2026-09-28)
 
 `scripts/gen_table_catalog.py`가 `db/table_dict.csv`(역할·원천·한 행·쓰는 곳·주의) + `db/column_dict.csv`(열 설명) + RDS(행 수·PK·뷰 열)로 만든다. **손으로 고치지 말고 두 CSV를 고친 뒤 재생성.** 테이블 44 · 뷰 31 · 원본 파일 데이터셋 23(DB 밖). 화면↔테이블 대응·SQL 예시는 `docs/db/table-guide.md`, DDL은 `db/schema.sql`.
 
@@ -1041,7 +1041,7 @@
 
 - **역할**: 관세청 시군구별 수출입실적 정제 — HS6 × 시군구 × 월, 건수·금액 숫자형(천 달러), 부분연도 플래그
 - **원천**: 원본 파일 raw_customs_region(load_db.py --fact, read_raw → pandas; 첫 적재는 alter_2026-09-22_raw_successors.sql) · **한 행**: HS6 × 시군구 × 월 · **PK**: `hs6,sgg_name,yyyymm` · **행 수**: 273,586
-- **쓰는 곳**: v_customs_region_gwacheon_year(화면 24 과천시 비중 KPI, M7)
+- **쓰는 곳**: v_customs_region_gwacheon_year(화면 미사용 — M7 2026-09-28 화면 제외 · EDA 참고)
 - **주의**: 금액 천 달러(fact_customs_monthly 는 달러) — 합산 금지. 수입은 납세의무자 주소지 기준이라 「군 직접 수입」이 아님
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -1784,7 +1784,7 @@
 
 - **역할**: 과천시 소재 수입자 비중(방위사업청 소재지, 추정) — 전국 대비 과천 수입액·건수·시군구 수
 - **원천**: clean_customs_region · **한 행**: HS6 × 연도 · **PK**: `없음(뷰)` · **행 수**: 246
-- **쓰는 곳**: ⑤ 참고, 화면 반영은 팀 결정(M7)
+- **쓰는 곳**: 화면 미사용(2026-09-28 M7 화면 제외) · EDA 참고
 - **주의**: 「군 직접 수입 하한」 표현 금지
 
 | 열 | 타입 |

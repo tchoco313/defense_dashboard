@@ -13,6 +13,7 @@ clean_ 계층은 다루지 않는다(정제 규칙은 노트북 영역, notebook
   python scripts/load_db.py --dry-run                 # 원본 파일 파싱·헤더 대조·건수만 (DB 접속 없음)
   python scripts/load_db.py --dry-run --tables raw_dapa_contract raw_krit_task
   python scripts/load_db.py --ref                     # ref_hs_whitelist·ref_country·meta_column_dict·meta_dataset + db/seed_ref.sql
+                                                      #   (시드가 DB와 다르면 시드는 건너뛰고 차이를 출력 — 덮어쓰려면 --seed-overwrite)
   python scripts/load_db.py --fact                    # dim_hs10·fact_customs_monthly 를 관세청 원본 파일에서 pandas 로 만들어 적재
   python scripts/load_db.py --verify                  # 건수 대조표만 출력
 
@@ -445,7 +446,7 @@ def do_dry_run(tables: list[str]):
     return ok
 
 
-def do_ref(conn):
+def do_ref(conn, seed_overwrite: bool = False):
     cur = conn.cursor()
     user = current_user(cur)
     # ref_hs_whitelist (hs_code → hs6, b2_scope 는 NULL 유지)
@@ -473,7 +474,16 @@ def do_ref(conn):
         exp = REF_EXPECTED.get(table)
         print(f"  {table}: {n:,}행 적재" + (f" (기대 {exp}: {'일치' if exp == n else '불일치'})" if exp else ""))
     # 수작업 시드 (ref_sido_map · ref_fsg) — ref_category_map 시드는 2026-09-21 폐기
-    if SEED_SQL.exists():
+    # 시드는 DB 값을 덮어쓰므로(ref_fsg ON DUPLICATE KEY UPDATE) 먼저 대조하고, 다르면 멈춘다 — DB에서만 고친 FSG 60 플래그가
+    # 09-23 --ref 로 0으로 되돌아간 사고(2026-09-28 QA D-01, data-cleaning-rules.md §1 #14) 재발 방지
+    from check_integrity import seed_drift   # 함수 안에서 import(check_integrity 가 이 모듈을 import 한다)
+    drift = seed_drift(cur) if SEED_SQL.exists() else []
+    if drift and not seed_overwrite:
+        print(f"  seed_ref.sql: 건너뜀 — 시드와 DB가 {len(drift)}곳 다르다(실행하면 DB 값이 시드 값으로 바뀌거나 지운 행이 되살아난다)")
+        for line in drift[:20]:
+            print(f"    {line}")
+        print("    → DB 값이 맞으면 db/seed_ref.sql 을 고쳐 커밋하고, 시드가 맞으면 --seed-overwrite 를 붙여 다시 실행")
+    elif SEED_SQL.exists():
         # 주석 행을 먼저 걷어낸 뒤 ";\n" 로 문장을 나눈다(문자열 안의 ';' 는 줄 끝에 오지 않는다)
         body_all = "\n".join(l for l in SEED_SQL.read_text(encoding="utf-8").splitlines() if not l.strip().startswith("--"))
         stmts = [s.strip() for s in body_all.split(";\n") if s.strip()]
@@ -658,6 +668,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--ref", action="store_true")
+    ap.add_argument("--seed-overwrite", action="store_true", help="--ref 에서 seed_ref.sql 과 DB 가 달라도 시드를 실행(시드 값으로 덮어씀)")
     ap.add_argument("--fact", action="store_true")
     ap.add_argument("--verify", action="store_true")
     ap.add_argument("--tables", nargs="*", default=None, help="--dry-run 대상 원본 데이터셋 키(RAW_TABLES, 생략 시 전부)")
@@ -677,7 +688,7 @@ def main():
         try:
             if a.ref:
                 print("[ref/meta]")
-                do_ref(conn)
+                do_ref(conn, a.seed_overwrite)
             if a.fact:
                 print("[dim/fact]")
                 rc |= 0 if do_fact(conn) else 1
