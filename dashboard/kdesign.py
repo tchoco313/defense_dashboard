@@ -1,8 +1,8 @@
-"""화면 디자인 — 틀은 팀원 디자인 데모(tchoco313/defense_dashboard `dashboard/demo/design_demo.py`), 겉모양은 UI/UX 참고 URL.
+"""화면 디자인 — 본문 부품(블록 · 카드 · KPI · 차트 · 지구본 · 도넛 · 지도 · 표). 화면 틀(머리글 · 메뉴 · 배너 · 바닥글)은 frame.py.
 
-데모에서 가져온 것: 사이드바 메뉴 · 머리띠 · 알약 태그 구역 · 카드 배치 · 조회 화면(조건 패널 | 결과 탭) · 세계지도 · 도넛 컴포넌트.
-참고 URL 로 바꾼 것(dashboard/specs/01_design_system.md): Tremor 카드 · KPI · 밑줄 탭, KOSIS 차트 유형 타일, Datawrapper 차트 제목 · 격자 · 출처 줄.
-전체 색은 파랑 · 하늘 · 흰색. 그라데이션 · 애니메이션 · 이모지 아이콘은 쓰지 않는다(흔한 AI 대시보드처럼 보이지 않게).
+디자인은 동현님 새 디자인(dashboard/demo/K-Defense_brandnew.py, 2026-09-28 팀 결정 「디자인 그대로」)을 따른다 — 블록은 테두리 없이 제목 줄(.sec-h),
+카드는 둥근 모서리 · 그림자 · hover, KPI 는 아이콘 배지 · 가운데 큰 숫자, 카드 제목은 왼쪽 파란 막대, 탭은 폴더형, 차트는 등장 연출.
+규칙 문서는 dashboard/specs/01_design_system.md.
 화면 숫자는 각 페이지가 RDS 에서 읽어 인자로 넘긴다. 이 모듈은 import 만으로 그리지 않는다 — CSS 는 inject() 로 넣는다.
 """
 from __future__ import annotations
@@ -17,23 +17,24 @@ import plotly.graph_objects as go
 import streamlit as st
 import streamlit.components.v1 as components
 
+from frame import LABEL_KEY
+
 # ════════════════════════════════════════════════════════════════════════════
 # 1. 색 토큰 · CSS
-#    틀(사이드바 · 머리띠 · 구역 · 카드 배치)은 데모, 겉모양은 UI/UX 참고 URL 을 따른다(dashboard/specs/01_design_system.md):
-#    Tremor = 흰 카드 · 얇은 테두리 · 작은 라벨 + 큰 숫자 · 증감 알약 배지 · 밑줄 탭 · 가는 행 구분선 · 강조색 파랑 하나,
-#    KOSIS = 차트 유형 타일(그림 위 · 이름 아래), Datawrapper = 결론형 제목(핵심 구절만 색) · 옅은 가로 격자 · 아래 출처 한 줄.
-#    전체 색은 파랑 · 하늘 · 흰색(2026-09-23 사용자). 그라데이션 · 그림자 들썩임 · 애니메이션 · 이모지 아이콘은 쓰지 않는다.
+#    동현님 새 디자인(dashboard/demo/K-Defense_brandnew.py, 2026-09-28 팀 결정 「디자인 그대로」)의 토큰 · 카드 · KPI · 표 · 탭 · 차트 연출을 따른다.
+#    데모와 다르게 둔 것: 글씨 하한 13px 안팎(데모는 화면 1.1배 확대로 크게 보였다 — 운영 앱은 확대를 끄고 글씨를 키웠다),
+#    카드 제목 아래 단위 · 기간 줄은 ⓘ 말풍선에 숨기지 않고 보인다(해석 경계), 증감은 오르면 빨강 · 내리면 파랑(2026-09-24 사용자).
 # ════════════════════════════════════════════════════════════════════════════
-BG, PANEL, PANEL2, LINE = "#edf4fc", "#ffffff", "#eef5fc", "#dbe5f1"   # BG = 옅은 하늘(흰 카드가 도드라지게), 카드 = 흰색
-TEXT, MUTED, ACCENT = "#0f1f3a", "#5b6b82", "#1d4ed8"                  # ACCENT = 대표 파랑
-SKY, SKY_WEAK = "#38bdf8", "#e6f3fd"                                  # 하늘(보조 강조) · 옅은 하늘(선택 배경)
-NAVY, NAVY2 = "#163c8c", "#163c8c"                                    # 사이드바 — 평면 파랑(그라데이션 없음)
-UP, DOWN = "#c42b21", "#1d4ed8"                                       # 증감 — 오르면 빨강 · 내리면 파랑(2026-09-24 사용자). 옅은 배지 바탕 위 대비 4.5:1 이상
-# 데이터 범주색 — 화면 틀(파랑 · 하늘 · 흰색)과 따로, 서로 잘 구분되는 8색을 고정 순서로 쓴다(dataviz 검증 팔레트).
-# 검증 2026-09-23(흰 바탕): 색맹 인접 ΔE 9.1 ≥ 8 · 일반 시각 19.6 ≥ 15 통과. 청록 · 노랑 · 분홍은 대비 3:1 미만 → 범례 · 값 라벨 · 표와 함께 쓴다.
-# 9번째부터는 새 색을 만들지 않고 기타(ETC)로 묶는다. 크기(연속값)는 파랑 한 계열의 진하기로(히트맵 · HHI 등급 · 지도 구간).
-SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
-ETC = "#b8c2cf"
+BG, PANEL, PANEL2, LINE = "#eef3fb", "#ffffff", "#eef2f9", "#dde5f2"   # BG = 옅은 파랑(탭 · 선택 배경 등 보조), 페이지 바탕은 흰색(frame.py), 카드 = 흰색
+TEXT, MUTED, ACCENT = "#16233f", "#6b7a99", "#2b6ef6"                  # ACCENT = 대표 파랑(데모)
+SKY, SKY_WEAK = "#38bdf8", "#eaf1ff"                                  # 하늘(보조 강조) · 옅은 파랑(선택 배경)
+NAVY, NAVY2 = "#003899", "#003899"                                    # 짙은 파랑(머리글 · 펼침 메뉴와 같은 색)
+UP, DOWN = "#d92d20", "#1f5fe0"                                       # 증감 — 오르면 빨강 · 내리면 파랑(2026-09-24 사용자). 흰 바탕 글자 대비 4.5:1 이상
+# 데이터 범주색 — 데모 팔레트(파랑 · 청록 · 주황 · 보라 · 분홍 · 하늘)에 데모 조회 화면의 추가색(연두)과 남색을 더해 8색.
+# 순서는 파랑 · 주황 · 청록 먼저(페이지가 번호로 고른 색 — 군급 · 소요군 · 계열 — 의 이름이 명세와 그대로 맞게).
+# 9번째부터는 새 색을 만들지 않고 기타(ETC)로 묶는다. 청록 · 연두 · 하늘은 흰 바탕 대비가 낮아 범례 · 값 라벨 · 표와 함께 쓴다.
+SERIES = ["#2b6ef6", "#ff9f43", "#17c8b5", "#7c6cf0", "#ff6b9a", "#38bdf8", "#84cc16", "#1e3a8a"]
+ETC = "#c3cede"
 
 # 외부 CDN 스크립트(d3 · topojson · world-atlas · plotly.js)는 정확한 버전 + 무결성 해시(SRI)로 고정한다 — CDN 변조 시 실행되지 않게.
 # 버전을 올릴 때는 새 파일의 sha384 를 다시 계산해 integrity 를 함께 바꾼다(2026-09-24 보안 감사).
@@ -62,79 +63,39 @@ ZOOM_CSS = "" if APP_ZOOM == 1 else (
 
 CSS = f"""<style>
 {_FONTS}{ZOOM_CSS}
-html,body{{background:{BG}}}
 :root{{
   --bg:{BG}; --panel:{PANEL}; --panel2:{PANEL2}; --line:{LINE};
   --text:{TEXT}; --muted:{MUTED}; --accent:{ACCENT}; --sky:{SKY}; --sky-weak:{SKY_WEAK}; --navy:{NAVY}; --navy2:{NAVY2};
   --up:{UP}; --down:{DOWN};
-  --shadow:0 1px 2px rgba(15,31,58,.05);
-  --shadow-h:0 1px 2px rgba(15,31,58,.05);
+  --shadow:0 1px 2px rgba(19,42,84,.06), 0 6px 18px rgba(19,42,84,.06);
+  --shadow-h:0 2px 4px rgba(19,42,84,.08), 0 14px 32px rgba(19,42,84,.12);
 }}
 html, body, [class*="st-"]{{font-family:{SIDE_STACK}}}
 [data-testid="stIconMaterial"]{{font-family:'Material Symbols Rounded'!important}}
 .material-symbols-rounded{{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;font-size:21.5px;line-height:1;
   letter-spacing:normal;text-transform:none;white-space:nowrap;direction:ltr;-webkit-font-smoothing:antialiased}}
-/* 헤더는 투명하게 두고 메뉴 · 툴바만 숨긴다(사이드바 열기 버튼은 남긴다) */
-[data-testid="stHeader"]{{background:transparent;height:0;pointer-events:none}}
-[data-testid="stToolbar"]{{pointer-events:none}}   /* 보이지 않는 도구 막대가 머리띠 오른쪽 위 「자료 기준」 버튼 클릭을 가로채지 않게 */
-[data-testid="stToolbar"] > *:not(:has([data-testid="stExpandSidebarButton"])),
-[data-testid="stDecoration"],[data-testid="stStatusWidget"],[data-testid="stMainMenu"],
-[data-testid="stToolbarActions"],[data-testid="stAppDeployButton"]{{display:none!important}}
-[data-testid="stExpandSidebarButton"],
-[data-testid="stSidebarCollapseButton"] button{{width:36px;height:36px;min-height:0;padding:0;border:none;border-radius:8px;
-  display:grid;place-items:center;background:transparent}}
-[data-testid="stExpandSidebarButton"]{{position:fixed!important;left:10px;top:16px;margin:0;z-index:999991;pointer-events:auto;
-  background:{NAVY}}}
-[data-testid="stExpandSidebarButton"] [data-testid="stIconMaterial"],
-[data-testid="stSidebarCollapseButton"] [data-testid="stIconMaterial"]{{color:#dbe7fb}}
-[data-testid="stSidebarCollapseButton"],
-[data-testid="stSidebarCollapseButton"] button{{visibility:visible!important}}
-[data-testid="stSidebarCollapseButton"]{{display:block!important;position:absolute;right:10px;top:16px;margin:0;z-index:2}}
-[data-testid="stAppViewContainer"]{{background:var(--bg)}}
-.block-container{{padding:0 34px 40px;max-width:1500px}}
+/* 바탕 · Streamlit 기본 머리 띠 · 사이드바 숨김 · 본문 폭은 화면 틀(frame.py) CSS 에 있다 */
 
-/* ── 사이드바(데모 틀 · 평면 파랑) ─────────────────────────────────────── */
-[data-testid="stSidebar"]{{background:var(--navy);border-right:none;width:240px!important}}
-[data-testid="stSidebar"] > div{{padding-top:0}}
-[data-testid="stSidebarContent"]{{padding:0}}
-[data-testid="stSidebarNav"]{{display:none}}
-.st-key-sidebrand{{padding:18px 20px 16px;border-bottom:1px solid rgba(255,255,255,.12)}}
-.sb-brand b{{display:block;font-size:19px;font-weight:700;letter-spacing:-.3px;color:#fff;line-height:1.25}}
-.sb-brand small{{display:block;font-size:13px;color:#b8cdf0;line-height:1.5;margin-top:4px}}
-.st-key-sidenav{{padding:12px 10px 0}}
-.st-key-sidenav [data-testid="stVerticalBlock"]{{gap:2px}}
-.st-key-sidenav [data-testid="stPageLink"] a{{padding:8px 12px;border-radius:8px;background:transparent}}
-.st-key-sidenav [data-testid="stPageLink"] a:hover{{background:rgba(255,255,255,.08)}}
-.st-key-sidenav [data-testid="stPageLink"] a p{{font-size:15.5px;font-weight:500;color:#dbe7fb;white-space:nowrap}}
-.st-key-sidenav [data-testid="stPageLink"] a [data-testid="stIconMaterial"]{{color:#9fbbe8}}
-.st-key-nav_cur [data-testid="stPageLink"] a{{background:#fff!important;pointer-events:none}}   /* 현재 페이지 = 흰 바탕 · 다시 누르지 않게 */
-.st-key-nav_cur [data-testid="stPageLink"] a p{{color:{NAVY}!important;font-weight:600}}
-.st-key-nav_cur [data-testid="stPageLink"] a [data-testid="stIconMaterial"]{{color:{ACCENT}!important}}
-.st-key-sidefoot{{padding:22px 20px 16px;margin-top:8px}}
-.sb-note{{font-size:13.5px;color:#b8cdf0;line-height:1.6}}
-.sb-ver{{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.12);font-size:12.5px;color:#9fbbe8;line-height:1.6}}
+/* ── 한글 줄바꿈 — 단어 중간에서 끊지 않는다(「수출입 현 / 황」 「대 / 만」). 넘치는 긴 낱말만 끊는다 ── */
+[data-testid="stMain"]{{word-break:keep-all;overflow-wrap:break-word}}
 
-/* ── 머리띠(데모 hero 자리 · 평면 옅은 하늘) ───────────────────────────── */
-.st-key-hero{{margin:14px 0 6px;padding:0}}
-.hero{{display:flex;align-items:flex-start;justify-content:space-between;gap:28px;padding:22px 26px 20px;background:#1e4fa8;border-radius:12px}}
-.hero .ht{{flex:1 1 0;min-width:0}}
-.hero h1{{margin:0;font-size:27px;font-weight:700;letter-spacing:-.5px;color:#ffffff;line-height:1.3}}
-.hero p{{margin:7px 0 0;font-size:14.5px;color:#d6e6fb;line-height:1.55}}
-.hero .slogan{{flex:0 0 auto;text-align:right;padding-left:22px;border-left:1px solid rgba(255,255,255,.28)}}
-.hero .slogan b{{display:block;font-size:14px;font-weight:600;color:#ffffff;line-height:1.5}}
-.hero .slogan small{{display:block;margin-top:5px;font-size:13px;color:#b9d2f3;line-height:1.5}}
-.hero .slogan .k{{margin:0 0 3px;font-size:12px;color:#b9d2f3}}
-.hero .slogan .row{{display:block;font-size:13.5px;line-height:1.6;color:#ffffff;font-weight:600;white-space:nowrap}}
-.hero .slogan .row em{{font-style:normal;font-weight:400;color:#cfe0f7;margin-right:6px}}
-/* 자료 기준 — 머리띠 오른쪽 알약 버튼, 누르면 아래로 흰 카드(출처 「?」와 같은 방식) */
+/* ── 경로 줄(hero) — 서브 배너 아래 본문 맨 위: 왼쪽 「자료 기준」 · 오른쪽 ⌂ › 페이지 ───────────── */
+.st-key-hero{{margin:0;padding:0}}
+.crumb-row{{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0 4px}}
+.crumb{{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:13px;color:#6b7a99;white-space:nowrap}}
+.crumb .ms{{font-family:'Material Symbols Rounded'!important;font-size:17px;line-height:1;color:#6b7a99;font-variation-settings:'FILL' 1}}
+.crumb i{{font-style:normal;color:#b3bdcf;font-size:11px}}
+.crumb b{{color:#1b2540;font-weight:700}}
+/* 자료 기준 — 경로 줄 왼쪽 알약 버튼, 누르면 아래로 흰 카드(출처 「?」와 같은 방식) */
 details.basis{{flex:0 0 auto;width:max-content;position:relative;align-self:flex-start}}
 details.basis > summary{{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:6px 13px;
-  border:1px solid rgba(255,255,255,.5);border-radius:999px;color:#fff;font-size:13.5px;font-weight:600;user-select:none;white-space:nowrap}}
+  border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--text);font-size:13.5px;font-weight:600;user-select:none;white-space:nowrap;
+  box-shadow:var(--shadow)}}
 details.basis > summary::-webkit-details-marker{{display:none}}
 /* 달력 아이콘 = CSS 배경 SVG(st.html 은 svg 태그를 걸러 낸다 · 이 CSS 안에 꺾쇠 태그 글자를 쓰면 블록 전체가 버려진다) — 글꼴 아이콘이 아니라 페이지를 옮길 때 「calendar_month」 글자가 번쩍이지 않는다 */
-details.basis > summary .cal{{display:inline-block;flex:none;width:17px;height:17px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23cfe0f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M16 3v4M8 3v4M3 10h18'/%3E%3C/svg%3E") center/contain no-repeat}}
-details.basis > summary:hover,details.basis[open] > summary{{background:rgba(255,255,255,.16)}}
-details.basis .basis-pop{{position:absolute;right:0;top:calc(100% + 8px);z-index:50;min-width:300px;background:#fff;
+details.basis > summary .cal{{display:inline-block;flex:none;width:17px;height:17px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232b6ef6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M16 3v4M8 3v4M3 10h18'/%3E%3C/svg%3E") center/contain no-repeat}}
+details.basis > summary:hover,details.basis[open] > summary{{background:#f3f6fb;border-color:#b9c7dd}}
+details.basis .basis-pop{{position:absolute;left:0;top:calc(100% + 8px);z-index:50;min-width:300px;background:#fff;
   border:1px solid var(--line);border-radius:10px;padding:12px 16px;box-shadow:0 6px 18px rgba(15,31,58,.14);text-align:left}}
 .basis-pop .bt{{font-size:12px;color:var(--muted);margin-bottom:6px}}
 .basis-pop .row{{display:flex;justify-content:space-between;gap:18px;font-size:13.5px;line-height:1.75;color:var(--text);font-weight:600;white-space:nowrap}}
@@ -147,105 +108,137 @@ details.basis .basis-pop{{position:absolute;right:0;top:calc(100% + 8px);z-index
 .demo-bar b{{font-size:14px;font-weight:700;color:#0f2a5c}}
 .demo-bar span{{font-size:13px;color:var(--muted);line-height:1.5}}
 
-/* ── 구역(데모 알약 태그 · 평면) ───────────────────────────────────────── */
-div[class*="st-key-zone_"]{{position:relative;border:1px solid var(--line);border-radius:12px;background:#fff;
-  padding:30px 16px 16px;margin:16px 0 18px}}
-div[class*="st-key-zone_"]::before{{position:absolute;top:-11px;left:16px;z-index:1;background:var(--accent);color:#fff;
-  font-size:13.5px;font-weight:600;letter-spacing:-.1px;padding:3px 11px;border-radius:999px}}
+/* ── 블록 — 한 페이지에 차례로 이어진다. 테두리 · 이름표 대신 블록마다 제목 줄(.sec-h, 새 디자인) ─────────── */
+div[class*="st-key-zone_"]{{border:none;border-radius:0;background:transparent;padding:0;margin:4px 0 52px;scroll-margin-top:22px}}
+.sec-h{{display:flex;align-items:baseline;gap:12px;margin:0 0 4px;padding-bottom:14px;border-bottom:2px solid #1b2540}}
+.sec-h h2{{margin:0;padding:0;font-size:25px;font-weight:800;letter-spacing:-.7px;color:#101a33;line-height:1.3}}
 
-/* ── 카드(Tremor) ─────────────────────────────────────────────────────── */
-.card{{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:15px 17px;height:100%;box-shadow:var(--shadow)}}
+/* ── 카드(새 디자인) — 둥근 14px · 옅은 그림자 · 커서를 올리면 살짝 떠오른다 ─────────────────── */
+.card{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;height:100%;
+  box-shadow:var(--shadow);transition:box-shadow .2s ease,transform .2s ease}}
+.card:hover{{box-shadow:var(--shadow-h);transform:translateY(-2px)}}
 [data-testid="stVerticalBlockBorderWrapper"]:has(> div > [class*="st-key-card_"]),
-div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)!important;border-radius:10px;box-shadow:var(--shadow)}}
-/* 같은 줄 카드 높이 맞추기(Tremor 격자) — 열은 이미 줄 높이만큼 늘어나 있으므로, 열의 마지막 카드가 남은 높이를 채운다 */
+div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)!important;border-radius:14px;box-shadow:var(--shadow)}}
+/* 같은 줄 카드 높이 맞추기 — 열은 이미 줄 높이만큼 늘어나 있으므로, 열의 마지막 카드가 남은 높이를 채운다 */
 [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"]:last-child:has(> [class*="st-key-card_"]),
 [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"]:last-child > [class*="st-key-card_"],
 [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:last-child:has(> [data-testid="stHtml"] > .card:only-child){{flex:1 1 auto}}
 [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:last-child > [data-testid="stHtml"]:has(> .card:only-child){{height:100%}}
+@keyframes rise{{from{{opacity:0;transform:translateY(10px)}}to{{opacity:1;transform:none}}}}
+@keyframes grow{{from{{transform:scaleX(0);transform-origin:left}}to{{transform:none}}}}
 
-/* ── KPI(Tremor: 작은 라벨 · 큰 숫자 · 알약 증감) ─────────────────────── */
-.kpis{{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}}
-.kpis.k4{{grid-template-columns:repeat(4,1fr)}}
-.kpis.k6{{grid-template-columns:repeat(6,1fr)}}
-.card.kpi{{border-top:3px solid var(--accent)}}
-.kpi .kt{{display:flex;align-items:center;gap:8px;min-height:18px}}
-.kpi .ico{{display:none}}
-.kpi .l{{font-size:14px;font-weight:500;color:var(--muted);line-height:1.35}}
-.kpi .v{{font-size:31.5px;font-weight:600;margin-top:8px;letter-spacing:-.8px;color:var(--text);line-height:1.1;
-  font-variant-numeric:tabular-nums}}
-.kpi .v small{{font-size:14.5px;color:var(--muted);font-weight:500;margin-left:4px;letter-spacing:0;white-space:nowrap}}   /* 단위가 「백 / 만 USD」로 쪼개지지 않게 */
-.kpi .s{{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.55}}
-.kpi .s .up,.kpi .s .dn{{display:inline-block;color:var(--up);background:#fdecea;font-weight:600;font-size:13px;
-  border-radius:6px;padding:1px 7px;margin-right:3px;font-variant-numeric:tabular-nums}}
-.kpi .s .dn{{color:var(--down);background:#e8f0fe}}   /* 증감 — 오르면 빨강 · 내리면 파랑(2026-09-24 사용자) */
-.ex{{display:inline-block;font-size:12px;font-weight:600;color:#075985;background:#e0f2fe;border-radius:5px;
-  padding:0 6px;margin-left:6px;vertical-align:middle}}
+/* ── KPI(새 디자인) — 위 파란 선 · 아이콘 배지 + 굵은 제목 · 가운데 큰 숫자 · 아래 설명 ───────────── */
+/* 한 줄 칸 수: 5장 = 3 + 2(아래 두 장은 넓게) · 6장 = 3 × 2 · 4장 = 2 × 2(본문이 왼쪽 메뉴만큼 좁아서). 좁으면 칸 폭 기준으로 접는다 */
+.kpis{{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:20px}}
+.kpis > .kpi{{grid-column:span 2}}
+.kpis:not(.k4):not(.k6):not(.q) > .kpi:nth-child(n+4){{grid-column:span 3}}
+.kpis.k4{{grid-template-columns:repeat(2,minmax(0,1fr))}} .kpis.k4 > .kpi{{grid-column:auto}}
+.kpis.k6{{grid-template-columns:repeat(3,minmax(0,1fr))}} .kpis.k6 > .kpi{{grid-column:auto}}
+[data-testid="stHtml"]:has(> .kpis){{container-type:inline-size}}
+@container (max-width:620px){{.kpis,.kpis.k4,.kpis.k6{{grid-template-columns:repeat(2,minmax(0,1fr))}} .kpis > .kpi,.kpis:not(.k4):not(.k6):not(.q) > .kpi:nth-child(n+4){{grid-column:auto}}}}
+@container (max-width:440px){{.kpis.q{{grid-template-columns:repeat(2,minmax(0,1fr))!important}}}}   /* 조회 결과 카드(최대 3장, 인라인 열 수) */
+@container (max-width:300px){{.kpis,.kpis.k4,.kpis.k6,.kpis.q{{grid-template-columns:minmax(0,1fr)!important}}}}
+.kpi{{animation:rise .42s cubic-bezier(.18,.89,.32,1.15) both}}
+.kpis .kpi:nth-child(2){{animation-delay:.07s}} .kpis .kpi:nth-child(3){{animation-delay:.12s}}
+.kpis .kpi:nth-child(4){{animation-delay:.17s}} .kpis .kpi:nth-child(5){{animation-delay:.22s}} .kpis .kpi:nth-child(6){{animation-delay:.27s}}
+.card.kpi{{border-top:4px solid #1d4ed8;container-type:inline-size;min-width:0}}
+.kpis:not(.q) .kpi{{min-height:172px;display:flex;flex-direction:column}}
+.kpi .kt{{display:flex;align-items:center;gap:10px;min-height:34px}}
+.kpi .ico{{width:34px;height:34px;flex:0 0 34px;border-radius:9px;display:grid;place-items:center;background:#e8f0ff;color:#2b6ef6;
+  transition:transform .2s ease}}
+.kpi:hover .ico{{transform:scale(1.08) rotate(-4deg)}}
+.kpis .kpi:nth-child(2) .ico{{background:#e4fbf6;color:#0f9f85}} .kpis .kpi:nth-child(3) .ico{{background:#f0ecff;color:#7a5af8}}
+.kpis .kpi:nth-child(4) .ico{{background:#fff2e3;color:#e0851a}} .kpis .kpi:nth-child(5) .ico{{background:#ffe9f1;color:#e0457b}}
+.kpis .kpi:nth-child(6) .ico{{background:#eaf4ff;color:#2f8fdc}}
+.kpi .ico .ms{{font-family:'Material Symbols Rounded'!important;font-weight:400;font-style:normal;font-size:20px;line-height:1;
+  letter-spacing:0;font-feature-settings:'liga';-webkit-font-smoothing:antialiased}}
+.kpi .l{{font-size:17px;font-weight:700;color:#12234a;letter-spacing:-.3px;line-height:1.35}}
+.kpi .l.long{{font-size:15.5px;letter-spacing:-.5px}}
+.kpi .v{{margin:auto 0 0;padding:14px 0 2px;text-align:center;font-size:min(36px,17cqi);font-weight:800;letter-spacing:-1.2px;color:#12234a;
+  line-height:1.1;font-variant-numeric:tabular-nums;overflow-wrap:normal}}
+.kpi .v.long{{font-size:min(28px,13cqi);letter-spacing:-.8px}}
+.kpi .v .vr{{font-size:.85em;letter-spacing:-.5px}}   /* 긴 값(「2016–2026」 같은 기간)은 한 단계 작게 */
+.kpi .v small{{display:inline-block;font-size:14.5px;color:var(--muted);font-weight:600;margin-left:4px;letter-spacing:0;white-space:nowrap}}
+.kpi .s{{margin:12px 0 auto;font-size:13px;color:var(--muted);line-height:1.55}}
+.kpi .s .up,.kpi .s .dn{{color:var(--up);font-weight:700;font-variant-numeric:tabular-nums;margin-right:3px}}
+.kpi .s .dn{{color:var(--down)}}   /* 증감 — 오르면 빨강 · 내리면 파랑(2026-09-24 사용자) */
+.ex{{display:inline-block;font-size:11.5px;font-weight:700;color:#b45309;background:#fef3c7;border:1px solid #fde68a;
+  border-radius:5px;padding:0 5px;margin-left:6px;vertical-align:middle;letter-spacing:0}}
+/* 조회 결과 작은 카드 — 높이 · 가운데 숫자 없이 */
+.kpis.q{{grid-template-columns:repeat(3,minmax(0,1fr))}} .kpis.q > .kpi{{grid-column:auto}}
+.kpis.q .kpi .l{{font-size:15px}} .kpis.q .kpi .v{{text-align:left;padding:8px 0 0;margin:0;font-size:min(26px,20cqi)}}
+.kpis.q .kpi .s{{margin:8px 0 0}}
 
-/* ── 글(Datawrapper: 결론형 제목 · 출처 한 줄) ─────────────────────────── */
-.h{{font-size:16px;font-weight:700;margin-bottom:10px;display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 8px;
+/* ── 카드 제목(새 디자인: 왼쪽 파란 막대) — 결론 문장 · 아래 줄에 단위 · 기간(말풍선에 숨기지 않는다) ──────── */
+.h{{position:relative;display:block;padding-left:14px;font-size:16px;font-weight:700;margin-bottom:12px;
   color:var(--text);letter-spacing:-.3px;line-height:1.45}}
-.h .sub{{font-size:13px;color:var(--muted);font-weight:400;letter-spacing:0}}
+.h::before{{content:"";position:absolute;left:0;top:4px;width:4px;height:16px;border-radius:3px;background:#2b6ef6}}
+.h .sub{{display:block;margin-top:3px;font-size:13px;color:var(--muted);font-weight:500;letter-spacing:0}}
 .h .key,.key{{color:var(--accent)}}
-.note{{font-size:13.5px;color:#4b5b73;line-height:1.7}}
-.note b{{color:var(--text);font-weight:600}}
+.note{{font-size:13.5px;color:#5d6d8c;line-height:1.7}}
+.note b{{color:var(--text);font-weight:700}}
 .legend{{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted)}}
-.legend i{{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}}
-.caption{{font-size:13px;color:var(--muted);line-height:1.7;margin-top:6px}}
-.lede{{background:#fff;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;
-  padding:10px 14px;margin-bottom:4px}}
+.legend i{{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px;vertical-align:middle}}
+.caption{{font-size:13px;color:#8494ae;line-height:1.7;margin-top:6px}}
+.lede{{background:#fff;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;
+  padding:11px 15px;box-shadow:var(--shadow);margin-bottom:4px}}
 
-/* 원칙 목록 */
-.rule{{display:flex;gap:10px;margin-bottom:11px}}
-.rule .ck{{width:18px;height:18px;flex:0 0 18px;border-radius:50%;display:grid;place-items:center;font-size:12px;
-  background:#e8f0fe;color:var(--accent);font-weight:700}}
-.rule b{{display:block;font-size:14px;font-weight:600;color:var(--text);letter-spacing:-.2px}}
+/* 원칙 목록 — 초록 체크 */
+.rule{{display:flex;gap:10px;margin-bottom:12px}}
+.rule .ck{{width:20px;height:20px;flex:0 0 20px;border-radius:50%;display:grid;place-items:center;font-size:12px;
+  background:#dcfce7;color:#15803d;font-weight:800}}
+.rule b{{display:block;font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.2px}}
 .rule span{{display:block;font-size:13px;color:var(--muted);margin-top:2px;line-height:1.5}}
 
 /* 순위 목록 */
-.rank{{display:grid;grid-template-columns:22px minmax(104px,40%) 1fr 64px;align-items:center;gap:9px;height:28px;font-size:13.5px}}
-.rank .no{{width:20px;height:20px;border-radius:50%;background:var(--panel2);color:var(--muted);font-size:12px;font-weight:700;
+.rank{{display:grid;grid-template-columns:22px minmax(104px,40%) 1fr 64px;align-items:center;gap:9px;height:30px;font-size:13.5px}}
+.rank .no{{width:20px;height:20px;border-radius:50%;background:#eef2f9;color:#5a6b8c;font-size:12px;font-weight:800;
   display:grid;place-items:center}}
-.rank .nm{{font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
-.rank .tr{{position:relative;height:10px;border-radius:3px;background:var(--panel2)}}
-.rank .fl{{position:absolute;left:0;top:0;bottom:0;border-radius:3px}}
-.rank .vl{{text-align:right;font-weight:600;color:var(--text);font-size:13px;font-variant-numeric:tabular-nums}}
+.rank .nm{{font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+.rank .tr{{position:relative;height:11px;border-radius:4px;background:#eef2f9}}
+.rank .fl{{position:absolute;left:0;top:0;bottom:0;border-radius:4px;animation:grow .7s cubic-bezier(.18,.89,.32,1.1) both}}
+.rank .vl{{text-align:right;font-weight:700;color:var(--text);font-size:13px;font-variant-numeric:tabular-nums}}
 
 /* 점유율 막대 */
-.bars .row{{display:grid;grid-template-columns:150px 1fr 52px;align-items:center;gap:8px;height:21px;font-size:13px}}
+.bars .row{{display:grid;grid-template-columns:150px 1fr 52px;align-items:center;gap:8px;height:22px;font-size:13px}}
 .bars .nm{{color:{TEXT};white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
 .bars .nm em{{color:{MUTED};font-style:normal;font-size:12px;margin-left:3px}}
-.bars .track{{position:relative;height:11px;border-radius:3px;background:{PANEL2}}}
-.bars .fill{{position:absolute;left:0;top:0;bottom:0;border-radius:3px}}
+.bars .track{{position:relative;height:12px;border-radius:4px;background:{PANEL2}}}
+.bars .fill{{position:absolute;left:0;top:0;bottom:0;border-radius:4px;animation:grow .7s cubic-bezier(.18,.89,.32,1.1) both}}
 .bars .ref{{position:absolute;top:-4px;bottom:-4px;left:50%;border-left:1px dashed #94a7c8}}
 .bars .pct{{text-align:right;color:{MUTED};font-variant-numeric:tabular-nums}}
 
-/* 국외조달 절차 — 원 → 화살표 → 원(평면) */
-.proc{{display:grid;grid-template-columns:1fr 30px 1fr 30px 1fr;align-items:start;padding:6px 0 2px}}
-.proc .st{{text-align:center}}
-.proc .ci{{width:84px;height:84px;margin:0 auto;border-radius:50%;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:3px;color:#fff;background:var(--accent)}}
-.proc .st:nth-child(3) .ci{{background:#0369a1}} .proc .st:nth-child(5) .ci{{background:#1e3a8a}}
+/* 국외조달 절차 — 원 → 화살표 → 원 */
+.proc{{display:grid;grid-template-columns:minmax(0,1fr) 30px minmax(0,1fr) 30px minmax(0,1fr);align-items:start;padding:6px 0 2px}}
+[data-testid="stHtml"]:has(> .proc){{container-type:inline-size}}
+@container (max-width:440px){{.proc .ci{{width:62px;height:62px}} .proc .ci b{{font-size:15px}} .proc .n{{font-size:19px}} .proc .ds{{font-size:12.5px}} .proc .ar{{margin-top:20px}}}}
+.proc .st{{text-align:center;animation:rise .42s cubic-bezier(.18,.89,.32,1.15) both}}
+.proc .st:nth-child(3){{animation-delay:.12s}} .proc .st:nth-child(5){{animation-delay:.24s}}
+.proc .ci{{width:88px;height:88px;margin:0 auto;border-radius:50%;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;color:#fff;background:#2b6ef6;box-shadow:0 6px 18px rgba(43,110,246,.26)}}
+.proc .st:nth-child(3) .ci{{background:#17a8c4}} .proc .st:nth-child(5) .ci{{background:#1c4ec4}}
 .proc .ci span{{display:none}}
-.proc .ci b{{font-size:17.5px;font-weight:700;letter-spacing:-.3px}}
-.proc .ar{{margin-top:30px;text-align:center;font-size:20px;color:#6b8fc9}}
-.proc .ds{{margin-top:10px;font-size:13.5px;color:#44567a;line-height:1.55}}
-.proc .n{{margin-top:6px;font-size:23.5px;font-weight:700;color:#0f2a5c;letter-spacing:-.5px;font-variant-numeric:tabular-nums}}
-.proc .n small{{font-size:13.5px;color:var(--muted);font-weight:500;margin-left:3px}}
+.proc .ci b{{font-size:17px;font-weight:800;letter-spacing:-.3px}}
+.proc .ar{{margin-top:30px;text-align:center;font-size:21px;color:#8fb3f4}}
+.proc .ds{{margin-top:12px;font-size:13.5px;color:#44567a;line-height:1.55}}
+.proc .n{{margin-top:8px;font-size:24px;font-weight:800;color:#1c4ea3;letter-spacing:-.5px;font-variant-numeric:tabular-nums;white-space:nowrap}}
+.proc .n small{{font-size:13.5px;color:var(--muted);font-weight:600;margin-left:3px}}
 
 /* 깔때기(DATA INFO) */
-.funnel .fr{{display:grid;grid-template-columns:1.3fr 1fr;align-items:center;gap:10px;height:48px;margin-bottom:6px}}
-.funnel .tz{{height:100%;display:grid;place-items:center;color:#fff;font-size:20px;font-weight:700;letter-spacing:-.3px}}
+.funnel .fr{{display:grid;grid-template-columns:1.3fr 1fr;align-items:center;gap:10px;height:52px;margin-bottom:6px}}
+.funnel .tz{{height:100%;display:grid;place-items:center;color:#fff;font-size:20px;font-weight:800;letter-spacing:-.3px;
+  animation:rise .42s cubic-bezier(.18,.89,.32,1.15) both}}
 .funnel .lb{{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--text)}}
-.funnel .lb::before{{content:"";flex:0 0 34px;border-top:1px dashed #b7c7e2}}
+.funnel .lb::before{{content:"";flex:0 0 34px;border-top:2px dotted #b7c7e2}}
 .funnel .lb small{{display:block;font-size:12.5px;color:var(--muted);font-weight:500;margin-top:2px}}
 
 /* ── 위젯 ─────────────────────────────────────────────────────────────── */
-[data-baseweb="select"] > div{{background:#fff;border-color:var(--line);border-radius:8px}}
-[data-testid="stSegmentedControl"] button{{border-radius:8px}}
+[data-baseweb="select"] > div{{background:#fff;border-color:var(--line);border-radius:10px}}
+[data-testid="stSegmentedControl"] button{{border-radius:9px}}
 [data-testid="stButtonGroup"] > div:not([data-testid]){{flex-wrap:wrap;row-gap:6px}}   /* 칩(pills)이 칸보다 길면 잘리지 않고 다음 줄로 */
-[data-testid="stDataFrame"]{{border-radius:8px;overflow:hidden;border:1px solid var(--line)}}
-[data-testid="stExpander"]{{background:#fff;border:1px solid var(--line)!important;border-radius:10px}}
-.stButton button,.stDownloadButton button{{border-radius:8px;font-weight:500}}
+[data-testid="stDataFrame"]{{border-radius:12px;overflow:hidden;border:1px solid var(--line)}}
+[data-testid="stExpander"]{{background:#fff;border:1px solid var(--line)!important;border-radius:12px;box-shadow:var(--shadow)}}
+.stButton button,.stDownloadButton button{{border-radius:10px;font-weight:600}}
 </style>"""
 
 # 위젯 라이트 고정 — 테마 설정 없이 OS 다크모드에서 열어도 버튼 · 선택창 · 체크박스가 같은 색으로 보이게(데모와 같은 목적)
@@ -256,11 +249,11 @@ div[role="dialog"]{background:#fff}
 button[data-testid="stBaseButton-secondary"]{background:#fff;border-color:var(--line);color:var(--text)}
 button[data-testid="stBaseButton-secondary"]:hover{border-color:var(--accent);color:var(--accent)}
 button[data-testid="stBaseButton-primary"]{background:var(--accent);border-color:var(--accent);color:#fff}
-button[data-testid="stBaseButton-primary"]:hover{background:#1e40af;border-color:#1e40af;color:#fff}
-button[data-variant="segmented_control"]{background:#fff;border-color:var(--line);color:var(--text)}
+button[data-testid="stBaseButton-primary"]:hover{background:#1f5fe0;border-color:#1f5fe0;color:#fff}
+button[data-variant="segmented_control"]{background:var(--bg);border-color:var(--line);color:var(--text)}
 button[data-variant="segmented_control"]:hover{color:var(--accent)}
 [data-testid="stButtonGroup"] button[data-variant="segmented_control"][aria-checked="true"][data-selected]{
-  background:var(--sky-weak);border-color:var(--accent);color:var(--accent)}
+  background:rgba(43,110,246,.1);border-color:var(--accent);color:var(--accent)}
 [data-testid="stCheckbox"] label > div:not([data-testid]){background:#fff;border-color:#b7c4da}
 [data-testid="stCheckbox"] label:has(input:checked) > div:not([data-testid]){background:var(--accent);border-color:var(--accent)}
 [data-testid="stCheckbox"] label:has(input:disabled){opacity:.45}
@@ -272,69 +265,110 @@ button[data-variant="segmented_control"]:hover{color:var(--accent)}
 [data-rac][data-trigger="ComboBox"]{background:#fff;border-color:var(--line);color:var(--text)}
 [data-rac][data-trigger="ComboBox"] [role="option"] *{color:var(--text)}
 [data-testid="stTooltipContent"]{background:#fff;color:var(--text)}
-[data-testid="stAlertContainer"]{background:var(--sky-weak);color:#0f2a5c}
+[data-testid="stAlertContainer"]{background:#eaf1ff;color:#1c4ea3}
 </style>"""
 
-CHART_ANIM = ""   # 데모의 막대 · 선 등장 연출은 쓰지 않는다(정적 차트)
+# 막대 · 선 그래프 등장 연출(데모) — 막대는 왼쪽 것부터 차례로 바닥에서 자라고(가로 막대는 왼쪽에서 뻗고), 선은 왼쪽에서 오른쪽으로 그려진다.
+# 차트가 새로 그려질 때(페이지 이동 · 창 크기 변경)마다 다시 재생된다
+_STAGGER = "\n".join(
+    f".js-plotly-plot .barlayer .point:nth-child({i}) path{{animation-delay:{0.05 + i * 0.07:.2f}s}}\n"
+    f".js-plotly-plot .barlayer .point:nth-child({i}) text{{animation-delay:{0.45 + i * 0.07:.2f}s}}"
+    for i in range(1, 16))
+CHART_ANIM = f"""<style>
+.js-plotly-plot .barlayer .point path{{transform-box:fill-box;transform-origin:50% 100%;
+  animation:barY .75s cubic-bezier(.6,0,.25,1) both;filter:drop-shadow(0 3px 4px rgba(19,42,84,.18))}}
+.js-plotly-plot .barlayer .point text{{animation:barTxt .4s ease both}}
+@keyframes barY{{from{{transform:scaleY(0)}}to{{transform:none}}}}
+@keyframes barX{{from{{transform:scaleX(0)}}to{{transform:none}}}}
+@keyframes barTxt{{from{{opacity:0}}to{{opacity:1}}}}
+.js-plotly-plot .scatterlayer .trace:has(.js-line){{animation:lineIn 1.5s cubic-bezier(.65,0,.35,1) both}}
+.js-plotly-plot .scatterlayer .trace:nth-child(2):has(.js-line){{animation-delay:.18s}}
+.js-plotly-plot .scatterlayer .trace:nth-child(3):has(.js-line){{animation-delay:.36s}}
+.js-plotly-plot .scatterlayer .js-line{{filter:drop-shadow(0 5px 5px rgba(43,110,246,.28))}}
+@keyframes lineIn{{from{{clip-path:inset(-20px 100% -20px -20px)}}to{{clip-path:inset(-20px -20px -20px -20px)}}}}
+{_STAGGER}
+</style>"""
 
 # ── 표 · 핵심 지표 카드 · 탭 · 조회 카드 ─────────────────────────────────────
 TABLE_CSS = r"""<style>
 .sc{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
-.sc th{font-size:13px;font-weight:600;color:var(--muted);background:#f6f9fd;padding:9px 6px;text-align:center;
+.sc th{font-size:13px;font-weight:700;color:#5a6b8c;background:#f3f6fc;padding:9px 6px;text-align:center;
   border-bottom:1px solid var(--line);line-height:1.35;white-space:nowrap}
 .sc th small{display:block;font-weight:400;color:var(--muted);font-size:12px}
-.sc td{padding:9px 5px;text-align:center;border-bottom:1px solid #edf2f8;color:var(--text);white-space:nowrap}
+.sc td{padding:9px 5px;text-align:center;border-bottom:1px solid #eef2f9;color:var(--text);white-space:nowrap}
+.sc tbody tr{animation:rise .42s cubic-bezier(.18,.89,.32,1.15) both;transition:background .15s}
+.sc tbody tr:nth-child(2){animation-delay:.06s} .sc tbody tr:nth-child(3){animation-delay:.12s}
+.sc tbody tr:nth-child(4){animation-delay:.18s} .sc tbody tr:nth-child(5){animation-delay:.24s}
+.sc tbody tr:hover{background:#f5f9ff}
 .card:has(> table.sc){overflow-x:auto}
-.sc td.no{color:var(--muted);font-weight:600}
-.sc td.nm{text-align:left;font-weight:600}
+.sc td.no{color:var(--muted);font-weight:700}
+.sc td.nm{text-align:left;font-weight:700}
 .sc td.nm em{display:block;font-style:normal;font-weight:400;font-size:12px;color:var(--muted)}
-.sc td.up{color:var(--up);font-weight:600} .sc td.dn{color:var(--down);font-weight:600}
+.sc td.up{color:var(--up);font-weight:700} .sc td.dn{color:var(--down);font-weight:700}
 .sc td.lv{font-weight:600} .sc td.lv i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
 .sc .lvb{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap}
 .sc .cdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0}
 .demo-bar.real{background:var(--sky-weak);border-color:#cfe5f8}
 .basis{width:100%;border-collapse:collapse;font-size:13.5px}
-.basis th{font-size:12px;font-weight:600;color:var(--muted);background:#f6f9fd;padding:7px 4px;border-bottom:1px solid var(--line);line-height:1.3}
-.basis td{padding:5px 4px;border-bottom:1px solid #edf2f8;text-align:center;white-space:nowrap}
-.basis td.nm{text-align:left;font-weight:500;color:var(--text)}
+.basis th{font-size:12px;font-weight:700;color:#5a6b8c;background:#f3f6fc;padding:7px 4px;border-bottom:1px solid var(--line);line-height:1.3}
+.basis td{padding:5px 4px;border-bottom:1px solid #eef2f9;text-align:center;white-space:nowrap}
+.basis tbody tr:hover{background:#f5f9ff}
+.basis td.nm{text-align:left;font-weight:600;color:var(--text)}
 .basis td.nm em{font-style:normal;color:var(--muted);font-size:12px;margin-right:6px}
 .basis td.cat{color:var(--muted);font-size:12.5px}
-.basis i{display:inline-block;width:11px;height:11px;border-radius:50%}
-.spark{display:block;margin:0 auto}
+.basis i{display:inline-block;width:12px;height:12px;border-radius:50%;animation:rise .4s ease both}
+.card:has(> table.basis),[data-testid="stHtml"]:has(> table.basis){overflow-x:auto}   /* 모바일에서 표가 카드 밖으로 넘치지 않게 — 카드 안에서만 가로로 민다 */
+.basis td.nm{white-space:normal;min-width:150px}
+.spark{display:block;margin:0 auto;animation:revealX 1.3s cubic-bezier(.65,0,.35,1) .2s both}   /* 왼쪽부터 그려지듯 드러난다 */
+.sc tbody tr:nth-child(2) .spark{animation-delay:.3s} .sc tbody tr:nth-child(3) .spark{animation-delay:.4s}
+.sc tbody tr:nth-child(4) .spark{animation-delay:.5s} .sc tbody tr:nth-child(5) .spark{animation-delay:.6s}
+@keyframes revealX{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
 .sc .spark{width:clamp(84px,8vw,118px);height:auto}   /* 좁은 화면에서 추이선을 줄여 표 끝 칸이 잘리지 않게 */
+/* 좁은 칸에서는 보조 열(No. · 수입국 수)을 숨기고 추이선을 줄여 가로 스크롤을 없앤다(2026-09-28 점검 — 1150폭에서 표 627 > 칸 561) */
+.card:has(> table.sc){container-type:inline-size}
+@container (max-width:700px){.sc th:nth-child(1),.sc td:nth-child(1),.sc th:nth-child(6),.sc td:nth-child(6){display:none} .sc .spark{width:72px}}
+@container (max-width:560px){.sc th:nth-child(9),.sc td:nth-child(9){display:none} .sc th,.sc td{padding-left:3px;padding-right:3px}}
 
-.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
-.kc{display:flex;gap:12px;align-items:center;padding:13px 14px;border:1px solid var(--line);border-radius:10px;background:#fff}
-.kc .ic{display:none}
-.kc .l{font-size:13.5px;font-weight:500;color:var(--muted)}
-.kc .v{font-size:27px;font-weight:600;color:var(--text);letter-spacing:-.6px;line-height:1.2;margin-top:4px;font-variant-numeric:tabular-nums}
-.kc .v small{font-size:13.5px;color:var(--muted);font-weight:500;margin-left:3px;letter-spacing:0}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(170px,100%),1fr));gap:10px}
+.kc{min-width:0}
+.kc{display:flex;gap:12px;align-items:center;padding:14px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;
+  animation:rise .42s cubic-bezier(.18,.89,.32,1.15) both}
+.kc:nth-child(2){animation-delay:.07s} .kc:nth-child(3){animation-delay:.14s} .kc:nth-child(4){animation-delay:.21s}
+.kc .ic{width:44px;height:44px;flex:0 0 44px;border-radius:50%;display:grid;place-items:center}
+.kc .ic .ms{font-family:'Material Symbols Rounded'!important;font-weight:400;font-style:normal;font-size:22px;line-height:1;
+  letter-spacing:0;font-feature-settings:'liga';-webkit-font-smoothing:antialiased}
+.kc .l{font-size:13.5px;font-weight:700;color:#44567a}
+.kc .v{font-size:27px;font-weight:800;color:#12234a;letter-spacing:-.8px;line-height:1.2;margin-top:3px;font-variant-numeric:tabular-nums}
+.kc .v small{font-size:13px;color:var(--muted);font-weight:600;margin-left:3px;letter-spacing:0}
 .kc .s{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.4}
 
 .bars.big{display:flex;flex-direction:column;gap:5px;margin-top:4px}
-.bars.big .row{height:28px;font-size:14px}
-.bars.big .track{height:14px;border-radius:3px}
-.bars.big .fill{border-radius:3px}
+.bars.big .row{height:30px;font-size:14px}
+.bars.big .track{height:16px;border-radius:5px}
+.bars.big .fill{border-radius:5px}
 
-/* 탭 — Tremor 밑줄형: 고른 탭만 파란 글씨 + 파란 밑줄 */
-[data-testid="stTabs"] [role="tablist"]{gap:2px 18px;border-bottom:1px solid var(--line);box-shadow:none;padding:0 2px;margin:0;
-  flex-wrap:wrap}   /* 탭이 많으면 옆으로 숨기지 않고 두 줄로 — 고른 탭 표시는 밑줄(아래 aria-selected)이 맡는다 */
+/* 탭 — 북마크(폴더) 탭(새 디자인): 고른 탭이 아래 패널과 한 장으로 이어진다. 탭이 많으면 두 줄로 */
+[data-testid="stTabs"] [role="tablist"]{gap:4px;flex-wrap:wrap;align-items:flex-end;border-bottom:none;box-shadow:none;
+  padding:6px 0 0 14px;margin:0;overflow:visible;position:relative;z-index:1}
 [data-testid="stTabs"] [data-baseweb="tab-highlight"],[data-testid="stTabs"] [data-baseweb="tab-border"]{display:none}
 [data-testid="stTabs"] [role="tablist"]::after,[data-testid="stTabs"] [role="tablist"]::before{display:none}
-[data-testid="stTabs"] [data-testid="stTab"]{height:auto;padding:8px 2px 9px;margin:0 0 -1px;background:transparent;border:none;
-  border-bottom:2px solid transparent;border-radius:0}
-[data-testid="stTabs"] [data-testid="stTab"] p{font-size:14.5px;font-weight:500;color:var(--muted)}
-[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"]{border-bottom-color:var(--accent)}
-[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"] p{color:var(--accent);font-weight:600}
+[data-testid="stTabs"] [data-testid="stTab"]{height:auto;padding:8px 18px 9px;margin:0 0 -1px;border:1px solid var(--line);
+  border-bottom:none;border-radius:12px 12px 0 0;background:#e4ebf6;box-shadow:none;transition:background .15s,padding .15s}
+[data-testid="stTabs"] [data-testid="stTab"]:hover{background:#edf2fa;padding-top:10px}
+[data-testid="stTabs"] [data-testid="stTab"] p{font-size:14px;font-weight:700;color:#5b6f94}
+[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"]{background:#f8fafe;padding-top:12px;
+  border-top:3px solid var(--accent);box-shadow:0 -4px 10px rgba(19,42,84,.06)}
+[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"] p{color:var(--accent);font-weight:800}
 [data-testid="stTabs"] [data-testid="stTab"] > div:not([data-testid]){display:none}
-[data-testid="stTabs"] [role="tabpanel"]{padding:14px 0 0}
+[data-testid="stTabs"] [role="tabpanel"]{background:#f8fafe;border:1px solid var(--line);border-radius:0 14px 14px 14px;
+  padding:18px 16px 16px;box-shadow:var(--shadow)}
 
 /* 조회 — 분석 조건 설정 카드(데모 배치) */
 .st-key-card_form{padding:18px 18px 14px}
-.st-key-card_form h3{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.4px;padding:0;margin:0}
+.st-key-card_form h3{font-size:21px;font-weight:800;color:#12234a;letter-spacing:-.5px;padding:0;margin:0}
 .st-key-card_form [data-testid="stIconMaterial"]{color:var(--accent)}
 .st-key-card_form [data-testid="stMarkdownContainer"] p{margin:0}
-.st-key-card_form [data-testid="stMarkdownContainer"] strong{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-.2px}
+.st-key-card_form [data-testid="stMarkdownContainer"] strong{font-size:15px;font-weight:800;color:#16233f;letter-spacing:-.3px}
 .st-key-card_form [data-testid="stMarkdownContainer"] p [data-testid="stIconMaterial"]{font-size:21.5px;vertical-align:-4px}
 .st-key-card_form [data-testid="stCheckbox"] label p{font-size:14.5px}
 .st-key-card_form [data-testid="stHorizontalBlock"]{margin-bottom:4px}
@@ -345,7 +379,7 @@ TABLE_CSS = r"""<style>
 .st-key-card_form,.st-key-card_res{flex:1 1 auto}
 .st-key-res_dl button{pointer-events:auto}
 .kpis.q{gap:10px;margin-bottom:6px}
-.kpis.q .kpi .v{font-size:26px}
+.kpis.q .kpi .v{font-size:min(26px,20cqi)}
 /* 출처 — 오른쪽 아래 「?」 원, 누르면 아래로 펼친다 */
 details.src{margin-top:8px}
 details.src > summary{list-style:none;display:grid;place-items:center;margin-left:auto;width:24px;height:24px;border-radius:50%;
@@ -361,19 +395,38 @@ details.src .src-body{margin-top:6px;padding:9px 12px;border-radius:8px;backgrou
 # ════════════════════════════════════════════════════════════════════════════
 # 2. 공용 요소
 # ════════════════════════════════════════════════════════════════════════════
+# KPI 아이콘 — 제목에 든 낱말로 고른다(위에서부터 먼저 맞는 것). 단색 Material Symbols 이름, 이모지는 쓰지 않는다
+KPI_ICON = (("무역수지", "balance"), ("중량", "scale"), ("수의계약", "handshake"), ("입찰공고", "campaign"),
+            ("유찰", "block"), ("낙찰", "apartment"), ("국내 계약", "description"), ("수입국", "flag"),
+            ("수출국", "flight_takeoff"), ("수입액", "download"), ("수출액", "upload"), ("가동률", "factory"),
+            ("생산지수", "bolt"), ("예산", "account_balance"), ("건수", "receipt_long"), ("적용장비", "precision_manufacturing"),
+            ("과제", "task_alt"), ("나노팹", "science"), ("미국", "public"), ("반도체", "memory"), ("사업", "work"),
+            ("국산화", "build"), ("조달계획", "assignment"), ("조달 계획", "assignment"), ("군급", "category"),
+            ("50%", "warning"), ("기간", "calendar_month"), ("품목", "inventory_2"), ("HS6", "inventory_2"))
+
+
 def kpi(label: str, value: str, unit: str, sub: str, tag: str = "", icon: str = "") -> str:
-    """KPI 카드(Tremor) — 라벨 · 큰 숫자 · 단위 · 설명. icon 은 데모 호환용 인자이며 그리지 않는다(이모지 아이콘 안 씀)."""
+    """KPI 카드(새 디자인) — 아이콘 배지 + 제목 · 가운데 큰 숫자 · 단위 · 설명. icon 을 비우면 제목 낱말로 KPI_ICON 에서 고른다.
+    긴 제목(공백 빼고 10자 이상) · 긴 숫자(태그 빼고 8자 이상, 예 2016–2026)는 한 단계 작게 해 한 줄에 맞춘다."""
     t = f'<span class="ex">{tag}</span>' if tag else ""
-    return (f'<div class="card kpi"><div class="kt"><div class="l">{label}{t}</div></div>'
-            f'<div class="v">{value}<small>{unit}</small></div><div class="s">{sub}</div></div>')
+    plain = lambda x: re.sub(r"<[^>]+>", "", x)
+    icon = icon or next((ic for w, ic in KPI_ICON if w in plain(label)), "")
+    lc = " long" if len(plain(label).replace(" ", "")) >= 10 else ""
+    vc = " long" if len(plain(value)) >= 8 else ""
+    ic = f'<span class="ico"><span class="ms">{icon}</span></span>' if icon else ""
+    return (f'<div class="card kpi"><div class="kt">{ic}<div class="l{lc}">{label}{t}</div></div>'
+            f'<div class="v{vc}">{value}<small>{unit}</small></div><div class="s">{sub}</div></div>')
 
 
 def zone(key: str, tag: str):
-    st.html(f'<style>.st-key-zone_{key}::before{{content:"{tag}"}}</style>')
-    return st.container(key=f"zone_{key}")
+    """페이지 안 블록 하나 — 제목 줄 + 내용(`with zone("키", "이름"):`). 키는 왼쪽 메뉴 · 주소 ?sec= 와 같고,
+    nav.sections 가 이 호출의 글자를 읽어 메뉴를 만든다 — 키 · 이름은 문자열 그대로 적는다."""
+    c = st.container(key=f"zone_{key}")
+    c.html(f'<div class="sec-h"><h2>{escape(tag)}</h2></div>')
+    return c
 
 
-def _stamp_period(st_: dict) -> str:
+def stamp_period(st_: dict) -> str:
     """data_stamp 결과 → 머리띠에 쓰는 기간 문구. 기간이 없는 목록형 자료는 「기준일 미표기」, 조회 실패는 그대로 알린다."""
     if st_.get("error") and not st_.get("has_period"):
         return "조회 실패"
@@ -382,19 +435,19 @@ def _stamp_period(st_: dict) -> str:
     return str(st_["period"]).replace(" (부분)", "")
 
 
-def hero(title: str, subtitle: str, side: str = "", side_sub: str = "", stamps: list | None = None) -> None:
-    """머리띠(데모 hero 자리) — 제목 · 이 화면에서 보는 것 한 문장 · 오른쪽 「자료 기준」 버튼.
+def hero(stamps: list | None = None) -> None:
+    """본문 맨 위 경로 줄 — 왼쪽 「자료 기준」 버튼 · 오른쪽 ⌂ › 페이지. 페이지 제목 · 부제는 서브 배너(frame.body, 문구는 nav.py).
     stamps = [(데이터 이름, db.data_stamp(...)), …] 를 주면 버튼을 누를 때 「이름 · 기간」 줄이 펼쳐진다(DB 반영일은 출처 「?」 · CSV 에)."""
+    left = ""
     if stamps:
         # 자료 기준은 버튼 뒤에 접어 둔다 — 누르면 아래로 카드가 펼쳐진다(HTML details · 서버 재실행 없음)
-        rows = "".join(f'<span class="row"><em>{escape(n)}</em>{escape(_stamp_period(s_))}</span>' for n, s_ in stamps)
-        right = ('<details class="basis"><summary title="자료 기간 보기">'
-                 '<span class="cal" aria-hidden="true"></span>자료 기준</summary>'
-                 f'<div class="basis-pop"><div class="bt">자료 기준</div>{rows}</div></details>')
-    else:
-        right = f'<div class="slogan"><b>{side}</b><small>{side_sub}</small></div>' if side else ""
+        rows = "".join(f'<span class="row"><em>{escape(n)}</em>{escape(stamp_period(s_))}</span>' for n, s_ in stamps)
+        left = ('<details class="basis"><summary title="자료 기간 보기">'
+                '<span class="cal" aria-hidden="true"></span>자료 기준</summary>'
+                f'<div class="basis-pop"><div class="bt">자료 기준</div>{rows}</div></details>')
+    label = escape(st.session_state.get(LABEL_KEY, ""))
     with st.container(key="hero"):
-        st.html(f'<div class="hero"><div class="ht"><h1>{title}</h1><p>{subtitle}</p></div>{right}</div>')
+        st.html(f'<div class="crumb-row">{left}<div class="crumb"><span class="ms">home</span><i>›</i><b>{label}</b></div></div>')
 
 
 def real_bar(src: str) -> None:
@@ -403,8 +456,8 @@ def real_bar(src: str) -> None:
 
 
 def style_fig(fig, height: int | None = None):
-    """Datawrapper 식 — 배경 투명 · 옅은 가로 격자만 · 세로 격자와 축선 없음 · 범례는 위 가로."""
-    grid = "#e8eef6"
+    """새 디자인(데모) — 배경 투명 · 옅은 가로 · 세로 격자 · 범례는 위 가로. 글씨는 하한 13px(_floor_fonts)."""
+    grid = "#e7eefa"
     m = fig.layout.margin                   # 차트가 미리 정한 여백(예: 가로 막대의 라벨 자리)은 그대로 둔다
     fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                       font=dict(family=SIDE_STACK, color=TEXT, size=13.5), title_font=dict(size=15.5, color=TEXT),
@@ -412,9 +465,9 @@ def style_fig(fig, height: int | None = None):
                       hoverlabel=dict(bgcolor="#ffffff", bordercolor=LINE, font=dict(color=TEXT)),
                       margin=dict(l=8 if m.l is None else m.l, r=8 if m.r is None else m.r,
                                   t=10 if m.t is None else m.t, b=8 if m.b is None else m.b))
-    fig.update_xaxes(showgrid=False, zeroline=False, showline=False, tickfont=dict(color=MUTED), title_font=dict(color=MUTED),
+    fig.update_xaxes(gridcolor=grid, zerolinecolor=grid, linecolor=LINE, tickfont=dict(color=MUTED), title_font=dict(color=MUTED),
                      automargin=True)
-    fig.update_yaxes(gridcolor=grid, zeroline=False, showline=False, tickfont=dict(color=MUTED), title_font=dict(color=MUTED),
+    fig.update_yaxes(gridcolor=grid, zerolinecolor=grid, linecolor=LINE, tickfont=dict(color=MUTED), title_font=dict(color=MUTED),
                      automargin=True)
     # 눈금 숫자는 화면 다른 곳처럼 쉼표로(6000 → 6,000, 5k → 5,000). 연도 축(2016 …)은 쉼표를 넣지 않는다
     for axis, update in (("x", fig.update_xaxes), ("y", fig.update_yaxes)):
@@ -486,7 +539,7 @@ def _floor_fonts(fig, lo: float = 13) -> None:
 
 
 def chart_title(title: str, sub: str = "", where=None) -> None:
-    """Datawrapper 결론형 제목 줄 — title 은 결론 문장(핵심 구절 하나만 <span class="key">…</span>), sub 는 단위 · 기간만.
+    """카드 제목 줄(왼쪽 파란 막대) — title 은 결론 문장(핵심 구절 하나만 <span class="key">…</span>), sub 는 단위 · 기간만.
     DB 에서 온 이름(품목 · 국가)은 호출하는 쪽이 escape 해서 넣는다. 표 · 뷰 이름은 여기 넣지 않고 chart_source 로."""
     (where or st).html(f'<div class="h"><span>{title}</span>' + (f'<span class="sub">{sub}</span>' if sub else "") + "</div>")
 
@@ -592,10 +645,15 @@ def supply_table(rows: list[dict]) -> str:
 
 
 def core_kpis(cards: list[tuple[str, str, str, str, str, str, str]], basis: str) -> str:
-    """핵심 지표 카드 묶음. cards = [(아이콘(안 그림), 배경(안 씀), 라벨, 값, 단위, 설명, 값 style)]."""
-    body = "".join(f'<div class="kc"><div>'
+    """핵심 지표 카드 묶음(새 디자인 — 둥근 아이콘). cards = [(아이콘, "배경색,글자색", 라벨, 값, 단위, 설명, 값 style)]."""
+    def icon(ic: str, col: str) -> str:
+        if not ic:
+            return ""
+        bg, fg = (col.split(",") + ["#2b6ef6"])[:2] if col else ("#e8f0ff", "#2b6ef6")
+        return f'<span class="ic" style="background:{bg};color:{fg}"><span class="ms">{ic}</span></span>'
+    body = "".join(f'<div class="kc">{icon(ic, col)}<div>'
                    f'<div class="l">{l}</div><div class="v" style="{vs}">{v}<small>{u}</small></div>'
-                   f'<div class="s">{s}</div></div></div>' for _ic, _bg, l, v, u, s, vs in cards)
+                   f'<div class="s">{s}</div></div></div>' for ic, col, l, v, u, s, vs in cards)
     return (f'<div class="card"><div class="h">핵심 지표 <span class="sub" style="margin-left:auto">기준: {basis}</span></div>'
             f'<div class="kgrid">{body}</div></div>')
 
@@ -615,7 +673,7 @@ def share_card(f: dict) -> str:
 
 # ════════════════════════════════════════════════════════════════════════════
 # 3. 공급국 지구본 · 로딩 표시
-#    지구본은 데모 HOME 그대로(회전 · 끌어 돌리기 · 지구본↔지도 · 흐름 화살표) — 버튼 이모지 · 그라데이션만 뺐다(2026-09-24 사용자).
+#    지구본은 데모 HOME 그대로(회전 · 끌어 돌리기 · 지구본↔지도 · 흐름 화살표) — 버튼 이모지만 뺐다(2026-09-24 사용자).
 #    데모의 인트로 화면 · 로딩 지구본은 쓰지 않는다(globe_loading 은 로딩 문구).
 # ════════════════════════════════════════════════════════════════════════════
 KOREA = [127.8, 36.5]
@@ -641,8 +699,8 @@ _GLOBE = r"""
   #ctrl{position:absolute;right:12px;top:10px;display:flex;gap:6px;z-index:6}
   #ctrl button{font:600 13px Pretendard,system-ui,sans-serif;color:#3d5b8c;background:rgba(255,255,255,.88);
     border:1px solid #dde5f2;border-radius:9px;padding:5px 11px;cursor:pointer;box-shadow:0 1px 3px rgba(19,42,84,.08);transition:all .15s}
-  #ctrl button:hover{background:#fff;color:#1d4ed8;border-color:#b9d1fb}
-  #ctrl button.on{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
+  #ctrl button:hover{background:#fff;color:#2b6ef6;border-color:#b9d1fb;transform:translateY(-1px)}
+  #ctrl button.on{background:#2b6ef6;color:#fff;border-color:transparent;box-shadow:0 3px 10px rgba(43,110,246,.35)}
   #tip{position:absolute;z-index:9;pointer-events:none;opacity:0;transform:translate(-50%,-118%);background:#fff;
     border:1px solid #dde5f2;border-radius:10px;padding:8px 11px;box-shadow:0 8px 24px rgba(19,42,84,.16);
     transition:opacity .12s;white-space:nowrap}
@@ -793,7 +851,13 @@ function idleStatus(){
   return mode==='map'?'세계지도 — 공급국을 짚어 보세요':(spinning?'지구본 회전 중…':'멈춤 — 끌어서 돌릴 수 있습니다');
 }
 
+/* 화면 밖이거나 탭이 숨겨지면 그리기를 멈춘다 — 매 프레임 다시 그려 CPU 를 계속 쓰던 문제(2026-09-28 점검) */
+let onScreen=true, running=false;
+function wake(){ if(onScreen&&!document.hidden&&!running){running=true;requestAnimationFrame(loop);} }
+try{ new IntersectionObserver(es=>{onScreen=es[0].isIntersecting; wake();}).observe(wrap); }catch(e){}
+document.addEventListener('visibilitychange',wake);
 function loop(){
+  if(!onScreen||document.hidden){running=false;return;}
   try{
     const h=hitTest();
     if(h!==hover){
@@ -805,7 +869,7 @@ function loop(){
     if(arc<1) arc=Math.min(1,arc+0.02);
     if(mode==='globe') drawGlobe(); else drawMap();
     syncTip();
-  }catch(e){ statusEl.textContent='그리기 오류: '+(e&&e.message?e.message:e); return; }
+  }catch(e){ statusEl.textContent='그리기 오류: '+(e&&e.message?e.message:e); running=false; return; }
   requestAnimationFrame(loop);
 }
 function setMode(next){
@@ -832,7 +896,7 @@ document.getElementById('b-globe').onclick=()=>setMode('globe');
 document.getElementById('b-map').onclick=()=>setMode('map');
 document.getElementById('b-replay').onclick=()=>{arc=0;t0=performance.now();};
 window.addEventListener('resize',()=>{size();drawGlobe();drawMap();});
-size(); projG.rotate([-KOREA[0]+18,-20,0]); loop();
+size(); projG.rotate([-KOREA[0]+18,-20,0]); wake();
 fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json", {integrity: "sha384-yOCJ+8ShBm8UDqtAVtAvxTDDf4gXo5edxl/YG0FmVC5OTmqVLl7utuVGBDEeZWHf"}).then(r=>r.json()).then(topo=>{
   world=topojson.feature(topo,topo.objects.countries); drawGlobe(); drawMap();
 }).catch(()=>{statusEl.textContent='지도 데이터를 불러오지 못해 경위선만 표시합니다(인터넷 연결 확인)';});
@@ -875,13 +939,13 @@ def globe_loading(text: str = "조회 중", height: int = 0):
 # ════════════════════════════════════════════════════════════════════════════
 # 3-3. 도넛 공통 — 반지름·둘레·굵기와 커서 반응(조각 확대 · 가운데 라벨)
 # ════════════════════════════════════════════════════════════════════════════
-R = 92                       # 도넛 반지름(얇은 링 — Tremor)
+R = 80                       # 도넛 반지름
 C = round(2 * 3.141592653589793 * R, 2)      # 둘레 = stroke-dasharray 기준
-STROKE = 24                  # 도넛 두께
+STROKE = 48                  # 도넛 두께
 # 커서를 올린 조각: 굵기를 키우면서 바깥쪽으로 확대한다. 안쪽 가장자리는 그대로 두어(≈56) 가운데 글자를
 # 가리지 않고, 보이는 두께는 약 2배(48 → 96)가 된다.
-HOVER_STROKE = 24
-HOVER_SCALE = 1.0
+HOVER_STROKE = 74
+HOVER_SCALE = 1.3
 HOVER_OUT = round(HOVER_SCALE * (R + HOVER_STROKE / 2))     # 커진 조각의 바깥 반지름 ≈ 152
 
 # ── 도넛 공통: 조각(또는 범례)에 커서를 올리면 그 조각이 두꺼워지고 가운데에 라벨·값·비율이 뜬다 ──
@@ -892,8 +956,8 @@ def _hover_css(cx: float, cy: float) -> str:
   .hv.on{{stroke-width:{HOVER_STROKE};transform:scale({HOVER_SCALE})}}
   .focusing .hv:not(.on){{stroke-opacity:.28}}
   .c-val{{font-size:13.5px;font-weight:600;fill:#6b7a99;text-anchor:middle}}
-  .lg{{padding:2px 6px;border-radius:6px;cursor:default;}}
-  .lg.on{{background:#e6f3fd}}
+  .lg{{padding:2px 6px;border-radius:6px;cursor:default;transition:background .15s, opacity .15s}}
+  .lg.on{{background:#eaf1ff}}
   .focusing .lg:not(.on){{opacity:.4}}
 """
 
@@ -1012,8 +1076,11 @@ _DONUT_TPL = r"""
        font-family:Pretendard,'Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif;color:#0f1f3a}
   #stage{width:100%;height:__H__px;display:flex;flex-direction:column;align-items:center;justify-content:center}
   .ring-g{transform:rotate(-90deg);transform-origin:170px 170px}   /* 12시에서 시작 */
-  .seg{fill:none;stroke-width:24;stroke-dasharray:0 __C__;transition:stroke-opacity .15s ease}
-  .c-lab{font-size:24.5px;font-weight:700;fill:#0f1f3a;text-anchor:middle;letter-spacing:-.6px}
+  .seg{fill:none;stroke-width:48;stroke-dasharray:0 __C__;
+    transition:stroke-dasharray 1s cubic-bezier(.2,.8,.25,1), opacity .3s ease,
+               stroke-width .25s cubic-bezier(.2,.8,.25,1), stroke-opacity .2s ease,
+               transform .25s cubic-bezier(.2,.8,.25,1)}
+  .c-lab{font-size:24.5px;font-weight:800;fill:#12234a;text-anchor:middle;letter-spacing:-.6px}
   .c-sub{font-size:14px;fill:#6b7a99;text-anchor:middle}
   .legend{display:flex;gap:7px 12px;flex-wrap:wrap;justify-content:center;max-width:460px;margin-top:6px;
     font-size:13px;color:#5d6d8c}
@@ -1053,21 +1120,21 @@ _MAP_HEAD = r"""
   body{margin:0;font-family:Pretendard,'Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif;
        color:#16233f;background:transparent;overflow:hidden;user-select:none}
   #wrap{position:relative;width:100%;height:__H__px;border-radius:12px;overflow:hidden;
-        background:#ffffff;--c:#1d4ed8}
+        background:linear-gradient(170deg,#f6faff,#e9f1fc);--c:#2b6ef6}
   #top{position:absolute;left:14px;right:12px;top:10px;display:flex;align-items:center;justify-content:space-between;z-index:6}
   #unit{font-size:12.5px;color:#6b7a99;font-weight:600}
-  #seg{display:flex;background:#fff;border:1px solid #dde5f2;border-radius:11px;padding:3px}
+  #seg{display:flex;background:#fff;border:1px solid #dde5f2;border-radius:11px;padding:3px;box-shadow:0 1px 3px rgba(19,42,84,.06)}
   #seg button{font:700 13.5px Pretendard,system-ui,sans-serif;color:#5b6f94;background:transparent;border:0;border-radius:8px;
-    padding:6px 22px;cursor:pointer}
+    padding:6px 22px;cursor:pointer;transition:all .18s}
   #seg button:hover{color:var(--c)}
-  #seg button.on{color:#fff;background:var(--c)}
+  #seg button.on{color:#fff;background:var(--c);box-shadow:0 3px 10px rgba(19,42,84,.18)}
   #seg.one{display:none}
   svg{display:block}
-  .land{stroke:#fff;stroke-width:.6}
+  .land{stroke:#fff;stroke-width:.6;transition:fill .55s ease,opacity .15s}
   .land.has:hover{opacity:.78}
   #tip{position:absolute;z-index:9;pointer-events:none;opacity:0;transform:translate(-50%,-120%);background:#fff;
-    border:1px solid #dde5f2;border-radius:10px;padding:8px 11px;box-shadow:0 2px 8px rgba(15,31,58,.10);
-    white-space:nowrap;font-size:13px;color:#44567a;line-height:1.55}
+    border:1px solid #dde5f2;border-radius:10px;padding:8px 11px;box-shadow:0 8px 24px rgba(19,42,84,.16);
+    transition:opacity .12s;white-space:nowrap;font-size:13px;color:#44567a;line-height:1.55}
   #tip b{display:block;font-size:14px;font-weight:800;color:#16233f;letter-spacing:-.3px}
   #tip em{font-style:normal;font-weight:800}
   #msg{position:absolute;inset:0;display:grid;place-items:center;font-size:13.5px;color:#6b7a99;pointer-events:none}
@@ -1077,12 +1144,15 @@ _MAP_HEAD = r"""
 
 _WORLD_MAP = _MAP_HEAD + r"""
   #svg{position:absolute;inset:0;width:100%;height:100%}
-  .dotc{stroke:#fff;stroke-width:1.3}
-  .lead{stroke:#8ea3c4;stroke-width:1;stroke-dasharray:2 2}
-  .anc{fill:#0f1f3a}
+  .dotc{stroke:#fff;stroke-width:1.3;transition:fill .55s}
+  .lead{stroke:#8ea3c4;stroke-width:1;stroke-dasharray:2 2;animation:fade .4s ease both}
+  .anc{fill:#12234a;animation:fade .4s ease both}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes pop{from{opacity:0;transform:translate(-50%,-50%) scale(.6)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
   #labels{position:absolute;inset:0;pointer-events:none;z-index:4}
   .lb{position:absolute;transform:translate(-50%,-50%);background:rgba(255,255,255,.96);border:1px solid #d5e0f2;
-    border-radius:6px;padding:3px 9px;text-align:center;white-space:nowrap}
+    border-radius:9px;padding:4px 10px;text-align:center;box-shadow:0 4px 12px rgba(19,42,84,.13);white-space:nowrap;
+    animation:pop .42s cubic-bezier(.18,.89,.32,1.3) both}
   .lb b{display:block;font-size:13px;font-weight:800;color:#16233f;letter-spacing:-.3px;line-height:1.3}
   .lb span{display:block;font-size:14.5px;font-weight:800;letter-spacing:-.3px;line-height:1.25}
   #legend{position:absolute;left:12px;bottom:12px;z-index:5;background:rgba(255,255,255,.92);border:1px solid #dde5f2;
@@ -1099,8 +1169,8 @@ _WORLD_MAP = _MAP_HEAD + r"""
 <script>
 const D = __DATA__, INFO = __INFO__, MODES = __MODES__, UNIT = "__UNIT__", TOPN = __TOPN__, NOTE = "__NOTE__";
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
-const PAL = {imp: {c: '#1d4ed8', t: '#1e3a8a', bins: ['#1e3a8a', '#1d4ed8', '#3b82f6', '#93c5fd', '#dbeafe']},
-             exp: {c: '#eb6834', t: '#a8431c', bins: ['#a8431c', '#eb6834', '#f39a70', '#f8c4aa', '#fde8dd']}};
+const PAL = {imp: {c: '#2b6ef6', t: '#1c4ec4', bins: ['#1543c2', '#2f6ff0', '#6b9cf5', '#a9c7fa', '#d8e6fd']},
+             exp: {c: '#0fa595', t: '#0b7f78', bins: ['#0b7f78', '#14a89c', '#46c7b9', '#93e1d5', '#d3f4ee']}};
 const CUT = [20, 10, 5, 1, 0], CUT_TXT = ['20% 이상', '10 - 20%', '5 - 10%', '1 - 5%', '1% 미만'];
 const KOR = {imp: '수입', exp: '수출'};
 const wrap = document.getElementById('wrap'), tip = document.getElementById('tip'), labels = document.getElementById('labels');
@@ -1222,16 +1292,16 @@ def country_map(imp: dict, exp: dict, modes: tuple[str, ...] = ("imp", "exp"), h
 
 
 INFO_CSS = """<style>
-/* ⓘ 데이터 정보 단추 · 대화상자(데모 배치 · 평면) */
-.st-key-info_btn{width:auto!important;padding:4px 20px 16px}
+/* ⓘ 데이터 정보 단추(머리글 오른쪽) · 대화상자 */
+.st-key-info_btn{width:auto!important;padding:0!important}
 .st-key-info_btn [data-testid="stTooltipHoverTarget"]{justify-content:flex-start!important}
-[data-testid="stSidebarUserContent"]{padding-bottom:14px!important}
-.st-key-info_btn button{width:26px;height:26px;min-width:26px;min-height:0;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.35);
-  display:flex;align-items:center;justify-content:center;background:transparent}
-.st-key-info_btn button:hover{background:rgba(255,255,255,.12)}
+.st-key-info_btn button{width:25px;height:25px;min-width:25px;flex-shrink:0;min-height:0;padding:0;border-radius:50%;border:none;
+  display:flex;align-items:center;justify-content:center;background:linear-gradient(140deg,#2b6ef6,#3fa9f5);
+  box-shadow:0 2px 7px rgba(43,110,246,.45);transition:transform .16s,box-shadow .16s}
+.st-key-info_btn button:hover{transform:scale(1.1);box-shadow:0 3px 10px rgba(43,110,246,.6)}
 .st-key-info_btn button > *{margin:0!important;gap:0!important;justify-content:center}
 .st-key-info_btn button [data-testid="stMarkdownContainer"]{display:none}
-.st-key-info_btn button [data-testid="stIconMaterial"]{color:#dbe7fb;font-size:18px;margin:0!important;line-height:1}
+.st-key-info_btn button [data-testid="stIconMaterial"]{color:#fff;font-size:16px;margin:0!important;line-height:1}
 [data-testid="stDialog"] [role="dialog"]{border-radius:12px;background:#f6f9fd}
 [data-testid="stDialog"] h2{font-size:23.5px!important;font-weight:700!important;letter-spacing:-.5px;color:var(--text)}
 .di-lead{font-size:14.5px;color:#44567a;line-height:1.65;margin:-4px 0 12px}
@@ -1252,36 +1322,6 @@ INFO_CSS = """<style>
 .di-warn li::before{content:counter(w);position:absolute;left:0;top:2px;width:17px;height:17px;border-radius:50%;background:var(--sky-weak);
   color:var(--accent);font-size:12px;font-weight:700;display:grid;place-items:center}
 </style>"""
-
-
-def sidebar(pages: list, current: object, foot: str, on_info=None) -> None:
-    """데모 사이드바 — 브랜드 · 메뉴 · 아래 글 · ⓘ(데이터 정보). pages = [(st.Page, 라벨, 아이콘)] — 아이콘은 단색 Material 이름."""
-    with st.sidebar:
-        with st.container(key="sidebrand"):
-            st.html('<div class="sb-brand"><b>방산 전자부품</b><small>수출입 및 국산화 현황 대시보드</small></div>')
-        with st.container(key="sidenav"):
-            for page, label, icon in pages:
-                # 현재 페이지도 같은 st.page_link 로 그린다 — 아이콘 크기 · 글자 위치가 그대로라 눌러도 흔들리지 않고,
-                # 아이콘 이름 글자(inventory_2 등)가 글꼴 도착 전에 크게 보이는 일도 없다. 표시는 감싼 컨테이너 키로 색만 바꾼다.
-                if page is current:
-                    with st.container(key="nav_cur"):
-                        st.page_link(page, label=label, icon=f":material/{icon}:", width="stretch")
-                else:
-                    st.page_link(page, label=label, icon=f":material/{icon}:", width="stretch")
-        with st.container(key="sidefoot"):
-            st.html(foot)
-        if on_info:
-            info_button("info_btn", on_info)
-
-
-def mini_rail(pages: list, current: object, on_info=None) -> None:
-    """(호환용) 데모의 접힘 미니 레일은 쓰지 않는다 — 사이드바는 Streamlit 기본 접기 단추로 여닫는다."""
-    return None
-
-
-def info_button(key: str, on_info) -> None:
-    if st.button("", icon=":material/info:", key=key, help="데이터 정보"):
-        on_info()
 
 
 # ── 보이는 차트 그대로 PNG 로 내려받기 ─────────────────────────────────────────

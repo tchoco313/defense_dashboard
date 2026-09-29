@@ -1,8 +1,8 @@
 """핵심 ① 수출입 현황 — 팀원 디자인 데모(K-Defense) 「수출입 현황」 화면을 그대로 옮기고 값만 RDS 로 바꿨다. 수입·수출 동등 배치.
 
 구역(데모 순서): 안내 줄 → 핵심 지표(KPI 6장) → 연도별 · 국가별(추이 선 · 국가 비중 도넛) → 공급국 집중도(주요 국가 TOP 7 ·
-품목군별 HHI 산점) → 공급국 순위 변화(범프 — 품목 · 비교 연도를 고르면 이 구역만 다시 조회) → 품목군별 공급 집중도(탭 · 공급 국가 비중) → 세계 지도 → 과천시 소재 수입자 비중(추정, 히트맵) → 표 · 내려받기.
-읽는 뷰: v_import_hs6_year(수입·수출 연도×국가), v_hhi_hs6_year·v_hhi_export_hs6_year(연도별 집중도), v_import_share_hs6_year(연도별 수입 순위), v_customs_region_gwacheon_year(과천 비중),
+품목군별 HHI 산점) → 공급국 순위 변화(범프 — 품목 · 비교 연도를 고르면 이 구역만 다시 조회) → 품목군별 공급 집중도(탭 · 공급 국가 비중) → 세계 지도 → 표 · 내려받기.
+읽는 뷰: v_import_hs6_year(수입·수출 연도×국가), v_hhi_hs6_year·v_hhi_export_hs6_year(연도별 집중도), v_import_share_hs6_year(연도별 수입 순위),
 fact_customs_monthly(HS10 세부), ref_hs_whitelist·ref_country·ref_hs_code_master(HS10 품명 라벨).
 데모에만 있고 DB 에 없는 칸(HSK 통제코드·민군겸용/항공/전자 후보 건수의 전년 대비)은 넣지 않았다.
 라벨 고정: 「국가 전체 수입·수출(민수 포함)」 — 군수 수요 규모가 아니다. 국가는 선적국·도착국(원산지 아님).
@@ -80,13 +80,6 @@ def load_rank(hs6: str, years: tuple[int, ...]) -> pd.DataFrame:
     """, {"h": hs6, "ys": list(years)})
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def load_gwacheon(hs: tuple[str, ...]) -> pd.DataFrame:
-    """품목군 × 연도 과천시 소재 수입자 비중(분모 = 전국 수입액, 천 달러 — 관세청 시군구별 실적)."""
-    return query("SELECT hs6, year, gwacheon_share, imp_kusd_gwacheon, imp_kusd_total, is_partial_year "
-                 "FROM v_customs_region_gwacheon_year WHERE hs6 IN :hs", {"hs": list(hs)})
-
-
 def m6(v: float) -> float:
     return float(v) / E6
 
@@ -141,14 +134,12 @@ SRC_HHI = f"관세청 · 품목별 국가별 수출입실적(15100475) · 연도
 with st.spinner("관세청 집계를 읽는 중"):
     trade, wl = load_base()
 if trade.empty:
-    hero("① 수출입 현황", "분석 대상 품목군을 어느 나라에서 얼마나 수입하고, 어느 나라로 얼마나 수출하는지 봅니다",
-         stamps=[("관세청 수출입", stamp)])
+    hero(stamps=[("관세청 수출입", stamp)])
     st.warning("관세청 수출입 집계가 아직 적재되지 않았습니다(미적재). 관리자에게 적재 상태를 확인해 주세요.")
     st.stop()
 # 「자료 기준」 버튼 안에 관세청 원천 최신 월 확인 한 줄(live.py — 홈과 같은 캐시를 쓴다)
 _last_ym = query("SELECT MAX(yyyymm) AS ym FROM fact_customs_monthly")["ym"].iloc[0]
-hero("① 수출입 현황", "분석 대상 품목군을 어느 나라에서 얼마나 수입하고, 어느 나라로 얼마나 수출하는지 봅니다",
-     stamps=[("관세청 수출입", stamp), ("원천 확인", live.as_stamp(live.source_check(str(_last_ym), wl.loc[wl["priority"] <= 2, "hs6"].tolist())))])
+hero(stamps=[("관세청 수출입", stamp), ("원천 확인", live.as_stamp(live.source_check(str(_last_ym), wl.loc[wl["priority"] <= 2, "hs6"].tolist())))])
 
 years = sorted(int(y) for y in trade["year"].unique())
 partial_years = {int(y) for y in trade.loc[trade["is_partial_year"] == 1, "year"].unique()}
@@ -194,8 +185,9 @@ ptag = f" (1~{mc}월)" if year in partial_years else ""
 
 
 def yoy_sub(col: str) -> str:
-    if prev is None or not prev[col]:
-        return "전년 대비 없음(부분연도 · 첫 해)"
+    if prev is None or not prev[col]:   # 해당하는 이유 하나만 쓴다
+        why = "부분연도" if year in partial_years else ("첫 해" if (year - 1) not in yr.index else "전년 실적 0")
+        return f"전년 대비 없음({why})"
     return f"{trend_word((cur[col] / prev[col] - 1) * 100)} 전년 대비 · {year - 1}년 {m6(prev[col]):,.0f}"
 
 
@@ -207,7 +199,7 @@ with zone("kpi2", "핵심 지표"):
             + kpi(f"{year}년 수출액{ptag}", f"{m6(cur.exp_dlr):,.0f}", "백만 USD", yoy_sub("exp_dlr"))
             + kpi("1위 수입국(선적국)", escape(imp_top), "", f"점유율 {by_c.loc[imp_top, 'imp_dlr'] / cur.imp_dlr * 100:.1f}% · 수입국 {n_imp}개")
             + kpi("1위 수출국(도착국)", escape(exp_top), "", f"점유율 {by_c.loc[exp_top, 'exp_dlr'] / cur.exp_dlr * 100:.1f}% · 수출국 {n_exp}개")
-            + kpi("분석 기간", f"{years[0]}–{years[-1]}", "", f"총 {len(years)}년" + (f" · {max(partial_years)}년은 부분연도" if partial_years else ""))
+            + kpi("분석 기간", f'<span class="vr">{years[0]}–{years[-1]}</span>', "", f"총 {len(years)}년" + (f" · {max(partial_years)}년은 부분연도" if partial_years else ""))
             + "</div>")
     chart_source(f"{SRC_TRADE} · {escape(scope)} · {year}년 · 전년 대비는 완결 연도끼리만")
 
@@ -321,7 +313,7 @@ with zone("conc", "공급국 집중도"):
             fig = go.Figure(go.Scatter(
                 x=xs, y=ys, mode="markers+text", text=shown, textposition=pos, textfont=dict(size=13, color=MUTED),
                 customdata=list(zip(names, [name_of_cd.get(c, c) for c in h[tcol]])),
-                marker=dict(size=14, color=[cc.get(c, ETC) for c in h[tcol]], line=dict(color="#fff", width=1.5)),
+                marker=dict(size=14, color=[cc.get(c, ETC) for c in h[tcol]], line=dict(color="#fff", width=1.5), opacity=.85),   # 겹친 점도 비쳐 보이게
                 hovertemplate="%{customdata[0]}<br>1위 %{customdata[1]} %{x:.1f}%<br>HHI %{y:,.0f}<extra></extra>"))
             fig.add_hline(y=2500, line=dict(color="#94a7c8", dash="dash", width=1),
                           annotation_text="HHI 2,500", annotation_font=dict(color=MUTED, size=13))
@@ -435,52 +427,8 @@ with zone("map", "세계 지도"):
                     {n: m6(v) for n, v in geo["exp_dlr"].items() if v > 0}, height=520, where=where)
         chart_source(SRC_TRADE + " · 국가 좌표는 나라 대표 위치 · 수입 = 선적국, 수출 = 도착국")
 
-# ── 과천시 소재 수입자 비중(추정) — 품목군 × 연도 히트맵(dashboard/specs/24_gwacheon_share.md, M7) ─────────────
-s_region = data_stamp("customs_region", "clean_customs_region")
-SRC_GC = ("관세청 시군구별 품목별 수출입실적(15134343) · 수입 = 납세의무자 주소지 기준 · 분모 = 전국 수입액 · "
-          f"자료 기간 {s_region['period'] if s_region['has_period'] else '—'}")
-with zone("gwacheon", "과천시 소재 수입자 비중(추정)"):
-    with st.container(border=True, key="card_gc"):
-        try:
-            gc = load_gwacheon(tuple(analysis_hs))
-        except Exception as e:   # noqa: BLE001 — 클래스명만(접속 정보 노출 금지)
-            gc = None
-            st.error(f"조회 실패({type(e).__name__}) — 페이지를 새로 고쳐 다시 조회해 주세요.")
-        if gc is not None and gc.empty:
-            st.info("관세청 시군구별 집계가 아직 적재되지 않았습니다(미적재).")
-        elif gc is not None:
-            gc = gc.assign(pct=gc["gwacheon_share"].astype(float) * 100)
-            gc_years = sorted(int(y) for y in gc["year"].unique())
-            gc_partial = {int(y) for y in gc.loc[gc["is_partial_year"] == 1, "year"].unique()}
-            gc_last = max(y for y in gc_years if y not in gc_partial)
-            last = gc[gc["year"] == gc_last].set_index("hs6")["pct"]
-            order = last.sort_values(ascending=True).index.tolist()           # 히트맵은 아래에서 위로 그려진다 → 위가 가장 높다
-            order += [h for h in analysis_hs if h not in order]
-            piv = gc.pivot_table(index="hs6", columns="year", values="pct", aggfunc="sum").reindex(index=order, columns=gc_years)
-            top_h = last.idxmax()
-            gc_title = (f'{gc_last}년 과천시 소재 수입자 비중(추정)은 '
-                        f'<span class="key">{escape(name_of_hs.get(top_h, top_h))} {last.max():.1f}%</span>가 가장 높다')
-            chart_title(gc_title, "관세청 수입액 중 수입자 주소지가 경기 과천시인 몫 · 셀 = % · "
-                        + (f"{', '.join(map(str, sorted(gc_partial)))}년은 부분연도 · " if gc_partial else "") + "하한 · 상한 아님")
-            xs = [f"{y}(부분)" if y in gc_partial else str(y) for y in gc_years]
-            ys = [f"{name_of_hs.get(h, h)} {h}" for h in piv.index]
-            z = piv.to_numpy()
-            fig = go.Figure(go.Heatmap(
-                z=z, x=xs, y=ys, zmin=0, zmax=max(35.0, float(pd.Series(z.ravel()).max())),
-                colorscale=[[0, "#f4f8fe"], [1, IMP]], xgap=2, ygap=2,
-                text=[[("" if pd.isna(v) else f"{v:.1f}") for v in row] for row in z], texttemplate="%{text}",
-                textfont=dict(size=12), colorbar=dict(title="%", thickness=10, len=0.8),
-                hovertemplate="%{y}<br>%{x}년 과천 비중 %{z:.1f}%<extra></extra>"))
-            fig.update_layout(height=30 * len(ys) + 110, margin=dict(l=190, r=20, t=10, b=30))
-            fig.update_xaxes(type="category", side="bottom")
-            st.plotly_chart(style_fig(fig), width="stretch", theme=None, config=PLOT_CFG, key="p1_gc_heat")
-            st.html('<div class="caption">「과천시 소재 수입자 비중(방위사업청 소재지), 추정」 — 관측값은 납세의무자 주소지 기준 신고액이고, '
-                    '그 신고자가 방위사업청인지는 공개 자료로 확인되지 않았습니다(가설). 과천 소재 민간 수입자가 섞이거나 위탁 업체 명의 수입이 '
-                    '빠질 수 있어 군 몫의 하한도 상한도 아닙니다.</div>')
-            chart_source(SRC_GC)
-            png_button(fig, "수출입_과천소재수입자비중_추정", align="flex-start", title=gc_title, source="출처: " + SRC_GC)
-
 # ── 표 · 내려받기 ─────────────────────────────────────────────────────────────
+TOP_N_TBL = 20   # 국가별 표 화면 행 수
 tbl = by_c.sort_values("imp_dlr", ascending=False).reset_index()
 tbl["수입 점유율(%)"] = (tbl["imp_dlr"] / tbl["imp_dlr"].sum() * 100).round(2)
 tbl["수출 점유율(%)"] = (tbl["exp_dlr"] / tbl["exp_dlr"].sum() * 100).round(2)
@@ -492,10 +440,23 @@ with zone("tbl", "집중도 · 표 · 내려받기"):
         top5_share = tbl["수입 점유율(%)"].head(5).sum()
         chart_title(f'{year}년{ptag} 수입국은 {n_imp}개, 수출국은 {n_exp}개 — 수입 상위 5개국이 '
                     f'<span class="key">{top5_share:.1f}%</span>를 차지한다',
-                    "수입액 내림차순 · 금액 USD · 점유율 %")
-        st.dataframe(tbl, hide_index=True, width="stretch", height=320,
-                     column_config={"수입액(USD)": st.column_config.NumberColumn(format="localized"),
-                                    "수출액(USD)": st.column_config.NumberColumn(format="localized")})
+                    f"수입액 내림차순 · 상위 {min(TOP_N_TBL, len(tbl))}개국 · 금액 백만 USD · 점유율 %")
+        # 화면 표는 스크롤 없이 상위 20개국만 — 긴 표는 휠이 표 안에 갇혀 페이지가 안 내려간다(2026-09-28 점검). 전체는 펼치기 · CSV
+        top = tbl.head(TOP_N_TBL).assign(**{"수입액(백만 USD)": lambda x: (x["수입액(USD)"] / 1e6).round(0),
+                                          "수출액(백만 USD)": lambda x: (x["수출액(USD)"] / 1e6).round(0)})
+        top = top[["국가", "수입액(백만 USD)", "수출액(백만 USD)", "수입 점유율(%)", "수출 점유율(%)"]]
+        st.dataframe(top, hide_index=True, width="stretch", height=38 + 35 * len(top) + 3,
+                     column_config={"수입액(백만 USD)": st.column_config.NumberColumn(format="localized"),
+                                    "수출액(백만 USD)": st.column_config.NumberColumn(format="localized"),
+                                    "수입 점유율(%)": st.column_config.NumberColumn(format="%.1f"),
+                                    "수출 점유율(%)": st.column_config.NumberColumn(format="%.1f")})
+        if len(tbl) > TOP_N_TBL:
+            with st.expander(f"전체 {len(tbl)}개국 보기(USD)"):
+                st.dataframe(tbl, hide_index=True, width="stretch", height=320,
+                             column_config={"수입액(USD)": st.column_config.NumberColumn(format="localized"),
+                                            "수출액(USD)": st.column_config.NumberColumn(format="localized"),
+                                            "수입 점유율(%)": st.column_config.NumberColumn(format="%.2f"),
+                                            "수출 점유율(%)": st.column_config.NumberColumn(format="%.2f")})
         st.download_button("국가별 표 CSV 내려받기", (csv_head + tbl.to_csv(index=False)).encode("utf-8-sig"),
                            file_name=f"trade_{'all13' if sel == ALL else sel}_{year}.csv", mime="text/csv",
                            key="p1_csv", icon=":material/download:", type="primary")
@@ -508,15 +469,23 @@ with zone("tbl", "집중도 · 표 · 내려받기"):
                 show[c] = show[c].map(lambda x: name_of_cd.get(x, x))
             show["top1_share_imp"] = (show["top1_share_imp"] * 100).round(1)
             show["top1_share_exp"] = (show["top1_share_exp"] * 100).round(1)
+            show["hhi_imp"], show["hhi_exp"] = show["hhi_imp"].round(0), show["hhi_exp"].round(0)   # 소수 자릿수가 제각각(5,886.819 / 2,312.7)이라 정수로
             show = show.rename(columns={"hs6": "HS6", "name_ko": "품목군", "hhi_imp": "수입 HHI", "top1_imp": "1위 수입국",
                                         "top1_share_imp": "1위 수입 점유율(%)", "n_imp": "수입국 수", "hhi_exp": "수출 HHI",
                                         "top1_exp": "1위 수출국", "top1_share_exp": "1위 수출 점유율(%)", "n_exp": "수출국 수"})
             k_hi = int((show["수입 HHI"] >= 2500).sum())
             chart_title(f'{year}년 {len(show)}개 품목군 중 <span class="key">{k_hi}개</span>가 수입 HHI 2,500 이상(높은 집중)이다',
                         "연도별 값 · HHI 0~10,000 · 수입 HHI 내림차순")
-            st.dataframe(show, hide_index=True, width="stretch", height=min(480, 40 + 36 * len(show)),
+            st.dataframe(show, hide_index=True, width="stretch", height=38 + 35 * len(show) + 3,   # 행 수만큼 — 마지막 행이 가려지지 않게
                          column_config={"수입 HHI": st.column_config.NumberColumn(format="localized"),
-                                        "수출 HHI": st.column_config.NumberColumn(format="localized")})
+                                        "수출 HHI": st.column_config.NumberColumn(format="localized"),
+                                        "1위 수입 점유율(%)": st.column_config.NumberColumn(format="%.1f"),
+                                        "1위 수출 점유율(%)": st.column_config.NumberColumn(format="%.1f"),
+                                        "HS6": st.column_config.TextColumn(width="small"),
+                                        "수입국 수": st.column_config.NumberColumn(width="small"),
+                                        "수출국 수": st.column_config.NumberColumn(width="small"),
+                                        "1위 수입국": st.column_config.TextColumn(width=110),
+                                        "1위 수출국": st.column_config.TextColumn(width=110)})
             st.download_button("집중도 표 CSV 내려받기", (csv_header(f"{scope} · {year}년 · 연도별 HHI", SOURCE, [("관세청", stamp, None)],
                                "HHI = Σ(국가 점유율 × 100)², 0~10,000 · 국가 전체 교역 기준") + show.to_csv(index=False)).encode("utf-8-sig"),
                                file_name=f"hhi_{'all13' if sel == ALL else sel}_{year}.csv", mime="text/csv", key="p1_csv_hhi",

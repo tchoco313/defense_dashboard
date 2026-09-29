@@ -18,7 +18,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from db import data_stamp, query
-from kdesign import LV_BG, LV_FG, TEXT
+from kdesign import LV_BG, LV_FG, SERIES, TEXT
 from metrics import concentration
 from ui import (ETC, SHORT, hhi_level, chart_source, chart_title, country_colors, csv_header, hero, hover_donut, period_control,
                 png_button, rules_card, style_fig, zone)
@@ -32,7 +32,7 @@ BASIS_TAGS = [("HSK-군용", "군용 전용", "군용 전용 세분류 — 「�
               ("HSK-항공/항행", "전문 용도", "전문 용도 명시 — 항공기용 · 항행 · 레이더 · 무인기 세분류가 있음(진입 근거)"),
               ("전략물자-DU", "전략물자 통제", "전략물자 통제 — 이중용도 통제품목 3·5·6·7부(참고일 뿐 진입 근거 아님)"),
               ("A6", "연구 인용", "국방반도체 연구 인용(참고)"), ("팀판단", "팀 판단", "기획 단계 팀 판단(진입 규칙 미해당)")]
-TAG_COLOR = {"HSK-군용": "#2a78d6", "HSK-항공/항행": "#eb6834", "전략물자-DU": "#1baf7a", "A6": "#4a3aa7", "팀판단": "#b8c2cf"}   # 근거 종류 = 범주색(검증 팔레트 순서)
+TAG_COLOR = {"HSK-군용": SERIES[0], "HSK-항공/항행": SERIES[1], "전략물자-DU": SERIES[2], "A6": SERIES[3], "팀판단": ETC}   # 근거 종류 = 범주색(팔레트 순서)
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -130,8 +130,7 @@ stamp = data_stamp("customs_all", "fact_customs_monthly")
 SRC = (f"{SRC_PATH} · 자료 기간 {stamp['period'] if stamp['has_period'] else '—'} · "
        "국가는 선적국(원산지 아님)")
 
-hero("④ 검토 목록", "분석 대상 품목군을 수입 집중도(HHI)가 높은 순으로 한 표에서 비교합니다 — 우선순위를 정한 목록은 아닙니다",
-     stamps=[("관세청 수출입", stamp)])
+hero(stamps=[("관세청 수출입", stamp)])
 st.html('<div class="lede"><div class="note">분석 대상 품목군을 한 표로 비교합니다. '
         '표는 열 머리를 눌러 정렬할 수 있고, 오른쪽 위 아이콘으로 검색·전체화면이 됩니다. 기본 정렬은 수입 HHI(기간 합계) 내림차순입니다.</div></div>')
 

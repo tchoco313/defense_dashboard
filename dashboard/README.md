@@ -20,9 +20,9 @@ streamlit run dashboard/main.py
 | `pages/5_데이터_정보.py` | ⑤ 데이터 정보 | `/info` |
 | `pages/6_조회.py` | 조회 | `/search` |
 
-공용 모듈: `main.py`(진입점 · 라우터) · `nav.py`(페이지 목록) · `db.py`(조회) · `metrics.py`(지표 계산) · `kdesign.py`(화면 틀 · 차트 공통) · `ui.py`(공용 화면 요소) · `live.py`(관세청 원천 최신 월 확인).
+공용 모듈: `main.py`(진입점 · 라우터) · `nav.py`(페이지 목록) · `db.py`(조회) · `metrics.py`(지표 계산) · `frame.py`(화면 틀 — 머리글 · 메뉴 · 배너 · 바닥글, `assets/k9_banner.jpg`) · `landing.py`(홈 첫 화면) · `kdesign.py`(본문 디자인 · 차트 공통) · `ui.py`(공용 화면 요소) · `live.py`(관세청 원천 최신 월 확인).
 
-`demo/design_demo.py` 는 디자인 시안용 단독 실행본이다. **숫자는 전부 샘플**이라 발표 · 보고에 쓰지 않는다.
+`demo/design_demo.py` · `demo/K-Defense_brandnew.py`(2026-09-28 새 디자인 — 운영 앱 화면 틀의 기준) 는 디자인 시안용 단독 실행본이다. **숫자는 전부 샘플**이라 발표 · 보고에 쓰지 않는다.
 
 ## 옛 파일 이름 (2026-09-28 정리 전)
 
@@ -35,4 +35,5 @@ streamlit run dashboard/main.py
 | `pages/4_검토_목록.py` | `pages/3_품목군_현황표.py` |
 | `pages/5_데이터_정보.py` | `pages/5_DATA_INFO.py` |
 | `demo/design_demo.py` | 루트 `K-Defense_대시보드_demo.py` |
+| (팀 공동 저장소) `app/K-Defense_brandnew.py` | `demo/K-Defense_brandnew.py` |
 | (팀 공동 저장소) `app/` | 이 저장소 `dashboard/` |

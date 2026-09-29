@@ -135,8 +135,7 @@ s_util = data_stamp("kosis_utilization", "clean_kosis_utilization")
 s_comp = data_stamp("dapa_defense_company", "clean_dapa_defense_company")
 s_prod = data_stamp("kosis_production_index", "clean_kosis_production_index")
 
-hero("② 국외조달 예산 · 배경", "국외조달 계획의 예산과 건수, 그 배경인 국방 R&amp;D 예산 · 국내 생산 기반 · 국방반도체 정책을 봅니다",
-     stamps=[("국외조달 계획", s_plan), ("열린재정 예산", s_bud), ("KOSIS 가동률", s_util), ("KOSIS 생산지수", s_prod)])
+hero(stamps=[("국외조달 계획", s_plan), ("열린재정 예산", s_bud), ("KOSIS 가동률", s_util), ("KOSIS 생산지수", s_prod)])
 st.html('<div class="lede"><div class="note">수입 현황의 배경 — 정부 예산, 방위사업청 국외조달 계획, 국내 생산 기반. '
         '각 자료는 단위·기준이 달라 서로 합하거나 관세청 수입액과 <b>직접 비교하지 않습니다</b>.</div></div>')
 
@@ -241,8 +240,8 @@ with zone("bud", "예산 추이"):
                                          line=dict(color=ACCENT, width=2, dash="dot"),
                                          marker=dict(size=7, color="#fff", line=dict(color=ACCENT, width=2)),
                                          hovertemplate="%{x}년(정부안)<br>%{y:.1f}%<extra></extra>"))
-            fig.update_xaxes(dtick=1)
-            fig.update_yaxes(range=[0, b["pct"].max() * 1.2], ticksuffix="%")
+            fig.update_xaxes(dtick=1, ticklabelstandoff=6)          # 「0%」와 「2016」이 모서리에서 겹치지 않게
+            fig.update_yaxes(range=[0, b["pct"].max() * 1.2], ticksuffix="%", ticklabelstandoff=6)
             fig.update_layout(showlegend=not sd.empty, legend=dict(orientation="h", y=1.12))
             chart(style_fig(fig, 330), "국방기술개발비중", title=t_ratio, source=src_bud)
             caption("국방기술개발 ÷ 방위사업청 일반회계 세부사업 합계(같은 자료 안의 비율)"
@@ -605,9 +604,13 @@ with zone("semi", "국방반도체 발전전략 · 국내 기반"):
             t_types = (f"{len(ctype)}대 유형 중 국내 사례가 가장 많은 유형은 "
                        f'<span class="key">{" · ".join(tops)}({n_max}건)</span>') if tops else f"{len(ctype)}대 유형 × 국내 개발 사례"
             chart_title(t_types, "건 · 사례 = 언론 보도 기준(전수 아님) · 관련 HS6 은 팀 판단이라 수입액과 잇거나 합산하지 않음")
-            st.dataframe(tv, hide_index=True, width="stretch", height=38 + 35 * len(tv), column_config={
-                "개요": st.column_config.TextColumn(width="large"),
-                "국내 사례(건)": st.column_config.ProgressColumn(format="%d", min_value=0, max_value=int(max(n_case.max(), 1)))})
+            # 화면 표는 긴 「개요」를 빼고 건수를 이름 옆에 — 오른쪽 열이 잘려 제목의 건수가 안 보였다(2026-09-28 점검). 개요는 CSV 에 둔다
+            st.dataframe(tv[["유형", "국내 사례(건)", "대표 소자", "관련 HS6(팀 판단)"]], hide_index=True, width="stretch",
+                         height=38 + 35 * len(tv) + 3, column_config={
+                             "유형": st.column_config.TextColumn(width=270),
+                             "관련 HS6(팀 판단)": st.column_config.TextColumn(width=290),
+                             "국내 사례(건)": st.column_config.ProgressColumn(format="%d", min_value=0, max_value=int(max(n_case.max(), 1)),
+                                                                          width="small")})
             head = csv_header("국방반도체 7대 유형 × 국내 개발 사례 건수", "방위사업청 「국방반도체 발전전략」(2024-11-19) 참고9 · 언론 보도",
                               [], extra="팀 수작업 정리(발전전략 · 보도 인용) · 관련 HS6 은 팀 판단")
             st.download_button("표 CSV 내려받기", (head + tv.to_csv(index=False)).encode("utf-8-sig"),

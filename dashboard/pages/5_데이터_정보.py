@@ -6,13 +6,12 @@
 - 출처 표 = DB meta_dataset(= db/meta_dataset.csv) — 화면이 문서와 따로 놀지 않게 DB에서 읽는다
 - 깔때기 = clean_dapa_bid_notice · clean_dapa_bid_result 행 수와 notice_link_status(공고번호 + 차수 대조, v_bid_notice_result_link 와 같은 기준)
 - 1만 건 요건 2종(M2)의 원본 건수는 출처 표(meta_dataset)에서 포털 ID 로 골라 쓴다
-데모에 없던 기존 내용(선정 규칙 · 지표 정의 · 용어 · 과천 추정 · 쓰지 않은 데이터 · 말하지 않는 것)은 출처 · 정의 정확성에 필요해 「상세 정의」 펼침으로 둔다.
+데모에 없던 기존 내용(선정 규칙 · 지표 정의 · 용어 · 쓰지 않은 데이터 · 말하지 않는 것)은 출처 · 정의 정확성에 필요해 「상세 정의」 펼침으로 둔다.
 
 근거 문서(문구를 바꿀 때 먼저 고친다):
 - 선정 규칙: docs/reference/hs-whitelist-definition.md §8-2 — 진입 R1 OR R2(2026-09-21 회의 M5, R4 제외). 분석 제외 = priority 3
 - 제외 데이터: docs/report/data/data-usage-decision-2026-09-18.md §1 「제외」, docs/idea-review.md §2-C
 - 과장 금지: docs/idea-review.md §3 유의사항
-- 과천: docs/data-sources.md 「지역 통계 검증」 절 — "과천시 소재 수입자 비중(방위사업청 소재지), 추정"으로만 쓰고 하한·상한으로 단정하지 않는다.
 """
 from __future__ import annotations
 
@@ -25,7 +24,7 @@ import streamlit as st
 
 from db import data_stamp, query, safe_query, try_query
 from metrics import count_state
-from ui import SHORT, chart_source, chart_title, csv_header, hero, png_button, rules_card, style_fig, zone
+from ui import SHORT, chart_source, chart_title, csv_header, hero, html_table, png_button, rules_card, style_fig, zone
 
 # 1만 건 요건 2종(2026-09-21 회의 M2) + 부록 — 출처 표에서 포털 ID 로 찾는다(표시용)
 ID_CUSTOMS, ID_LOCAL, ID_CONTRACT = "15100475", "15119899", "15050920"
@@ -216,7 +215,6 @@ stamp_customs = data_stamp("customs_all", "fact_customs_monthly")
 stamp_local = data_stamp("dapa_localized_item", "clean_dapa_localized_item")
 stamp_wl = data_stamp("ref_hs_whitelist", "ref_hs_whitelist")
 stamp_flag = data_stamp("ref_hs_rule_flag", "ref_hs_rule_flag")
-stamp_region = data_stamp("customs_region", "clean_customs_region")
 stamp_bid = data_stamp("dapa_bid_result", "clean_dapa_bid_result")
 
 end = stamp_customs["period"].split("~")[-1] if stamp_customs["has_period"] else ""
@@ -226,8 +224,7 @@ partial_line = (f"관세청 {end[:4]}년은 {int(end[5:])}월까지의 부분연
 b2_txt = f"지상 {n_b2}개 사업" if st_b2 == "ok" else "지상 사업 한정"
 
 # ── 머리띠(데모 hero) ──────────────────────────────────────────────────────
-hero("⑤ 데이터 정보", "화면의 숫자가 어디서 왔고 어떻게 계산했으며, 무엇을 뜻하지 않는지 적었습니다",
-     stamps=[("관세청 수출입", stamp_customs)])
+hero(stamps=[("관세청 수출입", stamp_customs)])
 
 st.html('<div class="lede"><div class="note">이 대시보드의 숫자가 어디서 왔고, 어떻게 계산했고, '
         '무엇을 뜻하지 <b>않는지</b> 적어 둔 곳입니다. 값은 모두 아래 「데이터 출처」 표의 공개 자료에서 왔습니다.</div></div>')
@@ -247,10 +244,9 @@ with zone("src", "데이터 출처"):
             "구분": src["tier"], "포털 ID": src["dataset_id"].fillna("—"), "확보일": src["acquired_on"].astype(str),
             "링크": src["url"],
         })
-        st.dataframe(view, width="stretch", hide_index=True, height=min(38 + 35 * len(view), 460), column_config={
-            "원본 건수(행)": st.column_config.NumberColumn(format="localized", help="내려받은 원본을 파서로 센 레코드 수(포털 표시 건수 아님)"),
-            "링크": st.column_config.LinkColumn(display_text="열기"),
-        })
+        # 줄바꿈되는 HTML 표 — st.dataframe 은 9열이 칸 폭을 넘어 오른쪽 열(건수 · 링크)이 잘렸다(2026-09-28 점검)
+        st.html(html_table(view, num_cols=("원본 건수(행)",), link_cols=("링크",),
+                           nowrap_cols=("구분", "포털 ID", "확보일")))
         req = ((f"과제 요건 「2종 × 각 1만 건」 = 관세청 수출입실적 <b>{n_cus:,}행</b> · 국산화개발품목 <b>{n_loc:,}행</b>"
                 if n_cus is not None and n_loc is not None else "과제 요건 「2종 × 각 1만 건」 = 관세청 수출입실적 · 국산화개발품목")
                + "(관측 대상이 서로 다른 자료라 합산하지 않음) · "
@@ -372,7 +368,6 @@ with zone("detail", "상세 정의"):
             ("지표", "집중도(HHI)", "Σ(국가별 점유율 %)², 0~10,000. 2,500 이상 = 높은 집중. 수입 집중도이며 위험도가 아닙니다"),
             ("지표", "선적국", "관세청 통계의 국가 기준. 원산지와 다를 수 있습니다(홍콩 · 싱가포르 경유 등)"),
             ("지표", "민수 포함", "수입액 · 수출액은 국가 전체 교역액입니다. 군수 몫만 따로 떼어 낸 통계는 없습니다"),
-            ("지표", "과천시 소재 수입자 비중(추정)", "수입자 소재지가 경기 과천시인 수입 비중(방위사업청 소재지). 군수 몫의 참고 추정치이며 하한도 상한도 아닙니다"),
             ("자료", "국외 조달계획", "방위사업청이 공개하는 품목 단위 국외 조달 계획. 계획이지 계약 · 실적이 아닙니다"),
             ("자료", "국산화개발품목", f"방위사업청 국산화개발 완료 부품 목록({b2_txt}). 부품 수이지 국산화율이 아닙니다"),
             ("표시", "부분연도", "1년이 다 차지 않은 해(2026년은 8월까지). 연간 비교 · KPI · 전년비에서 뺍니다"),
@@ -390,30 +385,7 @@ with zone("detail", "상세 정의"):
         chart_source("팀 작성 용어 정의 · 코드는 관세청 HS 분류와 미 연방보급분류(FSG · FSC) 공식 명칭 · "
                      f"국산화개발 사업 수는 국산화개발품목 자료의 사업명 수({stamp_txt('국산화개발품목', stamp_local)})")
 
-    # ── 3. 과천시 소재 수입자 비중(추정) — 관측값과 가설을 좌우로 나눠 적는다 ────────
-    with st.expander("과천시 소재 수입자 비중(추정)"):
-        card_title(st, '<span>과천시 소재 수입자 비중<span class="badge">추정</span> — 관측값은 신고 주소지 기준 금액이고, '
-                       '신고자가 방위사업청이라는 부분은 가설이라 하한도 상한도 아니다</span>',
-                   "천 달러 · 납세의무자 주소지 기준 · 분모 전국 수입액 · 왼쪽 관측값 / 오른쪽 가설")
-        st.html(cards([
-            ("무엇을 관측할 수 있나", bullets([
-                "관세청 <b>시군구별</b> 품목별 수출입실적(15134343)에서 수입자 소재지가 <b>경기 과천시</b>인 수입액의 비중 — "
-                "관세청 명세상 「<b>납세의무자 주소지</b>」 기준이며 사용처 · 생산지가 아닙니다",
-                "관측값의 이름은 「과천시 소재 수입자 비중(방위사업청 소재지), 추정」입니다",
-                "「추정」 표기를 붙인 참고 지표이며, 시군구별 실적(2016~2026)으로 다시 계산할 수 있습니다",
-                "분모는 계산 단위에 따라 HS6별 수입액 또는 분류별 수입액으로 다릅니다"])),
-            ("왜 「군 직접 수입의 하한」이라고 쓰지 않나", bullets([
-                "과천에 방위사업청(정부과천청사)과 국군수송사령부가 있다는 것은 사실이지만, 수입신고의 납세의무자가 실제로 그 기관인지는 "
-                "공개 자료로 확인되지 않았습니다 — 이 부분은 <b>가설</b>입니다",
-                "과천 소재 <b>민간 수입자</b>가 섞일 수 있어 비중이 군 몫보다 클 수 있고, 관세법 §92 위탁 업체 명의(창원 · 사천 등)로 들어오는 "
-                "군수품은 빠져 작을 수도 있습니다 → 어느 쪽으로도 치우칠 수 있으므로 <b>하한도 상한도 아닙니다</b>",
-                "그래서 「추정」 표기를 붙인 참고 지표로만 씁니다. 관측값과 가설은 계속 나눠 적습니다",
-                "군수 몫은 관세 통계로 나뉘지 않습니다 — 품목군 지표는 국가 전체 수입(민수 포함)입니다"])),
-        ]))
-        chart_source("관세청 시군구별 품목별 수출입실적(15134343) · 금액 천 달러 · 수입 = 납세의무자 주소지 기준 · "
-                     f"{stamp_txt('시군구별 수출입', stamp_region)}")
-
-    # ── 4. 제외한 데이터 ────────────────────────────────────────────────────────
+    # ── 3. 제외한 데이터 ────────────────────────────────────────────────────────
     with st.expander("쓰지 않은 데이터와 이유"):
         ex = pd.DataFrame([
             ("국외조달 입찰결과", "2025.03~09 6개월뿐, 전자 후보 9건. 행 = 품목이라 유찰률이 부풀려짐"),
@@ -424,6 +396,7 @@ with zone("detail", "상세 정의"):
             ("국방표준종합서비스(2016)", "2016 한 시점 스냅샷이라 연도 축이 없고, 국산화 목록과 교집합이 거의 없음"),
             ("무기체계별 부품 구성(BOM) · 생산 대수", "비공개(군사기밀 · 영업비밀). 추정 · 역산하지 않음"),
             ("군용만 따로 뗀 반도체 수입액", "HS 코드는 용도(군용 · 민수)를 구분하지 않아 존재하지 않는 통계"),
+            ("관세청 시군구별 수출입실적(과천 비중 추정)", "수입자 주소지 기준이라 신고자가 방위사업청인지 공개 자료로 확인되지 않음(가설) — 2026-09-28 화면에서 뺌"),
         ], columns=["데이터", "이유"])
         card_title(st, f'화면에 쓰지 않은 데이터 <span class="key">{len(ex)}종</span> — '
                        "부품 단위로 이을 식별자가 없거나, 기간 · 항목이 모자라거나, 비공개이거나, 존재하지 않는 통계",
@@ -434,7 +407,7 @@ with zone("detail", "상세 정의"):
         caption("일부(입찰 · 조달계획 등)는 위 출처 표에 있으나 화면에 쓰지 않습니다")
         chart_source("팀 데이터 사용 결정 기록(2026-09-18) · 팀 기획 검토")
 
-    # ── 5. 과장 금지 ────────────────────────────────────────────────────────────
+    # ── 4. 과장 금지 ────────────────────────────────────────────────────────────
     with st.expander("이 대시보드가 말하지 않는 것"):
         card_title(st, "수입액은 민수를 포함한 국가 전체 교역액이고, 집중도(HHI)는 위험도가 아니며, 조달 계획과 수입 실적은 합치거나 직접 비교하지 않는다",
                    "수치 해석 5항 · 표현 범위 4항")

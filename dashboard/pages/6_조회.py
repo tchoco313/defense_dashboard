@@ -18,7 +18,7 @@ import streamlit as st
 
 from db import data_stamp, query, safe_query
 from kdesign import ACCENT, ETC, SERIES, TEXT, _svg_img
-from ui import (SHORT, source_pop, chart_source, chart_title, country_map, csv_header, globe_loading, hero, hover_donut, kpi, png_button,
+from ui import (EXP, EXP_DIM, IMP, IMP_DIM, SHORT, source_pop, chart_source, chart_title, country_colors, country_map, csv_header, globe_loading, hero, hover_donut, kpi, png_button,
                 style_fig, zone)
 
 ALL = "__all__"
@@ -83,8 +83,7 @@ def trade_frame(names: list[str], y0: int, y1: int, hs6: str, hs10: str | None) 
 
 
 STAMP = data_stamp("customs_all", "fact_customs_monthly")
-hero("조회", "조건을 골라 원하는 차트를 만들고, 표와 그림으로 내려받습니다 — 조건은 고르는 값만 씁니다(자유 입력 없음)",
-     stamps=[("관세청 수출입", STAMP)])
+hero(stamps=[("관세청 수출입", STAMP)])
 if not STAMP["has_period"]:
     if STAMP["error"]:
         st.error(f"관세청 수출입 자료를 조회하지 못했습니다({STAMP['error']}). 잠시 뒤 다시 열어 주세요.")
@@ -124,9 +123,16 @@ Q_CHART_ICON = {"꺾은선 그래프": ":material/show_chart:", "막대 그래�
                 "산점도 차트": ":material/scatter_plot:", "덤벨 차트": ":material/linear_scale:"}
 Q_CHARTS = list(Q_CHART_ICON)
 Q_CHART_COLS = 5                                              # 차트 유형 버튼 한 줄에 5개
-Q_METRIC_COLOR = {"수출액": SERIES[1], "수입액": SERIES[0], "무역수지": SERIES[6], "수출중량": "#f5b597",
-                  "수입중량": "#9fc1ec"}   # 수입 파랑 · 수출 주황(①·지도와 같은 짝), 중량은 같은 색의 옅은 톤
-Q_PALETTE = SERIES   # 검증 팔레트 8색 고정 순서 — 9번째부터는 기타(ETC), 색을 돌려 쓰지 않는다
+Q_METRIC_COLOR = {"수출액": EXP, "수입액": IMP, "무역수지": SERIES[3], "수출중량": EXP_DIM,
+                  "수입중량": IMP_DIM}   # 수입 파랑 · 수출 청록(①·지도와 같은 짝), 중량은 같은 색의 옅은 톤
+Q_PALETTE = SERIES   # 팔레트 8색 고정 순서 — 9번째부터는 기타(ETC), 색을 돌려 쓰지 않는다
+
+
+def ctry_colors(names) -> dict[str, str]:
+    """국가 이름 → 색. 다른 페이지와 같은 나라 = 같은 색(ui.country_colors — 미국 파랑 · 중국 주황 · 대만 청록).
+    순서대로 팔레트를 돌려 쓰면 중국이 파랑이 되는 등 페이지마다 색이 달라졌다(2026-09-28 점검). 「기타 …」는 회색."""
+    cc = country_colors([CODE.get(str(n), str(n)) for n in names if not str(n).startswith("기타")])
+    return {n: (ETC if str(n).startswith("기타") else cc[CODE.get(str(n), str(n))]) for n in names}
 Q_CHART_TOP = len(SERIES)   # 그림에 따로 그리는 국가 수 — 넘으면 기간 합계 상위만 두고 나머지는 「기타 N개국」 한 줄(카드 · 표 · CSV 는 전체)
 
 Q_DEFAULT = {"qs_area": "수출입", "qs_hs6": ALL, "qs_hs10": ALL, "qs_ctry": ["중국", "대만", "미국"], "qs_all": False,
@@ -325,7 +331,7 @@ def query_chart(df: pd.DataFrame, q: dict) -> tuple[go.Figure, str]:
     trim = (f"그래프는 {primary} 기간 합계 상위 {Q_CHART_TOP}개국 + 나머지 {n_rest}개국 합계(「기타」) — "
             f"지표 카드 · 결과 표 · CSV 는 {n_all}개국 전체" if n_rest else "")
     by_c = df.groupby("국가", sort=False)[list(Q_UNIT)].sum()
-    color = {n: (Q_PALETTE[i] if i < len(Q_PALETTE) else ETC) for i, n in enumerate(names)}
+    color = ctry_colors(names)
     note = ""
     fig = go.Figure()
     png_fig = None
@@ -496,7 +502,7 @@ def query_title(df: pd.DataFrame, q: dict) -> tuple[str, str]:
 
 # ── 조회 — 차트 유형 15종 설명 · CSV 를 차트 모양대로(KOSIS 「데이터 시각화 체험하기」 차트 목록 참고) ──────────
 # 분석 조건 설정의 차트 유형 버튼 → 커서를 올리면 그 차트 설명(그림 · 설명 · 용도)이 뜨고, 오른쪽 아래 버튼으로 그 차트 모양의 CSV 를 내려받는다
-_CB, _CT, _CP, _CG, _CY, _CO, _CA = "#2a78d6", "#1baf7a", "#eb6834", "#dbe4ef", "#eda100", "#f39a70", "#9aa5b8"   # 차트 유형 설명 칸의 장식 그림(KOSIS 차트 목록 모양) — 데이터 색(SERIES 고정 순서)과 무관
+_CB, _CT, _CP, _CG, _CY, _CO, _CA = "#2b6ef6", "#17c8b5", "#ff9f43", "#dbe4ef", "#ffc36b", "#ffb877", "#9aa5b8"   # 차트 유형 설명 칸의 장식 그림(KOSIS 차트 목록 모양) — 데이터 색(SERIES 고정 순서)과 무관
 _AX = f'<path d="M22 12V72H104" fill="none" stroke="{_CA}" stroke-width="1.2"/>'
 
 
@@ -700,14 +706,19 @@ def csv_preview(chart: str, out: pd.DataFrame) -> go.Figure:
     fig = go.Figure()
     first = out.columns[0]
     pal = lambda i: (Q_PALETTE[i] if i < len(Q_PALETTE) else ETC)
+    rows_c = [str(n) for n in out[first]]
+    is_ctry = lambda ns: bool(ns) and all(n in CODE or n.startswith("기타") for n in ns)
+    cmap = ctry_colors(rows_c) if is_ctry(rows_c) else {}                   # 행 = 국가(원형 · 도넛 · 트리맵 · 버블)
     if chart in ("꺾은선 그래프", "면적 그래프", "누적 막대 그래프"):
         series = [c for c in out.columns[1:] if c != "합계"]
         stack = chart == "면적 그래프" and bool((out[series] >= 0).all().all())
+        scol = ctry_colors(series) if is_ctry(series) else {}                 # 열 = 국가면 국가 색
+        pal_s = lambda i: scol.get(series[i]) or pal(i)
         for i, c in enumerate(series):
             if chart == "누적 막대 그래프":
-                fig.add_trace(go.Bar(x=out[first], y=out[c], name=c, marker_color=pal(i)))
+                fig.add_trace(go.Bar(x=out[first], y=out[c], name=c, marker_color=pal_s(i)))
             else:
-                fig.add_trace(go.Scatter(x=out[first], y=out[c], name=c, line=dict(color=pal(i), width=2.2),
+                fig.add_trace(go.Scatter(x=out[first], y=out[c], name=c, line=dict(color=pal_s(i), width=2.2),
                                          mode="lines" if chart == "면적 그래프" else "lines+markers",
                                          stackgroup="a" if stack else None,
                                          fill=None if stack or chart == "꺾은선 그래프" else "tozeroy"))
@@ -726,11 +737,11 @@ def csv_preview(chart: str, out: pd.DataFrame) -> go.Figure:
         fig.update_xaxes(tickformat=",.0f")
     elif chart in ("원형 그래프", "도넛 그래프"):
         fig.add_trace(go.Pie(labels=out[first], values=out.iloc[:, 1], hole=.55 if chart == "도넛 그래프" else 0, sort=False,
-                             marker=dict(colors=[pal(i) for i in range(len(out))], line=dict(color="#fff", width=1.5)),
-                             textinfo="percent", textposition="inside"))
+                             marker=dict(colors=[cmap.get(n) or pal(i) for i, n in enumerate(rows_c)], line=dict(color="#fff", width=1.5)),
+                             textinfo="percent", textposition="inside", texttemplate="%{percent:.1%}"))   # 소수 1자리로 통일(33% · 9.91% 섞임)
     elif chart == "트리맵 차트":
         fig.add_trace(go.Treemap(labels=out[first], parents=[""] * len(out), values=out.iloc[:, 1],
-                                 marker=dict(colors=[pal(i) for i in range(len(out))]), textinfo="label+percent root"))
+                                 marker=dict(colors=[cmap.get(n) or pal(i) for i, n in enumerate(rows_c)]), textinfo="label+percent root"))
     elif chart == "맵 차트":
         v = out.iloc[:, 4]
         fig.add_trace(go.Scattergeo(lat=out["위도"], lon=out["경도"], text=out[first], mode="markers",
@@ -743,7 +754,7 @@ def csv_preview(chart: str, out: pd.DataFrame) -> go.Figure:
         x, y, s = out.columns[1:4]
         fig.add_trace(go.Scatter(x=out[x], y=out[y], text=out[first], mode="markers",
                                  marker=dict(size=out[s], sizemode="area", sizeref=2 * max(out[s].max(), 1) / 46 ** 2, sizemin=5,
-                                             color=[pal(i) for i in range(len(out))], opacity=.8, line=dict(color="#fff", width=1.2)),
+                                             color=[cmap.get(n) or pal(i) for i, n in enumerate(rows_c)], opacity=.8, line=dict(color="#fff", width=1.2)),
                                  hovertemplate="%{text}<br>X %{x:,.1f} · Y %{y:,.1f}<extra></extra>"))
         pad = lambda v: [float(v.min()) - (float(v.max() - v.min()) or 1) * .15, float(v.max()) + (float(v.max() - v.min()) or 1) * .18]
         fig.update_xaxes(title=x, range=pad(out[x]))          # 가장자리 버블이 잘리지 않게 축을 넉넉히
@@ -825,7 +836,7 @@ def stat_table(df: pd.DataFrame, q: dict) -> None:
     """분석 조건 그대로 — 고른 국가(행) × 기간 안의 연도(시점) × 고른 지표(항목). 국가 색은 차트와 같다."""
     names, ms = q["names"], q["metrics"]
     years = sorted(df["연도"].unique())
-    color = {n: (Q_PALETTE[i] if i < len(Q_PALETTE) else ETC) for i, n in enumerate(names)}
+    color = ctry_colors(names)
     piv = df.pivot_table(index="국가", columns="연도", values=ms, aggfunc="sum").reindex(names)
     yl = lambda y: f"{y}<small> ({PARTIAL_TXT})</small>" if y == PARTIAL_YEAR else str(y)
     head1 = "".join(f'<th colspan="{len(ms)}">{yl(y)}</th>' for y in years)
@@ -856,7 +867,7 @@ def query_result(q: dict, y0: int, y1: int) -> None:
         kpi(m, f"{tot[m]:+,.0f}" if m == "무역수지" else f"{tot[m]:,.0f}", Q_UNIT[m],
             f"{len(q['names'])}개국 · {y0}~{y1} 합계" + (f" ({PARTIAL_YEAR}년은 {PARTIAL_TXT})" if y1 >= PARTIAL_YEAR else ""),
             tag="참고값" if "중량" in m else "", icon=icon[m]) for m in q["metrics"])
-    st.html(f'<div class="kpis q" style="grid-template-columns:repeat({min(len(q["metrics"]), 3)},1fr)">{cards}</div>')
+    st.html(f'<div class="kpis q" style="grid-template-columns:repeat({min(len(q["metrics"]), 3)},minmax(0,1fr))">{cards}</div>')
 
     src_q = f"관세청 · 품목별 국가별 수출입실적(15100475) · 자료 기간 {STAMP['period']}"
     t_chart, t_map, t_tbl = st.tabs(["차트", "국가별 분포 지도", "결과 표"])

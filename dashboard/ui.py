@@ -1,6 +1,6 @@
-"""공용 화면 요소 — 팀원 디자인 데모(K-Defense) 틀 위의 호환 층.
+"""공용 화면 요소 — 디자인 모듈 위의 호환 층.
 
-디자인(CSS·사이드바·머리띠·구역·카드·KPI·탭·지도·도넛)은 dashboard/kdesign.py(데모 1~3절을 그대로 옮긴 것)가 정본이다.
+본문 디자인(CSS·블록·경로 줄·카드·KPI·탭·지도·도넛)은 dashboard/kdesign.py, 화면 틀(머리글·메뉴·배너·바닥글)은 dashboard/frame.py 가 정본이다.
 이 파일은 페이지들이 import 하던 이름(색 토큰·kpi·zone·style_fig·csv_header·period_control 등)을 유지하고 kdesign 으로 잇는다.
 이름은 Cloud 재배포 호환을 위해 지우지 않는다(값·동작만 바뀜). 새 이름을 페이지에서 import 하면 Manage app → Reboot.
 """
@@ -12,8 +12,8 @@ from html import escape
 import streamlit as st
 
 import kdesign
-from kdesign import (chart_source, chart_title, source_pop, country_map, core_kpis, globe_loading, hero, hhi_level, hover_donut, mini_rail, png_button,  # noqa: F401
-                     rank_card, rules_card, share_card, sidebar, sparkline, supply_table)
+from kdesign import (chart_source, chart_title, source_pop, country_map, core_kpis, globe_loading, hero, hhi_level, hover_donut, png_button,  # noqa: F401
+                     rank_card, rules_card, share_card, sparkline, supply_table)
 from metrics import period_years
 
 # ── 색 토큰(데모 값) ─────────────────────────────────────────────────────────
@@ -24,12 +24,13 @@ OK, WARN = kdesign.UP, kdesign.DOWN
 NAVY = kdesign.NAVY
 
 # 국가 색: 주요 7개국 고정 + 추가 1개국(등장 순) + 기타. 같은 국가 = 모든 차트에서 같은 색. 8개국을 넘으면 기타로 묶는다
-COUNTRY_COLOR = {"TW": kdesign.SERIES[0], "CN": kdesign.SERIES[1], "US": kdesign.SERIES[2], "JP": kdesign.SERIES[3],
-                 "VN": kdesign.SERIES[4], "SG": kdesign.SERIES[5], "HK": kdesign.SERIES[6]}
+# 데모처럼 미국 = 파랑 · 중국 = 주황 · 일본 = 보라. 대만은 미국과 나란히 크게 나오므로 파랑 계열(하늘)을 피해 청록
+COUNTRY_COLOR = {"US": kdesign.SERIES[0], "TW": kdesign.SERIES[2], "CN": kdesign.SERIES[1], "JP": kdesign.SERIES[3],
+                 "VN": kdesign.SERIES[4], "HK": kdesign.SERIES[5], "SG": kdesign.SERIES[6]}
 EXTRA_COLORS = [kdesign.SERIES[7]]              # 그 밖 국가는 등장 순 1색, 다음부터는 기타(새 색을 만들지 않는다)
 ETC = kdesign.ETC
-IMP, EXP = kdesign.SERIES[0], kdesign.SERIES[1]   # 수입 파랑 · 수출 주황(모든 차트 · 지도 · 조회에서 같은 짝)
-IMP_DIM, EXP_DIM = "#9fc1ec", "#f5b597"            # 부분연도(같은 색의 옅은 톤)
+IMP, EXP = kdesign.SERIES[0], "#0fa595"          # 수입 파랑 · 수출 청록(데모 · 모든 차트 · 지도 · 조회에서 같은 짝)
+IMP_DIM, EXP_DIM = "#a9c5fb", "#93e1d5"            # 부분연도(같은 색의 옅은 톤)
 SERIES = kdesign.SERIES
 
 
@@ -56,13 +57,26 @@ COMPAT_CSS = """<style>
 .page-q{font-size:14.5px;color:#3d5b8c;margin:0 0 6px;line-height:1.55}
 .cond{font-size:13px;color:var(--muted);padding:6px 2px;display:flex;gap:12px;flex-wrap:wrap}
 .cond b{color:var(--text);font-weight:700}
-.kpis.k5{grid-template-columns:repeat(5,1fr)} .kpis.w4422{grid-template-columns:2fr 2fr 1fr 1fr}
+.kpis.k5{grid-template-columns:repeat(5,minmax(0,1fr))} .kpis.w4422{grid-template-columns:2fr 2fr 1fr 1fr}
 .kpi-src{font-size:12px;color:#8494ae;margin-top:6px}
 .delta{display:inline-block;font-size:12.5px;font-weight:600;color:var(--accent);background:#e8f0fe;border-radius:6px;padding:1px 7px;margin-right:4px}
 .badge{display:inline-block;font-size:12px;font-weight:600;color:#075985;background:#e0f2fe;border-radius:5px;padding:0 6px;margin-left:6px;vertical-align:middle}
 .key{color:var(--accent)}
 .h .key{color:var(--accent)}
 div[class*="st-key-filters_"]{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 18px 6px}
+.dt-wrap{overflow-x:auto}
+.dt{width:100%;border-collapse:collapse;font-size:13.5px;line-height:1.5;color:var(--text)}
+.dt th{background:#f4f7fc;color:var(--muted);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.dt td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.dt td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dt td.nw{white-space:nowrap}
+.dt a{color:var(--accent)}
+/* 조회 — 칸이 좁으면(1056폭 + 사이드바) 조건 · 결과 칸을 위아래로 쌓는다. 옆으로 두면 국가 칩 · 연도 · 지표 이름이 한두 글자로 잘렸다(2026-09-28) */
+.st-key-zone_sel{container-type:inline-size}
+@container (max-width:880px){
+  [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] .st-key-card_form){flex-wrap:wrap}
+  [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] .st-key-card_form) > [data-testid="stColumn"]{flex:1 1 100%!important;width:100%!important;min-width:100%}
+}
 </style>"""
 
 
@@ -77,7 +91,7 @@ def dark_geo(fig):
 
 
 def kpi(label: str, value: str, unit: str, sub: str, tag: str = "", icon: str = "") -> str:
-    """KPI 카드 한 장(Tremor — 라벨 · 큰 숫자 · 단위 · 설명). icon 은 호환용(그리지 않음). 여러 장을 <div class="kpis"> (k4·k6) 로 감싼다."""
+    """KPI 카드 한 장(새 디자인 — 아이콘 배지 · 제목 · 가운데 큰 숫자 · 설명). icon 을 비우면 제목 낱말로 고른다. 여러 장을 <div class="kpis"> (k4·k6) 로 감싼다."""
     return kdesign.kpi(label, value, unit, sub, tag, icon)
 
 
@@ -109,6 +123,24 @@ def period_control(df, note: str, key: str = "period") -> tuple[list[int], str]:
     return years, (f"{years[0]}년" if len(years) == 1 else f"{years[0]}~{years[-1]}")
 
 
+def html_table(df, num_cols: tuple = (), link_cols: tuple = (), nowrap_cols: tuple = ()) -> str:
+    """칸 안에서 줄바꿈되는 HTML 표 — 긴 글 열이 있는 작은 표용. st.dataframe 은 칸 안 줄바꿈이 안 돼
+    긴 이름이 잘리거나 표가 가로로 넘친다(2026-09-28 DATA INFO 출처 표). 좁은 화면에서는 표만 가로로 밀린다."""
+    def cell(c, v) -> str:
+        if v is None or v != v:                                  # None · NaN
+            return "<td>—</td>"
+        if c in link_cols:
+            s = str(v)
+            return (f'<td><a href="{escape(s)}" target="_blank" rel="noopener">열기</a></td>' if s.startswith("http")
+                    else "<td>—</td>")
+        if c in num_cols:
+            return f'<td class="n">{int(v):,}</td>'
+        return f'<td{" class=nw" if c in nowrap_cols else ""}>{escape(str(v))}</td>'
+    head = "".join(f"<th>{escape(str(c))}</th>" for c in df.columns)
+    body = "".join("<tr>" + "".join(cell(c, v) for c, v in zip(df.columns, r)) + "</tr>" for r in df.itertuples(index=False))
+    return f'<div class="dt-wrap"><table class="dt"><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>'
+
+
 def csv_header(cond: str, source: str, stamps: list[tuple[str, dict, str | None]], extra: str = "") -> str:
     """내려받는 CSV 머리줄 — 조건 · 출처(기관 · 데이터명) · 데이터별 자료 기간 · 내려받은 날.
     DB 표 · 뷰 · 열 이름과 DB 적재일은 넣지 않는다(보안, 2026-09-24 사용자 — kdesign.public_source 로 거른다).
@@ -128,14 +160,17 @@ def csv_header(cond: str, source: str, stamps: list[tuple[str, dict, str | None]
     return "\n".join(lines) + "\n"
 
 
+# Streamlit 기본 페이지는 <html lang="en"> 이라 Chrome 이 영어로 보고 자동 번역해 한글을 깨뜨린다(「HOME」→「집」, 2026-09-28 점검).
+# 고정 문자열만 실행한다 — 사용자 입력을 섞지 않는다.
+LANG_JS = ("<script>(function(d){d.lang='ko';d.setAttribute('translate','no');d.classList.add('notranslate');})"
+           "(document.documentElement);</script>")
+
+
 def inject_css() -> None:
     kdesign.inject()
     st.html(COMPAT_CSS)
+    st.html(LANG_JS, unsafe_allow_javascript=True)
 
 
 zone = kdesign.zone
 
-
-def top_bar(pages, current, stamp: str) -> None:
-    """(호환용 — 2026-09-23 데모 틀 전환 뒤 쓰지 않음) 사이드바는 kdesign.sidebar."""
-    return None

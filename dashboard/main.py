@@ -1,8 +1,8 @@
 """주요 방산 전자부품 수출입 및 국산화 현황 대시보드 — 진입점(라우터). 제목·페이지 라벨은 2026-09-21 회의 M1(dashboard/specs/00_common.md §1·§8).
 
 실행: streamlit run dashboard/main.py
-틀은 팀원 디자인 데모 — 왼쪽 파랑 사이드바 메뉴 · ⓘ 데이터 정보 대화상자(dashboard/kdesign.py). 겉모양은 UI/UX 참고 URL 기준.
-페이지 파일·제목·URL·메뉴 순서는 nav.py(PAGE_SPECS·NAV_ORDER) 한 곳에서 정한다. 머리띠(hero)는 각 페이지가 그린다.
+틀은 동현님 새 디자인(dashboard/demo/K-Defense_brandnew.py, 2026-09-28) — 흰 머리글 · 상단 펼침 메뉴 · 서브 배너 · 왼쪽 블록 메뉴 · 바닥글(dashboard/frame.py).
+홈을 ?sec= 없이 열면 첫 화면(dashboard/landing.py)만 그린다. 페이지 파일·제목·URL·메뉴 순서·배너 문구는 nav.py 한 곳에서 정한다.
 DB 접속 확인(db_ready)은 여기서 한 번만 — 페이지 파일은 검사하지 않는다.
 """
 from __future__ import annotations
@@ -15,15 +15,19 @@ import streamlit as st
 APP = Path(__file__).resolve().parent
 if str(APP) not in sys.path:
     sys.path.insert(0, str(APP))
+import frame  # noqa: E402
+import landing  # noqa: E402
 from db import data_stamp, db_ready, safe_query  # noqa: E402
-from nav import NAV_ORDER, nav_items, page  # noqa: E402
-from ui import inject_css, sidebar  # noqa: E402
+from nav import NAV_ORDER, current_key, pages  # noqa: E402
+from ui import inject_css  # noqa: E402
 
-st.set_page_config(page_title="방산 전자부품 수출입 및 국산화 현황", layout="wide",
-                   initial_sidebar_state="expanded")
+st.set_page_config(page_title="방산 전자부품 수출입 및 국산화 현황", layout="wide", initial_sidebar_state="collapsed")
 inject_css()
 
-pg = st.navigation([page(k) for k in NAV_ORDER], position="hidden")
+PAGES = pages()        # 실행마다 새로 — 캐시해 공유하면 겹친 재실행에서 pg.run() 예외(nav.py 머리 주석)
+pg = st.navigation([PAGES[k] for k in NAV_ORDER], position="hidden")
+CUR = current_key(pg)
+SEC = frame.selected(CUR)
 
 
 @st.dialog("데이터 정보", width="medium")
@@ -54,19 +58,18 @@ def data_info_dialog() -> None:
         '<span>중량</span><span><b>kg</b> (참고값, 화면은 톤)</span></div></div></div>'
         '<div class="di-card warn"><div><div class="di-t">주요 주의사항</div><ol class="di-warn">'
         + "".join(f"<li>{w}</li>" for w in warns) + '</ol></div></div>')
-    st.page_link(page("info"), label="DATA INFO 페이지에서 더 보기", icon=":material/arrow_forward:")
+    st.page_link(PAGES["info"], label="DATA INFO 페이지에서 더 보기", icon=":material/arrow_forward:")
 
 
-def foot() -> str:
-    """사이드바 아래 — 관세청 자료 기간(db.data_stamp, 비캐시). DB 적재일 · 표 이름은 화면에 쓰지 않는다(보안, 2026-09-24)."""
-    s = data_stamp("customs_all", "fact_customs_monthly")
-    period = s["period"] if s["has_period"] else "—"
-    return ('<div class="sb-note">공개 자료로 확인·인용하는<br>수출입 · 조달 · 국산화 현황</div>'
-            f'<div class="sb-ver">관세청 자료 {period}</div>')
-
-
-items = nav_items()
-sidebar(items, pg, foot(), on_info=data_info_dialog)
+s_customs = data_stamp("customs_all", "fact_customs_monthly")      # 머리글 자료 기간(DB 적재일 · 표 이름은 쓰지 않는다 — 보안, 2026-09-24)
+frame.header(PAGES, CUR, s_customs["period"] if s_customs["has_period"] else "—", on_info=data_info_dialog)
 if not db_ready():      # 접속 실패면 오류·「다시 연결」만 보이고 페이지 본문은 실행하지 않는다
     st.stop()
-pg.run()
+if CUR == "home" and SEC in (None, "main"):     # 홈 첫 화면 — 서브 배너 · 왼쪽 메뉴 없이 화면 전체 폭
+    with st.container(key="landing"):
+        landing.render(PAGES)
+else:
+    with frame.body(PAGES, CUR, SEC):
+        pg.run()
+frame.footer(PAGES)
+frame.scroll_js(CUR, SEC)

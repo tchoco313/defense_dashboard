@@ -89,9 +89,7 @@ def src_customs() -> str:
             f"{s_customs['period'] if s_customs['has_period'] else '—'}")
 
 
-hero("주요 방산 전자부품 수출입 및 국산화 현황",
-     "분석 대상 품목군의 수입 규모와 공급국 집중도, 조달 · 국산화 현황을 요약합니다",
-     stamps=[("관세청 수출입", s_customs)])
+hero(stamps=[("관세청 수출입", s_customs)])
 
 with globe_loading("관세청·방위사업청 집계를 읽는 중"):
     d = load()
@@ -125,7 +123,9 @@ top1 = conc.rename(columns={"top1_stat_cd": "stat_cd", "top1_share": "share"})
 total = float(conc["total"].sum())
 by_year = imp[imp["is_partial_year"] == 0].groupby("year")["imp_dlr"].sum()
 ly = years[-1]
-yoy = (by_year.get(ly, 0) - by_year.get(ly - 1, 0)) / E6 if ly - 1 in by_year.index else None
+# 전년 대비는 한 해를 볼 때만 — 「최근 5년 · 전체」의 값은 기간 합계라 「{ly}년 전년 대비」 배지와 어긋난다. 표기는 ①과 같은 %(2026-09-28 점검)
+yoy = ((by_year[ly] / by_year[ly - 1] - 1) * 100
+       if len(years) == 1 and ly in by_year.index and ly - 1 in by_year.index and by_year[ly - 1] else None)
 
 # ── 한눈에 보는 KPI ─────────────────────────────────────────────────────────
 n_wl_all = int(query("SELECT COUNT(*) AS n FROM ref_hs_whitelist").iloc[0]["n"])   # 수집 범위 HS6 수
@@ -143,7 +143,7 @@ if st_b2 == "ok":
 k50 = int((top1["share"] >= 0.5).sum())
 p_val, p_unit, p_sub = kpi_num(st_plan, plan_n, "건", plan_sub, plan_err, "전자 군급(FSG 58·59·60) 행 0건")
 b_val, b_unit, b_sub = kpi_num(st_b2, b2_n, "개", b2_sub, b2_err, "전자 군급 부품 0개")
-yoy_txt = (f'<span class="{"up" if yoy >= 0 else "dn"}">{"▲" if yoy >= 0 else "▼"} {yoy:+,.0f}</span> {ly}년 전년 대비 · '
+yoy_txt = (f'<span class="{"up" if yoy >= 0 else "dn"}">{"▲" if yoy >= 0 else "▼"} {yoy:+.1f}%</span> 전년 대비 · '
            if yoy is not None else "")
 
 with zone("kpi", "한눈에 보는 KPI"):
@@ -194,10 +194,10 @@ with zone("chain", "부품별 공급망 현황"):
                  + f" · 집중도·1위 점유율·수입국 = {y_label} 합계(완결 연도) · 추이·변화율 = 최근 12개월("
                  f"{ym_txt(str(piv.columns[-12]))}~{ym_txt(d['last'])}) vs 그 전 12개월 월별 수입액 · HHI 순 · 국가는 선적국", where=c1)
     c2.html(core_kpis([
-        ("", "", "비교 품목군", f"{len(top1)}", "개", f"분석 대상 {len(wl)}개 중 {y_label} 실적 있음", ""),
-        ("", "", "고집중 품목군", f"{n_hi}", "개", "기간 합계 HHI 2,500 이상", ""),
-        ("", "", "평균 집중도", f"{avg_hhi:,.0f}", "HHI", f"{len(top1)}개 품목군 단순 평균", ""),
-        ("", "", "공급 국가", f"{n_ctry}", "개국", f"{y_label} 수입 실적 > 0 선적국", ""),
+        ("extension", "#e8f0ff,#2b6ef6", "비교 품목군", f"{len(top1)}", "개", f"분석 대상 {len(wl)}개 중 {y_label} 실적 있음", ""),
+        ("warning", "#ffe9ea,#e5484d", "고집중 품목군", f"{n_hi}", "개", "기간 합계 HHI 2,500 이상", ""),
+        ("straighten", "#e4fbf6,#0f9f85", "평균 집중도", f"{avg_hhi:,.0f}", "HHI", f"{len(top1)}개 품목군 단순 평균", ""),
+        ("public", "#eef2ff,#5b5bd6", "공급 국가", f"{n_ctry}", "개국", f"{y_label} 수입 실적 > 0 선적국", ""),
     ], f"{y_label} 합산"))
     tbl = pd.DataFrame([{"HS6": x["hs"], "품목군": x["name"], "1위 공급국": x["top"], "1위 점유율(%)": round(x["s1"], 1),
                          "기간 합계 HHI": x["hhi"], "수입국 수": x["n"], "최근 12개월 변화율(%)": round(x["yoy"], 1)} for x in rows])
@@ -225,8 +225,8 @@ with zone("where", "어디서 들어오나"):
             t_map = f"{y_label} 1위 공급국 수입 실적이 없다"
         chart_title(t_map, f"백만 USD · {y_label} 합계 · 1위 공급국만 · 지구본 · 지도 전환 · 끌어서 돌리기 · 원에 올리면 상세")
         fig_map = supply_globe(globe_pts, height=430, unit="백만 USD")
-        # 지도 읽는 법 — 네 줄이 좁은 칸에서 두 줄씩 어긋나게 꺾이지 않도록 2열 격자로
-        st.html('<div style="display:grid;grid-template-columns:repeat(2,max-content);gap:3px 18px;font-size:13px;color:var(--muted);'
+        # 지도 읽는 법 — 2열 격자, 칸이 좁으면 1열(고정 max-content 열은 390폭에서 카드 밖으로 넘쳤다, 2026-09-28)
+        st.html('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),max-content));gap:3px 18px;font-size:13px;color:var(--muted);'
                 'background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 12px">'
                 '<span>원 크기 = 분석 대상 수입액 합</span>'
                 '<span>화살표 = 대한민국으로 들어오는 방향</span><span>원 색 = 국가(표 · 막대와 같은 색)</span>'

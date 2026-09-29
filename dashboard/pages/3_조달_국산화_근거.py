@@ -78,7 +78,7 @@ def plan_years() -> list[int]:
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_army_share(y0: int, y1: int) -> pd.DataFrame:
     """군별 전자 군급 비중(EDA B2 — db/query_eda2_2026-09-23.sql [B2]와 같은 분모 · 분자, 요구연도만 파라미터).
-    분모 = 군급 판별 가능 행(fsg2 있음 · 임시 FSC 9999 제외). 전체 기간이면 합계 13,017행(2026-09-24 실측)."""
+    분모 = 군급 판별 가능 행(fsg2 있음 · FSC 9999(기타 품목, 사실상 미분류) 제외). 전체 기간이면 합계 13,017행(2026-09-24 실측)."""
     return query("""
         SELECT army_std AS army,
                SUM(fsg2 IS NOT NULL AND fsc4 <> '9999') AS n_valid,
@@ -158,8 +158,7 @@ def period_txt(s: dict) -> str:
 s_plan = data_stamp("dapa_overseas_plan_api", "clean_dapa_overseas_plan_api")
 s_b2 = data_stamp("dapa_localized_item", "clean_dapa_localized_item")
 s_con = data_stamp("dapa_contract", "clean_dapa_contract")
-hero("③ 조달·국산화 근거", "전자 군급별 국외 조달계획과 국산화를 마친 부품, 국내 조달이 이뤄지는 방식을 봅니다",
-     stamps=[("국외 조달계획", s_plan), ("국산화개발품목", s_b2), ("국내 계약", s_con)])
+hero(stamps=[("국외 조달계획", s_plan), ("국산화개발품목", s_b2), ("국내 계약", s_con)])
 
 with st.spinner("방위사업청 조달계획 · 국산화 목록을 읽는 중"):
     d = load()
@@ -173,10 +172,16 @@ st.html('<div class="lede"><div class="note">전자 군급(FSG 58 통신·탐지
 # ── 조건(클릭) — FSG · 소요군 ──────────────────────────────────────────────────
 with st.container(key="filters_p2"):
     c1, c2 = st.columns([2.2, 1], vertical_alignment="bottom")   # 군급 이름이 길어 왼쪽을 넓게(칩이 잘리지 않게)
-    g_pick = c1.pills("군급 그룹(FSG)", FSGS, selection_mode="multi", default=FSGS, key="p2_fsg",
-                      format_func=lambda g: f"{g} {fsg_name.get(g, '')}") or FSGS
+    g_raw = c1.pills("군급 그룹(FSG)", FSGS, selection_mode="multi", default=FSGS, key="p2_fsg",
+                     format_func=lambda g: f"{g} {fsg_name.get(g, '')}")
     armies = [a for a in ARMY_C if a in set(d["plan"]["army_name"])]
-    a_pick = c2.pills("소요군(조달계획에만 적용)", armies, selection_mode="multi", default=armies, key="p2_army") or armies
+    a_raw = c2.pills("소요군(조달계획에만 적용)", armies, selection_mode="multi", default=armies, key="p2_army")
+    # 빈 선택은 전체로 계산한다 — 화면에는 선택이 없는데 수치는 전체라 어긋나 보이므로 안내를 붙인다(2026-09-28 점검)
+    g_pick, a_pick = g_raw or FSGS, a_raw or armies
+    if not g_raw:
+        c1.caption(f"선택이 없어 전체({'·'.join(FSGS)})로 봅니다")
+    if not a_raw:
+        c2.caption("선택이 없어 전체 소요군으로 봅니다")
 
 plan = d["plan"][d["plan"]["fsg"].isin(g_pick) & d["plan"]["army_name"].isin(a_pick)]
 b2 = d["b2"][d["b2"]["fsg"].isin(g_pick)]
@@ -342,7 +347,7 @@ else:
         fig.update_layout(barmode="stack", height=70 * len(sh) + 120, legend=dict(orientation="h", y=1.18, traceorder="normal"),
                           xaxis=dict(range=[0, 100], ticksuffix="%"), margin=dict(l=70, r=20, t=40, b=8))
         chart(fig, f"조달계획_군별전자군급비중_{span}_{tag}", "p2_army_share", title=t, source=SRC_ARMY)
-        notes = [f"분모 {int(sh['n_valid'].sum()):,}행(군급 판별 가능 · 임시 FSC 9999 · 군급 미상 제외)"]
+        notes = [f"분모 {int(sh['n_valid'].sum()):,}행(군급 판별 가능 · 기타 품목 FSC 9999 · 군급 미상 제외)"]
         n_ex = int(excluded["n_valid"].sum()) if not excluded.empty else 0
         if n_ex:
             notes.append(f"국직 등 {n_ex}행은 막대에서 뺌")
@@ -386,7 +391,8 @@ else:
             n_both = int(((view["국외 조달계획(건)"] > 0) & (view["국산화 완료 부품(개)"] > 0)).sum())
             chart_title(f'전자 군급 {len(view)}개 중 두 자료에 모두 나오는 군급은 <span class="key">{n_both}개</span>',
                         "건 · 개 · 조달계획 건수 내림차순 · 0 = 「이 자료에 없음」")
-            st.dataframe(view, hide_index=True, width="stretch", height=min(38 + 35 * len(view), 420))
+            st.dataframe(view, hide_index=True, width="stretch", height=min(38 + 35 * len(view), 420),
+                         column_config={"군급 명칭": st.column_config.TextColumn(width="large")})   # 명칭이 잘리지 않게
             head = csv_header(
                 f"FSG {','.join(g_pick)} · 소요군 {','.join(a_pick)}(조달계획에만 적용)",
                 "방위사업청 국외 조달계획 OpenAPI(15158418, 전자 군급) · 국방전자조달시스템 국산화개발품목(15119899, 전자 군급)",
@@ -462,7 +468,7 @@ with zone("dreason", "수의계약 사유"):
 
 with zone("dbid", "입찰 결과"):
     c1, c2 = st.columns([1.2, 1], gap="medium")
-    bid_c = {"개찰완료": SERIES[0], "유찰": SERIES[3], "순위확정": SERIES[1]}   # 파랑 · 옅은 파랑 · 하늘(조각끼리 구분)
+    bid_c = {"개찰완료": SERIES[0], "유찰": SERIES[3], "순위확정": SERIES[1]}   # 파랑 · 보라 · 주황(조각끼리 구분)
     bid_rows = [(r, float(bid.at[r, "rows_n"]), bid_c[r]) for r in ("개찰완료", "유찰", "순위확정") if r in bid.index]
     src_bid = f'방위사업청 국내 입찰결과(파일데이터) · 자료 기간 {period_txt(data_stamp("dapa_bid_result", "clean_dapa_bid_result"))}'
     with c1.container(border=True, key="card_dbid"):
