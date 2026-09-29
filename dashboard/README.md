@@ -17,10 +17,9 @@ streamlit run dashboard/main.py
 | `pages/2_국외조달_예산_배경.py` | ② 국외조달 예산 · 배경 | `/background` |
 | `pages/3_조달_국산화_근거.py` | ③ 조달·국산화 근거 | `/parts` |
 | `pages/4_검토_목록.py` | ④ 검토 목록 | `/table` |
-| `pages/5_데이터_정보.py` | ⑤ 데이터 정보 | `/info` |
-| `pages/6_조회.py` | 조회 | `/search` |
+| `pages/5_데이터_센터.py` | DATA CENTER — 데이터 시각화 · 출처 · 결합 검증 · 한계 · 상세 정의 | `/info` (데이터 시각화 = `/info?sec=sel`) |
 
-공용 모듈: `main.py`(진입점 · 라우터) · `nav.py`(페이지 목록) · `db.py`(조회) · `metrics.py`(지표 계산) · `frame.py`(화면 틀 — 머리글 · 메뉴 · 배너 · 바닥글, `assets/k9_banner.jpg`) · `landing.py`(홈 첫 화면) · `kdesign.py`(본문 디자인 · 차트 공통) · `ui.py`(공용 화면 요소) · `live.py`(관세청 원천 최신 월 확인).
+공용 모듈: `main.py`(진입점 · 라우터) · `nav.py`(페이지 목록) · `db.py`(조회) · `metrics.py`(지표 계산) · `frame.py`(화면 틀 — 머리글 · 메뉴 · 배너 · 바닥글, `assets/k9_banner.jpg`) · `landing.py`(홈 첫 화면) · `kdesign.py`(본문 디자인 · 차트 공통) · `ui.py`(공용 화면 요소) · `live.py`(관세청 원천 최신 월 확인) · `datacenter_viz.py`(DATA CENTER 「데이터 시각화」 블록 — `pages/5_데이터_센터.py` 가 실행).
 
 `demo/design_demo.py` · `demo/K-Defense_brandnew.py`(2026-09-28 새 디자인 — 운영 앱 화면 틀의 기준) 는 디자인 시안용 단독 실행본이다. **숫자는 전부 샘플**이라 발표 · 보고에 쓰지 않는다.
 
@@ -33,7 +32,8 @@ streamlit run dashboard/main.py
 | `pages/2_국외조달_예산_배경.py` | `pages/4_정책_산업_배경.py` |
 | `pages/3_조달_국산화_근거.py` | `pages/2_부품_무기체계.py` |
 | `pages/4_검토_목록.py` | `pages/3_품목군_현황표.py` |
-| `pages/5_데이터_정보.py` | `pages/5_DATA_INFO.py` |
+| `pages/5_데이터_센터.py` | `pages/5_데이터_정보.py`(09-28) · `pages/5_DATA_INFO.py` — 2026-09-29 DATA CENTER 로 합침 |
+| `datacenter_viz.py` | `pages/6_조회.py`(URL `/search`) — 2026-09-29 DATA CENTER 첫 블록으로 합침 |
 | `demo/design_demo.py` | 루트 `K-Defense_대시보드_demo.py` |
 | (팀 공동 저장소) `app/K-Defense_brandnew.py` | `demo/K-Defense_brandnew.py` |
 | (팀 공동 저장소) `app/` | 이 저장소 `dashboard/` |

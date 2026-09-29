@@ -65,7 +65,7 @@ def stats() -> dict:
 
 def render(pages: dict) -> None:
     st.html(CSS.replace("__PAD__", PAD))
-    home, search, info = pages["home"], pages["search"], pages["info"]
+    home, info = pages["home"], pages["info"]
 
     # 1) 큰 사진 + 글씨
     slides = "".join(f'<div class="mv-sl" style="background-image:url(\'{u}\')"></div>' for u in SLIDES)
@@ -75,7 +75,7 @@ def render(pages: dict) -> None:
             '<div class="mv-bar"><span>01</span><div class="tr"></div><em>03</em></div></div>')
     with st.container(key="mv_cta", horizontal=True, vertical_alignment="center"):
         st.page_link(home, label="대시보드 둘러보기", icon=":material/dashboard:", query_params={"sec": "kpi"})
-        st.page_link(search, label="직접 조회하기", icon=":material/search:")
+        st.page_link(info, label="직접 조회하기", icon=":material/search:", query_params={"sec": "sel"})
 
     # 2) 소개 + 둥근 아이콘 바로가기
     with st.container(key="mi", horizontal=True):
@@ -127,12 +127,12 @@ def render(pages: dict) -> None:
             st.html('<div class="mb-box"><small>GUIDE</small><h3>처음 오셨나요?<br>이렇게 보시면 됩니다</h3><ul>'
                     '<li>상단 메뉴에 커서를 올리면 페이지별 블록이 펼쳐집니다</li>'
                     '<li>각 페이지 왼쪽 메뉴를 누르면 그 블록으로 이동합니다</li>'
-                    '<li>조회에서 국가 · 기간 · 지표를 골라 직접 그려 봅니다</li>'
+                    '<li>DATA CENTER 에서 데이터 유형 · 조건 · 지표를 골라 직접 그려 봅니다</li>'
                     '<li>수입액은 국가 전체 수입(민수 포함)이며 국가는 선적국 기준입니다</li></ul>'
                     '<div style="height:70px"></div></div>')
             with st.container(key="mb_go", horizontal=True):
                 st.page_link(home, label="KPI 보기", icon=":material/insights:", query_params={"sec": "kpi"})
-                st.page_link(info, label="DATA INFO", icon=":material/folder_open:")
+                st.page_link(info, label="DATA CENTER", icon=":material/folder_open:")
 
 
 CSS = """<style>

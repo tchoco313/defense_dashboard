@@ -1,10 +1,13 @@
-"""⑤ 데이터 정보 — 팀원 디자인 데모(K-Defense) 「DATA INFO」 화면 배치를 그대로 옮기고 값은 RDS 에서 읽는다.
+"""DATA CENTER — 팀원 디자인 데모(K-Defense) 「DATA CENTER」 화면 배치를 옮기고 값은 RDS 에서 읽는다(2026-09-29, 옛 「⑤ 데이터 정보」 · 「조회」).
 
-데모 배치: 머리 안내(lede) → 「데이터 출처」 표 → 「데이터 결합 검증」(입찰 공고 ↔ 결과 깔때기 + 읽는 법) → 「한계와 주의」 카드 2장
+데모 배치: 머리 안내(lede) → 「데이터 시각화」(옛 조회 페이지 — dashboard/datacenter_viz.py 를 runpy 로 실행) → 「데이터 출처」 표
+→ 「데이터 결합 검증」(입찰 공고 ↔ 결과 깔때기 + 읽는 법 · FSC/FSG 분류 기준 깔때기 + 분류체계 결합 원칙) → 「한계와 주의」 카드 2장
 + 세분류 용도별 수입 비중(EDA A1 — 기간을 고르면 이 카드만 다시 조회, 태그 규칙은 v_hs10_use_share 와 같음).
 데모의 샘플 값은 모두 바꿨다:
 - 출처 표 = DB meta_dataset(= db/meta_dataset.csv) — 화면이 문서와 따로 놀지 않게 DB에서 읽는다
 - 깔때기 = clean_dapa_bid_notice · clean_dapa_bid_result 행 수와 notice_link_status(공고번호 + 차수 대조, v_bid_notice_result_link 와 같은 기준)
+- FSC/FSG 깔때기 = clean_dapa_overseas_plan_api 행 수(원본 → NSN 있음 → FSC 9999 제외 = 분석 모집단 → 전자 FSG 58·59·60).
+  데모는 DB QA D-04 확정 값(13,615 · 13,236 · 13,017 · 2,267)을 적어 두었고, 여기서는 같은 기준으로 센다
 - 1만 건 요건 2종(M2)의 원본 건수는 출처 표(meta_dataset)에서 포털 ID 로 골라 쓴다
 데모에 없던 기존 내용(선정 규칙 · 지표 정의 · 용어 · 쓰지 않은 데이터 · 말하지 않는 것)은 출처 · 정의 정확성에 필요해 「상세 정의」 펼침으로 둔다.
 
@@ -16,7 +19,9 @@
 from __future__ import annotations
 
 import re
+import runpy
 from html import escape
+from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -25,6 +30,8 @@ import streamlit as st
 from db import data_stamp, query, safe_query, try_query
 from metrics import count_state
 from ui import SHORT, chart_source, chart_title, csv_header, hero, html_table, png_button, rules_card, style_fig, zone
+
+VIZ = Path(__file__).resolve().parents[1] / "datacenter_viz.py"   # 「데이터 시각화」 구역 스크립트
 
 # 1만 건 요건 2종(2026-09-21 회의 M2) + 부록 — 출처 표에서 포털 ID 로 찾는다(표시용)
 ID_CUSTOMS, ID_LOCAL, ID_CONTRACT = "15100475", "15119899", "15050920"
@@ -134,6 +141,50 @@ def load_bid_match() -> pd.DataFrame | None:
     """)
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_fsc_funnel() -> pd.DataFrame | None:
+    """국외 조달계획 FSC/FSG 분류 기준 깔때기(행 단위) — DB QA D-04 화면 기준(분석 모집단 = NSN 있음 − FSC 9999)."""
+    return safe_query("""
+        SELECT COUNT(*)                                        AS n_all,
+               SUM(nsn IS NOT NULL)                            AS n_nsn,
+               SUM(nsn IS NOT NULL AND fsc4 <> '9999')         AS n_pop,
+               SUM(is_elec)                                    AS n_elec
+        FROM clean_dapa_overseas_plan_api
+    """)
+
+
+def funnel_html(steps: list[tuple[str, int]], step: float = 5.5) -> str:
+    """깔때기 — 층마다 사다리꼴 하나(양옆이 step % 씩 좁아진다), 괄호 = 첫 층 대비 %."""
+    base = steps[0][1] or 1
+    rows = "".join(
+        f'<div class="fr"><div class="tz" style="background:{FUNNEL_COLORS[i % len(FUNNEL_COLORS)]};'
+        f'clip-path:polygon({i * step}% 0,{100 - i * step}% 0,{100 - (i + 1) * step}% 100%,{(i + 1) * step}% 100%)">'
+        f'{v:,}</div><div class="lb"><div>{nm}<small>({v / base * 100:.1f}%)</small></div></div></div>'
+        for i, (nm, v) in enumerate(steps))
+    return f'<div class="funnel">{rows}</div>'
+
+
+# 분류체계 결합 원칙 카드 — 두 체계 사이 「✕ 공식 직접 매핑 없음」. 공용 모듈(kdesign.rules_card · CSS)을 고치지 않고 여기서 그린다:
+# Streamlit Cloud 는 재배포 때 메모리의 공용 모듈을 다시 읽지 않아(benchmark-ui-changes-2026-09-20 §4) 새 인자 · 새 CSS 가 재부팅 전까지 없다
+NOMAP_CSS = """<style>
+.nomap{display:flex;align-items:center;gap:8px;margin:2px 0 14px}
+.nomap .sys{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px 10px;text-align:center;
+  font-size:14px;font-weight:700;color:var(--text);background:#f6f9ff}
+.nomap .sys small{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-top:1px}
+.nomap .x{flex:0 0 auto;text-align:center;color:#d64545;font-size:17px;font-weight:800;line-height:1}
+.nomap .x small{display:block;font-size:11.5px;font-weight:600;margin-top:3px;white-space:nowrap}
+</style>"""
+
+
+def nomap_card(title: str, items: list[tuple[str, str]]) -> str:
+    """rules_card 와 같은 모양(✓ 목록) + 제목 밑 HS ✕ FSC 그림."""
+    head = ('<div class="nomap"><span class="sys">HS/HSK<small>관세 · 무역 분류</small></span>'
+            '<span class="x">✕<small>공식 직접 매핑 없음</small></span>'
+            '<span class="sys">FSC/FSG/NSN<small>군수품 분류</small></span></div>')
+    body = "".join(f'<div class="rule"><span class="ck">✓</span><div><b>{t}</b><span>{d}</span></div></div>' for t, d in items)
+    return f'{NOMAP_CSS}<div class="card"><div class="h">{title}</div>{head}{body}</div>'
+
+
 def card_title(col_ui, title: str, sub: str) -> None:
     """결론형 제목 + 조건 · 단위 부제(ui.chart_title 과 같은 모양)."""
     chart_title(title, sub, where=col_ui)
@@ -216,6 +267,7 @@ stamp_local = data_stamp("dapa_localized_item", "clean_dapa_localized_item")
 stamp_wl = data_stamp("ref_hs_whitelist", "ref_hs_whitelist")
 stamp_flag = data_stamp("ref_hs_rule_flag", "ref_hs_rule_flag")
 stamp_bid = data_stamp("dapa_bid_result", "clean_dapa_bid_result")
+stamp_plan = data_stamp("dapa_overseas_plan_api", "clean_dapa_overseas_plan_api")
 
 end = stamp_customs["period"].split("~")[-1] if stamp_customs["has_period"] else ""
 partial_line = (f"관세청 {end[:4]}년은 {int(end[5:])}월까지의 부분연도라 연간 비교 · KPI에서 뺍니다"
@@ -224,10 +276,20 @@ partial_line = (f"관세청 {end[:4]}년은 {int(end[5:])}월까지의 부분연
 b2_txt = f"지상 {n_b2}개 사업" if st_b2 == "ok" else "지상 사업 한정"
 
 # ── 머리띠(데모 hero) ──────────────────────────────────────────────────────
-hero(stamps=[("관세청 수출입", stamp_customs)])
+hero(stamps=[("관세청 수출입", stamp_customs), ("국외 조달계획", stamp_plan), ("국산화개발품목", stamp_local)])
 
-st.html('<div class="lede"><div class="note">이 대시보드의 숫자가 어디서 왔고, 어떻게 계산했고, '
-        '무엇을 뜻하지 <b>않는지</b> 적어 둔 곳입니다. 값은 모두 아래 「데이터 출처」 표의 공개 자료에서 왔습니다.</div></div>')
+st.html('<div class="lede"><div class="note">원하는 조건으로 직접 차트를 그려 내려받고, 이 대시보드의 숫자가 어디서 왔고 '
+        '어떻게 계산했고 무엇을 뜻하지 <b>않는지</b> 확인하는 곳입니다. 값은 모두 아래 「데이터 출처」 표의 공개 자료에서 왔습니다.</div></div>')
+
+# ── 데이터 시각화 — 수출입 HS · 군수품 FSG/FSC · 국산화개발(옛 조회 페이지) ─────────────
+with zone("sel", "데이터 시각화"):
+    if not stamp_customs["has_period"]:
+        if stamp_customs["error"]:
+            st.error(f"관세청 수출입 자료를 조회하지 못했습니다({stamp_customs['error']}). 잠시 뒤 다시 열어 주세요.")
+        else:
+            st.warning("관세청 수출입 자료가 아직 적재되지 않았습니다(미적재).")
+    else:
+        runpy.run_path(str(VIZ), run_name="datacenter_viz")
 
 # ── 데이터 출처 ────────────────────────────────────────────────────────────
 with zone("src", "데이터 출처"):
@@ -270,16 +332,10 @@ with zone("match", "데이터 결합 검증"):
         steps = [("입찰 공고 행", n_ann), ("입찰 결과 행", n_res), ("공고와 연결된 결과 행", n_lnk),
                  ("공고 1건과만 맞는 결과 행(1:1)", n_one)]
         c1, c2 = st.columns([1.35, 1], gap="medium")
-        base, step = n_ann, 5.5          # step = 층마다 양옆이 좁아지는 폭(%)
-        rows = "".join(
-            f'<div class="fr"><div class="tz" style="background:{FUNNEL_COLORS[i]};'
-            f'clip-path:polygon({i * step}% 0,{100 - i * step}% 0,{100 - (i + 1) * step}% 100%,{(i + 1) * step}% 100%)">'
-            f'{v:,}</div><div class="lb"><div>{nm}<small>({v / base * 100:.1f}%)</small></div></div></div>'
-            for i, (nm, v) in enumerate(steps))
         with c1.container(border=True, key="card_funnel"):
             chart_title(f"입찰 결과 {n_res:,}행 중 공고 1건과 정확히 맞는 결과는 "
                         f'<span class="key">{n_one / n_res * 100:.1f}%({n_one:,}행)</span>', "행 · 괄호 = 공고 행 대비")
-            st.html(f'<div class="funnel">{rows}</div>')
+            st.html(funnel_html(steps))
         c2.html(rules_card("읽는 법", [
             (f"공고와 맞지 않는 결과 {n_res - n_lnk:,}행은 결합하지 않습니다",
              "공고번호 + 차수(2자리 정규화)가 입찰공고 쪽에 없어 어느 공고의 결과인지 알 수 없는 행입니다."),
@@ -298,6 +354,37 @@ with zone("match", "데이터 결합 검증"):
         # 출처 「?」는 다른 구역처럼 줄 아래 오른쪽 끝에(설명 칸 안에 두면 CSV 단추 옆 어중간한 자리에 뜬다)
         chart_source("방위사업청 국내 입찰공고 · 입찰결과(파일데이터) · 연결 판정 = 공고번호 + 차수 대조 · "
                      f"{stamp_txt('입찰결과', stamp_bid)}")
+
+    # 둘째 줄 — 군수품 FSC/FSG 분류 기준 깔때기 · HS ↔ FSC/FSG/NSN 결합 원칙(데모 09-29 「데이터 결합 검증 3행」)
+    ff = load_fsc_funnel()
+    if ff is None or ff.empty:
+        st.info("국외 조달계획 자료를 조회하지 못했습니다(조회 실패).")
+    elif int(ff.at[0, "n_all"]) == 0:
+        st.warning("국외 조달계획 표에 적재된 행이 없습니다(미적재).")
+    else:
+        f_all, f_nsn, f_pop, f_elec = (int(ff.at[0, c]) for c in ("n_all", "n_nsn", "n_pop", "n_elec"))
+        f_steps = [("국외 조달계획 원본", f_all), ("FSG 판별 가능(NSN 있음)", f_nsn),
+                   ("분석 모집단(FSC 9999 제외)", f_pop), ("전자 · 통신 FSG 58 · 59 · 60", f_elec)]
+        c1, c2 = st.columns([1.35, 1], gap="medium")
+        with c1.container(border=True, key="card_funnel_fsc"):
+            chart_title(f"국외 조달계획 분석 모집단 {f_pop:,}행 중 전자 · 통신 군급은 "
+                        f'<span class="key">{f_elec / f_pop * 100:.2f}%({f_elec:,}행)</span>',
+                        f"행 · 괄호 = 원본 {f_all:,}행 대비 — 제목의 %는 분석 모집단 대비라 분모가 다름")
+            st.html(funnel_html(f_steps))
+        c2.html(nomap_card("분류체계 결합 원칙", [
+            ("직접 JOIN하지 않음", "HS/HSK ↔ FSC/FSG/NSN 사이 공식 대조표가 없어 코드를 직접 연결하지 않습니다."),
+            ("품명 유사도 매핑하지 않음", "품목명 텍스트 유사도로 두 체계를 잇지 않습니다."),
+            ("각 분류체계 안에서 독립 분석", "HS 기반 분석과 FSC/FSG 기반 분석은 서로 다른 화면 · 조건에서 따로 봅니다."),
+        ]))
+        f_df = pd.DataFrame(f_steps, columns=["단계", "행 수"]).assign(**{"원본 대비(%)": lambda d: (d["행 수"] / f_all * 100).round(2)})
+        c_cap, c_dl = st.columns([4, 1], vertical_alignment="center")
+        c_cap.html('<div class="caption">FSC 9999(기타 품목)는 사실상 군급 미분류로 보고 분석 모집단에서 뺍니다 · '
+                   'NSN 은 군수품 식별번호이며 앞 4자리가 FSC, 앞 2자리가 FSG 입니다 · 금액은 통화 미검증이라 건수만 셉니다</div>')
+        with c_dl:
+            csv_button(f_df, "국외 조달계획 FSC/FSG 분류 기준 · 단위 행", "방위사업청 국외 조달계획 OpenAPI(15158418)",
+                       [("국외 조달계획", stamp_plan, None)], "데이터센터_FSC분류기준", "p5_csv_fsc")
+        chart_source("방위사업청 군수품조달정보 국외 조달계획 OpenAPI(15158418) · 분석 모집단 = NSN 있음 − FSC 9999 · "
+                     f"전자 = FSG 58 · 59 · 60 · {stamp_txt('국외 조달계획', stamp_plan)}")
 
 # ── 한계와 주의 ────────────────────────────────────────────────────────────
 with zone("limit", "한계와 주의"):

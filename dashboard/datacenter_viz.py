@@ -1,4 +1,8 @@
-"""조회 — 선택형 시각화(팀원 디자인 데모 「DATA CENTER · 데이터 시각화」 화면을 옮기고 값만 RDS 로 바꿨다).
+"""DATA CENTER 「데이터 시각화」 구역 — 선택형 시각화(팀원 디자인 데모 「DATA CENTER · 데이터 시각화」 화면을 옮기고 값만 RDS 로 바꿨다).
+
+pages/5_데이터_센터.py 가 zone("sel", "데이터 시각화") 안에서 runpy.run_path 로 매 실행 새로 돌린다(페이지 파일처럼 —
+import 하면 모듈이 프로세스에 한 번만 실행돼 화면이 그려지지 않는다). 서브 배너 · 자료 기준(hero)과 관세청 자료 확인은 페이지가 맡는다.
+2026-09-29 전까지는 따로 된 「조회」 페이지(pages/6_조회.py)였다.
 
 맨 위 「데이터 유형」 — 수출입 HS · 군수품 FSG/FSC · 국산화개발. 유형마다 조건 · 지표 · 차트 · 결과 탭이 바뀐다
 (session_state 키 앞머리 qs_ · qf_ · ql_, 데모 2026-09-29 확장판과 같은 키).
@@ -24,8 +28,8 @@ import streamlit as st
 
 from db import data_stamp, query, safe_query
 from kdesign import ACCENT, ETC, SERIES, TEXT, _svg_img
-from ui import (EXP, EXP_DIM, IMP, IMP_DIM, SHORT, source_pop, chart_source, chart_title, country_colors, country_map, csv_header, globe_loading, hero, hover_donut, kpi, png_button,
-                style_fig, zone)
+from ui import (EXP, EXP_DIM, IMP, IMP_DIM, SHORT, source_pop, chart_source, chart_title, country_colors, country_map, csv_header, globe_loading, hover_donut, kpi, png_button,
+                style_fig)
 
 ALL = "__all__"
 # 화면 · CSV 출처는 「기관 · 데이터명(포털 ID) · 자료 기간」만 — DB 표 · 뷰 이름과 적재일은 쓰지 않는다(보안, 2026-09-24 사용자)
@@ -124,13 +128,7 @@ def trade_frame(names: list[str], y0: int, y1: int, unit: str, items: list[str] 
 STAMP = data_stamp("customs_all", "fact_customs_monthly")
 S_PLAN = data_stamp("dapa_overseas_plan_api", "clean_dapa_overseas_plan_api")
 S_B2 = data_stamp("dapa_localized_item", "clean_dapa_localized_item")
-hero(stamps=[("관세청 수출입", STAMP), ("국외 조달계획", S_PLAN), ("국산화개발품목", S_B2)])
-if not STAMP["has_period"]:
-    if STAMP["error"]:
-        st.error(f"관세청 수출입 자료를 조회하지 못했습니다({STAMP['error']}). 잠시 뒤 다시 열어 주세요.")
-    else:
-        st.warning("관세청 수출입 자료가 아직 적재되지 않았습니다(미적재).")
-    st.stop()
+# 관세청 자료가 없으면 이 구역은 실행되지 않는다(5_데이터_센터.py 가 먼저 확인)
 
 with globe_loading("기준표를 읽는 중"):
     WL, CTRY, YRS = load_ref()
@@ -220,12 +218,11 @@ Q_DEFAULT = {"qs_area": "수출입", "qs_hs": "HS6", "qs_ctry": ["중국", "대�
              **{f"qs_m_{m}": m in Q_MONEY for m, *_ in Q_METRICS}}
 
 # 군수품 FSG/FSC — 지표(이름, 단위, 아이콘) · 차트. HS 지표는 이 유형에서 그리지 않는다
-QF_UNITS = ["FSG", "FSC"]
 QF_BRANCH_ROWS = {"qf_branch_a": QF_BRANCHES[:3], "qf_branch_b": QF_BRANCHES[3:]}   # 군종 버튼 두 줄(3 + 나머지)
 QF_METRICS = [("품목 건수", "건", "inventory_2"), ("FSC 수", "개", "category"),
               ("적용장비 수", "종", "precision_manufacturing"), ("KDSIS 연결 건수", "건", "link")]
 QF_CHARTS = ["막대 그래프", "누적 막대 그래프", "도넛 그래프", "트리맵 차트", "꺾은선 그래프"]
-QF_DEFAULT = {"qf_unit": "FSG", "qf_fsg": list(QF_FSG), "qf_fsg_all": True, "qf_fsc": [],
+QF_DEFAULT = {"qf_fsg": list(QF_FSG), "qf_fsg_all": True, "qf_fsc": [],
               **{k: list(v) for k, v in QF_BRANCH_ROWS.items()}, "qf_y0": QF_YEARS[0], "qf_y1": QF_YEARS[-1],
               "qf_name": "", "qf_func": "", "qf_kind": "전체", "qf_nsn": "", "qf_chart": "막대 그래프",
               **{f"qf_m_{m}": m in ("품목 건수", "FSC 수") for m, *_ in QF_METRICS}}
@@ -324,7 +321,7 @@ def _q_keep(key: str, options: list) -> list:
 
 # 왼쪽 글씨 칸 높이 = 오른쪽 첫 입력칸 높이(px). 위로 붙여 놓고 그 높이 안에서 가운데 → 글씨와 입력칸이 같은 가로선
 Q_ROW_H = {"dtype": 32, "area": 32, "hs": 32, "item": 40, "ctry": 40, "period": 40, "metric": 40,
-           "unit": 32, "fsg": 40, "fsc": 40, "branch": 32, "year": 40, "name": 40, "proj": 40, "comp": 40}
+           "fsg": 40, "fsc": 40, "branch": 32, "year": 40, "name": 40, "proj": 40, "comp": 40}
 Q_CHIP_COLS = 3                                               # 고른 값을 입력칸 밑에 한 줄 3개씩
 Q_CHIP_SCROLL = 10                                            # 이만큼 이상 고르면 칩 칸을 스크롤로
 Q_CHIP_ROWS = 3                                               # 스크롤 칸에 한 번에 보이는 칩 줄 수(칩 30px · 줄 간격 6px)
@@ -386,7 +383,20 @@ div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"]{{flex:0
   max-width:calc(100% / 3);min-width:0}}
 div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"][data-selected]{{
   background:rgba(43,110,246,.1);border-color:var(--accent);color:var(--accent)}}
+div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"][data-selected] p{{font-weight:700}}   /* 고른 군종은 굵게 */
 div[class*="st-key-qf_branch_"] [data-testid="stButtonGroup"] > div{{justify-content:flex-start}}
+/* 커서를 올렸을 때 — Streamlit 기본 강조색(빨강)이 테두리에 들던 것을 테마 파랑으로 */
+div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"]:hover,
+div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"]:focus-visible{{
+  border-color:var(--accent) !important;color:var(--accent) !important;background:rgba(43,110,246,.05) !important;
+  box-shadow:none !important}}
+div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"][data-selected]:hover{{
+  background:rgba(43,110,246,.16) !important}}
+div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"]:hover *{{color:var(--accent) !important}}
+/* 두 줄이 맞닿는 모서리는 직각 — 윗줄 아래 모서리 · 아랫줄 위 모서리(윗줄 끝 칸 아래 오른쪽은 밑에 칸이 없어 둥근 채로) */
+.st-key-qf_branch_a button[data-variant="segmented_control"]{{border-bottom-left-radius:0 !important}}
+.st-key-qf_branch_a button[data-variant="segmented_control"]:not(:last-of-type){{border-bottom-right-radius:0 !important}}
+.st-key-qf_branch_b button[data-variant="segmented_control"]{{border-top-left-radius:0 !important;border-top-right-radius:0 !important}}
 .st-key-qf_branch_box{{gap:0 !important}}
 .st-key-qf_branch_box [data-testid="stElementContainer"]:has(.st-key-qf_branch_b),.st-key-qf_branch_b{{margin-top:-1px}}
 /* 체크박스 드롭다운(품목코드 · 국가 · FSC) — 펼친 목록이 아래 줄을 덮도록 위로 올린다 */
@@ -435,7 +445,11 @@ export default function () {
   window.__kdChipFit = true
   const root = document.documentElement
   document.addEventListener("pointerover", e => {
-    const btn = e.target.closest && e.target.closest('[class*="st-key-"][class*="chips"] button')
+    // 말풍선을 여는 곳(도움말 대상)에 들어갈 때만 판단을 바꾼다. 빈 곳 · 말풍선 위로 옮길 때는 그대로 둔다 —
+    // 말풍선은 커서가 떠난 뒤에도 잠깐 열려 있어, 칩을 벗어나자마자 표시를 끄면 숨겼던 말풍선이 그 사이에 드러났다
+    const tgt = e.target.closest && e.target.closest('[data-testid="stTooltipHoverTarget"]')
+    if (!tgt) return
+    const btn = tgt.closest('[class*="st-key-"][class*="chips"]') && tgt.querySelector("button")
     const p = btn && btn.querySelector("p")
     if (p && p.scrollWidth <= p.clientWidth + 1) root.setAttribute("data-chipfit", "")
     else root.removeAttribute("data-chipfit")
@@ -697,16 +711,18 @@ def query_panel_hs() -> dict:
             "period": f"{y0} ~ {y1}", "years": (y0, y1), "metrics": metrics, "chart": chart}
 
 
-def _q_fsg_fsc(pre: str, fsc_ph: str, groups: dict[str, str], fsc_of: dict[str, list[str]]) -> tuple[list[str], list[str]]:
+def _q_fsg_fsc(pre: str, fsc_ph: str, groups: dict[str, str],
+               fsc_of: dict[str, list[str]]) -> tuple[list[str], list[str], list[str]]:
     """FSG(칩 다중선택 + 전체) → FSC(고른 FSG 안의 것만, 체크박스 드롭다운). FSC 를 비우면 고른 FSG 의 FSC 전부.
-    군수품 · 국산화개발 두 화면이 같이 쓴다(pre = qf_ / ql_). groups · fsc_of = 그 자료에 실제로 있는 분류만."""
+    군수품 · 국산화개발 두 화면이 같이 쓴다(pre = qf_ / ql_). groups · fsc_of = 그 자료에 실제로 있는 분류만.
+    (FSG, 사용자가 고른 FSC(비었으면 []), 조회에 쓸 FSC) — 군수품은 둘째 값이 비었는지로 집계 단위(FSG · FSC)를 정한다."""
     with _q_row(":material/category:", "FSG", "fsg"):
         fsg = _q_chip_select(f"{pre}fsg", list(groups), lambda g: f"{g} - {groups[g]}", "FSG 를 검색하세요.",
                              f"{pre}fsg_all", f"전체 FSG 선택 ({len(groups)}개)")
     opts = [c for g in fsg for c in fsc_of[g]]
     with _q_row(":material/account_tree:", "FSC", "fsc"):
         fsc = _q_check_select(f"{pre}fsc", opts, lambda c: f"{c} - {FSC_NAME.get(c, '')}", "FSC", fsc_ph)
-    return fsg, fsc or opts
+    return fsg, fsc, fsc or opts
 
 
 def _q_metric_row(pre: str, metrics: list[tuple]) -> list[str]:
@@ -728,9 +744,10 @@ def query_panel_fsg() -> dict:
     """군수품 FSG/FSC 조건 — 분류 단위 · FSG · FSC · 군종 · 요구연도 · 품목명 · 상세검색 · 지표 · 차트."""
     ss = st.session_state
     st.html(_q_form_css({"qf_fsg": _q_hint("qf_fsg", "qf_fsg_all", "FSG", "전체 FSG 선택 중")}))
-    unit = _q_row(":material/stacks:", "분류 단위", "unit").segmented_control(
-        "분류 단위", QF_UNITS, key="qf_unit", required=True, label_visibility="collapsed")
-    fsg, fsc = _q_fsg_fsc("qf_", "FSC 를 고르세요 · 비우면 고른 FSG 전체", QF_FSG, QF_FSC)
+    # 집계 단위는 따로 고르지 않는다 — FSC 를 비우면(= 고른 FSG 아래 전체) FSG 단위, 하나라도 고르면 FSC 단위.
+    # FSG 가 FSC 의 상위 분류라 「분류 단위 FSG/FSC」 토글은 두 분류체계 중 하나를 고르는 것처럼 보여 없앴다(데모 09-29)
+    fsg, picked_fsc, fsc = _q_fsg_fsc("qf_", "FSC 를 고르세요 · 비우면 FSG 단위로 집계", QF_FSG, QF_FSC)
+    unit = "FSC" if picked_fsc else "FSG"
     with _q_row(":material/military_tech:", "군종", "branch"), st.container(key="qf_branch_box", gap=None):
         # 한 줄에 다 두면 카드 폭이 좁아 가려져 두 줄(3 + 나머지)로 나눈다. 고른 값은 두 줄을 합친다
         branch = [b for k, opts in QF_BRANCH_ROWS.items() if opts
@@ -763,7 +780,7 @@ def query_panel_localized() -> dict:
     with _q_row(":material/inventory:", "사업명", "proj"):
         proj = _q_chip_select("ql_proj", QL_PROJECTS, str, "사업명을 검색하세요.",
                               "ql_proj_all", f"전체 사업 선택 ({len(QL_PROJECTS)}개)")
-    fsg, fsc = _q_fsg_fsc("ql_", "FSC 를 고르세요 · 비우면 고른 FSG 전체", QL_FSG, QL_FSC)
+    fsg, _, fsc = _q_fsg_fsc("ql_", "FSC 를 고르세요 · 비우면 고른 FSG 전체", QL_FSG, QL_FSC)
     name = _q_row(":material/search:", "품목명", "name").text_input(
         "품목명", key="ql_name", placeholder="국산화개발 품목명을 입력하세요.", label_visibility="collapsed")
     with _q_row(":material/factory:", "관련 업체", "comp"):
@@ -1507,7 +1524,12 @@ def query_result_fsg(q: dict) -> None:
     """군수품 FSG/FSC 조회 결과 — 지표 카드 · [분포 차트] [분류 상세] [결과 표]. 국가 지도는 없다(HS 와 엮지 않는다)."""
     unit, ms = q["unit"], q["metrics"]
     y0, y1 = q["years"]
-    st.html(f'<div class="h">조회 결과 <span class="sub">군수품 · {unit} 단위 · FSG {len(q["fsg"])}개 · FSC {len(q["fsc"])}개 · '
+    # 집계 기준 — unit 은 사용자가 고른 값이 아니라 FSC 를 골랐는지로 정해진다(query_panel_fsg)
+    if unit == "FSC":
+        basis = f'FSC {q["fsc"][0]} 기준' if len(q["fsc"]) == 1 else f'FSC {q["fsc"][0]} 등 {len(q["fsc"])}개 기준'
+    else:
+        basis = f'FSG {len(q["fsg"])}개 기준 · FSC 전체 {len(q["fsc"])}개'
+    st.html(f'<div class="h">조회 결과 <span class="sub">군수품 · {basis} · '
             f'{"·".join(q["branch"]) or "군종 없음"} · 요구연도 {y0}~{y1} · {q["chart"]}</span></div>')
     if not q["fsg"]:
         return st.info("FSG 를 하나 이상 고르거나 「전체 FSG 선택」을 켜 주세요.")
@@ -1601,28 +1623,28 @@ def query_result_localized(q: dict) -> None:
     _cat_downloads("조회결과_국산화개발", cond, src, "국산화개발품목", S_B2, [("사업·업체", pc), ("품목 상세", items)])
 
 
-def page_search() -> None:
-    with zone("sel", "분석 조건 설정"):
-        c_form, c_res = st.columns([1.15, 1.45], gap="medium")   # 1280 폭에서 차트 유형 · 지표 이름이 잘리지 않게 조건 칸을 넓게
-        with c_form:
-            q = query_panel()
-        with c_res.container(border=True, key="card_res"):
-            if q["type"] == "군수품 FSG/FSC":
-                query_result_fsg(q)
-            elif q["type"] == "국산화개발":
-                query_result_localized(q)
+def render() -> None:
+    """조건 카드 | 결과 카드 + 캡션 · 출처. 구역(zone)은 5_데이터_센터.py 가 연다."""
+    c_form, c_res = st.columns([1.15, 1.45], gap="medium")   # 1280 폭에서 차트 유형 · 지표 이름이 잘리지 않게 조건 칸을 넓게
+    with c_form:
+        q = query_panel()
+    with c_res.container(border=True, key="card_res"):
+        if q["type"] == "군수품 FSG/FSC":
+            query_result_fsg(q)
+        elif q["type"] == "국산화개발":
+            query_result_localized(q)
+        else:
+            y0, y1 = q["years"]
+            st.html(f'<div class="h">조회 결과 <span class="sub">{q["area"]} · {escape(str(q["hs"]))} · {len(q["names"])}개국 · '
+                    f'{y0}~{y1} · {q["chart"]}</span></div>')
+            if not q["names"]:
+                st.info("국가를 하나 이상 고르거나 「전체 국가 선택」을 켜 주세요.")
+            elif not q["n_items"]:
+                st.info("품목코드를 하나 이상 고르거나 「전체 품목 선택」을 켜 주세요.")
+            elif not q["metrics"]:
+                st.info("지표를 하나 이상 고르세요. 분석영역에 맞는 지표만 목록에 나옵니다.")
             else:
-                y0, y1 = q["years"]
-                st.html(f'<div class="h">조회 결과 <span class="sub">{q["area"]} · {escape(str(q["hs"]))} · {len(q["names"])}개국 · '
-                        f'{y0}~{y1} · {q["chart"]}</span></div>')
-                if not q["names"]:
-                    st.info("국가를 하나 이상 고르거나 「전체 국가 선택」을 켜 주세요.")
-                elif not q["n_items"]:
-                    st.info("품목코드를 하나 이상 고르거나 「전체 품목 선택」을 켜 주세요.")
-                elif not q["metrics"]:
-                    st.info("지표를 하나 이상 고르세요. 분석영역에 맞는 지표만 목록에 나옵니다.")
-                else:
-                    query_result(q, y0, y1)
+                query_result(q, y0, y1)
     if q["type"] == "군수품 FSG/FSC":
         cap, src = "국외 조달계획은 품목 단위 건수만 셉니다(금액은 통화 미검증). 관세청 HS 자료와 엮지 않습니다.", SRC_PLAN
     elif q["type"] == "국산화개발":
@@ -1633,4 +1655,4 @@ def page_search() -> None:
     st.html(f'<div class="caption">{cap}</div>' + source_pop(src))
 
 
-page_search()
+render()

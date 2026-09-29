@@ -58,7 +58,7 @@ def data_info_dialog() -> None:
         '<span>중량</span><span><b>kg</b> (참고값, 화면은 톤)</span></div></div></div>'
         '<div class="di-card warn"><div><div class="di-t">주요 주의사항</div><ol class="di-warn">'
         + "".join(f"<li>{w}</li>" for w in warns) + '</ol></div></div>')
-    st.page_link(PAGES["info"], label="DATA INFO 페이지에서 더 보기", icon=":material/arrow_forward:")
+    st.page_link(PAGES["info"], label="DATA CENTER 에서 더 보기", icon=":material/arrow_forward:", query_params={"sec": "src"})
 
 
 s_customs = data_stamp("customs_all", "fact_customs_monthly")      # 머리글 자료 기간(DB 적재일 · 표 이름은 쓰지 않는다 — 보안, 2026-09-24)

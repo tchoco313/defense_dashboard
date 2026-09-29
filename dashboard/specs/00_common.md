@@ -8,7 +8,7 @@
 |---|---|---|
 | 제목 | 「주요 방산 전자부품 수출입 및 국산화 현황」(`page_title` 「방산 전자부품 수출입 및 국산화 현황」). 타겟은 중간 발표(09-22) 기준 — 공개 자료로 현황을 확인·인용해야 하는 사람: 정책·예산 / 연구·분석 / 방산 중소·벤처(주·부 순위 없음, 2026-09-23 팀 확정, `docs/idea-review.md` §4 Who) | `dashboard/frame.py` `header`(K-Defense 로고 아래 줄), `dashboard/main.py` `st.set_page_config` |
 | 부제 | 「공식 분류·통제표로 고른 전자부품 품목군 · 공개 데이터 기반 현황 대시보드」 | (현재 화면에 쓰지 않음 — 머리글 로고 아래 줄은 제목) |
-| 페이지 제목·순서 | 「홈」 「① 수출입 현황」 「② 국외조달 예산 · 배경」 「③ 조달·국산화 근거」 「④ 검토 목록」 「조회」 「⑤ 데이터 정보」 — **화면 번호 = 표시 순번**(2026-09-24 팀 결정). 문서의 페이지 키와 대응: 화면 ① = 핵심 ① · 화면 ② = 배경 ⓪ · 화면 ③ = 핵심 ② · 화면 ④ = 핵심 ③(키는 다른 문서가 참조하므로 유지, 이모지 없음) — 이름·묶음은 담당자 Figma 결과로 바뀔 수 있음(M3) | `dashboard/nav.py` `PAGE_SPECS`(제목·URL)·`NAV_ORDER`(순서) |
+| 페이지 제목·순서 | 「홈」 「① 수출입 현황」 「② 국외조달 예산 · 배경」 「③ 조달·국산화 근거」 「④ 검토 목록」 「DATA CENTER」(2026-09-29 — 옛 「조회」 · 「⑤ 데이터 정보」를 합침, 첫 블록 = 데이터 시각화) — **화면 번호 = 표시 순번**(2026-09-24 팀 결정). 문서의 페이지 키와 대응: 화면 ① = 핵심 ① · 화면 ② = 배경 ⓪ · 화면 ③ = 핵심 ② · 화면 ④ = 핵심 ③(키는 다른 문서가 참조하므로 유지, 이모지 없음) — 이름·묶음은 담당자 Figma 결과로 바뀔 수 있음(M3) | `dashboard/nav.py` `PAGE_SPECS`(제목·URL)·`NAV_ORDER`(순서) |
 
 「의존도」는 정의를 달아도 화면에 쓰지 않는다(§6).
 
@@ -31,7 +31,7 @@
 | 컴포넌트 | 함수 | 규칙 |
 |---|---|---|
 | 현재 조건 줄 | (4단계에서 `ui`에 추가) | 필터 바로 아래 한 줄: 품목 · 기간 · 단위 · 부분연도 여부. 그 아래 KPI·차트·표는 모두 이 조건(`01_design_system.md` §0-2) |
-| 화면 틀 · 경로 줄 | `frame.header` · `frame.body` · `frame.footer` · `ui.hero(stamps=[(이름, data_stamp)])` | 동현님 새 디자인(`dashboard/demo/K-Defense_brandnew.py`, 2026-09-28): 흰 머리글(K-Defense 로고 · 관세청 자료 기간 · ⓘ 데이터 정보) · 상단 메뉴(커서를 올리면 모든 페이지의 블록이 펼쳐짐 · 조회 돋보기 · 전체 메뉴) · 서브 배너(제목 · 부제 = `nav.py` heading · lead) · 왼쪽 블록 메뉴(스크롤을 따라옴, 주소 `?sec=블록키`) · 빠른 메뉴 · 바닥글. 홈을 `?sec=` 없이 열면 첫 화면(`dashboard/landing.py`). 경로 줄 = 왼쪽 「자료 기준」 버튼(누르면 데이터별 기간) · 오른쪽 ⌂ › 페이지. DB 적재일 · 표 이름은 보이지 않게(보안) |
+| 화면 틀 · 경로 줄 | `frame.header` · `frame.body` · `frame.footer` · `ui.hero(stamps=[(이름, data_stamp)])` | 동현님 새 디자인(`dashboard/demo/K-Defense_brandnew.py`, 2026-09-28): 흰 머리글(K-Defense 로고 · 관세청 자료 기간 · ⓘ 데이터 정보) · 상단 메뉴(커서를 올리면 모든 페이지의 블록이 펼쳐짐 · 돋보기 = DATA CENTER 데이터 시각화 · 전체 메뉴) · 서브 배너(제목 · 부제 = `nav.py` heading · lead) · 왼쪽 블록 메뉴(스크롤을 따라옴, 주소 `?sec=블록키`) · 빠른 메뉴 · 바닥글. 홈을 `?sec=` 없이 열면 첫 화면(`dashboard/landing.py`). 경로 줄 = 왼쪽 「자료 기준」 버튼(누르면 데이터별 기간) · 오른쪽 ⌂ › 페이지. DB 적재일 · 표 이름은 보이지 않게(보안) |
 | KPI 카드 | `kpi(label, value, unit, sub, tag="")` | 여러 장은 `<div class="kpis">`(5열, `.k4` 4열, `.k6` 6열 — 열 폭 같음). 놓인 칸이 좁으면 접는다(≤860px 3열 · ≤620px 2열 · ≤240px 1열, 컨테이너 쿼리). 큰 숫자는 카드 폭 기준 `min(31.5px, 20cqi)` — 숫자 중간에서 줄바꿈하지 않고 단위는 좁으면 아랫줄. 긴 값은 `<span class="vr">`(0.8em). `tag`는 「잠정」「인용」「정부안」 배지 |
 | 블록 | `zone(key, tag)` | 테두리 없이 제목 줄(굵은 제목 + 짙은 밑줄)로 나눈다. 키 · 이름은 문자열 그대로 적는다 — `nav.sections`가 이 호출을 읽어 왼쪽 · 펼침 메뉴를 만든다 |
 | 기간 기준 | `period_control(df, note, key)` | 버튼 3개: 「YYYY 기준 연도」 / 「최근 5년」 / 「전체 YYYY~」. **완결 연도만**(부분연도 제외). 완결 연도 없으면 `st.info("완결 연도(부분연도 제외) 실적이 없어 기간 기준을 만들 수 없습니다.")` 후 `st.stop()`. 페이지별 key(`period_home`·`period_p3`·`q_period`) |
@@ -130,8 +130,8 @@
 | `33_semiconductor_strategy.md` | 국방반도체 발전전략(참조표) | 초안 | v7-brief §7 ④ · ④ 반도체 구역 · policy-pdf-analysis §11·§12 | `dashboard/pages/2_국외조달_예산_배경.py`(일부) | 미정 | 미생성 |
 | `34_domestic_procurement.md` | 국내 조달(계약·수의계약 사유·입찰) — 부록 | 초안 | idea-review §4 핵심 ② 조달 섹션 ⓓⓔⓕ · table-guide §2 「핵심 ② 조달 섹션」 · M2(09-21: 부록 성격, 근거 아님) · 배경 유지(2026-09-21 조장: 3x 배경 페이지, 핵심 근거 구역에 두지 않음) | 신규(담당자 Figma로 위치 결정) | 미정 | 미생성 |
 | `35_domestic_map.md` | 국내 지도(시도 choropleth) | 폐기(파일 삭제 2026-09-22) | idea-review §4 보조 ⑤ · table-guide §2 보조 ⑤ · **폐기(2026-09-21 조장 → 2026-09-22 사용자 재확인)**: GeoJSON은 확보했으나(`data/reference/sido_boundary.geojson`) 국내 지도 화면은 복구하지 않는다. 시도 축이 필요하면 ① 수출입 현황(20) 안의 구역으로 다루고 별도 페이지는 두지 않는다 | — | — | — |
-| `90_data_info.md` | ⑤ 데이터 정보 | 초안 | v7-brief §7 ⑤ · benchmark §2(용어 15행) | `dashboard/pages/5_데이터_정보.py` | 미정 | 미생성 |
-| `91_search.md` | 조회 | 초안 | v7-brief §7 조회 · mockup search.html | `dashboard/pages/6_조회.py` | 미정 | 미생성 |
+| `90_data_info.md` | DATA CENTER(옛 ⑤ 데이터 정보) — 출처 · 결합 검증 · 한계 · 상세 정의 | 초안 | v7-brief §7 ⑤ · benchmark §2(용어 15행) | `dashboard/pages/5_데이터_센터.py` | 미정 | 미생성 |
+| `91_search.md` | DATA CENTER 「데이터 시각화」 블록(옛 조회) | 초안 | v7-brief §7 조회 · mockup search.html | `dashboard/datacenter_viz.py`(5_데이터_센터.py 가 실행) | 미정 | 미생성 |
 
 흡수(별도 md 없음): idea-review 보조 ④ 「수출·생산 추세」 → 수출은 20(수입·수출 동등 배치), 생산은 32. ⓪ 국외조달 예산 · 배경 한 파일은 질문 4개라 30~33으로 나눴다 — 한 페이지로 묶을지는 담당자 Figma 결과에 따른다(M3).
 

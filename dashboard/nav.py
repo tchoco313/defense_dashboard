@@ -1,7 +1,8 @@
 """페이지 레지스트리 — 파일·제목·URL·메뉴 순서·배너 문구를 한 곳에서 정한다(main.py 라우터 · frame.py 가 읽음).
 
 - 키는 dashboard/specs/00_common.md §9 페이지 키와 맞춘다. 파일명 숫자는 식별자일 뿐 순서가 아니다.
-- 표시 순서는 NAV_ORDER 한 줄. 상단 메뉴(GNB)는 조회를 뺀 순서 — 조회는 돋보기 단추로 따로 둔다.
+- 표시 순서는 NAV_ORDER 한 줄. 상단 메뉴(GNB)도 같은 순서. 머리글 돋보기는 DATA CENTER 「데이터 시각화」 블록(?sec=sel)으로 간다
+  (2026-09-29 — 따로 있던 「조회」 페이지를 DATA CENTER 첫 블록으로 합쳤다. 옛 /search 주소는 없다).
 - 블록(왼쪽 메뉴 · 상단 펼침 메뉴)은 페이지 파일의 zone("키", "이름") 호출을 읽어 만든다 — 목록을 따로 적지 않는다.
 - st.Page 객체는 실행(rerun)마다 새로 만든다. 프로세스 단위로 캐시해 공유하면 겹친 재실행에서 st.navigation 의
   「한 번만 run」 플래그가 엇갈려 StreamlitAPIException 이 난다(2026-09-28 조회 Escape 재현). 현재 페이지는 url_path 로 판정.
@@ -46,18 +47,15 @@ PAGE_SPECS: tuple[PageSpec, ...] = (
     PageSpec("background", "pages/2_국외조달_예산_배경.py", "② 국외조달 예산 · 배경", "background", "② 국외조달 예산 · 배경",
              "account_balance", "② 국외조달 예산 · 배경",
              "국외조달 계획의 예산과 건수, 그 배경인 국방 R&amp;D 예산 · 국내 생산 기반 · 국방반도체 정책을 봅니다"),
-    PageSpec("info", "pages/5_데이터_정보.py", "⑤ 데이터 정보", "info", "DATA INFO", "folder_open",
-             "⑤ 데이터 정보",
-             "화면의 숫자가 어디서 왔고 어떻게 계산했으며, 무엇을 뜻하지 않는지 적었습니다"),
-    PageSpec("search", "pages/6_조회.py", "조회", "search", "조회", "search",
-             "조회",
-             "조건을 골라 원하는 차트를 만들고, 표와 그림으로 내려받습니다 — 데이터 유형(수출입 · 군수품 · 국산화개발)끼리는 합치거나 잇지 않습니다"),
+    PageSpec("info", "pages/5_데이터_센터.py", "DATA CENTER", "info", "DATA CENTER", "folder_open",
+             "DATA CENTER",
+             "원하는 조건으로 나만의 시각화를 구성하고, 데이터의 출처와 결합 과정을 확인합니다"),
 )
 SPEC_BY_KEY: dict[str, PageSpec] = {s.key: s for s in PAGE_SPECS}
 
-# 표시 순서(CLAUDE.md 핵심 설계 제약, 09-17 교수 피드백): 홈 · ① 수출입 현황 · ② 국외조달 예산(배경) · ③ 근거 · ④ 검토 목록 · 조회 · ⑤ 데이터 정보
+# 표시 순서(CLAUDE.md 핵심 설계 제약, 09-17 교수 피드백): 홈 · ① 수출입 현황 · ② 국외조달 예산(배경) · ③ 근거 · ④ 검토 목록 · DATA CENTER(데이터 시각화 · 출처)
 # 화면 번호 = 표시 순번(2026-09-24 사용자). 문서의 페이지 키(핵심 ① · 배경 ⓪ · 핵심 ② · 핵심 ③)와 다르다 — 대응표 dashboard/specs/00_common.md §1
-NAV_ORDER: tuple[str, ...] = ("home", "trade", "background", "parts", "table", "search", "info")
+NAV_ORDER: tuple[str, ...] = ("home", "trade", "background", "parts", "table", "info")
 GNB_ORDER: tuple[str, ...] = tuple(k for k in NAV_ORDER if k != "search")
 
 _ZONE = re.compile(r'zone\(\s*"([a-z0-9_]+)"\s*,\s*"([^"]+)"\s*\)')

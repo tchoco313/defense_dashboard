@@ -1,5 +1,5 @@
 # ⑤ 데이터 정보 — 숫자의 출처·계산식·뜻하지 않는 것
-상태: 초안(2026-09-21)
+상태: 초안(2026-09-21) · **2026-09-29 DATA CENTER 로 합침** — 페이지 `dashboard/pages/5_데이터_센터.py`(URL `/info` 그대로), 블록 = 데이터 시각화(`sel`, 91_search.md) · 데이터 출처 · 데이터 결합 검증(입찰 공고↔결과 + **국외 조달계획 FSC/FSG 분류 기준 깔때기 · 분류체계 결합 원칙**) · 한계와 주의 · 상세 정의. FSC/FSG 깔때기 = `clean_dapa_overseas_plan_api` 원본 → NSN 있음 → FSC 9999 제외(분석 모집단) → 전자 FSG 58·59·60(DB QA D-04 화면 기준).
 
 ## 0. Figma
 | 항목 | 값 |
@@ -29,7 +29,7 @@
 건수 3종(`ref_hs_rule_flag`·`ref_hs_whitelist`·`clean_dapa_localized_item`)은 리터럴이 아니라 DB에서 읽고, **캐시 밖 `try_query`**로 조회해 실패해도 페이지는 그리고 숫자만 뺀다. 출처 표만 `@st.cache_data(ttl=3600)` + `safe_query`.
 
 ## 3. 레이아웃
-코드(`dashboard/pages/5_데이터_정보.py`) 순서. 구역 = `zone("<키>", "<태그>")`.
+코드(`dashboard/pages/5_데이터_센터.py`) 순서. 구역 = `zone("<키>", "<태그>")`.
 
 | 순서 | 구역 키 · 태그 | 내용 |
 |---|---|---|

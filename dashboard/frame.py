@@ -25,7 +25,8 @@ WRAP = 1400                    # 본문 최대 폭(px) — 머리글 · 배너 �
 LNB_W = 230                    # 왼쪽 메뉴 폭 = 서브 배너의 제목 칸 폭
 BLUE, BLUE_D = "#1d4ed8", "#003899"   # 강조 파랑 · 짙은 파랑(제목 칸 · 펼침 메뉴)
 PAD = f"max(32px, calc((100% - {WRAP}px) / 2 + 32px))"   # 줄마다 안쪽 여백 — 내용을 가운데 WRAP 폭 안으로
-QUICK = (("search", "조회", "search"), ("table", "검토 목록", "table_chart"), ("info", "DATA INFO", "folder_open"))
+# 빠른 메뉴 (페이지 키, 이름, 아이콘, ?sec=) — 조회는 DATA CENTER 「데이터 시각화」 블록
+QUICK = (("info", "조회", "search", "sel"), ("table", "검토 목록", "table_chart", None), ("info", "DATA CENTER", "folder_open", None))
 LABEL_KEY = "_kd_label"        # 경로 표시(⌂ › 페이지)에 쓰는 현재 페이지 이름 — kdesign.hero 가 읽는다
 
 # 태극 — 위 빨강(#CD2E3A) · 아래 파랑(#0047A0). st.html 은 <svg> 를 지우므로 그림(data URI)으로 넣는다
@@ -182,7 +183,7 @@ div[class*="st-key-gi_"]:hover div[class*="st-key-gs_"]{{background:rgba(255,255
   display:flex!important;overflow:visible!important}}
 .st-key-quick [data-testid="stElementContainer"],.st-key-quick [data-testid="stPageLink"]{{width:100%!important}}
 .st-key-quick [data-testid="stPageLink"] a [data-testid="stIconMaterial"]{{font-size:24px!important;color:{BLUE};margin:0!important}}
-.st-key-quick [data-testid="stPageLink"] a p{{font-size:11px!important;font-weight:700;color:#33415c;text-align:center;white-space:nowrap}}
+.st-key-quick [data-testid="stPageLink"] a p{{font-size:11px!important;font-weight:700;color:#33415c;text-align:center;white-space:normal;line-height:1.25}}   /* DATA CENTER 는 두 줄 */
 .st-key-quick [data-testid="stPageLink"] a:hover{{background:{BLUE_D}}}
 .st-key-quick [data-testid="stPageLink"] a:hover p,.st-key-quick [data-testid="stPageLink"] a:hover [data-testid="stIconMaterial"]{{color:#fff!important}}
 .qk-h{{background:{BLUE_D};color:#fff;font-size:10.5px;font-weight:800;letter-spacing:1px;text-align:center;padding:7px 0}}
@@ -231,7 +232,7 @@ div[class*="st-key-gi_"]:hover div[class*="st-key-gs_"]{{background:rgba(255,255
 
 
 def header(pages: dict, cur: str, period: str, on_info: Callable[[], None] | None) -> None:
-    """흰 머리글(로고 · 관세청 자료 기간 · ⓘ) + 상단 메뉴(펼침 블록 · 조회 돋보기 · 전체 메뉴)."""
+    """흰 머리글(로고 · 관세청 자료 기간 · ⓘ) + 상단 메뉴(펼침 블록 · 돋보기 = DATA CENTER 데이터 시각화 · 전체 메뉴)."""
     st.html(_css(_drop_h()))
     with st.container(key="hdr_top", horizontal=True, vertical_alignment="center", horizontal_alignment="distribute"):
         st.html(f'<div class="brand"><span class="mark"><span class="ms">shield</span>{TAEGEUK}</span><div><b>K-Defense</b>'
@@ -256,7 +257,7 @@ def header(pages: dict, cur: str, period: str, on_info: Callable[[], None] | Non
                     for s, t in sections(k):
                         st.page_link(pages[k], label=t, query_params={"sec": s})
         with st.container(key="gnb_search", width="content"):
-            st.page_link(pages["search"], label="조회", icon=":material/search:")
+            st.page_link(pages["info"], label="데이터 시각화", icon=":material/search:", query_params={"sec": "sel"})
         with st.container(key="gnb_all", width="content"):
             with st.popover("전체 메뉴", icon=":material/menu:"):
                 with st.container(key="sitemap", horizontal=True, gap="large"):
@@ -305,8 +306,8 @@ def footer(pages: dict) -> None:
     """오른쪽 빠른 메뉴 · 짙은 바닥글."""
     with st.container(key="quick"):
         st.html('<div class="qk-h">QUICK</div>')
-        for k, label, icon in QUICK:
-            st.page_link(pages[k], label=label, icon=f":material/{icon}:")
+        for k, label, icon, sec in QUICK:
+            st.page_link(pages[k], label=label, icon=f":material/{icon}:", query_params={"sec": sec} if sec else None)
     st.html('<div class="ft"><div class="brand"><span class="mark"><span class="ms">shield</span>' + TAEGEUK + '</span><div><b>K-Defense</b>'
             '<small>공개 자료로 확인하는 방산 전자부품 현황</small></div></div>'
             '<div class="ft-mid">자료: 관세청 품목별 국가별 수출입실적 · 방위사업청 국외 조달계획 · 국산화개발품목 · 국내 계약 · 입찰 · '
