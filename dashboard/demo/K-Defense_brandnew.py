@@ -316,11 +316,21 @@ div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)
 .st-key-card_res [role="tabpanel"] [data-testid="stElementContainer"]:has(.info-line .ib:hover){{z-index:90}}
 .st-key-card_res .info-line{{margin:0}}
 .st-key-card_res .st-scroll{{margin-top:22px}}   /* 결과 표는 ⓘ 아래에서 시작(표 모서리와 겹치지 않게) */
-.st-key-card_res .info-line .ib .tip{{top:calc(100% + 6px);bottom:auto;right:-6px;left:auto}}
+/* 말풍선은 ⓘ 위로 연다 — 아래로 열면 차트를 가렸다. 탭 칸(높이 고정 · overflow-y:auto)이 위로 나간 말풍선을 자르므로
+   ⓘ 에 커서가 있는 동안만 탭 칸 · 결과 카드의 넘침을 보이게 한다(탭 칸 내용은 500px 안이라 평소 스크롤바가 없어 폭이 안 바뀐다) */
+.st-key-card_res .info-line .ib .tip{{top:auto;bottom:calc(100% + 6px);right:-6px;left:auto;transform:translateY(4px)}}
+.st-key-card_res .info-line .ib:hover .tip{{transform:none}}
+.st-key-card_res:has(.info-line .ib:hover),
+.st-key-card_res [role="tabpanel"]:has(.info-line .ib:hover){{overflow:visible!important}}
 /* 말풍선이 옆 · 아래 카드에 가리지 않게 — 커서가 올라간 카드와 그 감싸개를 맨 앞으로 */
 .card:has(.ib:hover,.sub:hover),[data-testid="stElementContainer"]:has(.ib:hover,.sub:hover),
 [data-testid="stVerticalBlock"]:has(.ib:hover,.sub:hover),[data-testid="stLayoutWrapper"]:has(.ib:hover,.sub:hover),
 [data-testid="stColumn"]:has(.ib:hover,.sub:hover){{position:relative;z-index:90}}
+/* 단, 조회 결과 탭 칸 안의 감싸개는 제외 — ⓘ 은 탭 칸 기준 absolute 인데, 커서를 올리는 순간 위 규칙이 안쪽 감싸개
+   (차트 자리 container 등)를 relative 로 바꿔 기준이 바뀌면 ⓘ 이 왼쪽 아래로 밀려 커서를 벗어나고, 다시 제자리로
+   돌아오며 깜빡였다. 앞으로 올리기는 ⓘ 칸 자신(z-index:90)과 탭 칸(relative)으로 충분하다 */
+.st-key-card_res [role="tabpanel"] [data-testid="stVerticalBlock"]:has(.info-line .ib:hover),
+.st-key-card_res [role="tabpanel"] [data-testid="stLayoutWrapper"]:has(.info-line .ib:hover){{position:static!important;z-index:auto!important}}
 .kpi .s .up{{color:var(--up);font-weight:700}} .kpi .s .dn{{color:var(--down);font-weight:700}}
 .ex{{display:inline-block;font-size:10px;font-weight:700;color:#b45309;background:#fef3c7;border:1px solid #fde68a;
   border-radius:5px;padding:0 5px;margin-left:5px;vertical-align:middle}}
@@ -343,6 +353,13 @@ div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)
   background:#dcfce7;color:#15803d;font-weight:800}}
 .rule b{{display:block;font-size:12.5px;font-weight:700;color:var(--text);letter-spacing:-.2px}}
 .rule span{{display:block;font-size:11px;color:var(--muted);margin-top:2px;line-height:1.5}}
+/* 분류체계 결합 원칙 — 두 체계 사이 「✕ 공식 직접 매핑 없음」 */
+.nomap{{display:flex;align-items:center;gap:8px;margin:2px 0 14px}}
+.nomap .sys{{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px 10px;text-align:center;
+  font-size:12.5px;font-weight:700;color:var(--text);background:#f6f9ff}}
+.nomap .sys small{{display:block;font-size:10.5px;font-weight:500;color:var(--muted);margin-top:1px}}
+.nomap .x{{flex:0 0 auto;text-align:center;color:#d64545;font-size:16px;font-weight:800;line-height:1}}
+.nomap .x small{{display:block;font-size:10px;font-weight:600;margin-top:3px;white-space:nowrap}}
 
 /* 순위 목록(목업 「주요 수입국」 카드) */
 .rank{{display:grid;grid-template-columns:22px 92px 1fr 66px;align-items:center;gap:9px;height:29px;font-size:12px}}
@@ -1809,10 +1826,17 @@ def style_fig(fig, height: int | None = None):
     return fig
 
 
-def rules_card(title: str, items: list[tuple[str, str]]) -> str:
+def rules_card(title: str, items: list[tuple[str, str]], head: str = "", tip: str = "", cols: int = 1) -> str:
+    """✓ 원칙 목록 카드. head = 제목과 목록 사이에 넣을 HTML(없으면 비움).
+    tip = 제목 오른쪽 위 ⓘ 말풍선 설명 — funnel_card 처럼 .h .sub 에 넣으면 ⓘ 로 바뀐다(없으면 ⓘ 도 없음).
+    cols = 한 줄에 놓을 항목 수. 1(기본)이면 세로로 쌓고(감싸는 칸 없음 — 기존 카드 HTML 그대로),
+    2 이상이면 항목을 grid 칸(repeat(cols, 1fr))으로 감싸 가로로 나란히 둔다."""
     body = "".join(f'<div class="rule"><span class="ck">✓</span><div><b>{t}</b><span>{d}</span></div></div>'
                    for t, d in items)
-    return f'<div class="card"><div class="h">{title}</div>{body}</div>'
+    if cols > 1:
+        body = f'<div style="display:grid;grid-template-columns:repeat({cols},1fr);gap:16px">{body}</div>'
+    sub = f' <span class="sub">{tip}</span>' if tip else ""
+    return f'<div class="card"><div class="h">{title}{sub}</div>{head}{body}</div>'
 
 
 FUNNEL_COLORS = ["#2456c8", "#3b82f6", "#1fa7c4", "#2fae7a"]
@@ -2345,17 +2369,26 @@ fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
 
 
 @contextlib.contextmanager
-def globe_loading(text: str = "조회 중", height: int = 340):
+def globe_loading(text: str = "조회 중", height: int = 340, slot=None):
     """조회·집계가 끝날 때까지 작은 지구본을 돌린다. `with globe_loading("…"):` 로 쓰고,
-    블록을 벗어나면(오류가 나도) 자리를 비운다. st.spinner 를 대신한다."""
-    slot = st.empty()
-    with slot.container():
+    블록을 벗어나면(오류가 나도) 자리를 비운다. st.spinner 를 대신한다.
+    slot(st.empty)을 주면 그 자리에 지구본을 그리고, 끝나도 비우지 않는다 — 곧이어 같은 자리에 결과를 그려
+    지구본이 이전 결과 전체를 대신한다(자리를 따로 만들면 지구본만 이전 결과 위에 한 칸 끼어 보였다). 오류가 나면 비운다."""
+    own = slot is None
+    slot = slot if slot is not None else st.empty()
+    # slot 을 받았으면 container 없이 지구본 요소 하나만 그 자리에 둔다 — 결과 container(블록) 자리를 요소가 대신해야
+    # 이전 차트 · 탭이 한 번에 사라진다. container 로 감싸면 같은 블록으로 이어져 옛 차트가 실행이 끝날 때까지 남았다
+    with (slot if not own else slot.container()):
         components.html(_MINI.replace("__H__", str(height - 10)).replace("__LABEL__", escape(text)),
                         height=height, scrolling=False)
     try:
         yield
-    finally:
+    except BaseException:
         slot.empty()
+        raise
+    finally:
+        if own:
+            slot.empty()
 
 # ════════════════════════════════════════════════════════════════════════════
 # 3-3. 도넛 공통 — 반지름·둘레·굵기와 커서 반응(조각 확대 · 가운데 라벨)
@@ -2933,6 +2966,19 @@ BID_MATCH = [("입찰 공고 행", 10842), ("입찰 결과 행", 7405), ("공고
 HS_SELECT = [("HS 6단위 전체", 1003, "84 · 85 · 88 · 90류"),
              ("두 기준 중 하나 이상 충족", 52, "군용 전용 세분류 · 용도 명시"),
              ("전자 계열 = 분석 대상", 13, "기계 · 전장 계열 39개 제외")]
+# 군수품 FSC/FSG 분류 기준 깔때기(DATA CENTER) — DB QA D-04 최종 확정 값(DB_QA_최종결과). 단위: 행
+#   13,615 = 국외 조달계획 원본(clean_dapa_overseas_plan_api)
+#   13,236 = FSG 판별 가능 행(v_overseas_plan_api_fsc VIEW 가 nsn IS NOT NULL 기준으로 집계 — 화면이 VIEW 를 직접 읽지는 않음)
+#   13,017 = 분석 모집단(13,236 에서 FSC 9999 219행 제외, clean 테이블 직접 조회)
+#    2,267 = 전자·통신 FSG 58·59·60
+# 반드시 2튜플 — funnel_card() 는 3번째 원소가 있으면(빈 문자열이어도) 설명 뒤에 「·」를 붙인다
+# TODO: DB 연결 시 하드코딩을 걷어 내고 위 테이블 · VIEW 실제 쿼리 결과로 바꾼다
+FSC_SELECT = [
+    ("국외 조달계획 원본", 13615),
+    ("FSG 판별 가능(예외 포함)", 13236),
+    ("분석 모집단(FSC9999 제외)", 13017),
+    ("전자·통신 FSG 58·59·60", 2267),
+]
 # 전처리 단계별 건수(DATA CENTER) — 기획안 2절. (자료, 원본 행, 정제 행, 제외 행, 제외 사유). 원본 = 정제 + 제외 를 검산한다
 PREP_COUNTS = [("관세청 품목별 국가별 수출입", 294420, 294174, 246, "국가 합계 행 분리(원본 합계와 대조 · 불일치 0)"),
                ("방위사업청 국산화개발품목", 33965, 25025, 8940, "완전 중복 제거"),
@@ -3983,12 +4029,11 @@ Q_DEFAULT = {"qs_area": "수출입", "qs_hs": "HS6", "qs_ctry": ["미국", "폴�
              **{f"qs_m_{m}": m in Q_MONEY for m, *_ in Q_METRICS}}
 
 # 군수품 FSG/FSC — 지표(이름, 단위, 아이콘) · 차트. HS 지표는 이 유형에서 그리지 않는다
-QF_UNITS = ["FSG", "FSC"]
 QF_BRANCH_ROWS = {"qf_branch_a": MOCK_BRANCHES[:3], "qf_branch_b": MOCK_BRANCHES[3:]}   # 군종 버튼 두 줄(3 + 2)
 QF_METRICS = [("품목 건수", "건", "inventory_2"), ("FSC 수", "개", "category"),
               ("적용장비 수", "종", "precision_manufacturing"), ("KDSIS 연결 건수", "건", "link")]
 QF_CHARTS = ["막대 그래프", "누적 막대 그래프", "도넛 그래프", "트리맵 차트", "꺾은선 그래프"]
-QF_DEFAULT = {"qf_unit": "FSG", "qf_fsg": list(MOCK_FSG), "qf_fsg_all": True, "qf_fsc": [],
+QF_DEFAULT = {"qf_fsg": list(MOCK_FSG), "qf_fsg_all": True, "qf_fsc": [],
               **{k: list(v) for k, v in QF_BRANCH_ROWS.items()}, "qf_y0": MOCK_REQ_YEARS[0], "qf_y1": MOCK_REQ_YEARS[-1],
               "qf_name": "", "qf_func": "", "qf_kind": "전체", "qf_nsn": "", "qf_chart": "막대 그래프",
               **{f"qf_m_{m}": m in ("품목 건수", "FSC 수") for m, *_ in QF_METRICS}}
@@ -4113,7 +4158,7 @@ def _q_keep(key: str, options: list) -> list:
 
 # 왼쪽 글씨 칸 높이 = 오른쪽 첫 입력칸 높이(px). 위로 붙여 놓고 그 높이 안에서 가운데 → 글씨와 입력칸이 같은 가로선
 Q_ROW_H = {"dtype": 32, "area": 32, "hs": 32, "item": 40, "ctry": 40, "period": 40, "metric": 40,
-           "unit": 32, "fsg": 40, "fsc": 40, "branch": 32, "year": 40, "name": 40, "proj": 40, "comp": 40}
+           "fsg": 40, "fsc": 40, "branch": 32, "year": 40, "name": 40, "proj": 40, "comp": 40}
 Q_CHIP_COLS = 3                                               # 고른 국가를 입력칸 밑에 한 줄 3개씩
 Q_CHIP_SCROLL = 10                                            # 체크박스 드롭다운에서 이만큼 이상 고르면 칩 칸을 스크롤로
 Q_CHIP_ROWS = 3                                               # 스크롤 칸에 한 번에 보이는 칩 줄 수(칩 30px · 줄 간격 6px)
@@ -4171,9 +4216,22 @@ div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"]{{flex:0
   max-width:calc(100% / 3);min-width:0}}
 div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"][data-selected]{{
   background:rgba(43,110,246,.1);border-color:var(--accent);color:var(--accent)}}
+div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"][data-selected] p{{font-weight:700}}   /* 고른 군종은 굵게 */
 div[class*="st-key-qf_branch_"] [data-testid="stButtonGroup"] > div{{justify-content:flex-start}}
 .st-key-qf_branch_box{{gap:0 !important}}
 .st-key-qf_branch_box [data-testid="stElementContainer"]:has(.st-key-qf_branch_b),.st-key-qf_branch_b{{margin-top:-1px}}
+/* 커서를 올렸을 때 — Streamlit 기본 강조색(빨강)이 테두리에 들던 것을 테마 파랑으로. 고른 칸은 조금 진한 파랑 바탕 */
+div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"]:hover,
+div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"]:focus-visible{{
+  border-color:var(--accent) !important;color:var(--accent) !important;background:rgba(43,110,246,.05) !important;
+  box-shadow:none !important}}
+div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"][data-selected]:hover{{
+  background:rgba(43,110,246,.16) !important}}
+div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"]:hover *{{color:var(--accent) !important}}
+/* 두 줄이 맞닿는 모서리는 직각 — 윗줄 아래 모서리 · 아랫줄 위 모서리. 윗줄 끝 칸(공군) 아래 오른쪽은 밑에 칸이 없어 둥근 채로 */
+.st-key-qf_branch_a button[data-variant="segmented_control"]{{border-bottom-left-radius:0 !important}}
+.st-key-qf_branch_a button[data-variant="segmented_control"]:not(:last-of-type){{border-bottom-right-radius:0 !important}}
+.st-key-qf_branch_b button[data-variant="segmented_control"]{{border-top-left-radius:0 !important;border-top-right-radius:0 !important}}
 /* 체크박스 드롭다운(FSC) — 펼친 목록이 아래 줄을 덮도록 위로 올린다 */
 div[class*="st-key-"][class*="fsc_box"]{{position:relative;z-index:40;overflow:visible}}
 /* 상세검색 접이 칸 — 카드 안에서 얇게 */
@@ -4215,7 +4273,11 @@ export default function () {
   window.__kdChipFit = true
   const root = document.documentElement
   document.addEventListener("pointerover", e => {
-    const btn = e.target.closest && e.target.closest('[class*="st-key-"][class*="chips"] button')
+    // 말풍선을 여는 곳(도움말 대상)에 들어갈 때만 판단을 바꾼다. 빈 곳 · 말풍선 위로 옮길 때는 그대로 둔다 —
+    // 말풍선은 커서가 떠난 뒤에도 잠깐 열려 있어, 칩을 벗어나자마자 표시를 끄면 숨겼던 말풍선이 그 사이에 드러났다
+    const tgt = e.target.closest && e.target.closest('[data-testid="stTooltipHoverTarget"]')
+    if (!tgt) return
+    const btn = tgt.closest('[class*="st-key-"][class*="chips"]') && tgt.querySelector("button")
     const p = btn && btn.querySelector("p")
     if (p && p.scrollWidth <= p.clientWidth + 1) root.setAttribute("data-chipfit", "")
     else root.removeAttribute("data-chipfit")
@@ -4476,16 +4538,18 @@ def query_panel_hs() -> dict:
             "period": f"{y0} ~ {y1}", "years": (y0, y1), "metrics": metrics, "chart": chart}
 
 
-def _q_fsg_fsc(pre: str, fsc_ph: str, groups: dict[str, str] = MOCK_FSG) -> tuple[list[str], list[str]]:
+def _q_fsg_fsc(pre: str, fsc_ph: str, groups: dict[str, str] = MOCK_FSG) -> tuple[list[str], list[str], list[str]]:
     """FSG(칩 다중선택 + 전체) → FSC(고른 FSG 안의 것만, 칩 다중선택). FSC 를 비우면 고른 FSG 의 FSC 전부.
-    군수품 · 국산화개발 두 화면이 같이 쓴다(pre = qf_ / ql_). groups = 그 자료에 있는 FSG 만."""
+    군수품 · 국산화개발 두 화면이 같이 쓴다(pre = qf_ / ql_). groups = 그 자료에 있는 FSG 만.
+    (FSG, 사용자가 고른 FSC(비었으면 []), 조회에 쓸 FSC(비었으면 고른 FSG 의 전부)) — 군수품은 둘째 값이 비었는지로
+    집계 단위(FSG · FSC)를 정한다."""
     with _q_row(":material/category:", "FSG", "fsg"):
         fsg = _q_chip_select(f"{pre}fsg", list(groups), lambda g: f"{g} - {MOCK_FSG[g]}", "FSG 를 검색하세요.",
                              f"{pre}fsg_all", f"전체 FSG 선택 ({len(groups)}개)")
     opts = [c for g in fsg for c in MOCK_FSC[g]]
     with _q_row(":material/account_tree:", "FSC", "fsc"):
         fsc = _q_check_select(f"{pre}fsc", opts, lambda c: f"{c} - {MOCK_FSC_NAME[c]}", "FSC", fsc_ph)
-    return fsg, fsc or opts
+    return fsg, fsc, fsc or opts
 
 
 # 지표 체크박스에 쓰는 짧은 이름 — 두 칸 폭에서 「국산화개발 기…」로 잘리던 것. 지표 키 · 카드 제목은 원래 이름
@@ -4512,9 +4576,10 @@ def query_panel_fsg() -> dict:
     ss = st.session_state
     st.html(_q_form_css({"qf_fsg": _q_hint("qf_fsg", "qf_fsg_all", "FSG", "전체 FSG 선택 중"),
                          "qf_fsc": _q_hint("qf_fsc", None, "FSC", "")}))
-    unit = _q_row(":material/stacks:", "분류 단위", "unit").segmented_control(
-        "분류 단위", QF_UNITS, key="qf_unit", required=True, label_visibility="collapsed")
-    fsg, fsc = _q_fsg_fsc("qf_", "FSC 를 고르세요 · 비우면 고른 FSG 전체")
+    # 집계 단위는 따로 고르지 않는다 — FSC 를 비우면(= 고른 FSG 아래 전체) FSG 단위, 하나라도 고르면 FSC 단위.
+    # FSG 가 FSC 의 상위 분류라 「분류 단위 FSG/FSC」 토글은 두 분류체계 중 하나를 고르는 것처럼 보여 없앴다
+    fsg, picked_fsc, fsc = _q_fsg_fsc("qf_", "FSC 를 고르세요 · 비우면 FSG 단위로 집계")
+    unit = "FSC" if picked_fsc else "FSG"
     with _q_row(":material/military_tech:", "군종", "branch"), st.container(key="qf_branch_box", gap=None):
         # 다섯 칸을 한 줄에 두면 카드 폭이 좁아 가려져 두 줄(3 + 2)로 나눈다. 고른 값은 두 줄을 합친다.
         # gap=None + 아랫줄 -1px — 두 줄 사이 틈 없이 테두리가 한 줄로 겹쳐 붙는다
@@ -4549,7 +4614,7 @@ def query_panel_localized() -> dict:
     with _q_row(":material/inventory:", "사업명", "proj"):
         proj = _q_chip_select("ql_proj", MOCK_LOCALIZED_PROJECTS, str, "사업명을 검색하세요.",
                               "ql_proj_all", f"전체 사업 선택 ({len(MOCK_LOCALIZED_PROJECTS)}개)")
-    fsg, fsc = _q_fsg_fsc("ql_", "FSC 를 고르세요 · 비우면 고른 FSG 전체", MOCK_LOCALIZED_FSG)
+    fsg, _, fsc = _q_fsg_fsc("ql_", "FSC 를 고르세요 · 비우면 고른 FSG 전체", MOCK_LOCALIZED_FSG)
     name = _q_row(":material/search:", "품목명", "name").text_input(
         "품목명", key="ql_name", placeholder="국산화개발 품목명을 입력하세요.", label_visibility="collapsed")
     with _q_row(":material/factory:", "관련 업체", "comp"):
@@ -5079,47 +5144,83 @@ def search_block() -> None:
                     query_result(q, y0, y1)
 
 
+def _q_only_chart(q: dict) -> bool:
+    """이번 실행이 차트 종류만 바꾼 것인지 — 차트를 뺀 조건(데이터 유형 포함)이 직전과 같고 차트만 다르면 True.
+    직전 조건은 session_state 에 둔다(_q 앞머리 — 데이터 유형 전환 때 지우는 qs_ · qf_ · ql_ 와 겹치지 않는다)."""
+    ss = st.session_state
+    sig = repr(sorted((k, v) for k, v in q.items() if k != "chart"))
+    only = ss.get("_q_prev_sig") == sig and ss.get("_q_prev_chart") != q["chart"]
+    ss["_q_prev_sig"], ss["_q_prev_chart"] = sig, q["chart"]
+    return only
+
+
+@contextlib.contextmanager
+def _q_loading(slot, on: bool = True, text: str = "조회 결과를 계산하는 중"):
+    """on 이면 slot 자리에 지구본을 띄우고 계산한다. 샘플은 즉시 끝나 지구본이 안 보이므로 데모에서만 잠깐 멈춘다
+    (실제 앱은 DB 조회 시간만큼). on=False 면 지구본 없이 바로 계산한다."""
+    if not on:
+        yield
+        return
+    with globe_loading(text, slot=slot):
+        time.sleep(DEMO_WAIT)
+        yield
+
+
+@contextlib.contextmanager
+def _q_chart_slot(loading: bool):
+    """차트 탭 안 차트 자리. loading(차트 종류만 바꿈)이면 지표 카드 · 탭은 그대로 두고 이 자리에만 지구본을 띄웠다가
+    차트로 바꾼다 — 지구본이 요소 하나로 이전 차트 자리를 대신해 옛 차트가 남지 않는다."""
+    slot = st.empty()
+    with _q_loading(slot, loading, "차트를 그리는 중"):
+        pass
+    with slot.container():
+        yield
+
+
 def query_result(q: dict, y0: int, y1: int) -> None:
     """조회 결과 카드 안 — 지표 카드 · 차트/지도/표 탭."""
     # 조건을 바꾸면 여기가 다시 계산된다 — 그동안 작은 지구본이 돈다.
     # 샘플 데이터는 즉시 끝나 지구본이 안 보이므로 데모에서만 잠깐 멈춘다(실제 앱은 DB 조회 시간만큼).
-    with globe_loading("조회 결과를 계산하는 중"):
-        time.sleep(DEMO_WAIT)
+    # 지구본 · 결과가 같은 한 자리(st.empty) — 조건을 바꾸면 지구본이 이전 결과 전체를 대신하고, 계산이 끝나면 새 결과로 바뀐다
+    only = _q_only_chart(q)                  # 차트 종류만 바꿨으면 지구본은 차트 자리에만(_q_chart_slot)
+    body = st.empty()
+    with _q_loading(body, not only):
         df = trade_frame(q["names"], y0, y1, q["hs"], None if q["items_all"] else q["items"])
-    tot = df[list(Q_UNIT)].sum()
-    icon = {m: ic for m, _, ic, _ in Q_METRICS}
-    cards = "".join(
-        kpi(m, f"{tot[m]:+,.0f}" if m == "무역수지" else f"{tot[m]:,.0f}", Q_UNIT[m],
-            f"{len(q['names'])}개국 · {y0}~{y1} 합계", icon=icon[m]) for m in q["metrics"])
-    st.html(f'<div class="kpis q" style="grid-template-columns:repeat({min(len(q["metrics"]), 3)},1fr)">{cards}</div>')
+    with body.container():
+        tot = df[list(Q_UNIT)].sum()
+        icon = {m: ic for m, _, ic, _ in Q_METRICS}
+        cards = "".join(
+            kpi(m, f"{tot[m]:+,.0f}" if m == "무역수지" else f"{tot[m]:,.0f}", Q_UNIT[m],
+                f"{len(q['names'])}개국 · {y0}~{y1} 합계", icon=icon[m]) for m in q["metrics"])
+        st.html(f'<div class="kpis q" style="grid-template-columns:repeat({min(len(q["metrics"]), 3)},1fr)">{cards}</div>')
 
-    t_chart, t_map, t_tbl = st.tabs(["📈 차트", "🗺️ 국가별 분포 지도", "📋 결과 표"])
-    with t_chart:
-        query_chart(df, q)
-    with t_map:
-        by_c = df.groupby("국가")[["수입액", "수출액"]].sum()
-        modes = {"수출입": ("imp", "exp"), "수출": ("exp",), "수입": ("imp",)}[q["area"]]
-        country_map({n: float(v) for n, v in by_c["수입액"].items() if v > 0},
-                    {n: float(v) for n, v in by_c["수출액"].items() if v > 0},
-                    modes=modes, height=400, note="선택 국가 기준")
-    with t_tbl:
-        stat_table(df, q)
-        st.html(info_line('오른쪽 아래 버튼으로 이 결과 표를 CSV 로 내려받습니다.'))
-    # 내려받기 — 탭마다 다르다(탭 칸 오른쪽 아래, 지금 고른 탭의 단추만 보인다 · CSS).
-    #  차트 탭 = 보이는 차트 그림 그대로 PNG · 지도 탭 = 보이는 지도 그림 그대로 PNG(IMG_DL_JS 가 화면을 찍는다) · 결과 표 탭 = CSV
-    base = f"조회결과_{q['area']}_{y0}_{y1}"
-    with st.container(key="res_dl", horizontal=True, horizontal_alignment="right"):
-        with st.container(key="dl_chart", width="content"):
-            st.html(f'<button class="img-dl" type="button" data-tab="0" data-file="{base}_{q["chart"].replace(" ", "")}_차트.png">'
-                    '<span class="ms">image</span>차트 이미지 내려받기</button>')
-        with st.container(key="dl_map", width="content"):
-            st.html(f'<button class="img-dl" type="button" data-tab="1" data-file="{base}_국가별분포지도.png">'
-                    '<span class="ms">map</span>지도 이미지 내려받기</button>')
-        with st.container(key="dl_tbl", width="content"):
-            st.download_button("결과 표 CSV 내려받기", result_csv(df, q), f"{base}_결과표_샘플.csv",
-                               "text/csv", icon=":material/download:", type="primary")
-    with st.container(key="imgdl_js"):
-        components.html(IMG_DL_JS, height=0)
+        t_chart, t_map, t_tbl = st.tabs(["📈 차트", "🗺️ 국가별 분포 지도", "📋 결과 표"])
+        with t_chart, _q_chart_slot(only):
+            query_chart(df, q)
+        with t_map:
+            by_c = df.groupby("국가")[["수입액", "수출액"]].sum()
+            modes = {"수출입": ("imp", "exp"), "수출": ("exp",), "수입": ("imp",)}[q["area"]]
+            country_map({n: float(v) for n, v in by_c["수입액"].items() if v > 0},
+                        {n: float(v) for n, v in by_c["수출액"].items() if v > 0},
+                        modes=modes, height=400, note="선택 국가 기준")
+        with t_tbl:
+            stat_table(df, q)
+            st.html(info_line('오른쪽 아래 버튼으로 이 결과 표를 CSV 로 내려받습니다.'))
+        # 내려받기 — 탭마다 다르다(탭 칸 오른쪽 아래, 지금 고른 탭의 단추만 보인다 · CSS).
+        #  차트 탭 = 보이는 차트 그림 그대로 PNG · 지도 탭 = 보이는 지도 그림 그대로 PNG(IMG_DL_JS 가 화면을 찍는다) · 결과 표 탭 = CSV
+        base = f"조회결과_{q['area']}_{y0}_{y1}"
+        with st.container(key="res_dl", horizontal=True, horizontal_alignment="right"):
+            with st.container(key="dl_chart", width="content"):
+                st.html(f'<button class="img-dl" type="button" data-tab="0" data-file="{base}_{q["chart"].replace(" ", "")}_차트.png">'
+                        '<span class="ms">image</span>차트 이미지 내려받기</button>')
+            with st.container(key="dl_map", width="content"):
+                st.html(f'<button class="img-dl" type="button" data-tab="1" data-file="{base}_국가별분포지도.png">'
+                        '<span class="ms">map</span>지도 이미지 내려받기</button>')
+            with st.container(key="dl_tbl", width="content"):
+                st.download_button("결과 표 CSV 내려받기", result_csv(df, q), f"{base}_결과표_샘플.csv",
+                                   "text/csv", icon=":material/download:", type="primary")
+        with st.container(key="imgdl_js"):
+            components.html(IMG_DL_JS, height=0)
 
 
 # ── 조회 결과 — 군수품 FSG/FSC · 국산화개발(목업용 샘플 MOCK_FSG_ITEMS · MOCK_LOCALIZED 를 걸러 센다) ──────────
@@ -5225,7 +5326,12 @@ def query_result_fsg(q: dict) -> None:
     """군수품 FSG/FSC 조회 결과 — 지표 카드 · [분포 차트] [분류 상세] [결과 표]. 국가 지도는 없다."""
     unit, ms = q["unit"], q["metrics"]
     y0, y1 = q["years"]
-    st.html(f'<div class="h">조회 결과 <span class="sub">군수품 · {unit} 단위 · FSG {len(q["fsg"])}개 · FSC {len(q["fsc"])}개 · '
+    # 집계 기준 — unit 은 사용자가 고른 값이 아니라 FSC 를 골랐는지로 정해진다(query_panel_fsg)
+    if unit == "FSC":
+        basis = f'FSC {q["fsc"][0]} 기준' if len(q["fsc"]) == 1 else f'FSC {q["fsc"][0]} 등 {len(q["fsc"])}개 기준'
+    else:
+        basis = f'FSG {len(q["fsg"])}개 기준 · FSC 전체 {len(q["fsc"])}개'
+    st.html(f'<div class="h">조회 결과 <span class="sub">군수품 · {basis} · '
             f'{"·".join(q["branch"]) or "군종 없음"} · 요구연도 {y0}~{y1} · {q["chart"]}</span></div>')
     if not q["fsg"]:
         return st.info("FSG 를 하나 이상 고르거나 「전체 FSG 선택」을 켜 주세요.")
@@ -5233,36 +5339,39 @@ def query_result_fsg(q: dict) -> None:
         return st.info("군종을 하나 이상 고르세요.")
     if not ms:
         return st.info("지표를 하나 이상 고르세요.")
-    with globe_loading("조회 결과를 계산하는 중"):
-        time.sleep(DEMO_WAIT)
+    # 지구본 · 결과가 같은 한 자리(st.empty) — 조건을 바꾸면 지구본이 이전 결과 전체를 대신하고, 계산이 끝나면 새 결과로 바뀐다
+    only = _q_only_chart(q)                  # 차트 종류만 바꿨으면 지구본은 차트 자리에만(_q_chart_slot)
+    body = st.empty()
+    with _q_loading(body, not only):
         d = mock_result_fsg(q)
-    if d.empty:
-        return st.info("조건에 맞는 샘플 품목이 없습니다. 품목명 · 상세검색 조건을 줄여 보세요.")
-    units, icons = {m: u for m, u, _ in QF_METRICS}, {m: ic for m, _, ic in QF_METRICS}
-    tot = {m: float(d.agg({c: f})[c]) for m, (c, f) in QF_AGG.items()}
-    _cat_kpis(tot, ms, units, icons, f"요구연도 {y0}~{y1} · 목업 샘플")
+    with body.container():
+        if d.empty:
+            return st.info("조건에 맞는 샘플 품목이 없습니다. 품목명 · 상세검색 조건을 줄여 보세요.")
+        units, icons = {m: u for m, u, _ in QF_METRICS}, {m: ic for m, _, ic in QF_METRICS}
+        tot = {m: float(d.agg({c: f})[c]) for m, (c, f) in QF_AGG.items()}
+        _cat_kpis(tot, ms, units, icons, f"요구연도 {y0}~{y1} · 목업 샘플")
 
-    lab = lambda s: s.map(lambda v: _cat_label(unit, v))
-    by = d.groupby(unit).agg(**QF_AGG).rename(index=lambda v: _cat_label(unit, v))
-    yearly = (d.assign(분류=lab(d[unit])).groupby(["요구연도", "분류"]).agg(v=QF_AGG[ms[0]]).reset_index()
-              .pivot(index="요구연도", columns="분류", values="v").reindex(columns=by.index)
-              .reindex(range(y0, y1 + 1)).fillna(0))
-    detail = (d.groupby(["FSG", "FSC"]).agg(**QF_AGG).reset_index()
-              .assign(FSG=lambda x: x["FSG"].map(lambda g: f"{g} {MOCK_FSG[g]}"), FSC명=lambda x: x["FSC"].map(MOCK_FSC_NAME))
-              [["FSG", "FSC", "FSC명", *QF_AGG]])
-    items = d.assign(FSC=d["FSC"].map(lambda c: f"{c} {MOCK_FSC_NAME[c]}"))[
-        ["NSN", "품목명", "FSC", "기능명", "품목종류", "군종", "요구연도", "적용장비", "KDSIS 연결"]].sort_values(["FSC", "NSN"])
+        lab = lambda s: s.map(lambda v: _cat_label(unit, v))
+        by = d.groupby(unit).agg(**QF_AGG).rename(index=lambda v: _cat_label(unit, v))
+        yearly = (d.assign(분류=lab(d[unit])).groupby(["요구연도", "분류"]).agg(v=QF_AGG[ms[0]]).reset_index()
+                  .pivot(index="요구연도", columns="분류", values="v").reindex(columns=by.index)
+                  .reindex(range(y0, y1 + 1)).fillna(0))
+        detail = (d.groupby(["FSG", "FSC"]).agg(**QF_AGG).reset_index()
+                  .assign(FSG=lambda x: x["FSG"].map(lambda g: f"{g} {MOCK_FSG[g]}"), FSC명=lambda x: x["FSC"].map(MOCK_FSC_NAME))
+                  [["FSG", "FSC", "FSC명", *QF_AGG]])
+        items = d.assign(FSC=d["FSC"].map(lambda c: f"{c} {MOCK_FSC_NAME[c]}"))[
+            ["NSN", "품목명", "FSC", "기능명", "품목종류", "군종", "요구연도", "적용장비", "KDSIS 연결"]].sort_values(["FSC", "NSN"])
 
-    t_chart, t_det, t_tbl = st.tabs(["📈 분포 차트", "🗂️ 분류 상세", "📋 결과 표"])
-    with t_chart:
-        cat_chart(by, q, units, yearly)
-    with t_det:
-        cat_table(detail, f"분류 상세 · FSG {detail['FSG'].nunique()}개 → FSC {len(detail)}개 · 목업용 샘플")
-    with t_tbl:
-        cat_table(items, f"결과 표 · 품목 {len(items)}건 · NSN 은 가짜 번호(목업용 샘플)")
-    _cat_downloads(f"조회결과_군수품_{unit}_{y0}_{y1}", q["chart"],
-                   ("분류 상세", detail.to_csv(index=False).encode("utf-8-sig")),
-                   ("결과 표", items.to_csv(index=False).encode("utf-8-sig")))
+        t_chart, t_det, t_tbl = st.tabs(["📈 분포 차트", "🗂️ 분류 상세", "📋 결과 표"])
+        with t_chart, _q_chart_slot(only):
+            cat_chart(by, q, units, yearly)
+        with t_det:
+            cat_table(detail, f"분류 상세 · FSG {detail['FSG'].nunique()}개 → FSC {len(detail)}개 · 목업용 샘플")
+        with t_tbl:
+            cat_table(items, f"결과 표 · 품목 {len(items)}건 · NSN 은 가짜 번호(목업용 샘플)")
+        _cat_downloads(f"조회결과_군수품_{unit}_{y0}_{y1}", q["chart"],
+                       ("분류 상세", detail.to_csv(index=False).encode("utf-8-sig")),
+                       ("결과 표", items.to_csv(index=False).encode("utf-8-sig")))
 
 
 def query_result_localized(q: dict) -> None:
@@ -5276,31 +5385,34 @@ def query_result_localized(q: dict) -> None:
                     (ms, "지표를 하나 이상 고르세요.")):
         if not ok:
             return st.info(msg)
-    with globe_loading("조회 결과를 계산하는 중"):
-        time.sleep(DEMO_WAIT)
+    # 지구본 · 결과가 같은 한 자리(st.empty) — 조건을 바꾸면 지구본이 이전 결과 전체를 대신하고, 계산이 끝나면 새 결과로 바뀐다
+    only = _q_only_chart(q)                  # 차트 종류만 바꿨으면 지구본은 차트 자리에만(_q_chart_slot)
+    body = st.empty()
+    with _q_loading(body, not only):
         d = mock_result_localized(q)
-    if d.empty:
-        return st.info("조건에 맞는 샘플 기록이 없습니다. 품목명 · 상세검색 조건을 줄여 보세요.")
-    units, icons = {m: u for m, u, _ in QL_METRICS}, {m: ic for m, _, ic in QL_METRICS}
-    tot = {m: float(d.agg({c: f})[c]) for m, (c, f) in QL_AGG.items()}
-    _cat_kpis(tot, ms, units, icons, "스냅샷 · 국산화율 아님 · 목업 샘플")
+    with body.container():
+        if d.empty:
+            return st.info("조건에 맞는 샘플 기록이 없습니다. 품목명 · 상세검색 조건을 줄여 보세요.")
+        units, icons = {m: u for m, u, _ in QL_METRICS}, {m: ic for m, _, ic in QL_METRICS}
+        tot = {m: float(d.agg({c: f})[c]) for m, (c, f) in QL_AGG.items()}
+        _cat_kpis(tot, ms, units, icons, "스냅샷 · 국산화율 아님 · 목업 샘플")
 
-    by = d.groupby("FSC").agg(**QL_AGG).rename(index=lambda v: _cat_label("FSC", v))
-    pc = pd.crosstab(d["사업명"], d["관련 업체"])
-    pc = pc.assign(합계=pc.sum(axis=1)).reset_index().rename(columns={"사업명": "사업명 \\ 관련 업체"})
-    items = d.assign(FSC=d["FSC"].map(lambda c: f"{c} {MOCK_FSC_NAME[c]}"))[
-        ["부품관리번호", "NSN", "품목명", "FSC", "사업명", "관련 업체"]].sort_values(["부품관리번호", "사업명"])
+        by = d.groupby("FSC").agg(**QL_AGG).rename(index=lambda v: _cat_label("FSC", v))
+        pc = pd.crosstab(d["사업명"], d["관련 업체"])
+        pc = pc.assign(합계=pc.sum(axis=1)).reset_index().rename(columns={"사업명": "사업명 \\ 관련 업체"})
+        items = d.assign(FSC=d["FSC"].map(lambda c: f"{c} {MOCK_FSC_NAME[c]}"))[
+            ["부품관리번호", "NSN", "품목명", "FSC", "사업명", "관련 업체"]].sort_values(["부품관리번호", "사업명"])
 
-    t_chart, t_pc, t_tbl = st.tabs(["📈 분포 차트", "🏭 사업·업체", "📋 품목 상세"])
-    with t_chart:
-        cat_chart(by, q, units)
-    with t_pc:
-        cat_table(pc, "사업 × 관련 업체 · 칸 = 국산화개발 기록 수(건) · 목업용 샘플(업체명은 가상)")
-    with t_tbl:
-        cat_table(items, f"품목 상세 · 기록 {len(items)}건 · 부품관리번호 · NSN 은 가짜 번호(목업용 샘플)")
-    _cat_downloads("조회결과_국산화개발", q["chart"],
-                   ("사업·업체", pc.to_csv(index=False).encode("utf-8-sig")),
-                   ("품목 상세", items.to_csv(index=False).encode("utf-8-sig")))
+        t_chart, t_pc, t_tbl = st.tabs(["📈 분포 차트", "🏭 사업·업체", "📋 품목 상세"])
+        with t_chart, _q_chart_slot(only):
+            cat_chart(by, q, units)
+        with t_pc:
+            cat_table(pc, "사업 × 관련 업체 · 칸 = 국산화개발 기록 수(건) · 목업용 샘플(업체명은 가상)")
+        with t_tbl:
+            cat_table(items, f"품목 상세 · 기록 {len(items)}건 · 부품관리번호 · NSN 은 가짜 번호(목업용 샘플)")
+        _cat_downloads("조회결과_국산화개발", q["chart"],
+                       ("사업·업체", pc.to_csv(index=False).encode("utf-8-sig")),
+                       ("품목 상세", items.to_csv(index=False).encode("utf-8-sig")))
 
 
 def page_info() -> None:
@@ -5347,6 +5459,24 @@ def page_info() -> None:
                 '원본 파일은 고치지 않고, 단계마다 「원본 = 정제 + 제외」 차이가 0 인지 확인합니다.</span></div>'
                 '<table class="basis"><thead><tr><th>자료</th><th>원본</th><th>정제</th><th>제외</th><th>검산</th></tr></thead>'
                 f'<tbody>{prep}</tbody></table></div>')
+
+        # 3줄 — 군수품 FSC/FSG 분류 기준 깔때기(QA 확정 값 FSC_SELECT) · HS ↔ FSC/FSG/NSN 결합 원칙
+        # 깔때기 안 % 는 funnel_card 가 첫 층(원본 13,615행) 대비로 자동 계산 → 전자·통신 2,267행 ≈ 16.7%.
+        # 따로 강조하는 17.42% 는 분석 모집단 13,017행 대비라 분모가 달라, 설명(ⓘ)에 둘 다 적는다
+        c1, c2 = st.columns([1.35, 1], gap="medium")
+        c1.html(funnel_card("FSC/FSG 분류 기준", "단위: 행 · % = 원본 13,615행 대비", FSC_SELECT,
+                            "FSC 9999(기타 품목)는 사실상 군급 미분류로 보고 분석 "
+                            "모집단에서 제외합니다. 깔때기 안 %는 원본 13,615행 대비이며, "
+                            "전자·통신 비중 17.42%는 분석 모집단 13,017행 대비로 "
+                            "분모가 다릅니다(2,267 / 13,017 = 17.42%)."))
+        c2.html(rules_card("분류체계 결합 원칙", [
+            ("직접 JOIN하지 않음", "HS/HSK ↔ FSC/FSG/NSN 사이 공식 대조표가 없어 코드를 직접 연결하지 않습니다."),
+            ("품명 유사도 매핑하지 않음", "품목명 텍스트 유사도로 두 체계를 잇지 않습니다."),
+            ("각 분류체계 안에서 독립 분석", "HS 기반 분석과 FSC/FSG 기반 분석은 서로 다른 화면·조건에서 독립적으로 이뤄집니다."),
+        ], head='<div class="nomap"><span class="sys">HS/HSK<small>관세·무역 분류</small></span>'
+                '<span class="x">✕<small>공식 직접 매핑 없음</small></span>'
+                '<span class="sys">FSC/FSG/NSN<small>군수품 분류</small></span></div>',
+           tip="NSN은 군수품 식별번호로 사용하며, FSC/FSG와의 계층·식별 기준은 원천 데이터의 코드 구조를 따릅니다."))
 
     st.html('<div class="caption">이 데모 파일의 모든 수치는 샘플입니다. '
             '실제 값과 기준일은 운영 앱(dashboard/main.py)이 AWS RDS 에서 읽어 화면마다 표시합니다.</div>')
