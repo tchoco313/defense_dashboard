@@ -5557,7 +5557,8 @@ def page_local() -> None:
 def _bg_policy() -> None:
     st.html('<div class="lede"><div class="note">수입 의존 현황의 배경 — 정부 예산, 방위사업청 국외조달 계획, 국내 생산 기반. '
             '각 자료는 단위·기준이 달라 서로 합하거나 관세청 수입액과 <b>직접 비교하지 않습니다</b>.</div></div>')
-    for _ in zone("bud", "예산 추이"):
+    for _ in zone("bud", "국외조달 예산 추이"):
+        st.caption("연도별 예산 막대와 방위력개선비 대비 비중 선 그래프입니다. 단위는 각각 억 원과 %입니다.")
         c1, c2 = st.columns(2, gap="medium")
         with c1.container(border=True, key="card_bud"):
             st.html('<div class="h">연도별 국외조달 예산 '
@@ -5581,7 +5582,8 @@ def _bg_policy() -> None:
             fig.update_yaxes(range=[15, 26])
             st.plotly_chart(style_fig(fig, 330), width="stretch", theme=None)
 
-    for _ in zone("proc", "국외조달 절차 · 예산"):
+    for _ in zone("proc", "국외조달 절차와 분야별 예산"):
+        st.caption("계획·입찰·계약의 절차와 분야별 예산 분포를 보여줍니다. 단계별 건수는 서로 다른 기간의 자료입니다.")
         c1, c2 = st.columns([1, 1.35], gap="medium")
         steps = '<div class="ar">➜</div>'.join(
             f'<div class="st"><div class="ci" style="background:{bg}"><span>{ic}</span><b>{nm}</b></div>'
@@ -5599,9 +5601,8 @@ def _bg_policy() -> None:
             fig.update_layout(margin=dict(l=70, r=8, t=10, b=30))   # 왼쪽 분야 이름 · 아래 연도 자리
             st.plotly_chart(fig, width="stretch", theme=None)
 
-    for _ in zone("facts", "국산화 예산 · 국외조달 계획(운영 DB 실측)"):
-        real_bar("이 구역은 샘플이 아닙니다 — 운영 앱(defense-trade.streamlit.app)이 AWS RDS 의 clean_kosis_utilization · "
-                 "clean_openfiscal_program_budget · clean_dapa_overseas_plan 등에서 읽어 그린 값을 2026-09-21 에 옮겼습니다.")
+    for _ in zone("facts", "국외조달 계획과 국방 R&D 예산"):
+        st.caption("집행유형별 국외조달 계획 건수와 부품국산화·공급망·국방반도체 예산을 보여줍니다.")
         c1, c2 = st.columns(2, gap="medium")
         with c1.container(border=True, key="card_ovplan"):
             total = sum(sum(v) for v in OV_PLAN_TYPE.values())
@@ -5640,10 +5641,9 @@ def _bg_policy() -> None:
 
 
 def _bg_industry() -> None:
-    # 키 facts_ind — 정책 · 예산 배경(_bg_policy)의 facts 와 한 페이지에 이어 그려져(_run_sub) 키가 겹치지 않게
-    for _ in zone("facts_ind", "가동률 · 방산업체(운영 DB 실측)"):
-        real_bar("이 구역은 샘플이 아닙니다 — 운영 앱(defense-trade.streamlit.app)이 AWS RDS 의 clean_kosis_utilization · "
-                 "clean_openfiscal_program_budget · clean_dapa_overseas_plan 등에서 읽어 그린 값을 2026-09-21 에 옮겼습니다.")
+    # 키 facts_ind — 정책과 예산의 facts 와 같은 페이지에 이어져 키가 겹치지 않게 둔다.
+    for _ in zone("facts_ind", "방산 가동률과 업체 현황"):
+        st.caption("통신전자 분야를 강조한 연도별 가동률 선 그래프와 분야별 지정 방산업체 수 막대입니다.")
         c1, c2 = st.columns(2, gap="medium")
         with c1.container(border=True, key="card_util"):
             st.html('<div class="h">방산 분야별 가동률 <span class="sub">clean_kosis_utilization · 통신전자 강조 · 점선 = 평균 · 단위: %<br>'
@@ -5675,7 +5675,8 @@ def _bg_industry() -> None:
             rows = [(n, v, SERIES[1] if n == "통신전자" else "#9dbdf9") for n, v in DEF_COMPANY]
             st.plotly_chart(style_fig(hbar(rows, 330, "개사")), width="stretch", theme=None)
 
-    for _ in zone("geo", "국내 생산 기반"):
+    for _ in zone("geo", "지역별 수출입 신고 현황"):
+        st.caption("시도별 수입·수출 신고 분포 지도입니다. 신고 업체 소재지는 실제 생산지나 사용지와 다를 수 있습니다.")
         c1, c2 = st.columns([1.3, 1], gap="medium")
         with c1.container(border=True, key="card_geo"):
             st.html('<div class="h">지역별 수입·수출 분포 '
@@ -5692,6 +5693,7 @@ def _bg_industry() -> None:
 
 def _bg_source() -> None:
     for _ in zone("src", "데이터 출처"):
+        st.caption("사용한 자료의 제공 기관, 데이터 이름, 기간과 수집 방식을 표로 정리했습니다.")
         st.html('<div class="lede"><div class="note">이 대시보드의 숫자가 어디서 왔고, '
                 '서로 다른 자료를 <b>어떻게 결합했는지</b> 적어 둔 곳입니다.</div></div>')
         cat_table(pd.DataFrame([
@@ -5704,7 +5706,8 @@ def _bg_source() -> None:
             ["KOSIS", "방산 가동률 · 광공업생산지수", "OpenAPI", "2016~2026", "잠정치(p) 구간 포함"],
         ], columns=["기관", "데이터", "형태", "기간", "비고"]))
 
-    for _ in zone("match", "데이터 결합 검증"):
+    for _ in zone("match", "자료 결합과 정제 검증"):
+        st.caption("입찰공고와 결과의 연결 건수, 자료별 기준일, 전처리 전후 건수를 확인합니다.")
         # 1줄 — 입찰 공고 ↔ 결과 매칭 · 자료별 기준일
         c1, c2 = st.columns([1.35, 1], gap="medium")
         (_, n_ann), (_, n_res), (_, n_key), (_, n_uni) = BID_MATCH
@@ -5733,7 +5736,11 @@ def _bg_source() -> None:
 
 
 def page_background() -> None:
-    _run_sub({"policy": _bg_policy, "industry": _bg_industry, "source": _bg_source})
+    subs = {"policy": _bg_policy, "industry": _bg_industry, "source": _bg_source}
+    for i, (key, title) in enumerate(SECTIONS["background"], 1):
+        with st.container(key=f"sub_{key}"):
+            st.html(f'<div class="bg-group"><span>{i:02d}</span><h2>{title}</h2></div>')
+            subs[key]()
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -5751,7 +5758,7 @@ PAGES = [
     (st.Page(page_local, title="국산화 현황", url_path="local"), "국산화 현황", "build",
      "③ 국산화 현황", "군(FSG) 58 · 59 · 60에 속한 전자 군급 부품 중 무엇을 국산화했나"),
     (st.Page(page_background, title="배경과 자료", url_path="background"), "배경과 자료", "account_balance",
-     "④ 배경과 자료", "왜 이 부품들을 보는가, 그리고 이 숫자들은 어디서 왔나"),
+     "배경과 자료", "정책·예산, 국내 생산 현황과 데이터 출처를 확인합니다"),
 ]
 
 pg = st.navigation([p[0] for p in PAGES], position="hidden")
@@ -5940,7 +5947,8 @@ SECTIONS = {
     "fsc": [("code", "군급코드란"), ("plan", "군급별 국외 조달계획"), ("army", "소요군별"),
             ("domestic", "국내 계약 · 입찰"), ("detail", "상세 조회")],
     "local": [("done", "국산화 완료 부품"), ("pair", "조달계획 대비 국산화 군급"), ("detail", "상세 조회")],
-    "background": [("policy", "정책 · 예산 배경"), ("industry", "국내 생산 기반"), ("source", "데이터 출처 · 검증")],
+    "background": [("policy", "정책과 예산"), ("industry", "국내 생산 현황"),
+                   ("source", "데이터 출처와 검증")],
 }
 # 왼쪽 메뉴 아래 파란 칸 — 대분류마다 「이렇게 보세요」 팁 1~2줄(09-30 피드백 — 핵심만). (머리말, 내용) — 머리말은 굵게, 내용은 짧은 명사형으로
 LNB_TIPS = {
@@ -6783,6 +6791,10 @@ div[class*="st-key-gs_"]{{height:{_DROP_H}px;box-sizing:border-box;border-left:1
 .lnb-a:hover::after{{color:{BLUE}}}
 .lnb-a.on{{background:#fff;border-color:{BLUE_D};color:{BLUE_D}!important}}
 .lnb-a.on::after{{content:"✓";font-size:16px;font-weight:800;color:{BLUE_D}}}
+/* 배경과 자료에서는 현재 읽는 절의 목차 항목만 크게 표시한다. */
+.st-key-body:has(.st-key-sub_policy) .lnb-a.on{{min-height:66px;padding:0 20px;background:#e8f0ff;
+  border-left:4px solid {BLUE_D};font-size:18px;font-weight:800}}
+.st-key-body:has(.st-key-sub_policy) .lnb-a.on::after{{font-size:17px}}
 div[class*="st-key-sub_"]{{scroll-margin-top:22px}}   /* 소분류로 스크롤해 갈 때 위 여백 — zone 과 같게 */
 .st-key-lnbjs,[data-testid="stLayoutWrapper"]:has(> .st-key-lnbjs){{display:none!important}}
 /* 왼쪽 메뉴는 스크롤해도 화면 위쪽에 붙어 따라온다 */
@@ -6820,6 +6832,9 @@ div[class*="st-key-sub_"]{{scroll-margin-top:22px}}   /* 소분류로 스크롤�
 div[class*="st-key-zone_"]{{border:none;border-radius:0;background:transparent;padding:0;margin:4px 0 64px;scroll-margin-top:22px}}
 .sec-h{{display:flex;align-items:baseline;gap:12px;margin:0 0 20px;padding-bottom:14px;border-bottom:2px solid #1b2540}}
 .sec-h h2{{margin:0;padding:0;font-size:25px;font-weight:800;letter-spacing:-.7px;color:#101a33}}
+.bg-group{{display:flex;align-items:baseline;gap:12px;margin:20px 0 28px;padding:0 0 15px;border-bottom:3px solid {BLUE_D}}}
+.bg-group span{{font-size:13px;font-weight:800;color:{BLUE}}}
+.bg-group h2{{margin:0;font-size:29px;font-weight:850;color:#101a33}}
 div[class*="st-key-zone_"]::before{{display:none}}
 /* 첫 블록 KPI — 페이지마다 카드 수(4 · 5 · 6개)가 달라도 카드 한 장의 크기 · 비율은 모든 페이지에서 같게 한다.
    한 줄 3칸 폭(6칸 격자에서 2칸씩)으로 고정하고, 덜 찬 줄은 가운데로 모은다 — 5개는 3 + 2, 4개는 2 + 2, 6개는 3 + 3.
