@@ -1980,7 +1980,9 @@ _GLOBE = r"""
   <div id="tip"></div>
 </div>
 <script>
-const PTS = __DATA__, KOREA = __KOREA__, UNIT = "__UNIT__";
+const PTS = __DATA__, KOREA = __KOREA__, UNIT = "__UNIT__", OUTBOUND = __DIR__;
+// 선 · 화살표 방향 — 수입은 그 나라 → 한국, 수출(OUTBOUND)은 한국 → 그 나라
+const lane=p=>OUTBOUND?d3.geoInterpolate(KOREA,[p.lon,p.lat]):d3.geoInterpolate([p.lon,p.lat],KOREA);
 const wrap=document.getElementById('wrap'), tip=document.getElementById('tip'), statusEl=document.getElementById('status');
 const gc=document.getElementById('globe-c'), mc=document.getElementById('map-c');
 const gx=gc.getContext('2d'), mx=mc.getContext('2d');
@@ -2025,7 +2027,7 @@ function visible(p,proj,isGlobe){return seen(p.lon,p.lat,isGlobe);}
 /* ── 흐름 화살표 — 대권 위 t 지점의 진행 방향으로 삼각형을 그린다 ──────── */
 function arrow(ctx,proj,isGlobe,p,t,alpha,s){
   if(t<=0.03) return;
-  const inter=d3.geoInterpolate([p.lon,p.lat],KOREA);
+  const inter=lane(p);
   const c0=inter(Math.max(0,t-0.035)), c1=inter(t);
   if(!seen(c0[0],c0[1],isGlobe)||!seen(c1[0],c1[1],isGlobe)) return;
   const a=proj(c0), b=proj(c1); if(!a||!b) return;
@@ -2043,7 +2045,7 @@ function paintPoints(ctx,path,proj,isGlobe,arcProgress,hoverIdx,flow){
   if(arcProgress>0){
     PTS.forEach((p,i)=>{
       if(!visible(p,proj,isGlobe)) return;
-      const inter=d3.geoInterpolate([p.lon,p.lat],KOREA);
+      const inter=lane(p);
       const pts=d3.range(0,arcProgress+1e-9,1/28).map(inter);
       if(pts.length<2) return;
       const lw=0.9+2.4*Math.sqrt((+p.value||0)/maxVal);
@@ -2162,8 +2164,10 @@ fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(r=>
 """
 
 
-def supply_globe(points: list[dict], height: int = 430, unit: str = "백만 USD") -> None:
+def supply_globe(points: list[dict], height: int = 430, unit: str = "백만 USD", outbound: bool = False) -> None:
+    """공급 흐름 지구본. outbound=True(수출)면 선 · 화살표가 한국 → 그 나라 방향."""
     html = (_GLOBE.replace("__DATA__", json.dumps(points, ensure_ascii=False))
+            .replace("__DIR__", "true" if outbound else "false")
             .replace("__KOREA__", json.dumps(KOREA)).replace("__UNIT__", unit)
             .replace("__H__", str(height - 10)))
     components.html(html, height=height, scrolling=False)
@@ -2891,6 +2895,12 @@ TRADE_EXP = {                                                                   
     "인도네시아": 220, "영국": 190, "에스토니아": 120, "태국": 95, "말레이시아": 70, "독일": 60,
     "베트남": 45, "브라질": 30, "멕시코": 18, "스페인": 12, "핀란드": 8, "일본": 6.5, "싱가포르": 4.2,
 }
+# 수출 쪽 국가별 값 — TRADE_EXP(샘플) 상위 7개국(지도 좌표 WORLD 가 있는 나라만). 수입 쪽 COUNTRIES 와 같은 모양
+# (이름, 위도, 경도, 수출액, 색). 품목군별 수출 상대국 비중은 파일에 없어 만들지 않는다(→ HHI · 품목군별 비중은 수입만)
+EXPORT_TOP = [(n, WORLD[n][1], WORLD[n][2], v, COUNTRIES[i][4]) for i, (n, v) in enumerate(   # 색은 수입 쪽 7색 그대로
+    sorted(((n, v) for n, v in TRADE_EXP.items() if n in WORLD), key=lambda r: -r[1])[:7])]
+GLOBE_PTS_EXP = [{"name": n, "lat": la, "lon": lo, "value": v, "color": c, "note": "수출(샘플)"}
+                 for n, la, lo, v, c in EXPORT_TOP]
 # 조회 페이지의 국가 목록 — 목업 순서(주요 수출국)를 앞에, 나머지는 교역 규모순
 Q_COUNTRIES = ["미국", "폴란드", "사우디아라비아", "아랍에미리트", "호주", "캐나다"]
 Q_COUNTRIES += sorted((n for n in set(TRADE_IMP) | set(TRADE_EXP) if n not in Q_COUNTRIES),
@@ -3107,6 +3117,35 @@ HS_BASIS = [
     ("901410", "방향탐지용 컴퍼스", "전자부품", "HSK-항공/항행;전략물자-DU"),
     ("901490", "항행용 기기 부분품", "전자부품", "HSK-항공/항행;전략물자-DU"),
 ]
+
+# 분석 대상 13개(TARGET_HS)의 계열 · 방산 용도(한 줄 설명). 키 집합은 TARGET_HS 와 같아야 한다(아래 assert)
+SYSTEM_FAMILY = {
+    "841191": "소재장비", "880730": "소재장비",
+    "852610": "레이더",
+    "901420": "항공전자",
+    "852691": "항법", "901410": "항법", "901480": "항법", "901490": "항법",
+    "852910": "통신·레이더 부분품", "852990": "통신·레이더 부분품",
+    "854231": "반도체", "854233": "반도체", "854239": "반도체",
+}
+
+DEFENSE_USE_KO = {
+    "841191": "항공기 엔진 핵심 수입부품",   # 원래 defense_use_ko는 "배경 자료(분석 대상 아님)"이라 모순돼서 짧은 태그로 대체(팀 결정)
+    "880730": "항공기 부품(HS2022 신설, 구 8803.30)",  # 위와 같은 이유로 대체
+    "852610": "탐지·추적·사격통제 레이더 완제품·모듈(대포병·조기경보·함정 레이더 등 A7 조달계획 대표품명에 반복 등장)",
+    "852691": "GPS/INS 항법 수신기·항법 보조장비",
+    "852910": "레이더·전술통신·데이터링크의 안테나·반사기·급전 부분품(팀 판단)",
+    "852990": "안테나·T/R 모듈·송수신 부분품(레이더·통신 공통)",
+    "854231": "레이더 신호처리·사격통제·항전 컴퓨터의 프로세서·FPGA·MCU. 무기체계 첨단 반도체 98.9% 해외 의존(A6)",
+    "854233": "레이더 송수신(T/R)·전술통신의 RF/전력 증폭 IC",
+    "854239": "ADC/DAC·믹스드시그널·특수목적 IC(전자전·신호처리)",
+    "901410": "항공기·함정·차량 항법용 자기·자이로 컴퍼스(팀 판단)",
+    "901420": "항공기·유도무기 항행 계기(에비오닉스)",
+    "901480": "선박·지상 항법기기(함정 음탐·항법 계열, A7 조달계획 대표품명)",
+    "901490": "항법 기기(9014 계열)의 부분품(팀 판단)",
+}
+
+assert set(SYSTEM_FAMILY) == TARGET_HS, f"SYSTEM_FAMILY 키 ≠ TARGET_HS: {set(SYSTEM_FAMILY) ^ TARGET_HS}"
+assert set(DEFENSE_USE_KO) == TARGET_HS, f"DEFENSE_USE_KO 키 ≠ TARGET_HS: {set(DEFENSE_USE_KO) ^ TARGET_HS}"
 
 items_df = pd.DataFrame(ITEMS, columns=["HS6", "품목군", "1위 공급국", "1위 점유율(%)", "HHI", "수입국 수"])
 
@@ -3456,7 +3495,7 @@ def main_landing() -> None:
                 '팀이 계산한 값이 아니며 분모 기준은 확인하지 못했습니다.</small></div>')
         with st.container(key="mi_links", horizontal=True):
             for u, sec, label, icon in [("parts", "summary", "13개 품목군은 무엇인가", "memory"),
-                                        ("parts", "supply", "어느 나라에서 들여오나", "public"),
+                                        ("parts", "trade", "어느 나라에서 들여오나", "public"),   # 지구본은 수출입 현황으로 옮김
                                         ("local", "done", "무엇을 국산화했나", "build"),
                                         ("background", "policy", "정책 · 예산은 어떻게", "account_balance")]:
                 st.page_link(page_of[u][0], label=label, icon=f":material/{icon}:", query_params={"sec": sec})
@@ -3917,6 +3956,61 @@ export default function () {
 }
 """
 _CHIP_FIT = st.components.v2.component("kd_chip_fit", html="<span></span>", js=_CHIP_FIT_JS)
+
+# 왼쪽 메뉴(스크롤형) — 소분류 링크(a.lnb-a)를 누르면 페이지를 다시 열지 않고 그 소분류 칸(.st-key-sub_*)으로 부드럽게
+# 스크롤한다. 스크롤하면 지금 보이는 소분류를 ✓(.on) 로 · 위쪽 경로(.crumb b)도 그 이름으로 바꾼다.
+# data.go = [소분류, 번호] — 다른 페이지 · 위쪽 메뉴에서 ?sec= 로 들어왔을 때 열린 뒤 한 번만 그 소분류로 간다
+_LNB_JS = """
+export default function (component) {
+  const { data } = component
+  window.__kdLnbLabels = data.labels || {}
+  const subOf = k => document.querySelector(".st-key-sub_" + k)
+  if (!window.__kdLnb) {
+    window.__kdLnb = true
+    const setOn = k => {
+      document.querySelectorAll("a.lnb-a").forEach(a => a.classList.toggle("on", a.dataset.sub === k))
+      const b = document.querySelector(".crumb b"), t = window.__kdLnbLabels[k]
+      if (b && t) b.textContent = t
+    }
+    window.__kdLnbSetOn = setOn
+    document.addEventListener("click", e => {
+      const a = e.target.closest && e.target.closest("a.lnb-a")
+      const el = a && subOf(a.dataset.sub)
+      if (!el) return
+      e.preventDefault(); e.stopPropagation()
+      window.__kdLnbLock = Date.now() + 900         // 부드럽게 가는 동안 스크롤 감지가 ✓ 를 흔들지 않게
+      setOn(a.dataset.sub)
+      el.scrollIntoView({ behavior: "smooth", block: "start" })
+    }, true)
+    // 스크롤 위치 → 지금 보이는 소분류(칸 위쪽이 화면 위 160px 안으로 들어온 마지막 소분류)
+    let raf = 0
+    document.addEventListener("scroll", () => {
+      if (raf) return
+      raf = requestAnimationFrame(() => {
+        raf = 0
+        if (Date.now() < (window.__kdLnbLock || 0)) return
+        const subs = [...document.querySelectorAll("a.lnb-a")].map(a => a.dataset.sub)
+        if (!subs.length) return
+        let cur = subs[0]
+        for (const k of subs) { const el = subOf(k); if (el && el.getBoundingClientRect().top <= 160) cur = k }
+        setOn(cur)
+      })
+    }, true)
+  }
+  const go = data.go
+  if (go && go[1] !== window.__kdLnbGoN) {
+    window.__kdLnbGoN = go[1]
+    let tries = 0
+    const tick = () => {
+      const el = subOf(go[0])
+      if (el) { window.__kdLnbLock = Date.now() + 900; window.__kdLnbSetOn(go[0]); el.scrollIntoView({ block: "start" }) }
+      else if (tries++ < 60) setTimeout(tick, 100)   // 그 소분류가 아직 그려지기 전이면 잠깐 기다린다
+    }
+    tick()
+  }
+}
+"""
+_LNB = st.components.v2.component("kd_lnb_scroll", html="<span></span>", js=_LNB_JS)
 
 
 def _q_chips(key: str, picked: list, fmt, scroll: bool = False) -> None:
@@ -5059,8 +5153,11 @@ def query_result_localized(q: dict) -> None:
 # DATA CENTER)에서 그대로 옮겼다. 옮긴 곳은 참고 자료 11~14 md §3 표를 따른다.
 # ════════════════════════════════════════════════════════════════════════════
 def _run_sub(subs: dict) -> None:
-    """지금 고른 소분류(_SEC["sel"])의 화면 함수를 부른다."""
-    subs[_SEC["sel"]]()
+    """소분류 화면 함수를 순서대로 모두 불러 위에서 아래로 이어 그린다(스크롤형).
+    소분류마다 sub_{키} 칸으로 감싸 왼쪽 메뉴가 그 칸으로 스크롤해 간다(_LNB_JS)."""
+    for k, fn in subs.items():
+        with st.container(key=f"sub_{k}"):
+            fn()
 
 
 def page_home() -> None:
@@ -5071,15 +5168,54 @@ def page_home() -> None:
 # ── ① 부품 현황 ──────────────────────────────────────────────────────────
 
 
+# 품목군 현황표 묶음 배지(SYSTEM_FAMILY). 선정 근거는 배지 대신 표 아래 한 줄로 적는다(HS↔FSC 연결인 R4 는 어디에도 쓰지 않는다)
+_BADGE_STYLE = {
+    "fam": "background:#eef2f9;color:#3d4a6b;border:1px solid #d6dbe6",
+    "warn": "background:#fef3c7;color:#92400e;border:1px solid #fde68a",   # 소재장비 = 전자부품 아님(§7 표현 경계)
+}
+_NON_ELEC = {"841191", "880730"}                                  # 소재장비 — 전자부품이 아님을 배지에 밝힌다
+
+
+def _badge(text: str, kind: str) -> str:
+    return (f'<span style="display:inline-block;padding:1px 7px;border-radius:5px;font-size:11px;font-weight:600;'
+            f'white-space:nowrap;{_BADGE_STYLE[kind]}">{escape(text)}</span>')
+
+
+def _ro(word: str) -> str:
+    """조사 「으로/로」 — 끝 글자에 받침이 있으면(ㄹ 받침 제외) 「으로」. 한글이 아니면 「로」."""
+    c = ord(word[-1]) - 0xAC00
+    return "으로" if 0 <= c < 11172 and c % 28 not in (0, 8) else "로"
+
+
+def _items_view() -> pd.DataFrame:
+    """품목군 현황표 화면용 — HS6 | 품목군(+묶음 배지) | 품목 설명 세 칸만. 1위 공급국 · 점유율 · HHI · 수입국 수는
+    아래 집중도 한눈에(트리맵 · 막대) · KPI 카드에서 보여 표에서는 뺀다(CSV 는 items_df 그대로)."""
+    fam = lambda hs: (_badge("소재장비 · 전자부품 아님", "warn") if hs in _NON_ELEC else _badge(SYSTEM_FAMILY[hs], "fam"))
+    df = items_df.copy()
+    df["품목군"] = [f'<div style="text-align:left;white-space:nowrap">{escape(n)} {fam(hs)}</div>'
+                  for hs, n in zip(df["HS6"], df["품목군"])]
+    # 한 줄 말줄임 · 커서를 올리면(title) 전체 문장
+    df.insert(2, "품목 설명", [
+        f'<div title="{escape(DEFENSE_USE_KO[hs], quote=True)}" style="max-width:260px;overflow:hidden;'
+        f'text-overflow:ellipsis;white-space:nowrap;text-align:left">{escape(DEFENSE_USE_KO[hs])}</div>' for hs in df["HS6"]])
+    return df[["HS6", "품목군", "품목 설명"]]
+
+
 def _parts_summary() -> None:
     for _ in zone("kpi", "한눈에 보는 KPI"):
-        st.html('<div class="kpis home">'
+        n_top50 = int((items_df["1위 점유율(%)"] >= 50).sum())
+        n_hhi = int((items_df["HHI"] >= 2500).sum())
+        st.html(f'<div class="lede"><div class="note"><b>{len(items_df)}개 품목군 중 {n_top50}개는 1위 공급국 점유율이 '
+                f'50% 이상이다</b>(2025·민수 포함).</div></div>')
+        st.html('<div class="kpis home k4 parts-kpi-row">'
                 + kpi("분석 대상 품목군", "13", "개",
                       "HS6 후보 1,003개 중 기준 충족 52개 → 전자 계열 13개 · 관세청 수집 24개 중", icon="inventory_2")
                 + kpi("2025 수입액", "478.2", "억 달러",
                       "분석 대상 13개 합계 · 국가 전체 수입 · 민수 포함 · 수출은 606.6억 달러", icon="payments")
-                + kpi("특정국 50% 초과 품목군", "5", "개",
-                      "1위 공급국 점유율 기준 · 13개 중 · 2025년 합계 · HHI 2,500 초과는 7개", icon="warning")
+                + kpi("특정국 50% 이상 품목군", f"{n_top50}", "개",
+                      f"1위 공급국 점유율 기준 · 13개 중 · 2025년 합계 · HHI 2,500 이상은 {n_hhi}개", icon="warning")
+                + kpi("HHI 2,500 이상", f"{n_hhi}", "개",
+                      f"공급국 집중도(HHI) 기준 · {len(items_df)}개 중 · 2025년 합계", icon="stacked_bar_chart")
                 + "</div>")
 
     for _ in zone("tbl", "품목군 현황표"):
@@ -5090,14 +5226,21 @@ def _parts_summary() -> None:
                                  key="tbl_period", label_visibility="collapsed", width="stretch")
         with globe_loading("품목군 집계를 다시 계산하는 중"):
             time.sleep(DEMO_WAIT)
-        cat_table(items_df, fmt={"1위 점유율(%)": _share_bar, "수입국 수": lambda v: f"{v}개"})
+        html = lambda v: v                                         # 이미 HTML 로 만든 칸(_items_view)은 그대로
+        cat_table(_items_view(), fmt={"품목군": html, "품목 설명": html},
+                  note="선정 기준: 관세청 HSK 세분류에서 군용 전용 또는 항공·항행·레이더 등 전문 용도가 확인된 품목을 기준으로 "
+                       "선정(전략물자 통제 목록은 참고)<br>"
+                       "출처: 관세청 HS부호 마스터 · 품목별 국가별 수출입실적 · 2016.01~2026.08")
         st.download_button("CSV 내려받기", items_df.to_csv(index=False).encode("utf-8-sig"),
                            "품목군_현황표_샘플.csv", "text/csv")
 
     for _ in zone("tree", "집중도 한눈에"):
         c1, c2 = st.columns(2, gap="medium")
         with c1.container(border=True, key="card_tree"):
-            st.html('<div class="h">품목군 규모 · 1위 점유율 <span class="sub">칸 크기 = HHI</span></div>')
+            # 제목 = 결론 문장 — HHI 가 가장 높은 · 낮은 품목군을 items_df 에서 찾아 넣는다
+            hi, lo = items_df.loc[items_df["HHI"].idxmax(), "품목군"], items_df.loc[items_df["HHI"].idxmin(), "품목군"]
+            st.html(f'<div class="h">기간 합계 HHI는 {hi}{_ro(hi)} 가장 높고 {lo}{_ro(lo)} 가장 낮다 '
+                    '<span class="sub">칸 크기 = HHI(0~10,000, 클수록 수입이 소수 국가에 몰림) · 색 = 1위 공급국 점유율</span></div>')
             fig = go.Figure(go.Treemap(
                 labels=items_df["품목군"], parents=[""] * len(items_df), values=items_df["HHI"],
                 marker=dict(colors=items_df["1위 점유율(%)"], colorscale=[[0, "#dbeafe"], [1, ACCENT]],
@@ -5116,25 +5259,27 @@ def _parts_summary() -> None:
             fig.update_xaxes(tickangle=-40)
             st.plotly_chart(style_fig(fig), width="stretch", theme=None)
 
-    for _ in zone("chain", "부품별 현황"):
-        st.html(supply_table(FOCUS))
+    # 부품별 현황 · 선정 근거 · 분석 대상 선정 — 홈 화면과 겹쳐 지우지 않고 접어서 남긴다(팀 결정: 완전 삭제 대신 축소). 기본은 접힘
+    with st.expander("선정 기준 자세히 보기", expanded=False, icon=":material/rule:"):
+        for _ in zone("chain", "부품별 현황"):
+            st.html(supply_table(FOCUS))
 
-    for _ in zone("basis", "품목군 선정 근거(실측)"):
-        real_bar("위 표·차트의 12개 품목군은 샘플이지만, 이 구역은 실제 기준표 hs_whitelist.csv(HS6 24개)의 선정 근거와 "
-                 "운영 앱(RDS)의 분석 대상 13개(2026-09-21 확정)를 그대로 옮겼습니다.")
-        c1, c2 = st.columns([1.7, 1], gap="medium")
-        rows = sorted(HS_BASIS, key=lambda r: r[0] not in TARGET_HS)       # 분석 대상 13개를 위로
-        with c1:
-            st.html(basis_matrix(rows[:BASIS_SHOW], title=f"HS6 선정 근거 — 분석 대상 {BASIS_SHOW}개 먼저"))
-            with st.expander(f"나머지 {len(rows) - BASIS_SHOW}개 펼쳐 보기 (분석 대상 {len(TARGET_HS) - BASIS_SHOW}개 · "
-                             f"배경 {len(rows) - len(TARGET_HS)}개)"):
-                st.html(basis_matrix(rows[BASIS_SHOW:], start=BASIS_SHOW, card=False) + basis_legend())
-        c2.html(basis_summary())
+        for _ in zone("basis", "품목군 선정 근거(실측)"):
+            real_bar("위 표·차트의 12개 품목군은 샘플이지만, 이 구역은 실제 기준표 hs_whitelist.csv(HS6 24개)의 선정 근거와 "
+                     "운영 앱(RDS)의 분석 대상 13개(2026-09-21 확정)를 그대로 옮겼습니다.")
+            c1, c2 = st.columns([1.7, 1], gap="medium")
+            rows = sorted(HS_BASIS, key=lambda r: r[0] not in TARGET_HS)       # 분석 대상 13개를 위로
+            with c1:
+                st.html(basis_matrix(rows[:BASIS_SHOW], title=f"HS6 선정 근거 — 분석 대상 {BASIS_SHOW}개 먼저"))
+                with st.expander(f"나머지 {len(rows) - BASIS_SHOW}개 펼쳐 보기 (분석 대상 {len(TARGET_HS) - BASIS_SHOW}개 · "
+                                 f"배경 {len(rows) - len(TARGET_HS)}개)"):
+                    st.html(basis_matrix(rows[BASIS_SHOW:], start=BASIS_SHOW, card=False) + basis_legend())
+            c2.html(basis_summary())
 
-    for _ in zone("hssel", "분석 대상 선정"):
-        st.html(funnel_card("분석 대상 선정", "단위: HS 6단위 개수 · % = 모집단 대비", HS_SELECT,
-                            "전략물자 통제 목록은 1,003개 중 275개가 해당돼 기준으로 쓰지 않았고, 국산화 군수품 대응은 "
-                            "공식 대조표가 없어 뺐습니다. 관세청 수집은 24개 = 분석 대상 13 + 배경 자료 11."))
+        for _ in zone("hssel", "분석 대상 선정"):
+            st.html(funnel_card("분석 대상 선정", "단위: HS 6단위 개수 · % = 모집단 대비", HS_SELECT,
+                                "전략물자 통제 목록은 1,003개 중 275개가 해당돼 기준으로 쓰지 않았고, 국산화 군수품 대응은 "
+                                "공식 대조표가 없어 뺐습니다. 관세청 수집은 24개 = 분석 대상 13 + 배경 자료 11."))
 
 
 def _parts_trade() -> None:
@@ -5143,87 +5288,94 @@ def _parts_trade() -> None:
     st.html('<div class="lede"><div class="note">HS/HSK 기반 방산 연관 수입 구조 · 공급국 집중도 · 품목군 동향. '
             '군수 수요 비중이 아니라 <b>국가 전체 교역 규모</b>입니다.</div></div>')
     for _ in zone("kpi2", "핵심 지표"):
-        st.html('<div class="kpis k6">'
-                + kpi("분석 대상 품목군", "13", "개", "수집 24개 중 · HS6 후보 1,003개 → 기준 충족 52개 → 전자 계열 13개", icon="inventory_2")
+        # 1위 수입국 · 수출국 — TRADE_IMP · TRADE_EXP(2016~2025 합산, 백만 USD)에서 값이 가장 큰 나라와 그 비중
+        top_i, top_e = max(TRADE_IMP, key=TRADE_IMP.get), max(TRADE_EXP, key=TRADE_EXP.get)
+        sh_i = TRADE_IMP[top_i] / sum(TRADE_IMP.values()) * 100
+        sh_e = TRADE_EXP[top_e] / sum(TRADE_EXP.values()) * 100
+        st.html('<div class="kpis k4 parts-kpi-row">'                  # 한눈에 보는 KPI 처럼 1줄 4칸(860px 이하 2 × 2)
                 + kpi("2025 수입액", "478.2", "억 달러", "13개 합계 · 국가 전체 수입 · 민수 포함", icon="payments")
                 + kpi("2025 수출액", "606.6", "억 달러", "13개 합계 · 국가 전체 수출 · 민수 포함", icon="upload")
-                + kpi("HHI 2,500 초과", "7", "개", "13개 중 · 2025년 수입 기준 · 공급국 집중 높음", icon="shuffle")
-                + kpi("1위국 50% 초과", "5", "개", "1위 공급국 점유율 기준 · 최고 항공기 부분품(미국 76.4%)", icon="warning")
-                + kpi("분석 기간", "2016–2026", "", "총 11년 · 2026년은 부분연도 · 추세는 2016~2025 · 분석 행 146,817", icon="calendar_month")
+                + kpi("1위 수입국", top_i, "", f"수입 비중 {sh_i:.1f}% · 2016~2025 합산 · {TRADE_IMP[top_i]:,.0f} 백만 USD",
+                      icon="download")
+                + kpi("1위 수출국", top_e, "", f"수출 비중 {sh_e:.1f}% · 2016~2025 합산 · {TRADE_EXP[top_e]:,.0f} 백만 USD",
+                      icon="flight_takeoff")
                 + "</div>")
 
+    flow = _flow_switch("trade_flow")
+    imp = flow == "수입"
     for _ in zone("trend", "연도별 · 국가별"):
         c1, c2 = st.columns([1.3, 1], gap="medium")
         with c1.container(border=True, key="card_trend"):
-            st.html('<div class="h">연도별 수입 · 수출 추이 <span class="sub">분석 대상 13개 합계 · 완결연도 2016~2025 · '
+            st.html(f'<div class="h">연도별 {flow} 추이 <span class="sub">분석 대상 13개 합계 · 완결연도 2016~2025 · '
                     '단위: 백만 USD · 민수 포함</span></div>')
-            fig = go.Figure()
-            for name, color in (("수입", SERIES[0]), ("수출", SERIES[1])):
-                fig.add_trace(go.Scatter(x=IMPORT_TREND["연도"], y=IMPORT_TREND[name], name=name,
-                                         mode="lines+markers", line=dict(color=color, width=2.5),
-                                         marker=dict(size=7, color="#fff", line=dict(color=color, width=2))))
-            fig.update_layout(legend=dict(orientation="h", y=1.12))
+            color = SERIES[0] if imp else SERIES[1]
+            fig = go.Figure(go.Scatter(x=IMPORT_TREND["연도"], y=IMPORT_TREND[flow], name=flow,
+                                       mode="lines+markers", line=dict(color=color, width=2.5),
+                                       marker=dict(size=7, color="#fff", line=dict(color=color, width=2))))
+            fig.update_layout(showlegend=False)
             st.plotly_chart(style_fig(fig, 430), width="stretch", theme=None)
         with c2.container(border=True, key="card_share"):
-            st.html('<div class="h">공급국 비중 '
-                    '<span class="sub">조각에 커서를 올려 보세요 · 2016~2025 합산 · 단위: 백만 USD</span></div>')
-            hover_donut([(c[0], c[3], c[4]) for c in COUNTRIES],
-                        f"{sum(c[3] for c in COUNTRIES):,}", "백만 USD", value_unit="백만 USD", height=440)
+            st.html(f'<div class="h">{"공급국" if imp else "수출 상대국"} 비중 '
+                    '<span class="sub">조각에 커서를 올려 보세요 · 2016~2025 합산 · 단위: 백만 USD'
+                    + ("" if imp else " · 수출은 샘플 값") + '</span></div>')
+            rows = [(c[0], c[3], c[4]) for c in COUNTRIES] if imp else [(n, v, c) for n, _, _, v, c in EXPORT_TOP]
+            hover_donut(rows, f"{sum(r[1] for r in rows):,.0f}", "백만 USD", value_unit="백만 USD", height=440)
 
-    for _ in zone("mix", "지도 · 품목군 구성"):
-        c1, c2 = st.columns([1.15, 1], gap="medium")
-        with c1.container(border=True, key="card_choro"):
-            st.html('<div class="h">국가별 수입 분포 '
-                    '<span class="sub">색 = 합계 대비 비중 · 상위 6개국 라벨 · 2016~2025 합산 · 오른쪽 위에서 수출로 전환</span></div>')
-            country_map(TRADE_IMP, TRADE_EXP, height=410)
-        with c2.container(border=True, key="card_mekko"):
-            st.html('<div class="h">공급국 × 품목군 구성비 '
-                    '<span class="sub">마리메코 · 막대 폭 = 국가 수입액 · 기타 = 대만·싱가포르</span></div>')
-            fig = style_fig(mekko(410))
-            fig.update_layout(margin=dict(l=40, r=8, t=30, b=8))   # 위쪽 국가명 · 왼쪽 % 눈금 자리
-            st.plotly_chart(fig, width="stretch", theme=None)
+    for _ in zone("mix", f"국가별 {flow} 규모"):
+        # 지도는 하나만(11_cat_parts.md 1-2) — 옛 공급국 현황의 지구본을 옮겼다. 국가별 수입 분포 지도 · 마리메코는 정보 과다라 뺐다
+        with st.container(border=True, key="card_map"):
+            way = "대한민국으로 들어오는" if imp else "대한민국에서 나가는"
+            st.html(f'<div class="h">국가별 {flow} 규모'
+                    + info_btn(f"지구본 · 지도 버튼으로 전환합니다<br>원 크기 = {flow}액 · 화살표 = {way} 방향<br>"
+                               "원 위에 커서를 올리면 상세" + ("" if imp else "<br>수출은 샘플 값(상위 7개국)")) + '</div>')
+            supply_globe(GLOBE_PTS if imp else GLOBE_PTS_EXP, height=430, unit="백만 USD", outbound=not imp)
 
 
-def _parts_supply() -> None:
-    for _ in zone("where", "공급국 현황"):
-        c_map, c_bar = st.columns([1.35, 1], gap="medium")
-        with c_map.container(border=True, key="card_map"):
-            st.html('<div class="h">국가별 수입 규모'
-                    + info_btn("지구본 · 지도 버튼으로 전환합니다<br>원 크기 = 수입액 · 화살표 = 대한민국으로 들어오는 방향<br>"
-                               "원 위에 커서를 올리면 상세") + '</div>')
-            supply_globe(GLOBE_PTS, height=430, unit="백만 USD")
-        rows = "".join(
-            f'<div class="row" title="{n} {s:.1f}%"><div class="nm">{nm}<em>{hs}</em></div>'
-            f'<div class="track"><div class="fill" style="width:{s:.1f}%;background:{dict((c[0], c[4]) for c in COUNTRIES).get(n, ETC)}"></div>'
-            f'<div class="ref"></div></div><div class="pct">{s:.1f}%</div></div>'
-            for hs, nm, n, s, _, _ in ITEMS)
-        legend = "".join(f'<span><i style="background:{c[4]}"></i>{c[0]}</span>' for c in COUNTRIES)
-        c_bar.html(f'<div class="card"><div class="h">품목군별 1위 공급국 점유율'
-                   f'{info_btn("2025년 · 분석 대상 13개<br>점선 = 50%")}</div>'
-                   f'<div class="bars">{rows}</div><div class="legend" style="margin-top:10px">{legend}</div></div>')
+def _flow_switch(key: str) -> str:
+    """「수입 | 수출」 전환 — 같은 자리의 차트가 이 값에 따라 바뀐다. 기본은 수입."""
+    return st.segmented_control("수입 · 수출", ["수입", "수출"], default="수입", key=key, required=True,
+                                label_visibility="collapsed")
+
+
+def _no_export(what: str) -> None:
+    """수출 쪽 데이터가 없는 자리 — 임의 값으로 채우지 않고 그렇다고 적는다."""
+    st.info(f"{what}은(는) 수입 기준 데이터만 있습니다. 품목군별 수출 상대국 데이터가 없어 수출 화면은 만들지 않았습니다.",
+            icon=":material/info:")
 
 
 def _parts_conc() -> None:
+    flow = _flow_switch("conc_flow")
+    imp = flow == "수입"
     for _ in zone("conc", "공급국 집중도"):
         c1, c2 = st.columns([1, 1.25], gap="medium")
-        c1.html(rank_card("주요 수입국 TOP 7", "괄호 안은 전체 대비 비중",
-                          [(c[0], c[3], c[4]) for c in COUNTRIES], "백만 USD"))
+        if imp:
+            c1.html(rank_card("주요 수입국 TOP 7", "괄호 안은 전체 대비 비중",
+                              [(c[0], c[3], c[4]) for c in COUNTRIES], "백만 USD"))
+        else:
+            c1.html(rank_card("주요 수출국 TOP 7", "2016~2025 합산 · 수출은 샘플 값",
+                              [(n, v, c) for n, _, _, v, c in EXPORT_TOP], "백만 USD"))
         with c2.container(border=True, key="card_hhi"):
-            st.html('<div class="h">품목군별 집중도(HHI) <span class="sub">2,500 이상 = 높은 집중</span></div>')
-            fig = go.Figure(go.Scatter(
-                x=items_df["1위 점유율(%)"], y=items_df["HHI"], mode="markers+text",
-                text=items_df["품목군"], textposition="top center", textfont=dict(size=10, color=MUTED),
-                marker=dict(size=14, color=[dict((c[0], c[4]) for c in COUNTRIES).get(n, ETC)
-                                            for n in items_df["1위 공급국"]],
-                            line=dict(color="#fff", width=1.5)),
-                hovertemplate="%{text}<br>1위 점유율 %{x:.1f}%<br>HHI %{y:,}<extra></extra>"))
-            fig.add_hline(y=2500, line=dict(color="#94a7c8", dash="dash", width=1),
-                          annotation_text="HHI 2,500", annotation_font=dict(color=MUTED, size=11))
-            fig.update_xaxes(title="1위 공급국 점유율(%)")
-            fig.update_yaxes(title="HHI")
-            st.plotly_chart(style_fig(fig, 360), width="stretch", theme=None)
+            st.html(f'<div class="h">품목군별 집중도(HHI) <span class="sub">2,500 이상 = 높은 집중 · {flow} 기준</span></div>')
+            if not imp:
+                _no_export("품목군별 집중도(HHI) · 1위 공급국 점유율")
+            else:
+                fig = go.Figure(go.Scatter(
+                    x=items_df["1위 점유율(%)"], y=items_df["HHI"], mode="markers+text",
+                    text=items_df["품목군"], textposition="top center", textfont=dict(size=10, color=MUTED),
+                    marker=dict(size=14, color=[dict((c[0], c[4]) for c in COUNTRIES).get(n, ETC)
+                                                for n in items_df["1위 공급국"]],
+                                line=dict(color="#fff", width=1.5)),
+                    hovertemplate="%{text}<br>1위 점유율 %{x:.1f}%<br>HHI %{y:,}<extra></extra>"))
+                fig.add_hline(y=2500, line=dict(color="#94a7c8", dash="dash", width=1),
+                              annotation_text="HHI 2,500", annotation_font=dict(color=MUTED, size=11))
+                fig.update_xaxes(title="1위 공급국 점유율(%)")
+                fig.update_yaxes(title="HHI")
+                st.plotly_chart(style_fig(fig, 360), width="stretch", theme=None)
 
     for _ in zone("focus", "품목군별 공급 집중도"):
+        if not imp:
+            _no_export("품목군별 공급 국가 비중")
+            continue
         st.html('<div class="note" style="margin-bottom:4px">탭을 누르면 품목군이 바뀝니다 — 품목군별 공급 국가 비중입니다.</div>')
         for tab, f in zip(st.tabs([f["name"] for f in FOCUS]), FOCUS):
             with tab:
@@ -5231,7 +5383,7 @@ def _parts_conc() -> None:
 
 
 def page_parts() -> None:
-    _run_sub({"summary": _parts_summary, "trade": _parts_trade, "supply": _parts_supply,
+    _run_sub({"summary": _parts_summary, "trade": _parts_trade,
               "conc": _parts_conc, "detail": lambda: search_block("수출입 HS")})
 
 
@@ -5488,7 +5640,8 @@ def _bg_policy() -> None:
 
 
 def _bg_industry() -> None:
-    for _ in zone("facts", "가동률 · 방산업체(운영 DB 실측)"):
+    # 키 facts_ind — 정책 · 예산 배경(_bg_policy)의 facts 와 한 페이지에 이어 그려져(_run_sub) 키가 겹치지 않게
+    for _ in zone("facts_ind", "가동률 · 방산업체(운영 DB 실측)"):
         real_bar("이 구역은 샘플이 아닙니다 — 운영 앱(defense-trade.streamlit.app)이 AWS RDS 의 clean_kosis_utilization · "
                  "clean_openfiscal_program_budget · clean_dapa_overseas_plan 등에서 읽어 그린 값을 2026-09-21 에 옮겼습니다.")
         c1, c2 = st.columns(2, gap="medium")
@@ -5782,7 +5935,7 @@ def glossary_button(key: str) -> None:
 # 페이지별 블록 — 왼쪽 메뉴 · 상단 펼침 메뉴 · 전체 메뉴에 쓴다. 각 페이지 함수의 zone(키, 이름)과 같아야 한다
 SECTIONS = {
     "home": [("main", "Main")],
-    "parts": [("summary", "종합 현황표"), ("trade", "수출입 현황"), ("supply", "공급국 현황"),
+    "parts": [("summary", "종합 현황표"), ("trade", "수출입 현황"),
               ("conc", "공급국 집중도 변화"), ("detail", "상세 조회")],
     "fsc": [("code", "군급코드란"), ("plan", "군급별 국외 조달계획"), ("army", "소요군별"),
             ("domestic", "국내 계약 · 입찰"), ("detail", "상세 조회")],
@@ -6459,7 +6612,13 @@ _q = st.query_params.get("sec")
 _SEC["sel"] = _q if _q in dict(secs) else secs[0][0]
 # 홈은 첫 화면(Main)뿐 — 서브 배너 · 왼쪽 메뉴 없이 전체 폭
 _SEC["landing"] = url == "home"
-nav_secs = [(k, t) for k, t in secs if k != "main"]      # 왼쪽 메뉴의 소분류 — 누르면 그 화면으로 바뀐다
+# 소분류는 한 페이지에 모두 이어 그린다(_run_sub). 다른 페이지 · 위쪽 메뉴 · 첫 화면 바로가기에서 ?sec= 로 들어오면
+# 열린 뒤 그 소분류로 한 번만 스크롤한다(_LNB_JS). 주소의 sec 는 지운다 — 남겨 두면 버튼 · 전환으로 화면을 다시 그릴
+# 때마다 그 자리로 되돌아간다. 번호(n)는 같은 소분류로 다시 들어와도 또 스크롤하게 바꿔 준다
+if not _SEC["landing"] and _q in dict(secs):
+    st.session_state["_lnb_go"] = [_q, st.session_state.get("_lnb_go", [None, 0])[1] + 1]
+    del st.query_params["sec"]
+nav_secs = [(k, t) for k, t in secs if k != "main"]      # 왼쪽 메뉴의 소분류 — 누르면 그 소분류로 스크롤한다
 cur_sub = dict(nav_secs).get(_SEC["sel"], "")
 
 # 머리글 · 배너 · 본문 줄 안쪽 여백 — 배경은 화면 끝까지, 내용은 가운데 WRAP 폭 안에 들어온다
@@ -6614,6 +6773,18 @@ div[class*="st-key-gs_"]{{height:{_DROP_H}px;box-sizing:border-box;border-left:1
 .st-key-lnb [data-testid="stPageLink"] a:hover p,.st-key-lnb [data-testid="stPageLink"] a:hover::after{{color:{BLUE}!important}}
 .lnb-on{{background:#fff;border-color:{BLUE_D};color:{BLUE_D}!important}}
 .lnb-on::after{{content:"✓";font-size:16px;font-weight:800;color:{BLUE_D}}}
+/* 소분류 링크(스크롤형) — 예전 page_link 칸과 같은 모양 · 크기. 지금 보이는 소분류(.on)는 선택 칸(✓) 모양 */
+.lnb-nav{{display:flex;flex-direction:column;gap:6px}}
+.lnb-a{{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:50px;box-sizing:border-box;padding:0 18px;
+  margin:0;border:1.5px solid transparent;border-radius:0;background:#f3f6fb;transition:background .15s;text-decoration:none!important;
+  font-size:15px;font-weight:700;color:#1b2540!important;letter-spacing:-.4px}}
+.lnb-a::after{{content:"·";flex:0 0 auto;margin-left:8px;line-height:1;font-size:24px;font-weight:700;color:#9aa6bd}}
+.lnb-a:hover{{background:#e8effb;color:{BLUE}!important}}
+.lnb-a:hover::after{{color:{BLUE}}}
+.lnb-a.on{{background:#fff;border-color:{BLUE_D};color:{BLUE_D}!important}}
+.lnb-a.on::after{{content:"✓";font-size:16px;font-weight:800;color:{BLUE_D}}}
+div[class*="st-key-sub_"]{{scroll-margin-top:22px}}   /* 소분류로 스크롤해 갈 때 위 여백 — zone 과 같게 */
+.st-key-lnbjs,[data-testid="stLayoutWrapper"]:has(> .st-key-lnbjs){{display:none!important}}
 /* 왼쪽 메뉴는 스크롤해도 화면 위쪽에 붙어 따라온다 */
 [data-testid="stLayoutWrapper"]:has(> .st-key-lnb){{position:sticky;top:98px;align-self:flex-start;z-index:5;flex:0 0 {LNB_W}px!important;width:{LNB_W}px!important;min-width:{LNB_W}px!important;max-width:{LNB_W}px!important}}
 .st-key-lnb{{width:{LNB_W}px!important;min-width:{LNB_W}px!important;max-width:{LNB_W}px!important;flex:0 0 {LNB_W}px!important}}   /* 메뉴 폭 고정 — 글자 길이로 늘거나 줄지 않게 */
@@ -6661,6 +6832,13 @@ div[class*="st-key-zone_"]::before{{display:none}}
    폭이 준 만큼 높이도 170 → 150px 로 줄여 비율을 맞춘다(줄 높이 1fr 라 4장 높이는 같다) */
 .kpis.k4.row1:not(.q){{grid-template-columns:repeat(4,minmax(0,210px))}}
 .kpis.k4.row1:not(.q) .kpi,.kpis.k4.row1:not(.q) .kpi:nth-child(odd){{grid-column:auto;min-height:150px}}
+/* ① 부품 현황 KPI(.parts-kpi-row — 종합 현황표 · 수출입 현황 핵심 지표)만 — 넓은 화면은 1줄 4칸, 860px 이하는 2 × 2.
+   배치(격자 칸 · grid-column)만 바꾸고 카드 모양 · 글씨는 위 규칙 그대로. 다른 페이지 4장(.kpis.k4)은 2 + 2 가운데 그대로 */
+.kpis.k4.parts-kpi-row:not(.q){{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.kpis.k4.parts-kpi-row:not(.q) .kpi,.kpis.k4.parts-kpi-row:not(.q) .kpi:nth-child(odd){{grid-column:auto}}
+@media (max-width:860px){{
+  .kpis.k4.parts-kpi-row:not(.q){{grid-template-columns:repeat(2,minmax(0,1fr))}}
+}}
 /* 글씨 크기도 페이지 상관없이 같게 */
 .kpis:not(.q) .kpi .l,.kpis:not(.q) .kpi .l.long,.kpis.k6:not(.q) .kpi .l{{font-size:17px;letter-spacing:-.3px}}
 .kpis:not(.q) .kpi .v,.kpis.k6:not(.q) .kpi .v{{font-size:35px}}
@@ -6778,12 +6956,14 @@ if not LANDING:
         with st.container(key="lnb", width=LNB_W):
             # 제목 칸(K-DEFENSE · 페이지 이름) — 배너 아래쪽에 걸쳐 놓이고, 왼쪽 메뉴와 한 묶음으로 스크롤을 따라온다
             st.html(f'<div class="sv-box lnb-box"><small>K-DEFENSE</small><b>{cur_label}</b></div>')
-            # 소분류 — 한 소분류 = 한 화면. 지금 화면은 표시만, 나머지는 누르면 그 화면으로 바뀐다
-            for k, t in nav_secs:
-                if k == _SEC["sel"]:
-                    st.html(f'<div class="lnb-on">{t}</div>')
-                else:
-                    st.page_link(pg, label=t, query_params={"sec": k})
+            # 소분류 — 한 페이지에 모두 이어져 있다. 누르면 페이지를 다시 열지 않고 그 소분류로 스크롤한다(_LNB_JS).
+            # 보이는 소분류는 스크롤 위치에 따라 ✓ 로 바뀐다. href 는 스크립트가 없을 때를 위한 예비(예전처럼 그 소분류로 연다)
+            st.html('<nav class="lnb-nav">' + "".join(
+                f'<a class="lnb-a{" on" if k == _SEC["sel"] else ""}" href="?sec={k}" data-sub="{k}">{t}</a>'
+                for k, t in nav_secs) + '</nav>')
+            with st.container(key="lnbjs"):
+                _LNB(key="lnb_scroll", data={"go": st.session_state.get("_lnb_go"),
+                                              "labels": dict(nav_secs)})
             st.html('<div class="lnb-help"><b>이렇게 보세요</b><ul>' + "".join(f"<li><em>{h}</em>{t}</li>" for h, t in LNB_TIPS[url])
                     + '</ul></div>')
         with st.container(key="main"):
