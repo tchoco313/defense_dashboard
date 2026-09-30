@@ -5866,15 +5866,20 @@ def _why_elec() -> None:
 
 
 def _why_select() -> None:
+    # 한 줄 깔때기는 1,003 → 52 → 13 만(HS_SELECT — 전자부품 현황 「HS 분류기준」과 같은 값). 수집 24 는 진입 52 의
+    # 부분집합이 아니라서 층으로 넣지 않고 아래 한 줄로 따로 적는다(plan-revision-2026-09-23.md §2-1)
+    (_, n_all, g_all), (_, n_in, _), (_, n_tgt, g_tgt) = HS_SELECT
+    n_col = len(HS_BASIS)
     funnel = ('<div class="mk-funnel">'
-              '<div style="width:92%">관세청 HS 6단위 품목 전체</div><i>▼</i>'
-              '<div style="width:70%">방산 전자 관련 후보 24개<small>근거: HSK 군용 · 항공 세분류, 전략물자, 국방반도체 연구 인용 등</small></div><i>▼</i>'
-              '<div style="width:52%">진입 규칙 R1 또는 R2<small>R1 군용전용(제9301 · 9306호 전용 세분류) · R2 항공 · 항행(항공기용 · 레이더 · 무인기 세분류)</small></div><i>▼</i>'
-              '<div style="width:34%;background:#0f2f73"><b>분석 대상 13개 품목군</b><small>나머지 11개는 배경 자료</small></div>'
-              '</div>')
+              f'<div style="width:92%">HS 6단위 전체 {n_all:,}개<small>{g_all}</small></div><i>▼</i>'
+              f'<div style="width:64%">진입 기준 충족 {n_in}개<small>군용 전용 세분류 또는 세분류 이름에 전문 용도 명시</small></div><i>▼</i>'
+              f'<div style="width:38%;background:#0f2f73"><b>분석 대상 {n_tgt}개 품목군</b><small>전자 계열만 — 「항공기용」 세분류로 걸린 {g_tgt}</small></div>'
+              '</div>'
+              f'<div class="mk-q" style="text-align:center">수집은 {n_col}개 = 분석 대상 {len(TARGET_HS)}개 + 배경 자료 {n_col - len(TARGET_HS)}개 '
+              f'(배경 {n_col - len(TARGET_HS)}개는 진입 {n_in}개 밖에서 따로 모았다)</div>')
     mock_screen(
         "select", "어떻게 골랐나",
-        "수천 개 품목 중 왜 이 13개인가",
+        f"{n_all:,}개 품목 중 왜 이 {n_tgt}개인가",
         "무역 통계의 공식 분류(HS)에서 군용 · 항공 · 항행 전용으로 나뉜 품목만 골랐다 — 팀이 임의로 고른 것이 아니다.",
         extra=funnel,
         notes=("HS 품목과 군급(FSC)을 잇는 공식 연계표가 없어 R4(국산화개발품목 FSC 대응)는 규칙에서 뺐다(09-21 결정)",
