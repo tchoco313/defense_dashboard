@@ -35,6 +35,14 @@ import plotly.graph_objects as go
 import streamlit as st
 import streamlit.components.v1 as components
 
+# 소개 — 무기체계 분류 · 공개 사례 설명 상수(dashboard/weapon_context.py, KDD_v2 와 같은 방법)
+import sys
+from pathlib import Path
+_DASHBOARD_DIR = Path(__file__).resolve().parents[1]
+if str(_DASHBOARD_DIR) not in sys.path:
+    sys.path.insert(0, str(_DASHBOARD_DIR))
+from weapon_context import CASES, SYSTEMS  # noqa: E402
+
 # 브라우저 탭 아이콘 — 머리글 로고와 같은 방패(Material Symbols Rounded 의 shield 원본 도형 · 흰색) + 가운데 태극.
 # 태극 위치 · 크기 · 회전은 머리글과 같은 비율: 방패 글자칸(38px) 기준 가로 50%(+0.3px) · 세로 46% · 지름 15px · 시계방향 40도
 _FAV_SVG = (
@@ -5398,8 +5406,10 @@ def _parts_conc() -> None:
 
 
 def page_parts() -> None:
-    _run_sub({"summary": _parts_summary, "trade": _parts_trade,
-              "conc": _parts_conc, "detail": lambda: search_block("수출입 HS")})
+    _mk_css()
+    # 소분류마다 KDD_v1 블록 다음에 KDD_v2 목업 화면(_v2_st_*)을 잇는다
+    _run_sub({"summary": lambda: (_parts_summary(), _v2_st_summary()), "trade": lambda: (_parts_trade(), _v2_st_trade()),
+              "conc": lambda: (_parts_conc(), _v2_st_conc()), "detail": lambda: search_block("수출입 HS")})
 
 
 # ── ② 군급 분류와 조달 ───────────────────────────────────────────────────
@@ -5516,7 +5526,10 @@ def _fsc_domestic() -> None:
 
 
 def page_fsc() -> None:
-    _run_sub({"code": _fsc_code, "plan": _fsc_plan, "army": _fsc_army, "domestic": _fsc_domestic,
+    _mk_css()
+    # KDD_v2 목업 화면(_v2_sp_*)도 함께 보이게(겹치는 내용 포함) — 군급코드란은 KDD_v2 블록을 맨 위에, 국외 조달계획은 KDD_v1 블록 다음에
+    _run_sub({"code": lambda: (_v2_sp_code(), _fsc_code()), "plan": lambda: (_fsc_plan(), _v2_sp_plan()),
+              "army": _fsc_army, "domestic": _fsc_domestic,
               "detail": lambda: search_block("군수품 FSG/FSC")})
 
 
@@ -5564,7 +5577,10 @@ def _local_pair() -> None:
 
 
 def page_local() -> None:
-    _run_sub({"done": _local_done, "pair": _local_pair, "detail": lambda: search_block("국산화개발")})
+    _mk_css()
+    # 국산화 완료 부품은 KDD_v1 블록 다음에 KDD_v2 목업을 잇는다(군급코드란 · 국외 조달계획 목업은 군급 분류와 조달로)
+    _run_sub({"done": lambda: (_local_done(), _v2_sp_done()),
+              "pair": _local_pair, "detail": lambda: search_block("국산화개발")})
 
 
 # ── ④ 배경과 자료 ────────────────────────────────────────────────────────
@@ -5759,6 +5775,251 @@ def page_background() -> None:
             subs[key]()
 
 
+# ── 소개(KDD_v2 의 「왜 이 부품인가」 + 「어디에 쓰이나」를 옮겨 옴) ──────────────────────
+# 소분류 한 화면 = 질문 · 이 화면이 말하려는 것 · 설명 재료 · 읽을 때 주의(mock_screen). 설명 문구는 숫자가 아니라 이야기 재료다
+MOCK_CSS = """<style>
+.mk-mark{display:none}
+.mk-slot .ms,.mk-card .ms{font-family:'Material Symbols Rounded'!important;font-weight:400;font-style:normal;line-height:1;
+  letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.mk-q{font-size:15px;color:#5a6b85;margin:2px 0 10px}
+.mk-q b{color:#1d4ed8;margin-right:6px}
+.mk-msg{background:#eef4ff;border-left:4px solid #1d4ed8;border-radius:0 10px 10px 0;padding:14px 18px;margin:0 0 16px}
+.mk-msg small{display:block;font-size:11px;font-weight:800;color:#1d4ed8;letter-spacing:.04em;margin-bottom:4px}
+.mk-msg b{font-size:17px;color:#0f1f3d;line-height:1.55}
+.mk-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 14px}
+.mk-slot{border:2px dashed #b9c9e4;border-radius:12px;background:#f8faff;min-height:170px;padding:16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px}
+.mk-slot.wide{grid-column:1 / -1}
+.mk-slot .ms{font-size:40px;color:#9fb3d6}
+.mk-slot b{font-size:15px;color:#27406b}
+.mk-slot span{font-size:13px;color:#6b7c96;line-height:1.5;max-width:520px}
+.mk-slot em{font-style:normal;font-size:11px;color:#9aa8bf;margin-top:2px}
+.mk-note{background:#fafafa;border:1px solid #e5e7eb;border-radius:10px;padding:10px 16px;margin:0 0 26px;font-size:13px;color:#4b5563}
+.mk-note b{color:#92400e;margin-right:6px}
+.mk-note ul{margin:4px 0 0;padding-left:18px}
+.mk-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 16px}
+.mk-card{border:1px solid #dae5f3;border-radius:12px;background:#fff;padding:14px 16px}
+.mk-card .ms{font-size:28px;color:#1d4ed8}
+.mk-card h4{margin:6px 0 4px;font-size:15px;color:#0f1f3d}
+.mk-card p{margin:0;font-size:13px;color:#5a6b85;line-height:1.55}
+.mk-card small{display:block;font-size:11px;font-weight:800;color:#4978c4;margin-bottom:2px}
+.mk-card a{font-size:12px;color:#1d4ed8}
+.mk-funnel{display:flex;flex-direction:column;align-items:center;gap:6px;margin:0 0 16px}
+.mk-funnel div{background:#1d4ed8;color:#fff;border-radius:8px;padding:12px 16px;text-align:center;font-size:14px}
+.mk-funnel div small{display:block;font-size:12px;opacity:.85;margin-top:2px}
+.mk-funnel i{font-style:normal;color:#9fb3d6;font-size:18px;line-height:1}
+.mk-grp{font-size:14px;font-weight:800;color:#27406b;margin:6px 0 8px}
+.mk-grp span{font-weight:600;color:#6b7c96;font-size:12px;margin-left:6px}
+.mk-card.warn{background:#fffbeb;border-color:#fde68a}
+.mk-tree{display:flex;align-items:stretch;gap:10px;margin:0 0 16px}
+.mk-tree>div{flex:1;border:1px solid #dae5f3;border-radius:12px;background:#fff;padding:14px 16px}
+.mk-tree>i{align-self:center;font-style:normal;color:#9fb3d6;font-size:22px}
+.mk-tree h4{margin:0 0 4px;font-size:15px;color:#1d4ed8}
+.mk-tree p{margin:0;font-size:13px;color:#5a6b85;line-height:1.55}
+@media (max-width:860px){.mk-grid,.mk-cards{grid-template-columns:1fr!important}.mk-tree{flex-direction:column}.mk-tree>i{transform:rotate(90deg)}}
+</style>"""
+
+# 차트 모양 → Material Symbols 아이콘 이름
+_MK_ICON = {"line": "show_chart", "bar": "bar_chart", "table": "table_chart", "map": "public", "donut": "donut_large",
+            "heat": "grid_on", "tree": "account_tree", "kpi": "dashboard", "mirror": "align_horizontal_center"}
+
+
+def _mk_css() -> None:
+    # <style> 만 있는 st.html 은 이벤트 칸으로 빠지므로 빈 표식을 붙여 본문 칸에 남긴다(main_landing 과 같은 방법)
+    with st.container(key=f"mk_css_{url}"):
+        st.html(MOCK_CSS + '<i class="mk-mark"></i>')
+
+
+def mock_screen(key: str, title: str, question: str, message: str,
+                slots: tuple = (), notes: tuple = (), extra: str = "") -> None:
+    """소분류 한 화면 — 질문 · 이 화면이 말하려는 것 · (설명 재료 extra) · 차트 자리 · 읽을 때 주의."""
+    for _ in zone(key, title):
+        st.html(f'<div class="mk-q"><b>Q.</b>{question}</div>'
+                f'<div class="mk-msg"><small>이 화면이 말하려는 것</small><b>{message}</b></div>')
+        if extra:
+            st.html(extra)
+        if slots:
+            st.html('<div class="mk-grid">' + "".join(
+                f'<div class="mk-slot{" wide" if wide else ""}"><span class="ms">{_MK_ICON[kind]}</span>'
+                f'<b>{name}</b><span>{desc}</span><em>차트 자리 · 데이터 연결 예정</em></div>'
+                for kind, name, desc, wide in slots) + '</div>')
+        if notes:
+            st.html('<div class="mk-note"><b>읽을 때 주의</b><ul>' + "".join(f"<li>{n}</li>" for n in notes) + '</ul></div>')
+
+
+# ── 소개 — 왜 이 부품인가 ────────────────────────────────────────────────────────
+_FUNCS = [("radar", "탐지", "레이더 · 전자광학으로 표적을 찾고 쫓습니다", "레이더 기기 · 증폭 IC"),
+          ("cell_tower", "통신", "부대와 체계가 정보를 주고받습니다", "안테나 · 송수신 부분품"),
+          ("explore", "항법", "위치와 자세를 알아 길을 찾습니다", "GPS/INS 수신기 · 항행 계기"),
+          ("memory", "제어", "신호를 처리해 사격과 비행을 제어합니다", "프로세서 · FPGA · 특수목적 IC")]
+
+
+def _why_elec() -> None:
+    cards = "".join(f'<div class="mk-card"><span class="ms">{ic}</span><h4>{n}</h4><p>{d}</p>'
+                    f'<p style="margin-top:6px"><small>맡는 부품</small>{p}</p></div>' for ic, n, d, p in _FUNCS)
+    mock_screen(
+        "elec", "왜 전자부품인가",
+        "무기체계에서 전자부품은 무슨 일을 하나",
+        "무기체계의 눈 · 귀 · 두뇌(탐지 · 통신 · 항법 · 제어)는 전자부품이 맡는다. 그런데 무기체계에 들어가는 반도체의 대부분을 해외에서 들여온다.",
+        extra=f'<div class="mk-cards">{cards}</div>',
+        notes=("「반도체 98.9% 해외 도입」은 국방반도체 발전전략(2024-11)이 인용한 2023-12 조사 값 — 팀 계산값 아님 · 분모 기준 미확인",))
+
+
+def _why_select() -> None:
+    funnel = ('<div class="mk-funnel">'
+              '<div style="width:92%">관세청 HS 6단위 품목 전체</div><i>▼</i>'
+              '<div style="width:70%">방산 전자 관련 후보 24개<small>근거: HSK 군용 · 항공 세분류, 전략물자, 국방반도체 연구 인용 등</small></div><i>▼</i>'
+              '<div style="width:52%">진입 규칙 R1 또는 R2<small>R1 군용전용(제9301 · 9306호 전용 세분류) · R2 항공 · 항행(항공기용 · 레이더 · 무인기 세분류)</small></div><i>▼</i>'
+              '<div style="width:34%;background:#0f2f73"><b>분석 대상 13개 품목군</b><small>나머지 11개는 배경 자료</small></div>'
+              '</div>')
+    mock_screen(
+        "select", "어떻게 골랐나",
+        "수천 개 품목 중 왜 이 13개인가",
+        "무역 통계의 공식 분류(HS)에서 군용 · 항공 · 항행 전용으로 나뉜 품목만 골랐다 — 팀이 임의로 고른 것이 아니다.",
+        extra=funnel,
+        notes=("HS 품목과 군급(FSC)을 잇는 공식 연계표가 없어 R4(국산화개발품목 FSC 대응)는 규칙에서 뺐다(09-21 결정)",
+               "무역 값은 국가 전체 수입 · 수출(민수 포함)이다 — 「방산 수입」이 아니다"))
+
+
+def _why_items() -> None:
+    name = {hs: n for hs, n, *_ in HS_BASIS}
+    groups = [("반도체", "두뇌 — 신호 처리 · 증폭", ["854231", "854233", "854239"]),
+              ("전자부품", "눈 · 귀 · 길잡이 — 레이더 · 통신 · 항법",
+               ["852610", "852910", "852990", "852691", "901410", "901420", "901480", "901490"]),
+              ("소재장비", "전자부품은 아님 — 항공기 · 엔진 부품", ["841191", "880730"])]
+    html = ""
+    for g, sub, hss in groups:
+        warn = " warn" if g == "소재장비" else ""
+        html += (f'<div class="mk-grp">{g} {len(hss)}개<span>{sub}</span></div><div class="mk-cards">'
+                 + "".join(f'<div class="mk-card{warn}"><small>HS {hs} · {SYSTEM_FAMILY[hs]}</small><h4>{name[hs]}</h4>'
+                           f'<p>{escape(DEFENSE_USE_KO[hs])}</p></div>' for hs in hss) + '</div>')
+    mock_screen(
+        "items", "13개 품목군",
+        "13개는 각각 어떤 부품인가",
+        "13개는 반도체 3 · 전자부품 8 · 소재장비 2로 나뉜다. 이야기의 중심은 반도체와 전자부품 11개다.",
+        extra=html,
+        notes=("소재장비 2개(841191 · 880730)를 분석 대상에 계속 둘지는 미결 — 11개로 줄이면 이 화면과 「어떻게 골랐나」 깔때기만 고치면 된다",))
+
+
+# ── 소개 — 어디에 쓰이나 ─────────────────────────────────────────────
+_ROLE = [("memory", "반도체 3개", "신호 처리 · 사격통제 · 항전 컴퓨터", "화력 · 항공 · 감시정찰"),
+         ("radar", "레이더 · 통신 부분품 3개", "표적 탐지 · 추적, 전술통신 · 데이터링크", "감시정찰 · 지휘통제통신"),
+         ("explore", "항법 · 항공전자 5개", "위치 · 자세 측정, 항행 계기", "항공 · 함정 · 유도무기")]
+
+
+def _use_role() -> None:
+    cards = "".join(f'<div class="mk-card"><span class="ms">{ic}</span><h4>{n}</h4><p>{d}</p>'
+                    f'<p style="margin-top:6px"><small>주로 쓰이는 무기체계 분야</small>{s}</p></div>' for ic, n, d, s in _ROLE)
+    mock_screen(
+        "role", "부품이 하는 일",
+        "13개 품목군은 무기체계의 어떤 기능을 맡나",
+        "반도체는 두뇌, 레이더 · 통신 부분품은 눈과 귀, 항법 기기는 길잡이 — 모두 무기체계의 핵심 기능이다.",
+        extra=f'<div class="mk-cards" style="grid-template-columns:repeat(3,minmax(0,1fr))">{cards}</div>',
+        notes=("부품 종류의 일반적인 쓰임이다 — 특정 무기체계의 부품 목록(BOM)이나 수입 품목의 실제 사용처가 아니다",))
+
+
+def _use_sys() -> None:
+    cards = "".join(f'<div class="mk-card"><small>{c}</small><h4>{n}</h4><p>{d}</p>'
+                    f'<p style="margin-top:6px;font-size:12px">{ex}</p></div>' for c, n, d, ex in SYSTEMS)
+    mock_screen(
+        "sys", "무기체계 분류",
+        "우리나라는 무기체계를 어떻게 나누나",
+        "방위사업청 분류체계는 무기체계를 10개 대분류로 나눈다. 전자부품은 거의 모든 분류에 들어간다.",
+        extra=f'<div class="mk-cards" style="grid-template-columns:repeat(5,minmax(0,1fr))">{cards}</div>',
+        notes=("출처: 방위사업청 무기체계 분류체계(별표3)",))
+
+
+def _use_cases() -> None:
+    cards = "".join(f'<div class="mk-card"><small>{f} · {co}</small><h4>{sysn}</h4><p>{stt} · {when}<br>{desc}</p>'
+                    f'<a href="{link}" target="_blank" rel="noopener">공식 발표 보기 ↗</a></div>'
+                    for f, co, sysn, stt, when, desc, link in CASES)
+    mock_screen(
+        "cases", "공개 사례",
+        "국산 전자부품 · 무기체계는 실제로 어디까지 왔나",
+        "KF-21 레이다, 항재밍 수신기처럼 국산 전자부품이 양산 · 수출까지 이어진 사례가 나오고 있다.",
+        extra=f'<div class="mk-cards">{cards}</div>',
+        notes=("각 사례는 기업 · 기관의 공개 발표다 — 분석 대상 13개 품목의 수입 · 조달 자료와 연결하지 않는다",))
+
+
+def _intro_use() -> None:
+    # 「어디에 쓰이나」 = 부품이 하는 일 · 무기체계 분류 · 공개 사례를 한 소분류에 차례로
+    _use_role()
+    _use_sys()
+    _use_cases()
+
+
+def page_intro() -> None:
+    _mk_css()
+    _run_sub({"elec": _why_elec, "select": _why_select, "items": _why_items, "use": _intro_use})
+
+
+# KDD_v2 의 차트 자리(목업) 화면 — KDD_v1 의 같은 소분류 아래에 이어 붙인다. 이미 있는 차트와 겹치는 부분이 있다(09-30 확인 후 정리 예정)
+# ── 전자부품 현황에 덧붙임(KDD_v2 「부품 현황」 목업) ─────────────────────────────────────────────────────────────
+def _v2_st_summary() -> None:
+    mock_screen(
+        "v2_summary", "종합 현황표",
+        "13개 품목군을 한 표로 보면 어떤가",
+        "13개 중 ○개는 수입액의 절반 이상을 한 나라에서 들여온다.",
+        slots=(("kpi", "KPI 4장", "총 수입액 · 총 수출액 · 1위 공급국 50% 이상 품목군 수 · 평균 수입국 수", True),
+               ("table", "품목군 현황표", "HS6 · 품목군 · 1위 공급국 · 점유율 · HHI — 품목군마다 한 줄", True)),
+        notes=("HHI 와 1위 공급국 점유율을 한 화면에 둘 다 올릴지는 미결(09-22 피드백)",))
+
+
+def _v2_st_trade() -> None:
+    mock_screen(
+        "v2_trade", "수출입 현황",
+        "어느 나라에서 얼마나 들여오고 내보내나",
+        "수입은 ○ · ○ 두 나라에 몰려 있고, 수출은 수입의 ○분의 1 수준이다.",
+        slots=(("line", "연도별 수입 · 수출 추이", "2016~2026, 수입 | 수출 전환", False),
+               ("map", "공급국 지구본", "나라별 수입 흐름 — 수출로 바꾸면 화살표 방향이 반대", False),
+               ("bar", "주요국 TOP 7", "품목군을 고르면 그 품목의 나라 순위", True)))
+
+
+def _v2_st_conc() -> None:
+    mock_screen(
+        "v2_conc", "공급국 집중도 변화",
+        "한 나라에 쏠린 정도는 나아지고 있나",
+        "○개 품목군은 10년 내내 한 나라 쏠림(HHI 2,500 이상)이 이어졌다.",
+        slots=(("heat", "품목군 × 연도 집중도", "칸 색 = 그해 HHI 등급 — 계속 진한 줄이 「늘 쏠린 품목」", True),),
+        notes=("HHI = Σ(국가 점유율 %)², 0~10,000 · 2,500 이상 = 높은 집중. 위험도나 의존도를 뜻하지 않는다",))
+
+
+# ── 국산화 현황에 덧붙임(KDD_v2 「조달과 국산화」 목업) ─────────────────────────────────────────────────────────
+def _v2_sp_code() -> None:
+    tree = ('<div class="mk-tree">'
+            '<div><h4>군(FSG) · 2자리</h4><p>큰 묶음. 전자는 58 통신 · 탐지 장비 · 59 전기 · 전자 구성품 · 60 광섬유</p></div><i>▶</i>'
+            '<div><h4>군급(FSC) · 4자리</h4><p>FSG 를 나눈 분류. 예: 5840 레이더 장비 · 5962 전자 집적회로 · 5935 커넥터</p></div><i>▶</i>'
+            '<div><h4>재고번호(NSN) · 13자리</h4><p>FSC 4자리 + 품목 식별번호 9자리 — 부품 하나하나의 번호</p></div></div>')
+    mock_screen(
+        "v2_code", "군급코드란",
+        "군은 전자부품을 어떤 분류로 관리하나",
+        "군은 무역 통계(HS)와 다른 분류(FSG → FSC → NSN)로 부품을 관리하고, 조달 · 국산화 자료는 모두 이 분류를 쓴다.",
+        extra=tree,
+        slots=(("tree", "FSG · FSC 계층 선버스트", "안쪽 고리 = 군(FSG) · 바깥 고리 = 군급(FSC)", True),),
+        notes=("소개 · 전자부품 현황의 HS 13개와 이 군급 분류는 코드로 잇지 않는다 — 같은 전자부품 영역을 두 공식 분류로 나란히 본다(09-21 결정)",))
+
+
+def _v2_sp_plan() -> None:
+    mock_screen(
+        "v2_plan", "국외 조달계획",
+        "군은 전자 군급 중 무엇을 해외에서 사려 하나",
+        "해외 조달계획은 ○ · ○ 군급에 몰려 있다.",
+        slots=(("bar", "군급별 국외 조달계획 건수", "전자 군급(FSG 58 · 59 · 60) 상위 순", False),
+               ("line", "요구연도별 추이", "2016~2026 · 소요군 색 구분", False)),
+        notes=("건수만 있다(금액 없음) — 품목 단위 API판",))
+
+
+def _v2_sp_done() -> None:
+    mock_screen(
+        "v2_done", "국산화 완료 부품",
+        "그중 무엇을 국산화했나",
+        "국산화개발을 마친 전자 부품은 ○ 군급에 가장 많다.",
+        slots=(("donut", "군급별 국산화 완료 부품 수", "FSG 58 · 59 나눔", False),
+               ("mirror", "조달계획 ↔ 국산화 나란히", "같은 군급 축에 왼쪽 = 해외 조달계획 · 오른쪽 = 국산화", False)),
+        notes=("완료 부품 수 ≠ 국산화율(분모가 없다) — 두 막대는 나란히 볼 뿐 나누거나 빼지 않는다",
+               "국산화개발품목 원본에는 기준일이 없다 — 연도별 추이는 그릴 수 없다"))
+
+
 # ════════════════════════════════════════════════════════════════════════════
 # 6. 라우터 · 사이드바
 # ════════════════════════════════════════════════════════════════════════════
@@ -5767,6 +6028,8 @@ def page_background() -> None:
 PAGES = [
     (st.Page(page_home, title="K-Defense 홈", url_path="home", default=True), "홈", "home",
      "K-Defense 데이터 대시보드", "방산 전자부품 13개 품목군의 수출입과 국산화 현황"),
+    (st.Page(page_intro, title="소개", url_path="intro"), "소개", "info",
+     "소개", "무기체계의 핵심 기능을 맡는 전자부품 — 왜 이 13개를 골랐고, 어디에 쓰이나"),
     (st.Page(page_parts, title="전자부품 현황", url_path="parts"), "전자부품 현황", "memory",
      "전자부품 현황", "분석 대상 13개 품목군(HS)을 어디서 얼마나 들여오고 내보내나"),
     (st.Page(page_fsc, title="군급 분류와 조달", url_path="fsc"), "군급 분류와 조달", "category",
@@ -5958,6 +6221,7 @@ def glossary_button(key: str) -> None:
 # 페이지별 블록 — 왼쪽 메뉴 · 상단 펼침 메뉴 · 전체 메뉴에 쓴다. 각 페이지 함수의 zone(키, 이름)과 같아야 한다
 SECTIONS = {
     "home": [("main", "Main")],
+    "intro": [("elec", "왜 전자부품인가"), ("select", "어떻게 골랐나"), ("items", "13개 품목군"), ("use", "어디에 쓰이나")],
     "parts": [("summary", "종합 현황표"), ("trade", "수출입 현황"),
               ("conc", "공급국 집중도 변화"), ("detail", "상세 조회")],
     "fsc": [("code", "군급코드란"), ("plan", "군급별 국외 조달계획"), ("army", "소요군별"),
@@ -5968,6 +6232,7 @@ SECTIONS = {
 }
 # 왼쪽 메뉴 아래 파란 칸 — 대분류마다 「이렇게 보세요」 팁 1~2줄(09-30 피드백 — 핵심만). (머리말, 내용) — 머리말은 굵게, 내용은 짧은 명사형으로
 LNB_TIPS = {
+    "intro": [("흐름", "기능 → 선정 규칙 → 13개 → 쓰임"), ("주의", "쓰임은 일반적 용도 · 특정 체계 부품 목록(BOM) 아님")],
     "parts": [("공급국 집중", "HHI 2,500 이상 · 1위 공급국 점유율 50% 이상"),
               ("금액", "국가 전체 수입(민수 포함) — 군 수요만이 아님")],
     "fsc": [("기준", "전자 군급 = 군(FSG) 58 · 59 · 60에 속한 군급, 건수만"),
@@ -5977,8 +6242,8 @@ LNB_TIPS = {
     "background": [("단위", "예산 · 가동률 · 생산지수는 기준이 서로 다름"),
                    ("비교", "관세청 수입액과 합산 · 직접 비교하지 않음")],
 }
-URLS = ["home", "parts", "fsc", "local", "background"]   # PAGES 와 같은 순서
-GNB = ["parts", "fsc", "local", "background"]              # 상단 메뉴 — 홈(첫 화면)은 로고를 누르면 간다
+URLS = ["home", "intro", "parts", "fsc", "local", "background"]   # PAGES 와 같은 순서
+GNB = ["intro", "parts", "fsc", "local", "background"]              # 상단 메뉴 — 홈(첫 화면)은 로고를 누르면 간다
 # 태극 — 위 빨강(#CD2E3A) · 아래 파랑(#0047A0), 왼쪽은 빨강이 · 오른쪽은 파랑이 반원만큼 파고든다. 흰 테두리로 방패 선과 떼어 놓는다
 # st.html 은 <svg> 를 지우므로 그림(data URI)으로 넣는다
 _TG_SVG = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="-11 -11 22 22">'
@@ -6735,8 +7000,8 @@ div[class*="st-key-gi_"]:hover div[class*="st-key-gs_"]{{background:rgba(255,255
 div[class*="st-key-gs_"]{{height:{_DROP_H}px;box-sizing:border-box;border-left:1px solid rgba(255,255,255,.2)}}
 .st-key-gs_background{{border-right:1px solid rgba(255,255,255,.2)}}
 /* 띠 아래 모서리를 둥글게 한 만큼 양 끝 칸(커서를 올리면 옅게 밝아짐)도 같은 반지름으로 깎는다 */
-.st-key-gs_parts{{border-bottom-left-radius:14px}}
-.st-key-gs_background{{border-bottom-right-radius:14px}}
+.st-key-gs_{GNB[0]}{{border-bottom-left-radius:14px}}
+.st-key-gs_{GNB[-1]}{{border-bottom-right-radius:14px}}
 /* 전체 메뉴(≡) */
 .st-key-gnb_all{{width:66px!important;flex:0 0 66px!important}}
 /* 전체 메뉴(≡)는 흐름에서 빼 파란 펼침 띠 바로 오른쪽에 — 띠 오른쪽 끝(50% + 메뉴 칸 폭 합의 절반)에 붙인다. 세로 자리는 메뉴 줄 그대로 */
@@ -6861,10 +7126,10 @@ div[class*="st-key-zone_"]::before{{display:none}}
 .kpis:not(.q) .kpi{{grid-column:span 2;min-height:170px}}
 .kpis:not(.q):not(.k4):not(.k6) .kpi:nth-child(4){{grid-column:2 / span 2}}
 .kpis.k4:not(.q) .kpi:nth-child(odd){{grid-column:2 / span 2}}
-/* 한 줄 4장(.row1) — ③ 국산화 완료 부품. 카드 폭을 246 → 210px 로 줄여 4장을 한 줄에 놓고,
-   폭이 준 만큼 높이도 170 → 150px 로 줄여 비율을 맞춘다(줄 높이 1fr 라 4장 높이는 같다) */
-.kpis.k4.row1:not(.q){{grid-template-columns:repeat(4,minmax(0,210px))}}
-.kpis.k4.row1:not(.q) .kpi,.kpis.k4.row1:not(.q) .kpi:nth-child(odd){{grid-column:auto;min-height:150px}}
+/* 한 줄 4장(.row1) — ③ 국산화 완료 부품. 카드는 다른 페이지와 같은 246 × 170px(제목 「국산화개발 전자 계열」이 한 줄에 들어가는 폭),
+   칸 사이만 26 → 20px 로 좁혀 4장이 본문 폭(1400 - 여백 64 - 왼쪽 메뉴 230 - 간격 44 = 1,062px) 안에 한 줄로 들어간다 */
+.kpis.k4.row1:not(.q){{grid-template-columns:repeat(4,minmax(0,246px));gap:20px}}
+.kpis.k4.row1:not(.q) .kpi,.kpis.k4.row1:not(.q) .kpi:nth-child(odd){{grid-column:auto}}
 /* ① 부품 현황 KPI(.parts-kpi-row — 종합 현황표 · 수출입 현황 핵심 지표)만 — 넓은 화면은 1줄 4칸, 860px 이하는 2 × 2.
    배치(격자 칸 · grid-column)만 바꾸고 카드 모양 · 글씨는 위 규칙 그대로. 다른 페이지 4장(.kpis.k4)은 2 + 2 가운데 그대로 */
 .kpis.k4.parts-kpi-row:not(.q){{grid-template-columns:repeat(4,minmax(0,1fr))}}
