@@ -3255,7 +3255,10 @@ MAIN_CSS = """<style>
 .mi-txt h2 em{font-style:normal;color:#1d4ed8}
 .mi-txt p{margin:16px 0 0;font-size:14.5px;line-height:1.8;color:#55637d;word-break:keep-all}
 .mi-txt p b{color:#0b1f4d;font-weight:800}
-.mi-ref{margin-left:1px;font-size:11px;font-weight:800;color:#1d4ed8}
+.mi-ref{margin-right:1px;font-size:11px;font-weight:800;color:#1d4ed8}
+.mi-hit{cursor:help}
+.mi-src{transition:color .15s,font-size .15s}
+.mi-txt:has(.mi-hit:hover) .mi-src{color:#1d4ed8;font-size:13.5px}
 .mi-txt p + p{margin-top:10px}
 .mi-src{display:block;margin-top:12px;font-size:12px;color:#8a97ad;line-height:1.6}
 .st-key-mi_links [data-testid="stPageLink"] a p{white-space:normal!important;word-break:keep-all;line-height:1.35!important}
@@ -3415,14 +3418,15 @@ def main_landing() -> None:
 
     # 2) 왜 전자부품인가 — 이유(본문) + 그 이유를 확인하는 화면 네 곳(아이콘). 아이콘은 이야기 순서 ① → ① → ③ → ④
     #    98.9% 는 인용(국방반도체 발전전략 본문 · 2023-12 조사) — 본문에는 각주 표시(*)만, 출처 · 한계는 아래 각주 줄에.
+    #    * · 98.9% 에 마우스를 올리면 아래 각주 줄이 파란 글씨로 커진다(.mi-hit — CSS :has)
     #    「의존도」 · 「공급망」은 쓰지 않는다
     with st.container(key="mi", horizontal=True):
         st.html('<div class="mi-txt"><div class="k">WHY ELECTRONICS</div>'
                 '<h2>왜 <em>전자부품</em>인가?</h2>'
                 '<p>탐지 · 통신 · 항법 · 제어 같은 무기체계의 핵심 기능은 반도체와 전자부품이 맡습니다. '
-                '그런데 무기체계에 들어가는 반도체의 <b>98.9%</b><sup class="mi-ref">*</sup>는 해외에서 들여오고, '
+                '그런데 무기체계에 들어가는 반도체의 <span class="mi-hit"><sup class="mi-ref">*</sup><b>98.9%</b></span>는 해외에서 들여오고, '
                 '분석 대상 13개 품목군 중 <b>5개</b>는 2025년 수입액의 절반 이상을 한 나라에서 들여왔습니다(민수 포함). '
-                '정부도 2024년 국방반도체 발전전략, 2026년 국방반도체법으로 국산화를 추진하고 있습니다.</p>'
+                '우리 정부도 2024년 국방반도체 발전전략, 2026년 국방반도체법으로 반도체와 부품국산화 사업으로 전자부품 전반의 국산화를 추진하고 있습니다.</p>'
                 '<p>이 대시보드는 공개 데이터로 이 부품들의 <b>수출입 → 군 조달 → 국산화</b> 현황을 차례로 보여 줍니다.</p>'
                 '<small class="mi-src">* 무기체계 적용 반도체의 해외 도입 비중 — 국방반도체 발전전략(2024-11)이 인용한 2023-12 조사 값입니다. '
                 '팀이 계산한 값이 아니며 분모 기준은 확인하지 못했습니다.</small></div>')
