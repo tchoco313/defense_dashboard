@@ -4847,8 +4847,11 @@ def stat_table(df: pd.DataFrame, q: dict) -> None:
             + (" · 2026년은 1~8월 부분연도" if 2026 in years else "") + "</div>")
 
 
+@st.fragment
 def search_block(dtype: str) -> None:
-    """각 대분류의 「상세 조회」 — 분석 조건 설정 · 조회 결과(예전 DATA CENTER 「데이터 시각화」). 데이터 유형은 메뉴마다 고정."""
+    """각 대분류의 「상세 조회」 — 분석 조건 설정 · 조회 결과(예전 DATA CENTER 「데이터 시각화」). 데이터 유형은 메뉴마다 고정.
+    fragment — 안의 조건 · 차트 유형 · 칩 · 초기화를 바꾸면 이 구역만 다시 돈다(KPI · 다른 차트 · 메뉴는 그대로).
+    안에서 st.rerun() 을 부르지 않고, 콜백(_q_*)은 이 구역만 읽는 조회 키(qs_ · qf_ · ql_ · qd_type · q_reset_n)만 바꾼다"""
     for _ in zone("sel", "상세 조회"):
         c_form, c_res = st.columns([1, 1.55], gap="medium")
         with c_form:
