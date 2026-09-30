@@ -1,10 +1,13 @@
-"""K-Defense 대시보드 KDD_v2 — 스토리 목업(2026-09-30). KDD_v1.py 를 복사해 메뉴를 5개로 다시 짜고, 화면에서 숫자 · 차트를 뺐다.
+"""K-Defense 대시보드 KDD_v2 — 스토리 목업(2026-09-30). KDD_v1 을 복사해 화면에서 숫자 · 차트를 뺀 「설계도」.
 
-이야기 순서: ① 왜 이 부품인가 → ② 부품 현황 → ③ 조달과 국산화 → ④ 함께 보면 보이는 흐름 → ⑤ 어디에 쓰이나.
+메뉴 · 소분류 · 주소는 KDD_v1 과 1:1 로 같다(09-30 오후 정렬): 소개 → 전자부품 현황 → 군급 분류와 조달 → 국산화 현황 → 배경과 자료.
 소분류마다 「질문 · 이 화면이 말하려는 것 · 차트 자리 · 읽을 때 주의」만 보인다(아래 「KDD_v2 스토리 목업」 구역).
+여기서 다듬은 문장 · 차트 구성을 KDD_v1 의 같은 소분류로 옮긴다. 결론 문장의 ○ 은 데이터를 붙일 때 채울 자리.
 틀(머리글 · 상단 펼침 메뉴 · 배너 · 왼쪽 메뉴 · 바닥글)과 홈 첫 화면은 KDD_v1 그대로다.
-⑤ 는 dashboard/weapon_context.py 의 무기체계 분류(SYSTEMS) · 공개 사례(CASES)를 쓴다.
-KDD_v1 의 옛 화면 함수(_parts_* · _fsc_* · _local_* · _bg_* · search_block)는 파일에 남아 있지만 부르지 않는다.
+소개 「어디에 쓰이나」는 dashboard/weapon_context.py 의 무기체계 분류(SYSTEMS) · 공개 사례(CASES)를 쓴다.
+전자부품 현황 · 군급 분류와 조달 · 국산화 현황 맨 아래 「상세 조회」만 KDD_v1 의 search_block(샘플 값)을 그대로 쓴다.
+KDD_v1 의 나머지 옛 화면 함수(page_parts · _parts_* · _fsc_* · _local_* · _bg_*)는 파일에 남아 있지만 부르지 않는다.
+회의 기록 · 결정: docs/report/app/kdd-v2-mockup-2026-09-30.md
 
 실행:  streamlit run "dashboard/demo/KDD_v2.py" --theme.base light
 
@@ -3256,17 +3259,17 @@ def _ph(pid: str, w: int = 1600) -> str:
 MAIN_SLIDES = [_ph("1551796880-ddd03f861ae7", 2000),    # 푸른 하늘의 전투기
                _ph("1685178362030-9b574eb9ae7c", 2000),  # 항공모함
                _ph("1610457642191-05328cdf34ff", 2000)]  # 밤하늘 레이더
-MAIN_CARDS = [  # (url, 소분류, 사진, 분류, 제목, 설명) — 이야기 순서
-    ("why", "elec", _ph("1610457642191-05328cdf34ff", 900), "WHY", "왜 이 부품인가",
-     "무기체계의 눈 · 귀 · 두뇌를 맡는 전자부품, 그중 왜 이 13개를 골랐는지 봅니다."),
-    ("status", "summary", _ph("1592659762303-90081d34b277", 900), "STATUS", "부품 현황",
-     "13개 품목군을 어느 나라에서 얼마나 들여오고 내보내는지 봅니다."),
-    ("supply", "code", _ph("1587293852726-70cdb56c2866", 900), "SUPPLY", "조달과 국산화",
-     "군급 분류로 본 해외 조달계획과 국산화를 마친 부품을 봅니다."),
-    ("flow", "main_flow", _ph("1578575437130-527eed3abbec", 900), "FLOW", "함께 보면 보이는 흐름",
-     "관세청 · 방사청 · 예산 자료를 한 시간축에 나란히 놓고 흐름을 봅니다."),
-    ("use", "role", _ph("1551796880-ddd03f861ae7", 900), "WEAPONS", "어디에 쓰이나",
-     "이 부품들이 무기체계에서 맡는 기능과 국산화 · 수출 공개 사례를 봅니다."),
+MAIN_CARDS = [  # (url, 소분류, 사진, 분류, 제목, 설명) — 이야기 순서(KDD_v1 메뉴와 같음)
+    ("intro", "elec", _ph("1610457642191-05328cdf34ff", 900), "INTRO", "소개",
+     "무기체계의 눈 · 귀 · 두뇌를 맡는 전자부품, 그중 왜 이 13개를 골랐고 어디에 쓰이는지 봅니다."),
+    ("parts", "summary", _ph("1592659762303-90081d34b277", 900), "PARTS", "전자부품 현황",
+     "분석 대상 13개 품목군을 어느 나라에서 얼마나 들여오고 내보내는지, 공급국 집중도와 함께 봅니다."),
+    ("fsc", "code", _ph("1578575437130-527eed3abbec", 900), "CLASSIFICATION", "군급 분류와 조달",
+     "군수품 분류(군 FSG · 군급 FSC)로 전자 군급의 국외 조달계획과 국내 계약 · 입찰을 봅니다."),
+    ("local", "done", _ph("1587293852726-70cdb56c2866", 900), "LOCALIZATION", "국산화 현황",
+     "군(FSG) 58 · 59 · 60에 속한 전자 군급 부품 중 국산화개발을 마친 부품을 군급별로 봅니다."),
+    ("background", "policy", _ph("1676090438227-141cac59c405", 900), "BACKGROUND", "배경과 자료",
+     "정책 흐름과 예산, 국내 생산 기반, 그리고 이 숫자들이 어디서 왔는지 봅니다."),
 ]
 # 첫 화면 「데이터 출처」 목록 — (기관, 데이터, 수록 기간 · 기준, 원본 페이지). 기간은 AS_OF(④ 자료별 기준일) · 참고 자료 md 와 같게.
 # 누르면 새 탭에서 원본 페이지로 — 공공데이터포털 주소는 docs/data-sources.md 의 데이터셋 번호(2026-09-30 접속 확인).
@@ -3497,8 +3500,8 @@ def main_landing() -> None:
     with st.container(key="mvjs"):
         components.html(MV_JS, height=0)
     with st.container(key="mv_cta", horizontal=True, vertical_alignment="center"):
-        st.page_link(page_of["why"][0], label="이야기 시작하기", icon=":material/play_arrow:", query_params={"sec": "elec"})
-        st.page_link(page_of["flow"][0], label="함께 보면 보이는 흐름", icon=":material/timeline:", query_params={"sec": "main_flow"})
+        st.page_link(page_of["intro"][0], label="이야기 시작하기", icon=":material/play_arrow:", query_params={"sec": "elec"})
+        st.page_link(page_of["parts"][0], label="직접 조회하기", icon=":material/search:", query_params={"sec": "detail"})
 
     # 2) 왜 전자부품인가 — 이유(본문) + 그 이유를 확인하는 화면 네 곳(아이콘). 아이콘은 이야기 순서 ① → ① → ③ → ④
     #    98.9% 는 인용(국방반도체 발전전략 본문 · 2023-12 조사) — 본문에는 각주 표시(*)만, 출처 · 한계는 아래 각주 줄에.
@@ -3511,19 +3514,19 @@ def main_landing() -> None:
                 '그런데 무기체계에 들어가는 반도체의 <span class="mi-hit"><sup class="mi-ref">*</sup><b>98.9%</b></span>는 해외에서 들여오고, '
                 '분석 대상 13개 품목군 중 <b>5개</b>는 2025년 수입액의 절반 이상을 한 나라에서 들여왔습니다(민수 포함). '
                 '우리 정부도 2024년 국방반도체 발전전략, 2026년 국방반도체법으로 반도체와 부품국산화 사업으로 전자부품 전반의 국산화를 추진하고 있습니다.</p>'
-                '<p>이 대시보드는 공개 데이터로 <b>왜 이 부품인가 → 부품 현황 → 조달과 국산화 → 함께 보면 보이는 흐름 → 어디에 쓰이나</b>를 차례로 보여 줍니다.</p>'
+                '<p>이 대시보드는 공개 데이터로 <b>소개 → 전자부품 현황 → 군급 분류와 조달 → 국산화 현황 → 배경과 자료</b>를 차례로 보여 줍니다.</p>'
                 '<small class="mi-src">* 무기체계 적용 반도체의 해외 도입 비중 — 국방반도체 발전전략(2024-11)이 인용한 2023-12 조사 값입니다. '
                 '팀이 계산한 값이 아니며 분모 기준은 확인하지 못했습니다.</small></div>')
         with st.container(key="mi_links", horizontal=True):
-            for u, sec, label, icon in [("why", "items", "13개 품목군은 무엇인가", "memory"),
-                                        ("status", "trade", "어느 나라에서 들여오나", "public"),
-                                        ("supply", "done", "무엇을 국산화했나", "build"),
-                                        ("use", "role", "어떤 무기체계에 쓰이나", "rocket_launch")]:
+            for u, sec, label, icon in [("intro", "items", "13개 품목군은 무엇인가", "memory"),
+                                        ("parts", "trade", "어느 나라에서 들여오나", "public"),
+                                        ("local", "done", "무엇을 국산화했나", "build"),
+                                        ("intro", "use", "어떤 무기체계에 쓰이나", "rocket_launch")]:
                 st.page_link(page_of[u][0], label=label, icon=f":material/{icon}:", query_params={"sec": sec})
 
     # 3) 주요 분석 사진 카드
     st.html('<div class="mc-head"><h2><small>STORY</small>이야기 순서대로 보기</h2>'
-            '<span>① 부터 ⑤ 까지 차례로 이어집니다</span></div>')
+            '<span>소개부터 배경과 자료까지 차례로 이어집니다</span></div>')
     with st.container(key="mcards", horizontal=True):
         for i, (u, sec, img, cat, title, desc) in enumerate(MAIN_CARDS):
             with st.container(key=f"mc_{i}"):
@@ -5741,7 +5744,9 @@ def page_background() -> None:
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# KDD_v2 스토리 목업 — 메뉴 5개(① 왜 이 부품인가 → ② 부품 현황 → ③ 조달과 국산화 → ④ 함께 보면 보이는 흐름 → ⑤ 어디에 쓰이나).
+# KDD_v2 스토리 목업 — 메뉴 · 소분류를 KDD_v1 과 1:1 로 맞춘 「숫자 없는 설계도」(2026-09-30 오후).
+# 소개 → 전자부품 현황 → 군급 분류와 조달 → 국산화 현황 → 배경과 자료. 주소(url) · 소분류 키도 KDD_v1 과 같다 —
+# 여기서 다듬은 질문 · 결론 문장 · 차트 구성을 KDD_v1 의 같은 소분류로 옮기면 된다.
 # 숫자 · 차트 · 표는 넣지 않는다. 소분류마다 「질문 → 이 화면이 말하려는 것 → 들어갈 차트 자리 → 읽을 때 주의」만 보여 준다.
 # 설명 문구(선정 규칙 · 품목 설명 · 군급 구조 · 무기체계 분류 · 공개 사례)는 숫자가 아니라 이야기 재료라 그대로 쓴다.
 # 결론 문장의 ○ 은 데이터를 붙일 때 채울 자리다.
@@ -5835,15 +5840,17 @@ def _why_elec() -> None:
 
 
 def _why_select() -> None:
+    # 한 줄 깔때기는 1,003 → 52 → 13 만. 수집 24 는 진입 52 의 부분집합이 아니라서 층으로 넣지 않고 아래 한 줄로 따로 적는다
+    # (plan-revision-2026-09-23.md §2-1 · KDD_v1 HS_SELECT 와 같은 값)
     funnel = ('<div class="mk-funnel">'
-              '<div style="width:92%">관세청 HS 6단위 품목 전체</div><i>▼</i>'
-              '<div style="width:70%">방산 전자 관련 후보 24개<small>근거: HSK 군용 · 항공 세분류, 전략물자, 국방반도체 연구 인용 등</small></div><i>▼</i>'
-              '<div style="width:52%">진입 규칙 R1 또는 R2<small>R1 군용전용(제9301 · 9306호 전용 세분류) · R2 항공 · 항행(항공기용 · 레이더 · 무인기 세분류)</small></div><i>▼</i>'
-              '<div style="width:34%;background:#0f2f73"><b>분석 대상 13개 품목군</b><small>나머지 11개는 배경 자료</small></div>'
-              '</div>')
+              '<div style="width:92%">HS 6단위 전체 1,003개<small>84 · 85 · 88 · 90류</small></div><i>▼</i>'
+              '<div style="width:64%">진입 기준 충족 52개<small>군용 전용 세분류 또는 세분류 이름에 전문 용도 명시</small></div><i>▼</i>'
+              '<div style="width:38%;background:#0f2f73"><b>분석 대상 13개 품목군</b><small>전자 계열만 — 「항공기용」 세분류로 걸린 기계 · 전장 계열 39개 제외</small></div>'
+              '</div>'
+              '<div class="mk-q" style="text-align:center">수집은 24개 = 분석 대상 13개 + 배경 자료 11개 (배경 11개는 진입 52개 밖에서 따로 모았다)</div>')
     mock_screen(
         "select", "어떻게 골랐나",
-        "수천 개 품목 중 왜 이 13개인가",
+        "1,003개 품목 중 왜 이 13개인가",
         "무역 통계의 공식 분류(HS)에서 군용 · 항공 · 항행 전용으로 나뉜 품목만 골랐다 — 팀이 임의로 고른 것이 아니다.",
         extra=funnel,
         notes=("HS 품목과 군급(FSC)을 잇는 공식 연계표가 없어 R4(국산화개발품목 FSC 대응)는 규칙에서 뺐다(09-21 결정)",
@@ -5878,17 +5885,18 @@ def _st_summary() -> None:
         "13개 중 ○개는 수입액의 절반 이상을 한 나라에서 들여온다.",
         slots=(("kpi", "KPI 4장", "총 수입액 · 총 수출액 · 1위 공급국 50% 이상 품목군 수 · 평균 수입국 수", True),
                ("table", "품목군 현황표", "HS6 · 품목군 · 1위 공급국 · 점유율 · HHI — 품목군마다 한 줄", True)),
-        notes=("HHI 와 1위 공급국 점유율을 한 화면에 둘 다 올릴지는 미결(09-22 피드백)",))
+        notes=("HHI 와 1위 공급국 점유율을 한 화면에 둘 다 올릴지(09-22 피드백) — KDD_v1 은 지금 둘 다 보여 준다. 팀 확인 필요",))
 
 
 def _st_trade() -> None:
     mock_screen(
         "trade", "수출입 현황",
         "어느 나라에서 얼마나 들여오고 내보내나",
-        "수입은 ○ · ○ 두 나라에 몰려 있고, 수출은 수입의 ○분의 1 수준이다.",
-        slots=(("line", "연도별 수입 · 수출 추이", "2016~2026, 수입 | 수출 전환", False),
+        "수입은 절반 가까이(○%)를 ○ 한 나라에서 들여오고, 수출은 오히려 수입보다 ○배 많다(반도체 IC 수출).",
+        slots=(("line", "연도별 수입 · 수출 추이", "2016~2025(완결연도), 수입 | 수출 전환", False),
                ("map", "공급국 지구본", "나라별 수입 흐름 — 수출로 바꾸면 화살표 방향이 반대", False),
-               ("bar", "주요국 TOP 7", "품목군을 고르면 그 품목의 나라 순위", True)))
+               ("bar", "주요국 TOP 7", "품목군을 고르면 그 품목의 나라 순위", True)),
+        notes=("수출이 수입보다 많은 것은 반도체 IC 수출 때문 — 방산 수출이 아니다(민수 포함 국가 전체)",))
 
 
 def _st_conc() -> None:
@@ -5917,54 +5925,100 @@ def _sp_code() -> None:
 
 def _sp_plan() -> None:
     mock_screen(
-        "plan", "국외 조달계획",
+        "plan", "군급별 국외 조달계획",
         "군은 전자 군급 중 무엇을 해외에서 사려 하나",
-        "해외 조달계획은 ○ · ○ 군급에 몰려 있다.",
-        slots=(("bar", "군급별 국외 조달계획 건수", "전자 군급(FSG 58 · 59 · 60) 상위 순", False),
-               ("line", "요구연도별 추이", "2016~2026 · 소요군 색 구분", False)),
-        notes=("건수만 있다(금액 없음) — 품목 단위 API판",))
+        "해외 조달계획 전체 건수는 줄었지만, 그중 전자 군급 비중은 ○% → ○%로 커졌다.",
+        slots=(("kpi", "KPI 4장", "국외 조달계획 건수 · 적용장비 수 · 2026 국외조달 예산 · 방위력개선비 대비", True),
+               ("bar", "FSC 상위 품목군", "전자 군급(FSG 58 · 59 · 60) 중 조달계획이 많은 FSC 순", False),
+               ("line", "전자 군급 비중 추이", "요구연도별 「전자 군급 건수 ÷ 전체 건수」 — 건수가 아니라 비중", False),
+               ("table", "적용장비", "전자 군급 조달계획이 많은 적용장비 목록", True)),
+        notes=("건수만 있다(금액 없음) — 품목 단위 API판",
+               "API판은 요구연도 2018 · 2019 · 2020 이 거의 없다(1 · 0 · 11건) — 연도 추이는 2016~17 과 2021~ 을 끊어서 그린다",
+               "전자 군급 건수가 줄어든 것은 전체 건수가 같이 줄었기 때문 — 「국산화로 해외 조달이 줄었다」로 읽지 않는다"))
+
+
+def _sp_army() -> None:
+    mock_screen(
+        "army", "소요군별",
+        "어느 군이, 어느 해에 해외 조달을 요구하나",
+        "전자 군급 해외 조달 요구는 ○군이 가장 많다.",
+        slots=(("bar", "연도별 군별 조달계획", "요구연도 × 소요군(육 · 해 · 공 · 기타) 누적 막대 — 전자 군급만", True),),
+        notes=("소요군 = 조달을 요구한 군. 요구연도 2018~2020 은 API판에 거의 없어 막대가 비어 보인다",))
+
+
+def _sp_domestic() -> None:
+    mock_screen(
+        "domestic", "국내 계약 · 입찰",
+        "국내에서는 어떤 방식으로 사나",
+        "국내 조달은 ○ 계약이 가장 많고, 수의계약 사유는 ○ 가 가장 많다.",
+        slots=(("kpi", "KPI 5장", "국내 계약 · 수의계약 비중 · 입찰공고 · 경쟁입찰 유찰률 · 낙찰업체", True),
+               ("bar", "계약 체결 방법별 건수", "일반 · 제한 · 지명경쟁 · 수의계약", False),
+               ("bar", "수의계약 비중 — 국내 vs 국외", "비중만 나란히", False),
+               ("bar", "수의계약 사유 상위", "사유 문구별 건수", False),
+               ("bar", "국내 경쟁입찰 개찰 결과", "낙찰 · 유찰 등", False)),
+        notes=("부록 성격(09-21 M2) — 전자부품만 따로 가를 수 없는 방위사업청 전체 국내 계약이다",
+               "국내 · 국외 금액은 더하거나 직접 비교하지 않는다. 낙찰금액 ≠ 계약금액"))
 
 
 def _sp_done() -> None:
     mock_screen(
         "done", "국산화 완료 부품",
         "그중 무엇을 국산화했나",
-        "국산화개발을 마친 전자 부품은 ○ 군급에 가장 많다.",
-        slots=(("donut", "군급별 국산화 완료 부품 수", "FSG 58 · 59 나눔", False),
-               ("mirror", "조달계획 ↔ 국산화 나란히", "같은 군급 축에 왼쪽 = 해외 조달계획 · 오른쪽 = 국산화", False)),
-        notes=("완료 부품 수 ≠ 국산화율(분모가 없다) — 두 막대는 나란히 볼 뿐 나누거나 빼지 않는다",
+        "국산화개발을 마친 전자 계열 부품은 ○건(부품 ○종)이고, 군 ○에 가장 많다.",
+        slots=(("kpi", "KPI 4장", "국산화개발 전자 계열 · 반도체 군급 · 국산화개발 사업 · 전자 비중 최고 사업", True),
+               ("donut", "FSG 58 · 59 · 60 분포", "전자 군급 국산화 부품이 어느 군에 몰렸나", False),
+               ("bar", "국산화 상태", "전자 군급 부품의 개발 상태별 수", False)),
+        notes=("완료 부품 수 ≠ 국산화율(분모가 없다)",
                "국산화개발품목 원본에는 기준일이 없다 — 연도별 추이는 그릴 수 없다"))
 
 
-# ── ④ 함께 보면 보이는 흐름 ─────────────────────────────────────────────────
-def _fl_each() -> None:
+def _lc_pair() -> None:
     mock_screen(
-        "each", "따로 보면",
-        "자료를 하나씩 보면 무엇이 보이나",
-        "관세청 · 방사청 · 예산 자료를 따로 보면 각자 오르내림만 보인다.",
-        slots=(("line", "관세청 — 13개 품목군 수입액", "2016~2026 · 달러", False),
-               ("line", "방사청 — 전자 군급 국외 조달계획 건수", "요구연도 2016~2026 · 건", False),
-               ("line", "열린재정 — 관련 세부사업 예산", "2016~2027 · 원", False),
-               ("line", "KOSIS — 방산 가동률 · 생산지수", "2016~2024 · % / 지수", False)))
+        "pair", "군급 국산화 현황",
+        "해외 조달계획이 많은 군급과 국산화한 군급은 어떻게 다른가",
+        "해외 조달계획이 많은 군급 중 ○ 은 국산화도 많고, ○ 은 국산화가 거의 없다.",
+        slots=(("mirror", "군급별 국외 조달계획 · 국산화개발", "같은 군급 축에 왼쪽 = 해외 조달계획 건수 · 오른쪽 = 국산화 부품 수", True),),
+        notes=("두 막대는 나란히 볼 뿐 나누거나 빼지 않는다 — 출처 · 세는 기준 · 시점이 다르다",))
 
 
-def _fl_main() -> None:
+# ── 배경과 자료 ───────────────────────────────────────────────────────────
+def _bg_policy_mk() -> None:
     mock_screen(
-        "main_flow", "함께 보면",
-        "같은 시간축에 나란히 놓으면 무엇이 보이나",
-        "나란히 놓으면 ○년 전후로 수입 · 해외 조달계획 · 예산이 같은 방향으로 움직이는 흐름이 보인다.",
-        slots=(("line", "한 시간축 흐름 — 기준연도 = 100", "자료마다 기준연도를 100 으로 맞춘 선 3~4개 · 정책 발표 시점 세로선(국방반도체 발전전략 2024 등)", True),),
-        notes=("단위가 다른 자료(달러 · 건 · 원)는 더하거나 직접 비교하지 않는다 — 기준연도 = 100 추세만 나란히",
-               "「같이 움직인다」까지만 말한다. 「A 때문에 B」 같은 인과나 상관분석 결론은 쓰지 않는다",
-               "국산화개발품목은 기준일이 없어 이 시간축에 올릴 수 없다 — ③ 에서 따로 본다"))
+        "policy", "정책과 예산",
+        "정부는 어떤 정책과 예산으로 전자부품 국산화를 밀고 있나",
+        "부품국산화 예산은 2021년에 크게 늘었고, 2024 국방반도체 발전전략 · 2026 국방반도체법으로 이어진다.",
+        slots=(("line", "연도별 국외조달 예산 · 방위력개선비 대비 비중", "2016~2027(2027 은 정부안)", False),
+               ("tree", "국외조달 절차와 분야별 예산", "계획 → 입찰 → 계약 흐름 · 분야별 예산 막대", False),
+               ("line", "부품국산화 · 국방반도체 예산 + 정책 시점", "연도별 예산 선 위에 정책 발표 시점 세로선(2024-11 발전전략 · 2026 국방반도체법)", True)),
+        notes=("예산(원 · 앞으로 쓸 계획)과 관세청 수입액(달러 · 실제 수입)은 더하거나 직접 비교하지 않는다",
+               "열린재정에는 2021 년부터 「부품국산화 개발지원(R&D)」로 잡힌다 — 그 전 값은 통계 파일(localization_support_budget)"))
 
 
-def _fl_read() -> None:
+def _bg_industry_mk() -> None:
     mock_screen(
-        "read", "이렇게 읽으세요",
-        "이 흐름에서 무엇을 가져가면 되나",
-        "「한 자료만 보면 놓치는 흐름이 있다」 — 정책 · 연구 · 기업이 같은 그림을 보고 이야기할 출발점.",
-        slots=(("kpi", "읽는 법 3줄", "① 선의 기울기만 본다 ② 정책 시점 전후를 본다 ③ 원래 값은 「따로 보면」에서 확인", True),))
+        "industry", "국내 생산 현황",
+        "국내 방산 생산 기반은 어떤가",
+        "통신전자 분야 방산 가동률은 2023년부터 ○%대로 올랐다 — 부품국산화 예산이 늘어난 뒤의 시기다.",
+        slots=(("heat", "방산 분야별 가동률", "2016~2024 · 통신전자 줄 강조", False),
+               ("bar", "분야별 방산업체 지정 수", "통신전자 · 항공유도 등", False),
+               ("map", "지역별 수입 · 수출 신고 분포", "시도별", True)),
+        notes=("예산 증가와 가동률 상승은 「같은 시기」까지만 말한다 — 원인 · 상관 해석은 하지 않는다(팀 규칙)",
+               "지역 통계의 수출은 제조장소, 수입은 납세의무자 주소지 기준"))
+
+
+def _bg_source_mk() -> None:
+    cards = "".join(f'<div class="mk-card"><small>{org}</small><h4>{name}</h4><p>{when}</p>'
+                    f'<a href="{link}" target="_blank" rel="noopener">원본 페이지 ↗</a></div>'
+                    for org, name, when, link in MAIN_SOURCES)
+    mock_screen(
+        "source", "데이터 출처와 검증",
+        "숫자는 어디서 왔고, 무엇을 뜻하지 않나",
+        "모든 숫자는 공개 데이터에서 왔다. 자료마다 기준일 · 단위 · 세는 기준이 달라 서로 더하지 않는다.",
+        extra=f'<div class="mk-cards" style="grid-template-columns:repeat(3,minmax(0,1fr))">{cards}</div>',
+        slots=(("table", "자료별 기준일", "수록 기간 · 수집일 · 부분연도 표시", False),
+               ("bar", "전처리 단계별 건수", "원본 → 정제 → 분석 모집단", False)),
+        notes=("합산 · 직접 비교 금지 쌍: 관세청 수입액 ↔ 조달 예산 · 국외 조달계획 파일판 ↔ API판 · KOSIS 지수 ↔ 금액",
+               "무역 값은 국가 전체 수입 · 수출(민수 포함)이다 — 「방산 수입」이 아니다"))
 
 
 # ── ⑤ 어디에 쓰이나 ─────────────────────────────────────────────────────────
@@ -6007,29 +6061,38 @@ def _use_cases() -> None:
         notes=("각 사례는 기업 · 기관의 공개 발표다 — 분석 대상 13개 품목의 수입 · 조달 자료와 연결하지 않는다",))
 
 
-def page_why() -> None:
+def _intro_use() -> None:
+    # 「어디에 쓰이나」 = 부품이 하는 일 · 무기체계 분류 · 공개 사례를 한 소분류에 차례로(KDD_v1 과 같음)
+    _use_role()
+    _use_sys()
+    _use_cases()
+
+
+def pg_intro() -> None:
     _mk_css()
-    _run_sub({"elec": _why_elec, "select": _why_select, "items": _why_items})
+    _run_sub({"elec": _why_elec, "select": _why_select, "items": _why_items, "use": _intro_use})
 
 
-def page_status() -> None:
+def pg_parts() -> None:
     _mk_css()
-    _run_sub({"summary": _st_summary, "trade": _st_trade, "conc": _st_conc})
+    _run_sub({"summary": _st_summary, "trade": _st_trade, "conc": _st_conc,
+              "detail": lambda: search_block("수출입 HS")})
 
 
-def page_supply() -> None:
+def pg_fsc() -> None:
     _mk_css()
-    _run_sub({"code": _sp_code, "plan": _sp_plan, "done": _sp_done})
+    _run_sub({"code": _sp_code, "plan": _sp_plan, "army": _sp_army, "domestic": _sp_domestic,
+              "detail": lambda: search_block("군수품 FSG/FSC")})
 
 
-def page_flow() -> None:
+def pg_local() -> None:
     _mk_css()
-    _run_sub({"each": _fl_each, "main_flow": _fl_main, "read": _fl_read})
+    _run_sub({"done": _sp_done, "pair": _lc_pair, "detail": lambda: search_block("국산화개발")})
 
 
-def page_use() -> None:
+def pg_background() -> None:
     _mk_css()
-    _run_sub({"role": _use_role, "sys": _use_sys, "cases": _use_cases})
+    _run_sub({"policy": _bg_policy_mk, "industry": _bg_industry_mk, "source": _bg_source_mk})
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -6040,16 +6103,16 @@ def page_use() -> None:
 PAGES = [
     (st.Page(page_home, title="K-Defense 홈", url_path="home", default=True), "홈", "home",
      "K-Defense 데이터 대시보드", "방산 전자부품 13개 품목군의 수출입과 국산화 현황"),
-    (st.Page(page_why, title="왜 이 부품인가", url_path="why"), "왜 이 부품인가", "help",
-     "① 왜 이 부품인가", "무기체계의 핵심 기능을 맡는 전자부품 — 그중 왜 이 13개를 골랐나"),
-    (st.Page(page_status, title="부품 현황", url_path="status"), "부품 현황", "memory",
-     "② 부품 현황", "13개 품목군을 어디서 얼마나 들여오고 내보내나"),
-    (st.Page(page_supply, title="조달과 국산화", url_path="supply"), "조달과 국산화", "category",
-     "③ 조달과 국산화", "군은 전자부품을 무엇을 해외에서 사고, 무엇을 국산화했나"),
-    (st.Page(page_flow, title="함께 보면 보이는 흐름", url_path="flow"), "함께 보면 보이는 흐름", "timeline",
-     "④ 함께 보면 보이는 흐름", "관세청 · 방사청 · 예산 자료를 따로 볼 때는 안 보이던 흐름"),
-    (st.Page(page_use, title="어디에 쓰이나", url_path="use"), "어디에 쓰이나", "rocket_launch",
-     "⑤ 어디에 쓰이나", "이 부품들이 맡는 무기체계의 기능과 공개 사례"),
+    (st.Page(pg_intro, title="소개", url_path="intro"), "소개", "info",
+     "소개", "무기체계의 핵심 기능을 맡는 전자부품 — 왜 이 13개를 골랐고, 어디에 쓰이나"),
+    (st.Page(pg_parts, title="전자부품 현황", url_path="parts"), "전자부품 현황", "memory",
+     "전자부품 현황", "분석 대상 13개 품목군(HS)을 어디서 얼마나 들여오고 내보내나"),
+    (st.Page(pg_fsc, title="군급 분류와 조달", url_path="fsc"), "군급 분류와 조달", "category",
+     "군급 분류와 조달", "군수품 분류(군 FSG · 군급 FSC)로 보면 전자부품을 무엇을, 어떻게 조달하나"),
+    (st.Page(pg_local, title="국산화 현황", url_path="local"), "국산화 현황", "build",
+     "국산화 현황", "군(FSG) 58 · 59 · 60에 속한 전자 군급 부품 중 무엇을 국산화했나"),
+    (st.Page(pg_background, title="배경과 자료", url_path="background"), "배경과 자료", "account_balance",
+     "배경과 자료", "정책·예산, 국내 생산 현황과 데이터 출처를 확인합니다"),
 ]
 
 pg = st.navigation([p[0] for p in PAGES], position="hidden")
@@ -6159,8 +6222,8 @@ def data_info_dialog() -> None:
             '<tr><td>HHI</td><td>국가별 점유율(%) 제곱 합 · 2,500 이상 = 높은 집중</td></tr>'
             '<tr><td>R1 / R2</td><td>분석 대상 진입 규칙 — 군용전용 / 항공·항행 세분류</td></tr>'
             '<tr><td>FSG / FSC</td><td>군수품 분류(군급 · 군별) — HS 와 직접 연결하지 않음</td></tr></table>')
-        st.page_link(page_of["why"][0], label="① 어떻게 골랐나에서 더 보기", icon=":material/arrow_forward:",
-                     query_params={"sec": "select"})
+        st.page_link(page_of["background"][0], label="배경과 자료에서 더 보기", icon=":material/arrow_forward:",
+                     query_params={"sec": "source"})
     st.html('<div class="di-demo">※ 이 데모의 화면 숫자는 대부분 샘플입니다. 위 출처·범위는 운영 앱 기준입니다.</div>')
 
 
@@ -6231,24 +6294,31 @@ def glossary_button(key: str) -> None:
 #    → 왼쪽 메뉴(이 페이지의 블록) + 오른쪽 본문(경로 표시 · 고른 블록 하나) → 짙은 바닥글
 # ════════════════════════════════════════════════════════════════════════════
 # 페이지별 블록 — 왼쪽 메뉴 · 상단 펼침 메뉴 · 전체 메뉴에 쓴다. 각 페이지 함수의 zone(키, 이름)과 같아야 한다
-SECTIONS = {
+SECTIONS = {   # KDD_v1 과 같은 키 · 이름 · 순서
     "home": [("main", "Main")],
-    "why": [("elec", "왜 전자부품인가"), ("select", "어떻게 골랐나"), ("items", "13개 품목군")],
-    "status": [("summary", "종합 현황표"), ("trade", "수출입 현황"), ("conc", "공급국 집중도 변화")],
-    "supply": [("code", "군급코드란"), ("plan", "국외 조달계획"), ("done", "국산화 완료 부품")],
-    "flow": [("each", "따로 보면"), ("main_flow", "함께 보면"), ("read", "이렇게 읽으세요")],
-    "use": [("role", "부품이 하는 일"), ("sys", "무기체계 분류"), ("cases", "공개 사례")],
+    "intro": [("elec", "왜 전자부품인가"), ("select", "어떻게 골랐나"), ("items", "13개 품목군"), ("use", "어디에 쓰이나")],
+    "parts": [("summary", "종합 현황표"), ("trade", "수출입 현황"),
+              ("conc", "공급국 집중도 변화"), ("detail", "상세 조회")],
+    "fsc": [("code", "군급코드란"), ("plan", "군급별 국외 조달계획"), ("army", "소요군별"),
+            ("domestic", "국내 계약 · 입찰"), ("detail", "상세 조회")],
+    "local": [("done", "국산화 완료 부품"), ("pair", "군급 국산화 현황"), ("detail", "상세 조회")],
+    "background": [("policy", "정책과 예산"), ("industry", "국내 생산 현황"),
+                   ("source", "데이터 출처와 검증")],
 }
-# 왼쪽 메뉴 아래 파란 칸 — 메뉴마다 「이렇게 보세요」 팁 1~2줄. (머리말, 내용)
+# 왼쪽 메뉴 아래 파란 칸 — KDD_v1 과 같은 팁. (머리말, 내용)
 LNB_TIPS = {
-    "why": [("흐름", "기능 → 선정 규칙 → 13개"), ("범위", "반도체 3 · 전자부품 8 · 소재장비 2")],
-    "status": [("금액", "국가 전체 수입(민수 포함) — 군 수요만이 아님"), ("집중", "HHI 2,500 이상 = 높은 집중")],
-    "supply": [("분류", "군(FSG) → 군급(FSC) → 재고번호(NSN)"), ("비교", "② 의 HS 품목과 코드로 잇지 않음")],
-    "flow": [("방법", "기준연도 = 100 추세만 나란히"), ("한계", "합산 · 인과 해석 안 함")],
-    "use": [("성격", "부품 종류의 일반적 쓰임 · 공개 발표"), ("주의", "특정 체계 부품 목록(BOM) 아님")],
+    "intro": [("흐름", "기능 → 선정 규칙 → 13개 → 쓰임"), ("주의", "쓰임은 일반적 용도 · 특정 체계 부품 목록(BOM) 아님")],
+    "parts": [("공급국 집중", "HHI 2,500 이상 · 1위 공급국 점유율 50% 이상"),
+              ("금액", "국가 전체 수입(민수 포함) — 군 수요만이 아님")],
+    "fsc": [("기준", "전자 군급 = 군(FSG) 58 · 59 · 60에 속한 군급, 건수만"),
+            ("비교", "전자부품 현황의 HS 품목군과 코드로 잇지 않음")],
+    "local": [("주의", "완료 부품 수 ≠ 국산화율(분모 없음)"),
+              ("비교", "조달계획과 막대만 나란히 — 비율로 계산하지 않음")],
+    "background": [("단위", "예산 · 가동률 · 생산지수는 기준이 서로 다름"),
+                   ("비교", "관세청 수입액과 합산 · 직접 비교하지 않음")],
 }
-URLS = ["home", "why", "status", "supply", "flow", "use"]   # PAGES 와 같은 순서
-GNB = ["why", "status", "supply", "flow", "use"]            # 상단 메뉴 — 홈(첫 화면)은 로고를 누르면 간다
+URLS = ["home", "intro", "parts", "fsc", "local", "background"]   # PAGES 와 같은 순서
+GNB = ["intro", "parts", "fsc", "local", "background"]              # 상단 메뉴 — 홈(첫 화면)은 로고를 누르면 간다
 # 태극 — 위 빨강(#CD2E3A) · 아래 파랑(#0047A0), 왼쪽은 빨강이 · 오른쪽은 파랑이 반원만큼 파고든다. 흰 테두리로 방패 선과 떼어 놓는다
 # st.html 은 <svg> 를 지우므로 그림(data URI)으로 넣는다
 _TG_SVG = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="-11 -11 22 22">'
@@ -7289,7 +7359,7 @@ with st.container(key="ft", horizontal=True):
     with st.container(key="ft_mid"):
         with st.container(key="ft_links", horizontal=True, vertical_alignment="center"):
             st.html('<span class="ftl">데이터 이용 안내</span>', width="content")
-            st.page_link(page_of["why"][0], label="선정 기준", query_params={"sec": "select"})
+            st.page_link(page_of["background"][0], label="데이터 출처", query_params={"sec": "source"})
             glossary_button("ft_terms")
             st.html('<span class="ftl">주의사항</span>', width="content")
         st.html('<div class="ft-mid">자료: 관세청 수출입무역통계 · 방위사업청 국내 · 국외 조달 · KOSIS 방산 가동률 · 열린재정 세부사업 예산<br>'
