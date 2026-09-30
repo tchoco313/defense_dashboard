@@ -2846,8 +2846,11 @@ BUDGET = pd.DataFrame({
     "전체 방위력개선비 대비(%)": [18.2, 18.9, 19.4, 20.1, 20.8, 21.2, 21.9, 22.4, 23.1, 23.6, 24.0],
 })
 
-PLAN_BY_FSC = [("5820 통신장비", 1240, SERIES[0]), ("5935 전자부품", 892, SERIES[1]), ("5962 변환기", 621, SERIES[2]),
-               ("5999 기타전자", 418, SERIES[3]), ("5865 안테나", 352, SERIES[4])]
+PLAN_BY_FSC = [("5820 무선 통신장비", 1240, SERIES[0]), ("5935 커넥터", 892, SERIES[1]), ("5962 전자 집적회로", 621, SERIES[2]),
+               ("5999 기타 전기 · 전자 부품", 418, SERIES[3]), ("5865 전자전 장비", 352, SERIES[4])]
+
+# ③ 조달계획 대비 국산화 군급 — PLAN_BY_FSC 군급마다 국산화개발 기록 수(샘플). 두 값은 출처 · 단위가 달라 비율로 계산하지 않는다
+LOCAL_BY_FSC = {"5820 무선 통신장비": 386, "5935 커넥터": 512, "5962 전자 집적회로": 148, "5999 기타 전기 · 전자 부품": 297, "5865 전자전 장비": 64}
 
 ARMY_MIX = pd.DataFrame({
     "연도": YEARS[-6:],
@@ -3120,6 +3123,27 @@ def hbar(rows: list[tuple[str, int, str]], height: int = 300, unit: str = "") ->
                            hovertemplate="%{y}<br>%{x:,}" + f" {unit}<extra></extra>"))
     label_w = max(len(str(r[0])) for r in rows) * 11 + 14      # 한글 한 자 ≈ 11px — 왼쪽 라벨이 잘리지 않게
     fig.update_layout(height=height, showlegend=False, margin=dict(l=min(label_w, 230), r=48, t=10, b=8))
+    return fig
+
+
+def mirror_bar(labels: list[str], left: list[int], right: list[int], left_name: str, right_name: str,
+               height: int = 360) -> go.Figure:
+    """대칭 막대 — 같은 군급 축에 왼쪽(left)과 오른쪽(right)을 나란히 놓는다. 왼쪽 값은 음수로 그리고 눈금 · 라벨만 양수로 보인다."""
+    labels, left, right = labels[::-1], left[::-1], right[::-1]    # 첫 군급이 맨 위에 오도록
+    top = max(left + right) * 1.25
+    fig = go.Figure([
+        go.Bar(y=labels, x=[-v for v in left], orientation="h", name=left_name, marker_color=SERIES[3],
+               text=[f"{v:,}" for v in left], textposition="outside", cliponaxis=False, customdata=left,
+               hovertemplate="%{y}<br>" + left_name + " %{customdata:,}건<extra></extra>"),
+        go.Bar(y=labels, x=right, orientation="h", name=right_name, marker_color=SERIES[0],
+               text=[f"{v:,}" for v in right], textposition="outside", cliponaxis=False,
+               hovertemplate="%{y}<br>" + right_name + " %{x:,}건<extra></extra>"),
+    ])
+    ticks = [-top * 0.8, -top * 0.4, 0, top * 0.4, top * 0.8]
+    fig.update_layout(barmode="overlay", bargap=0.35, height=height, margin=dict(l=8, r=8, t=36, b=8),
+                      legend=dict(orientation="h", x=0.5, xanchor="center", y=1.08))
+    fig.update_xaxes(range=[-top, top], tickvals=ticks, ticktext=[f"{abs(t):,.0f}" for t in ticks])
+    fig.add_vline(x=0, line_color=LINE, line_width=1)
     return fig
 
 
@@ -5331,7 +5355,7 @@ def page_fsc() -> None:
 
 def _local_done() -> None:
     for _ in zone("kpi3", "국산화 현황"):
-        st.html('<div class="kpis k4">'
+        st.html('<div class="kpis k4 row1">'
                 + kpi("국산화개발 전자 계열", "2,717", "행", "FSG 58·59·60 · 군급 유효 25,009행 중 · 국산화율 아님", icon="library_books")
                 + kpi("반도체 군급", "67", "개", "전자 계열 2,717행 중 · FSG 60(광섬유)은 0행", icon="extension")
                 + kpi("국산화개발 사업", "28", "개", "지상 기동 · 화력 사업 한정 · 개발 시점 미상", icon="inventory")
@@ -5357,8 +5381,18 @@ def _local_done() -> None:
 
 
 def _local_pair() -> None:
-    for _ in zone("pair", "조달계획과 나란히 보기"):
-        st.html('<div class="note">해외 조달계획이 많은 군급과 국산화한 군급을 같은 군급 축에 나란히 놓는 대칭 막대가 들어갈 자리입니다(다음 단계에서 구현).</div>')
+    for _ in zone("pair", "조달계획 대비 국산화 군급"):
+        c1, c2 = st.columns([1.6, 1], gap="medium")
+        with c1.container(border=True, key="card_pair"):
+            st.html('<div class="h">군급별 국외 조달계획 · 국산화개발 <span class="sub">국외 조달계획 상위 5개 군급(FSC) · 단위: 건 · 샘플 값</span></div>')
+            labels = [n for n, _, _ in PLAN_BY_FSC]
+            st.plotly_chart(style_fig(mirror_bar(labels, [v for _, v, _ in PLAN_BY_FSC], [LOCAL_BY_FSC[n] for n in labels],
+                                                 "국외 조달계획", "국산화개발")), width="stretch", theme=None)
+        c2.html(rules_card("읽는 법", [
+            ("왼쪽 · 오른쪽", "왼쪽은 해외에서 사 오려는 계획 건수, 오른쪽은 국산화개발을 한 기록 수입니다."),
+            ("비율이 아닙니다", "두 자료는 출처와 세는 기준이 달라 나누거나 빼지 않습니다. 막대 길이를 나란히 볼 뿐입니다."),
+            ("눈여겨볼 곳", "왼쪽은 긴데 오른쪽이 짧은 군급 — 해외 조달은 많은데 국산화 기록은 적은 곳입니다."),
+        ]))
 
 
 def page_local() -> None:
@@ -5752,7 +5786,7 @@ SECTIONS = {
               ("conc", "공급국 집중도 변화"), ("detail", "상세 조회")],
     "fsc": [("code", "군급코드란"), ("plan", "군급별 국외 조달계획"), ("army", "소요군별"),
             ("domestic", "국내 계약 · 입찰"), ("detail", "상세 조회")],
-    "local": [("done", "국산화 완료 부품"), ("pair", "조달계획과 나란히"), ("detail", "상세 조회")],
+    "local": [("done", "국산화 완료 부품"), ("pair", "조달계획 대비 국산화 군급"), ("detail", "상세 조회")],
     "background": [("policy", "정책 · 예산 배경"), ("industry", "국내 생산 기반"), ("source", "데이터 출처 · 검증")],
 }
 # 왼쪽 메뉴 아래 파란 칸 — 대분류마다 「이렇게 보세요」 팁 1~2줄(09-30 피드백 — 핵심만). (머리말, 내용) — 머리말은 굵게, 내용은 짧은 명사형으로
@@ -5762,7 +5796,7 @@ LNB_TIPS = {
     "fsc": [("기준", "전자 군급 = 군(FSG) 58 · 59 · 60에 속한 군급, 건수만"),
             ("비교", "① 부품 현황의 HS 품목군과 코드로 잇지 않음")],
     "local": [("주의", "완료 부품 수 ≠ 국산화율(분모 없음)"),
-              ("비교", "조달계획과 나란히 둘 뿐 비율로 계산하지 않음")],
+              ("비교", "조달계획과 막대만 나란히 — 비율로 계산하지 않음")],
     "background": [("단위", "예산 · 가동률 · 생산지수는 기준이 서로 다름"),
                    ("비교", "관세청 수입액과 합산 · 직접 비교하지 않음")],
 }
@@ -6623,6 +6657,10 @@ div[class*="st-key-zone_"]::before{{display:none}}
 .kpis:not(.q) .kpi{{grid-column:span 2;min-height:170px}}
 .kpis:not(.q):not(.k4):not(.k6) .kpi:nth-child(4){{grid-column:2 / span 2}}
 .kpis.k4:not(.q) .kpi:nth-child(odd){{grid-column:2 / span 2}}
+/* 한 줄 4장(.row1) — ③ 국산화 완료 부품. 카드 폭을 246 → 210px 로 줄여 4장을 한 줄에 놓고,
+   폭이 준 만큼 높이도 170 → 150px 로 줄여 비율을 맞춘다(줄 높이 1fr 라 4장 높이는 같다) */
+.kpis.k4.row1:not(.q){{grid-template-columns:repeat(4,minmax(0,210px))}}
+.kpis.k4.row1:not(.q) .kpi,.kpis.k4.row1:not(.q) .kpi:nth-child(odd){{grid-column:auto;min-height:150px}}
 /* 글씨 크기도 페이지 상관없이 같게 */
 .kpis:not(.q) .kpi .l,.kpis:not(.q) .kpi .l.long,.kpis.k6:not(.q) .kpi .l{{font-size:17px;letter-spacing:-.3px}}
 .kpis:not(.q) .kpi .v,.kpis.k6:not(.q) .kpi .v{{font-size:35px}}
