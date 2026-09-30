@@ -3175,11 +3175,11 @@ MAIN_SLIDES = [_ph("1551796880-ddd03f861ae7", 2000),    # 푸른 하늘의 전�
                _ph("1685178362030-9b574eb9ae7c", 2000),  # 항공모함
                _ph("1610457642191-05328cdf34ff", 2000)]  # 밤하늘 레이더
 MAIN_CARDS = [  # (url, 소분류, 사진, 분류, 제목, 설명)
-    ("parts", "summary", _ph("1578575437130-527eed3abbec", 900), "PARTS", "부품 현황",
+    ("parts", "summary", _ph("1592659762303-90081d34b277", 900), "PARTS", "부품 현황",
      "분석 대상 13개 품목군을 어느 나라에서 얼마나 들여오고 내보내는지, 공급국 집중도와 함께 봅니다."),
-    ("fsc", "code", _ph("1587293852726-70cdb56c2866", 900), "CLASSIFICATION", "군급 분류와 조달",   # 조달 물자 창고
+    ("fsc", "code", _ph("1578575437130-527eed3abbec", 900), "CLASSIFICATION", "군급 분류와 조달",
      "군수품 분류(군 FSG · 군급 FSC)로 전자 군급의 국외 조달계획과 국내 계약 · 입찰을 봅니다."),
-    ("local", "done", _ph("1592659762303-90081d34b277", 900), "LOCALIZATION", "국산화 현황",
+    ("local", "done", _ph("1587293852726-70cdb56c2866", 900), "LOCALIZATION", "국산화 현황",   # 조달 물자 창고
      "군(FSG) 58 · 59 · 60에 속한 전자 군급 부품 중 국산화개발을 마친 부품을 군급별로 봅니다."),
     ("background", "policy", _ph("1676090438227-141cac59c405", 900), "BACKGROUND", "배경과 자료",
      "정책 흐름과 예산, 국내 생산 기반, 그리고 이 숫자들이 어디서 왔는지 봅니다."),
@@ -6666,11 +6666,11 @@ intro_screen()
 
 # ── 머리글 ──────────────────────────────────────────────────────────────
 with st.container(key="hdr_top", horizontal=True, vertical_alignment="center", horizontal_alignment="distribute"):
-    st.html(f'<div class="brand"><span class="mark"><span class="ms">shield</span>{TAEGEUK}</span><div><b>K-Defense</b>'
+    st.html(f'<div class="brand"><span class="mark"><span class="ms">shield</span>{TAEGEUK}</span><div><b>K-Defense Electronics</b>'
             '<small>방산 전자부품 수입 집중도 · 국산화 · 조달 데이터 대시보드</small></div></div>')
     with st.container(key="hdr_util", horizontal=True, width="content", vertical_alignment="center"):
-        st.html('<div class="util"><a class="badge" href="https://github.com/dashboard" target="_blank" rel="noopener">훈수안이조</a><span>완성도 85%</span><i>|</i>'
-                '<span>동피티 대기 중</span><i>|</i></div>')
+        st.html('<div class="util"><a class="badge" href="https://github.com/dashboard" target="_blank" rel="noopener">훈수안이조</a><span>로그인</span><i>|</i>'
+                '<span>공지사항</span><i>|</i></div>')
         info_button("info_btn")
     # 로고(방패 · K-Defense · 부제) 위에 투명한 링크를 덮어, 누르면 홈(Main 첫 화면)으로 간다
     with st.container(key="brand_link"):
