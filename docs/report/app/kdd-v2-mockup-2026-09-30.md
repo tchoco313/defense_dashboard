@@ -9,7 +9,7 @@
 | 푸시된 판 | `46aa89f` — 첫 목업(메뉴 5개, 깔때기 틀림) |
 | 로컬 판 | 메뉴 · 소분류 · 주소를 KDD_v1(`a825439`)과 1:1 로 맞춘 「숫자 없는 설계도」 — 아래 §2 |
 | 실행 | `streamlit run "dashboard/demo/KDD_v2.py" --theme.base light` |
-| **실데이터판** | 공동작업 저장소(hh) `app/KDD_v2.py` — **로컬 · 미커밋**(09-30 사용자: 아직 로컬에만). 홈 · 소개 = 이 설계도판, 나머지 소분류 = `app/proto/screens/*.py` 를 그 자리에서 실행(값 = `app/proto/rds.py` → RDS), 상세 조회 = `app/datacenter_viz.py`. 소제목 밑줄 없앰 · 머리글 오른쪽 위 비움 · 홈 「13개 중 5개」도 RDS. 실행 `streamlit run app/KDD_v2.py --theme.base light`. 커밋할 때는 미커밋 proto 작업(`app/proto/*` · `app/datacenter_viz.py`)과 함께 — 무관한 미커밋 파일은 뺀다 |
+| **실데이터판** | 공동작업 저장소(hh) `app/KDD_v2.py`(커밋 `6de2cc4`) — **09-30 배포**: 진입점 `app/main.py` 가 KDD_v2 를 실행(`ba65b6c`, https://defense-trade.streamlit.app), 옛 운영 앱은 `app/main_v1.py`. 홈 · 소개 = 이 설계도판, 나머지 소분류 = `app/proto/screens/*.py` 를 그 자리에서 실행(값 = `app/proto/rds.py` → RDS), 상세 조회 = `app/datacenter_viz.py`. 소제목 밑줄 없앰 · 머리글 오른쪽 위 비움 · 홈 「13개 중 5개」도 RDS. 실행 `streamlit run app/KDD_v2.py --theme.base light`. proto 실측 전환(`app/proto/*` · `app/datacenter_viz.py`)도 같은 커밋 |
 | 확인 | AppTest 6페이지 예외 0 · 소분류 수 = SECTIONS (브라우저 화면 확인은 못 함 — 탭 응답 없음) |
 
 메뉴(= KDD_v1): 홈 → 소개 → 전자부품 현황 → 군급 분류와 조달 → 국산화 현황 → 배경과 자료, 소분류 19개.
