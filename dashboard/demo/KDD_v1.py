@@ -3175,15 +3175,32 @@ MAIN_SLIDES = [_ph("1551796880-ddd03f861ae7", 2000),    # 푸른 하늘의 전�
                _ph("1685178362030-9b574eb9ae7c", 2000),  # 항공모함
                _ph("1610457642191-05328cdf34ff", 2000)]  # 밤하늘 레이더
 MAIN_CARDS = [  # (url, 소분류, 사진, 분류, 제목, 설명)
-    ("parts", "summary", _ph("1578575437130-527eed3abbec", 900), "PARTS", "① 부품 현황",
+    ("parts", "summary", _ph("1578575437130-527eed3abbec", 900), "PARTS", "부품 현황",
      "분석 대상 13개 품목군을 어느 나라에서 얼마나 들여오고 내보내는지, 공급국 집중도와 함께 봅니다."),
-    ("fsc", "code", _ph("1592659762303-90081d34b277", 900), "CLASSIFICATION", "② 군급 분류와 조달",
+    ("fsc", "code", _ph("1587293852726-70cdb56c2866", 900), "CLASSIFICATION", "군급 분류와 조달",   # 조달 물자 창고
      "군수품 분류(군 FSG · 군급 FSC)로 전자 군급의 국외 조달계획과 국내 계약 · 입찰을 봅니다."),
-    ("local", "done", _ph("1587293852726-70cdb56c2866", 900), "LOCALIZATION", "③ 국산화 현황",   # 조달 물자 창고
+    ("local", "done", _ph("1592659762303-90081d34b277", 900), "LOCALIZATION", "국산화 현황",
      "군(FSG) 58 · 59 · 60에 속한 전자 군급 부품 중 국산화개발을 마친 부품을 군급별로 봅니다."),
-    ("background", "policy", _ph("1676090438227-141cac59c405", 900), "BACKGROUND", "④ 배경과 자료",
+    ("background", "policy", _ph("1676090438227-141cac59c405", 900), "BACKGROUND", "배경과 자료",
      "정책 흐름과 예산, 국내 생산 기반, 그리고 이 숫자들이 어디서 왔는지 봅니다."),
 ]
+# 첫 화면 「데이터 출처」 목록 — (기관, 데이터, 수록 기간 · 기준, 원본 페이지). 기간은 AS_OF(④ 자료별 기준일) · 참고 자료 md 와 같게.
+# 누르면 새 탭에서 원본 페이지로 — 공공데이터포털 주소는 docs/data-sources.md 의 데이터셋 번호(2026-09-30 접속 확인).
+# KOSIS 한 줄 = 두 표 모두 KOSIS 수록 통계라 기관은 하나로 둔다(가동률 = 방산업체 경영분석 orgId 409, 생산지수 = 통계청 orgId 101).
+#   가동률 표 번호(tblId)는 팀 기록에 없어(db/meta_dataset.csv 「tblId 미확인」) 링크는 확인된 생산지수 표 DT_1F02001 로.
+# 열린재정 = 세부사업 예산편성현황(총액) UOPKOSDA01(팀 원본 파일 코드와 같음 · 2026-09-30 검색으로 찾은 임시 주소)
+MAIN_SOURCES = [("관세청", "품목별 국가별 수출입실적", "2016.01 ~ 2026.08 · 2026년 부분연도",
+                 "https://www.data.go.kr/data/15100475/openapi.do"),
+                ("방위사업청", "국외 조달계획", "요구연도 2016 ~ 2026",
+                 "https://www.data.go.kr/data/15158418/openapi.do"),
+                ("방위사업청", "국산화개발품목", "시점 미상 · 원본에 기준일 없음",
+                 "https://www.data.go.kr/data/15119899/fileData.do"),
+                ("방위사업청", "군급분류집(FSG/FSC)", "2025-12-31 기준",
+                 "https://www.data.go.kr/data/15119907/fileData.do"),
+                ("KOSIS", "방산 가동률 · 광공업생산지수", "가동률 2016 ~ 2024 · 생산지수 2016.01 ~ 2026.07",
+                 "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1F02001"),
+                ("열린재정", "세부사업 예산", "2016 ~ 2027 · 2027년 정부안",
+                 "https://www.openfiscaldata.go.kr/op/ko/sd/UOPKOSDA01")]
 MAIN_STATS = [("13", "개", "분석 대상 품목군"), ("478.2", "억 달러", "2025 수입액"),
               ("5", "개", "특정국 50% 초과 품목군"), ("2,717", "행", "국산화개발 전자 계열")]
 
@@ -3236,7 +3253,12 @@ MAIN_CSS = """<style>
 .mi-txt .k::before{content:"";width:34px;height:3px;background:#0b1f4d}
 .mi-txt h2{margin:18px 0 0;font-size:34px;font-weight:900;letter-spacing:-1.2px;line-height:1.3;color:#0b1f4d}
 .mi-txt h2 em{font-style:normal;color:#1d4ed8}
-.mi-txt p{margin:16px 0 0;font-size:14.5px;line-height:1.8;color:#55637d}
+.mi-txt p{margin:16px 0 0;font-size:14.5px;line-height:1.8;color:#55637d;word-break:keep-all}
+.mi-txt p b{color:#0b1f4d;font-weight:800}
+.mi-ref{margin-left:1px;font-size:11px;font-weight:800;color:#1d4ed8}
+.mi-txt p + p{margin-top:10px}
+.mi-src{display:block;margin-top:12px;font-size:12px;color:#8a97ad;line-height:1.6}
+.st-key-mi_links [data-testid="stPageLink"] a p{white-space:normal!important;word-break:keep-all;line-height:1.35!important}
 .st-key-mi_links{gap:0!important;flex-wrap:nowrap!important}
 .st-key-mi_links > div{flex:1 1 0!important;min-width:0;border-left:1px solid #e3e8f0}
 .st-key-mi_links [data-testid="stPageLink"] a{flex-direction:column;gap:18px!important;padding:14px 8px;background:transparent!important;width:100%}
@@ -3298,13 +3320,18 @@ div[class*="st-key-mc_"]:hover [data-testid="stPageLink"] a [data-testid="stIcon
 /* ── 아래 줄 — 데이터 갱신 목록 · 이용 안내 ─────────────────────────────── */
 .st-key-mb{padding:64px __PAD__ 76px;gap:40px!important;flex-wrap:nowrap!important;align-items:stretch!important;background:#fff}
 .st-key-mb > div:first-child{flex:1.7 1 0!important;min-width:0}
-.st-key-mb > div:last-child{flex:1 1 0!important;min-width:0}
+.st-key-mb > div:last-child{flex:1 1 0!important;min-width:0;position:relative;top:49px}   /* GUIDE 상자 윗변 = 왼쪽 「데이터 출처」 제목 밑 남색 선 윗변(제목 줄 높이 − 선 2px). 크기는 그대로 두고 자리만 내린다 */
 .mb-h{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;border-bottom:2px solid #0b1f4d}
 .mb-h h3{margin:0;font-size:22px;font-weight:900;letter-spacing:-.7px;color:#0b1f4d}
 .mb-h span{font-size:12.5px;color:#6b7a99}
 .mb-list{list-style:none;margin:0!important;padding:0!important}
-.mb-list li{display:flex;align-items:center;gap:16px;padding:15px 4px;border-bottom:1px solid #e6ebf3;font-size:14.5px}
-.mb-list li b{flex:0 0 auto;font-size:11px;font-weight:800;color:#1d4ed8;background:#eaf1ff;padding:4px 8px;letter-spacing:.5px}
+.mb-list li{border-bottom:1px solid #e6ebf3;font-size:14.5px}
+.mb-list li a{display:flex;align-items:center;gap:16px;padding:15px 4px;color:inherit;text-decoration:none;transition:background .15s}   /* 줄 전체가 원본 페이지 링크 */
+.mb-list li a:hover{background:#f5f8fd}
+.mb-list li a:hover span{color:#1d4ed8;text-decoration:underline;text-underline-offset:3px}
+.mb-list li .ms{flex:0 0 auto;font-family:'Material Symbols Rounded';font-style:normal;font-size:16px;line-height:1;color:#a3afc4}
+.mb-list li a:hover .ms{color:#1d4ed8}
+.mb-list li b{flex:0 0 72px;box-sizing:border-box;text-align:center;font-size:11px;font-weight:800;color:#1d4ed8;background:#eaf1ff;padding:4px 8px;letter-spacing:.5px}   /* 기관 이름 길이가 달라도 자료 이름이 한 줄로 맞게 폭 고정 */
 .mb-list li span{flex:1;min-width:0;color:#1b2540;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mb-list li em{flex:0 0 auto;font-style:normal;font-size:13px;color:#7a879e}
 .mb-box{height:100%;padding:30px 30px 26px;color:#fff;background:linear-gradient(140deg,#002a73,#1d4ed8);position:relative;overflow:hidden}
@@ -3313,7 +3340,7 @@ div[class*="st-key-mc_"]:hover [data-testid="stPageLink"] a [data-testid="stIcon
 .mb-box small{font-size:12px;font-weight:800;letter-spacing:3px;color:#9fc2ff}
 .mb-box h3{margin:10px 0 0;font-size:24px;font-weight:900;letter-spacing:-.8px;line-height:1.35;color:#fff}
 .mb-box ul{margin:16px 0 0!important;padding:0!important;list-style:none}
-.mb-box li{font-size:13px;line-height:1.75;color:#d4e1f8;padding-left:14px;position:relative}
+.mb-box li{font-size:13px;line-height:1.75;color:#a5d8ff;padding-left:14px;position:relative}   /* 파스텔 하늘색 */
 .mb-box li::before{content:"";position:absolute;left:0;top:10px;width:5px;height:5px;background:#7cc4ff}
 .st-key-mb_go{gap:8px!important;margin-top:-86px!important;padding:0 30px;position:relative;z-index:2}
 .st-key-mb_go [data-testid="stPageLink"] a{background:#fff;border-radius:0;padding:10px 16px}
@@ -3376,7 +3403,7 @@ def main_landing() -> None:
                      for i, u in enumerate(MAIN_SLIDES))
     arrow = '<button class="mv-arr {0}" type="button" aria-label="{1}"></button>'   # 화살표 모양은 CSS(::before)로 — st.html 이 svg 를 지운다
     st.html(f'<div class="mv">{slides}<div class="mv-txt"><small>K-DEFENSE DATA PLATFORM</small>'
-            '<h1>데이터로 지키는<br>국방 공급망</h1><div class="en">Data-Driven Defense Supply Chain</div>'
+            '<h1>데이터로 알아보는<br>국방 전자부품</h1><div class="en">Data-Driven Defense Electronics</div>'
             '<p>방산 전자부품의 수입 집중도 · 국산화 · 조달 현황을<br>하나의 화면에서 확인하고, 더 나은 결정을 돕습니다.</p></div>'
             '<div class="mv-bar">' + arrow.format("prev", "이전 사진") + '<div class="tr run"></div>'
             + arrow.format("next", "다음 사진") + '</div></div>')
@@ -3386,16 +3413,25 @@ def main_landing() -> None:
         st.page_link(page_of["parts"][0], label="대시보드 둘러보기", icon=":material/dashboard:", query_params={"sec": "summary"})
         st.page_link(page_of["parts"][0], label="직접 조회하기", icon=":material/search:", query_params={"sec": "detail"})
 
-    # 2) 소개 + 둥근 아이콘 바로가기
+    # 2) 왜 전자부품인가 — 이유(본문) + 그 이유를 확인하는 화면 네 곳(아이콘). 아이콘은 이야기 순서 ① → ① → ③ → ④
+    #    98.9% 는 인용(국방반도체 발전전략 본문 · 2023-12 조사) — 본문에는 각주 표시(*)만, 출처 · 한계는 아래 각주 줄에.
+    #    「의존도」 · 「공급망」은 쓰지 않는다
     with st.container(key="mi", horizontal=True):
-        st.html('<div class="mi-txt"><div class="k">K-Defense Data Platform</div>'
-                '<h2>방산 전자부품의<br><em>수입 · 조달 · 국산화</em>를<br>한눈에 봅니다</h2>'
-                '<p>관세청 수출입무역통계와 방위사업청 조달 자료, KOSIS · 열린재정 예산을 한데 모아 '
-                '공급국 집중도와 국산화 현황을 같은 기준으로 비교합니다.</p></div>')
+        st.html('<div class="mi-txt"><div class="k">WHY ELECTRONICS</div>'
+                '<h2>왜 <em>전자부품</em>인가?</h2>'
+                '<p>탐지 · 통신 · 항법 · 제어 같은 무기체계의 핵심 기능은 반도체와 전자부품이 맡습니다. '
+                '그런데 무기체계에 들어가는 반도체의 <b>98.9%</b><sup class="mi-ref">*</sup>는 해외에서 들여오고, '
+                '분석 대상 13개 품목군 중 <b>5개</b>는 2025년 수입액의 절반 이상을 한 나라에서 들여왔습니다(민수 포함). '
+                '정부도 2024년 국방반도체 발전전략, 2026년 국방반도체법으로 국산화를 추진하고 있습니다.</p>'
+                '<p>이 대시보드는 공개 데이터로 이 부품들의 <b>수출입 → 군 조달 → 국산화</b> 현황을 차례로 보여 줍니다.</p>'
+                '<small class="mi-src">* 무기체계 적용 반도체의 해외 도입 비중 — 국방반도체 발전전략(2024-11)이 인용한 2023-12 조사 값입니다. '
+                '팀이 계산한 값이 아니며 분모 기준은 확인하지 못했습니다.</small></div>')
         with st.container(key="mi_links", horizontal=True):
-            for u, label, icon in [("parts", "부품 현황", "memory"), ("fsc", "군급 분류와 조달", "category"),
-                                   ("local", "국산화 현황", "build"), ("background", "배경과 자료", "account_balance")]:
-                st.page_link(page_of[u][0], label=label, icon=f":material/{icon}:")
+            for u, sec, label, icon in [("parts", "summary", "13개 품목군은 무엇인가", "memory"),
+                                        ("parts", "supply", "어느 나라에서 들여오나", "public"),
+                                        ("local", "done", "무엇을 국산화했나", "build"),
+                                        ("background", "policy", "정책 · 예산은 어떻게", "account_balance")]:
+                st.page_link(page_of[u][0], label=label, icon=f":material/{icon}:", query_params={"sec": sec})
 
     # 3) 주요 분석 사진 카드
     st.html('<div class="mc-head"><h2><small>ANALYSIS</small>주요 분석 바로가기</h2>'
@@ -3414,11 +3450,12 @@ def main_landing() -> None:
             f'<div class="mst-h"><b>숫자로 보는<br>K-Defense</b><span>2025년 기준 · 화면 배치용 샘플 값</span></div>'
             f'{stats}</div></div>')
 
-    # 5) 데이터 갱신 목록 · 이용 안내
+    # 5) 데이터 출처 목록 · 이용 안내 (09-30 피드백 — 자료 일자 대신 데이터 출처. 기준 시점은 ④ 데이터 출처 · 검증에 있다)
     with st.container(key="mb", horizontal=True):
-        rows = "".join(f'<li><b>{"수집" if i == 0 else "자료"}</b><span>{n}</span><em>{r}</em></li>'
-                       for i, (n, r, _) in enumerate(AS_OF[:6]))
-        st.html(f'<div><div class="mb-h"><h3>데이터 기준 시점</h3><span>자료별 수집 범위</span></div>'
+        rows = "".join(f'<li><a href="{link}" target="_blank" rel="noopener" title="{org} · {n} 원본 페이지 새 탭으로 열기">'
+                       f'<b>{org}</b><span>{n}</span><em>{when}</em><i class="ms">open_in_new</i></a></li>'
+                       for org, n, when, link in MAIN_SOURCES)
+        st.html(f'<div><div class="mb-h"><h3>데이터 출처</h3><span>자료별 제공 기관 · 수록 기간</span></div>'
                 f'<ul class="mb-list">{rows}</ul></div>')
         with st.container():
             st.html('<div class="mb-box"><small>GUIDE</small><h3>처음 오셨나요?<br>이렇게 보시면 됩니다</h3><ul>'
@@ -6481,8 +6518,8 @@ div[class*="st-key-gs_"]{{height:{_DROP_H}px;box-sizing:border-box;border-left:1
 .st-key-gs_background{{border-bottom-right-radius:14px}}
 /* 전체 메뉴(≡) */
 .st-key-gnb_all{{width:66px!important;flex:0 0 66px!important}}
-/* 전체 메뉴(≡)는 흐름에서 빼 오른쪽 끝에 그대로 — 가운데 모은 메뉴 칸의 중심이 ≡ 폭만큼 밀리지 않게 */
-[data-testid="stLayoutWrapper"]:has(> .st-key-gnb_all){{position:absolute!important;right:{_PAD};top:0;height:66px}}
+/* 전체 메뉴(≡)는 흐름에서 빼 파란 펼침 띠 바로 오른쪽에 — 띠 오른쪽 끝(50% + 메뉴 칸 폭 합의 절반)에 붙인다. 세로 자리는 메뉴 줄 그대로 */
+[data-testid="stLayoutWrapper"]:has(> .st-key-gnb_all){{position:absolute!important;left:calc(50% + {len(GNB) * GNB_W // 2}px);right:auto;top:0;height:66px}}
 .gnb-all{{width:66px;height:66px;display:grid;place-items:center;border:none;border-radius:0;background:{BLUE_D};padding:0;cursor:pointer;
   transition:background .15s}}
 .gnb-all:hover,.st-key-gnb.open .gnb-all{{background:{BLUE}}}
