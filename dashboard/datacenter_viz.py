@@ -181,7 +181,7 @@ QL_PROJECTS = QL_ITEMS["사업명"].value_counts().index.tolist()          # 기
 QL_COMPANIES = QL_ITEMS["관련 업체"].value_counts().index.tolist()
 
 Q_AREAS = ["수출입", "수출", "수입"]
-# 지표 이름, 단위, 아이콘, 쓸 수 있는 분석영역 — 목업처럼 3개씩 두 줄
+# 지표 이름, 단위, 아이콘, 쓸 수 있는 분석영역 — 3개씩 두 줄
 Q_METRICS = [("수출액", "백만 USD", "", {"수출입", "수출"}), ("수입액", "백만 USD", "", {"수출입", "수입"}),
              ("무역수지", "백만 USD", "", {"수출입"}), ("수출중량", "톤", "", {"수출입", "수출"}),
              ("수입중량", "톤", "", {"수출입", "수입"})]
@@ -627,7 +627,7 @@ def _q_chart_grid(charts: list[str], state_key: str, subject: str = "국가", sh
 
 
 def query_panel() -> dict:
-    """분석 조건 설정 카드(목업 「분석 조건 설정」). 맨 위 데이터 유형에 따라 HS · FSG/FSC · 국산화개발 조건을 그리고,
+    """분석 조건 설정 카드. 맨 위 데이터 유형에 따라 HS · FSG/FSC · 국산화개발 조건을 그리고,
     고른 조건을 dict 로 돌려준다(q["type"] = 데이터 유형).
     FIXED_TYPE — 부르는 쪽이 runpy init_globals 로 넘기면 그 유형으로 고정하고 「데이터 유형」 칸을 숨긴다(main.py 상세 조회 3곳).
     다른 유형 키는 그리지 않으면 Streamlit 이 치우므로, 돌아오면 아래 _q_apply 가 기본값을 다시 채운다."""

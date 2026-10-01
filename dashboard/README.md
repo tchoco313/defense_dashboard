@@ -27,10 +27,11 @@ streamlit run dashboard/main.py
 
 배포는 공동작업 저장소(`kimhh080888-blip/Defense_Dashboard`)의 `app/main.py` → `app/KDD_v2.py` 로 돈다. 2026-10-01 그 저장소 `ba65b6c` 를 아래처럼 옮겼다.
 한쪽에서 고치면 다른 쪽에도 같은 파일로 옮긴다(옮길 때 주석의 `app/` → `dashboard/`, `app/proto/…` → `dashboard/screens/…` 경로만 바꾼다).
+단 `main.py` 는 통째로 덮어쓰지 않는다 — `KDD_v2.py` 에 남아 있는 샘플 화면 · 샘플 데이터(KDD_v1 에서 복사해 온 숫자 · `page_parts` 같은 옛 페이지 함수)를 이 저장소에서는 지웠으므로(2026-10-01, 7,468 → 약 2,400줄), 바뀐 함수만 골라 옮긴다.
 
 | 공동작업 저장소 | 이 저장소 |
 |---|---|
-| `app/KDD_v2.py` | `main.py` (`PROTO_DIR` → `SCREENS_DIR`, `proto_parts` → `screen_parts`) |
+| `app/KDD_v2.py` | `main.py` (`PROTO_DIR` → `SCREENS_DIR`, `proto_parts` → `screen_parts`, `mock_screen` → `story_screen`, `MOCK_CSS` → `STORY_CSS`, 샘플 코드 삭제) |
 | `app/proto/{parts,rds,menu}.py` | `screens/{parts,rds,menu}.py` |
 | `app/proto/screens/*.py` (home 제외) | `screens/*.py` |
 | `app/{db,kdesign,ui,live,metrics,weapon_context,datacenter_viz}.py` | 같은 이름 (`kdesign.py` 는 `LABEL_KEY` 를 직접 둔다 — 이 저장소에는 `frame.py` 가 없다) |
