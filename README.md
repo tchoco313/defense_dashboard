@@ -1,153 +1,127 @@
-# 국방 대시보드 — 훈수안이조
+# 주요 방산 전자부품 수출입 및 국산화 현황 대시보드
 
-K-디지털트레이닝 국방·첨단산업 AI 솔루션 ML 엔지니어 양성과정 1기 · 1차 프로젝트
-**2026-09-11 ~ 2026-10-06 (15일 · 120시간)**
+K-디지털트레이닝 국방·첨단산업 AI 솔루션 ML 엔지니어 양성과정 1기 · 1차 프로젝트 · **훈수안이조**
 
-| | |
+## 프로젝트 소개
+
+레이더·통신·항법·전자전 장비에 들어가는 반도체·전자부품을 HS 6단위 24개 품목군으로 정의하고, 관세청 수출입 통계와 방위사업청 국산화·조달 공개 자료를 한 화면에서 보여 주는 대시보드다. 핵심 질문은 「주요 방산 전자부품을 어느 나라에서 얼마나 들여오고 내보내며, 공급국은 얼마나 집중돼 있는가」와 「그 부품 분야에서 국산화 개발은 어디까지 이루어졌는가」다. 관세청 수치는 국가 전체 수출입(민수 포함)이며 방산 수입만 따로 뽑은 값이 아니다. 따라서 대시보드는 위험을 예측하지 않고 공개 자료로 현황을 확인하는 데 목적을 둔다.
+
+## 배포 주소
+
+**https://defense-trade.streamlit.app** (Streamlit Community Cloud)
+
+## 팀 — 훈수안이조
+
+| 이름 | 역할 |
 |---|---|
-| 조원 | 강지수 · 김훈희 · 안태호(조장) · 이동현 · 조수아 |
-| 주제 | 주요 방산 전자부품 수출입 및 국산화 현황 대시보드 |
-| 발표 | 2026-10-06 · 20분 발표 + 10분 질의응답 |
+| 안태호 (조장) | 총괄 · 일정 · 데이터 수집 · 명세 · 제출 |
+| 강지수 | 데이터 수집 · 검수 · 전처리 |
+| 김훈희 | 데이터 수집 · DB 구축(AWS RDS) · 전처리 |
+| 이동현 | 데이터 수집 · 검수 · 시각화 · 대시보드 디자인 · 시연 영상 |
+| 조수아 | 데이터 수집 · 검수 · EDA 보고서 · 포트폴리오 |
 
----
+## 사용 데이터
 
-## 처음 받는 사람은 이 순서대로
+| 구분 | 데이터 | 제공 | 규모 |
+|---|---|---|---|
+| 요건 ① | 품목별 국가별 수출입실적 (data.go.kr `15100475`, OpenAPI) | 관세청 | HS6 24개 × 2016.01~2026.08 × 전체 국가, 294,420행 |
+| 요건 ② | 국방전자조달시스템 국산화개발품목 (data.go.kr `15119899`, 파일) | 방위사업청 | 33,965행 (사업 × 부품 고유 25,025) |
+| 보조 | 국외·국내 조달계획 · 계약 · 입찰, 군급분류집, KRIT 부품국산화 공고, 열린재정 예산, KOSIS 생산지수, HS 부호 · 전략물자 연계표, 시군구별 수출입실적 등 | 방위사업청 · 관세청 · 국방기술진흥연구소 · 기획재정부 · 통계청 등 | — |
 
-```bash
-git clone https://github.com/tchoco313/defense_dashboard.git   # 저장소를 내 컴퓨터로 복사한다
-cd defense_dashboard
-pip install -r requirements.txt   # 필요한 패키지를 한 번에 깐다
-cp .env.example .env              # 접속정보 틀을 복사한다 (윈도우: copy)
+- 데이터셋별 출처 · URL · 기간 · 행 수 · SHA-256 · 채택 여부와 그 이유는 `docs/data-sources.md`, 기계가 읽는 대장은 `db/meta_dataset.csv`.
+- **원본 데이터 파일은 Google Drive 팀 폴더에 보관한다.** 용량과 라이선스 때문에 저장소에는 직접 만든 참조표(`data/reference/`)만 올린다. 스크립트는 원본을 `data/raw/` 에 둔다고 가정한다.
+
+## 폴더 구조
+
+```
+.
+├── dashboard/            Streamlit 대시보드 (진입점 main.py — 상세는 dashboard/README.md)
+│   ├── screens/          메뉴별 소분류 화면
+│   ├── static/           CSS · JS · 소개 HTML
+│   ├── assets/           이미지
+│   └── demo/             디자인 시안(혼자 도는 파일, 숫자는 샘플)
+├── notebooks/            정제(0x_clean_*) · EDA(1x_eda_*) 노트북 — 순서는 notebooks/README.md
+├── scripts/              수집 · 적재 · 점검 · 문서 생성 스크립트, DB 접속 설정(dbconf.py)
+├── db/                   스키마(schema.sql) · 시드(seed_ref.sql) · 초기화(reset_data.sql) · 표/열 사전 CSV · 데이터셋 대장 · 노트북용 조회 SQL
+├── data/reference/       수작업 참조표(HS 화이트리스트 · 국가 · FSG · 국방반도체 참조 · 시도 경계)
+├── docs/
+│   ├── data-sources.md   데이터 출처 · 채택 기록
+│   ├── db/               DB 설계(schema-design.md) · ERD(erd.md) · 테이블 카탈로그(table-catalog.md)
+│   ├── reference/        정제 규칙 · HS 화이트리스트 정의 · 계약 5분류 규칙
+│   ├── runbook/          DB 접속 방법
+│   └── 제출/             제출 산출물(설계서 PDF · 데이터 명세서)
+├── tests/                지표 계산 · 화면 · 정합성 점검 단위 테스트
+├── certs/                AWS RDS 공개 CA 인증서(TLS 검증용, 비밀 아님)
+├── .streamlit/           Streamlit 설정 · Secrets 틀
+├── .env.example          접속 정보 틀
+└── requirements.txt
 ```
 
-그다음 `.env` 를 열어 `MARIADB_HOST` · `MARIADB_USER` · `MARIADB_PASSWORD` 세 줄을 채운다.
-값은 조장에게 받는다 (문서·깃·채팅에 적지 않는다). 포트·DB이름·SSL 은 이미 채워져 있으니 **건드리지 마라.**
+## 실행 방법
+
+### 1. 대시보드
 
 ```bash
-python3 scripts/check_db_access.py      # 인터넷 → 서버 포트 → 실제 로그인 순서로 본다
-streamlit run dashboard/main.py     # 대시보드를 띄운다
+pip install -r requirements.txt
+cp .env.example .env              # MARIADB_HOST · MARIADB_USER · MARIADB_PASSWORD 를 채운다
+python scripts/check_db_access.py # 인터넷 → 서버 포트 → 로그인 순서로 접속 확인
+streamlit run dashboard/main.py
 ```
 
-`[O]` 가 셋 다 뜨면 붙은 것이다.
+DB 접속 정보는 코드에 두지 않는다. `scripts/dbconf.py` 가 루트 `.env`(로컬) 또는 Streamlit Secrets(배포)의 `MARIADB_*` 를 읽는다. 계정 · TLS 등은 `docs/runbook/db-connection.md`.
 
-**MySQL 을 깔 필요가 없다.** DB 는 **AWS RDS** 한 곳에 모여 있고, 다섯 명이 거기에 붙어 쓴다.
-각자 자기 컴퓨터에 DB 를 만들면 데이터가 다섯 벌로 갈라져서 "내 화면에선 되는데" 가 생긴다.
+### 2. 데이터 수집 → DB 구축 (재현할 때만)
 
-### 접속 정보는 한 곳에서만 읽는다
-
-코드는 접속 정보를 직접 적지 않고 **`scripts/dbconf.py`** 하나를 거친다. 읽는 순서는
-① 프로젝트 루트 `.env` → ② 없으면 Streamlit Secrets(배포 앱). 두 곳 다 깃에 안 올라간다.
-
-| 계정 | 무엇에 쓰나 | 권한 |
-|---|---|---|
-| 적재 계정 | 수집·정제 노트북, `scripts/load_db.py` | 조회·추가·수정·삭제 |
-| 팀원 개발 계정 | 각자 스키마를 시험할 때 | `defense_dashboard` 안에서만 테이블·뷰 생성·변경 |
-| 조회 전용 계정 | **Streamlit 대시보드** (배포 앱) | 조회만 |
-
-- **대시보드는 조회 전용 계정으로만 붙인다.** 공개 URL 이라 쓰기 권한이 섞이면 사고 범위가 DB 전체다
-- RDS 마스터 계정은 우리 코드 어디에도 안 들어간다 (DDL·계정 관리에만, 로컬 `.env` 전용)
-- 계정을 만든 방법은 `scripts/rds_accounts.py`, 접속 전반은 `docs/runbook/db-connection.md`
-
-### 어디서든 붙는다 — 그래서 비밀번호가 중요해졌다
-
-집·핫스팟에서도 붙는다. 2026-09-18 까지 쓰던 학원 PC 서버는 학원 랜 안에서만 열려서
-집에서는 `TimeoutError` 였고, **배포한 Streamlit 앱도 DB 를 못 읽었다.** 그게 RDS 로 옮긴 이유다.
-
-바꿔 말하면 우리 DB 는 이제 **인터넷에서 닿는 주소**다. 비밀번호 하나가 유일한 문턱이다.
-
-- 비밀번호를 단톡·문서·커밋에 남기지 않는다. 채팅에 남은 건 회수할 방법이 없다
-- 엔드포인트도 문서에 적지 않는다. `.env` · Streamlit Secrets 에만 둔다
-- `utf8mb4` 를 빼면 한글이 `???` 로 들어간다. 넣을 땐 오류가 안 나고 조회할 때 알게 된다
-- 구 내부망 구성과 이관 경위는 `docs/runbook/db-connection.md` §8
-
----
-
-## 폴더가 무엇을 담나
-
-| 폴더 | 무엇 | 깃에 올라가나 |
-|---|---|---|
-| `data/` | 원본·정제 데이터 | **원본은 안 올라간다** (드라이브가 정본). `data/reference/` 수작업 참조표만 올라간다 |
-| `db/` | 스키마(`schema.sql`) · 변경 이력(`alter_*.sql`) · 표·열 사전 CSV | 올라간다 |
-| `scripts/` | 수집 · 적재 · 접속 확인 · 문서 생성 스크립트, 접속 설정(`dbconf.py`). 초기 코드는 `scripts/legacy/` | 올라간다 |
-| `notebooks/` | 정제(`0x_clean_*`) · EDA(`1x_eda_*`) 노트북 — 순서 · 역할은 `notebooks/README.md` | 올라간다 |
-| `dashboard/` | Streamlit 대시보드 (진입점 `main.py`, 화면 명세 `specs/`) — 페이지 표는 `dashboard/README.md` | 올라간다 |
-| `tests/` | 대시보드 계산·메뉴 테스트 | 올라간다 |
-| `certs/` | RDS 공개 CA 인증서 (TLS 검증용, 비밀 아님) | 올라간다 |
-| `docs/` | DB 설계서 · 보고 · 회의 기록 · 실행 명령 | 올라간다 (제출 문서 정본은 드라이브) |
-
----
-
-## 규칙 넷
-
-**1. 노트북은 한 파일에 한 사람.**
-깃은 `.ipynb` 를 합치지 못한다. 두 사람이 같은 노트북을 고치면 하나가 날아간다.
-새 노트북은 `번호_단계_데이터.ipynb` 로 짓고 `notebooks/README.md` 표에 담당과 함께 한 줄 더한다
-
-**2. 노트북 출력은 지우지 않는다.**
-EDA 보고서가 곧 이 노트북이고 그래프가 제출물이다. 지우면 결과물이 사라진다.
-
-**3. 브랜치를 쓰지 않는다.**
-파일 주인을 정해서 충돌 자체를 안 만든다.
-
-**4. 데이터와 비밀번호는 올리지 않는다.**
-`.gitignore` 가 `data/` 와 `.env` 를 막고 있다. 이 파일을 함부로 고치지 말 것.
-
----
-
-## 매일 하는 것
-
-VS Code 왼쪽 **소스 제어** 패널에서 버튼으로 해도 되고, 터미널이면 이렇게:
+원본 파일을 `data/raw/` 에 둔 뒤 저장소 루트에서 순서대로 실행한다.
 
 ```bash
-git pull                              # 시작 전: 남이 올린 걸 받는다
-# ... 작업 ...
-git add .                             # 오늘 바꾼 것을 담는다
-git commit -m "관세청 HS6 결측치 처리"  # 무엇을 했는지 적는다
-git push                              # 올린다
+# 수집 (관세청 OpenAPI — .env 의 DATA_GO_KR_SERVICE_KEY 필요)
+python scripts/fetch_customs.py --all-countries      # 품목별 국가별 수출입실적
+python scripts/fetch_customs_region.py               # 시군구별 수출입실적
+python scripts/parse_krit.py <공고 파일> --out data/raw/krit   # KRIT 공고 첨부(hwp·hwpx·pdf) 과제표 추출
+
+# 스키마 (admin 계정, 빈 DB 에서만 — 데이터가 있으면 안전장치가 멈춘다)
+mysql ... defense_dashboard < db/schema.sql
+
+# 적재
+python scripts/load_db.py --dry-run   # 원본 파일 파싱 · 건수 대조만 (DB 접속 없음)
+python scripts/load_db.py --ref       # 참조표 · 열 사전 · 데이터셋 대장 · 시드
+python scripts/load_db.py --fact      # 관세청 dim_hs10 · fact_customs_monthly · clean_customs_region
+
+# 정제 — notebooks/01~06 을 번호 순서대로 실행 (clean_* 표 적재)
+
+# 점검
+python scripts/check_integrity.py     # 시드 · 건수 검산 · 전자 판정 플래그 (FAIL 이 있으면 종료 코드 1)
+python scripts/load_db.py --verify    # 표별 건수 대조
 ```
 
-**커밋 메시지를 "수정" 이라고만 쓰지 말 것.** 나중에 못 찾는다.
-**각자 자기 이름으로 올릴 것.** 공동작업이 평가 대상이다 (가이드 17쪽).
+### 3. 테스트 · 문서 생성
 
----
+```bash
+python -m unittest discover -s tests -q    # DB 없이 돈다
+python scripts/gen_table_catalog.py        # docs/db/table-catalog.md 재생성 (DB 조회)
+python scripts/gen_erd_html.py             # docs/db/erd.md → erd.html
+python scripts/gen_data_spec_xlsx.py       # 데이터 수집 목록 및 명세서 xlsx
+python scripts/md_to_pdf.py <문서.md>      # Markdown → A4 PDF
+```
 
-## 충돌이 났을 때
+## 기술 스택
 
-1. `git status` — 어떤 파일이 문제인지 본다
-2. 그 파일을 열면 `<<<<<<<` `=======` `>>>>>>>` 로 두 버전이 나란히 있다.
-   남길 쪽만 두고 나머지와 기호를 지운다
-3. `git add 파일` → `git commit`
+| 영역 | 사용 |
+|---|---|
+| 언어 · 분석 | Python 3, pandas, NumPy, SciPy |
+| 시각화 | Plotly(대시보드), Matplotlib · Seaborn(EDA) |
+| 대시보드 · 배포 | Streamlit, Streamlit Community Cloud |
+| DB | AWS RDS MySQL 8.4 (PyMySQL · SQLAlchemy, TLS) |
+| 수집 · 파싱 | requests(공공데이터 OpenAPI), pdfplumber · olefile(공고 PDF·HWP 표), openpyxl |
+| 협업 | GitHub, Google Drive |
 
-**노트북에서 충돌이 나면 손으로 고치지 말 것.** 살릴 파일을 다른 이름으로 복사한 뒤 다시 올린다.
+## 산출물 위치
 
----
-
-## 제출물과 마감
-
-| 언제 | 무엇 | 어디 |
-|---|---|---|
-| 9/16 | 기획서 1차 | 구글드라이브 조별 폴더 |
-| 10/2 | 데이터·명세서·EDA 보고서·코드·시연영상 | 구글드라이브 |
-| 10/5 | 포트폴리오 PPT | 구글드라이브 |
-| 10/6 | 발표 | |
-
-시연 동영상은 **3~4분을 넘기지 않는다.**
-
----
-
-## 데이터는 이렇게 흘렀다
-
-수집 → 정제 → DB 적재 → 대시보드. 단계별 명령은 `docs/runbook/commands.md` 에 있다.
-
-| 단계 | 무엇으로 | 명령 모음 |
-|---|---|---|
-| 수집 | 관세청 OpenAPI(`scripts/fetch_customs*.py`) · 방사청·KRIT·KOSIS 파일 | §1 · §2 · §9 |
-| 스키마 | `db/schema.sql` + `db/alter_*.sql` (`scripts/apply_alter.py`) | §4 |
-| 적재 | `scripts/load_db.py` | §5 |
-| 정제 | `notebooks/0x_clean_*.ipynb` → RDS `clean_*` 표 | §6 |
-| EDA | `notebooks/1x_eda_*.ipynb` | — |
-| 화면 | `dashboard/` (Streamlit Community Cloud 배포) | §10 |
-
-원본 파일은 `data/raw/` 에 두고 깃에는 안 올린다. 테이블 설명은 `docs/db/table-catalog.md` · `docs/db/erd.md`.
-
-처음에는 원본도 RDS `raw_` 표로 넣었다가 09-22 중간 점검 피드백을 받고 모두 지웠다(표 56 → 37). 왜 넣었고 어떻게 없앴는지는 `docs/db/raw-layer-history.md`.
+| 산출물 | 위치 |
+|---|---|
+| 대시보드 | https://defense-trade.streamlit.app · 코드 `dashboard/` |
+| 데이터 수집 · 정제 | `scripts/` · `notebooks/0x_clean_*.ipynb` |
+| EDA 보고서 | `notebooks/1x_eda_*.ipynb` (출력 포함) |
+| DB 설계서 · 데이터 명세서 | `docs/제출/` (설계서 PDF · 데이터 수집 목록 및 명세서), 원문 `docs/db/` |
+| 데이터 출처 · 정제 규칙 | `docs/data-sources.md` · `docs/reference/` |

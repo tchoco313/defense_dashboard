@@ -102,7 +102,7 @@ def data_stamp(dataset_key: str = "customs_all", table: str = "fact_customs_mont
 
 
 def db_ready() -> bool:
-    """접속 확인. 실패하면 안내 + 재시도 버튼을 그리고 False 를 돌려준다(UI/UX 9원칙)."""
+    """접속 확인. 실패하면 안내 + 재시도 버튼을 그리고 False 를 돌려준다."""
     try:
         with engine().connect() as conn:
             conn.execute(text("SELECT 1"))

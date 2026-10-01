@@ -1,4 +1,4 @@
-"""① 1-4 상세 조회 — DATA CENTER 「데이터 시각화」 도구를 「수출입 HS」 유형으로 고정(명세 11_cat_parts.md §3, 91_search.md)."""
+"""① 1-4 상세 조회 — 「데이터 시각화」 도구를 「수출입 HS」 유형으로 고정."""
 from __future__ import annotations
 
 import parts as P

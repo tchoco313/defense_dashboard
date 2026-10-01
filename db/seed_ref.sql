@@ -1,8 +1,8 @@
 -- =============================================================================
--- 수작업 참조표 시드 (작성 2026-09-15). scripts/load_db.py --ref 가 실행한다(문장 구분은 ";\n").
+-- 수작업 참조표 시드. scripts/load_db.py --ref 가 실행한다(문장 구분은 ";\n").
 --   ref_sido_map     : 대표업체주소 첫 토큰 → 시도. 행정표준코드 앞 2자리(강원 51·전북 52 는 특별자치도 전환 후 코드,
 --                      구 코드 42·45 는 쓰지 않는다).
---   ref_fsg          : FSG 2자리 라벨 80행(data/reference/fsg_master.csv, 2026-09-16). 증분 적용본은 db/alter_2026-09-16_fsg.sql.
+--   ref_fsg          : FSG 2자리 라벨 80행(data/reference/fsg_master.csv).
 -- 재실행 가능: 이미 있으면 건너뛴다(INSERT IGNORE / NOT EXISTS).
 -- =============================================================================
 
@@ -11,9 +11,9 @@ INSERT IGNORE INTO ref_sido_map (token, sido_code, sido_name) VALUES
   ('부산','26','부산광역시'), ('부산광역시','26','부산광역시'), ('부산시','26','부산광역시'),
   ('대구','27','대구광역시'), ('대구광역시','27','대구광역시'), ('대구시','27','대구광역시'),
   ('인천','28','인천광역시'), ('인천광역시','28','인천광역시'), ('인천시','28','인천광역시'),
-  ('광주광역시','29','광주광역시'),  -- '광주'·'광주시'는 경기 광주시와 겹쳐 제외(2026-09-18, db/alter_2026-09-18_sido_gwangju.sql). 정제 코드에서 둘째 토큰으로 판별
+  ('광주광역시','29','광주광역시'),  -- '광주'·'광주시'는 경기 광주시와 겹쳐 제외. 정제 코드에서 둘째 토큰으로 판별
   ('대전','30','대전광역시'), ('대전광역시','30','대전광역시'), ('대전시','30','대전광역시'),
-  ('충남대전시','30','대전광역시'),  -- 2026-09-18 추가: 계약 주소 16건이 1989년 이전 표기로 적힘(db/alter_2026-09-18_sido_gwangju.sql)
+  ('충남대전시','30','대전광역시'),  -- 계약 주소 16건이 1989년 이전 표기로 적힘
   ('울산','31','울산광역시'), ('울산광역시','31','울산광역시'), ('울산시','31','울산광역시'),
   ('세종','36','세종특별자치시'), ('세종특별자치시','36','세종특별자치시'), ('세종시','36','세종특별자치시'),
   ('경기','41','경기도'), ('경기도','41','경기도'),
@@ -26,10 +26,8 @@ INSERT IGNORE INTO ref_sido_map (token, sido_code, sido_name) VALUES
   ('경남','48','경상남도'), ('경상남도','48','경상남도'),
   ('제주','50','제주특별자치도'), ('제주도','50','제주특별자치도'), ('제주특별자치도','50','제주특별자치도');
 
--- (ref_category_map 시드는 2026-09-21 폐기 — 카테고리 맵을 두지 않는다. db/alter_2026-09-21_drop_category_map.sql)
-
 -- ref_fsg 시드 (fsg_master.csv 80행과 동일. 재실행 시 덮어씀 — 값을 DB에서만 고치면 --ref 때 되돌아가므로 이 파일도 함께 고친다)
--- is_electronic_group = 58·59·60 (2026-09-21 M4 확정. 60은 이 파일에 반영이 늦어 09-23 --ref 때 0으로 되돌아갔던 것을 09-28 정정)
+-- is_electronic_group = 58·59·60 (전자 판정 FSG)
 INSERT INTO ref_fsg (fsg_code, name_en, name_ko, status, is_historical, is_electronic_group, note_ko, source_url) VALUES
   ('10', 'Weapons', '무기', 'A', 0, 0, NULL, 'https://www.dla.mil/Portals/104/Documents/InformationOperations/LogisticsInformationServices/CatalogTools%20Tables/New/ZSMT_FSG.txt'),
   ('11', 'Nuclear Ordnance', '핵 병기', 'A', 0, 0, NULL, 'https://www.dla.mil/Portals/104/Documents/InformationOperations/LogisticsInformationServices/CatalogTools%20Tables/New/ZSMT_FSG.txt'),

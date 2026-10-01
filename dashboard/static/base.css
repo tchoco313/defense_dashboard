@@ -170,7 +170,7 @@ div[class*="st-key-card_"]{background:var(--panel);border:1px solid var(--line)!
 .proc .n{margin-top:8px;font-size:22px;font-weight:800;color:#1c4ea3;letter-spacing:-.5px}
 .proc .n small{font-size:12px;color:var(--muted);font-weight:600;margin-left:3px}
 
-/* 입찰 공고 ↔ 결과 매칭 깔때기(DATA CENTER) — 층마다 사다리꼴 하나 */
+/* 입찰 공고 ↔ 결과 매칭 깔때기 — 층마다 사다리꼴 하나 */
 .funnel .fr{display:grid;grid-template-columns:1.3fr 1fr;align-items:center;gap:10px;height:52px;margin-bottom:6px}
 .funnel .tz{height:100%;display:grid;place-items:center;color:#fff;font-size:19px;font-weight:800;letter-spacing:-.3px;
   animation:rise .42s cubic-bezier(.18,.89,.32,1.15) both}

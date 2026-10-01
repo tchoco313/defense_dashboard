@@ -1,5 +1,5 @@
 
-[data-testid="stSidebarUserContent"]{padding-bottom:14px!important}   /* 단추는 사이드바 맨 끝에만 둔다(따라다니지 않음) — 기본 96px 여백을 줄여 끝까지 내리면 바닥에 닿게 */
+[data-testid="stSidebarUserContent"]{padding-bottom:14px!important}   /* 사이드바 기본 아래 여백(96px)을 줄인다 */
 
 /* 대화상자 안 카드 */
 [data-testid="stDialog"] [role="dialog"]{border-radius:18px;background:#f2f4f7}

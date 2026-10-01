@@ -164,7 +164,7 @@ class CsvHeaderTest(unittest.TestCase):
         self.assertNotIn("DB 적재", head)
 
     def test_source_hides_db_internals(self):
-        # 화면 · PNG · CSV 출처에는 기관 · 데이터명 · 기간만 — DB 표 · 뷰 이름과 적재일은 걸러진다(2026-09-24 사용자)
+        # 화면 · PNG · CSV 출처에는 기관 · 데이터명 · 기간만 — DB 표 · 뷰 이름과 적재일은 걸러진다
         from ui import csv_header
         stamp = {"period": "2016.01~2026.08", "has_period": True, "loaded": "2026-09-18", "today": "2026-09-20", "error": None}
         head = csv_header("c", "관세청 수출입실적(15100475) → 팀 DB fact_customs_monthly → v_import_hs6_year · DB 적재 2026-09-18",

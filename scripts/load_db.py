@@ -1,6 +1,6 @@
 """운영 DB(AWS RDS defense_dashboard) 적재 스크립트 — ref_ / meta_ / dim_·fact_ 계층 + 원본 파일 읽기(read_raw).
 
-원본은 DB에 넣지 않는다(2026-09-22 교수 피드백 — docs/report/feedback/professor-feedback-2026-09-22.md). data/raw/ 파일이 원본이며,
+원본은 DB에 넣지 않는다. data/raw/ 파일이 원본이며,
 정제 노트북과 --fact 는 read_raw(<데이터셋 키>) 로 파일을 pandas DataFrame 으로 읽는다. RAW_TABLES 의 키(raw_…)는 옛 raw_ 표 이름을
 그대로 물려받은 **원본 파일 데이터셋 키**로, meta_dataset.target_table · clean_excluded_row.table_name · db/column_dict.csv(원본 파일
 열 사전) 와 같은 값이다. read_raw 가 매기는 row_id(파일명 정렬 × 파일 내 행 순, 1부터)가 clean_*.raw_row_id 의 정의다.
@@ -57,13 +57,13 @@ SCRIPT_TAG = "scripts/load_db.py"
 # ---------------------------------------------------------------------------
 RAW_TABLES: dict[str, dict] = {
     "raw_customs_trade": dict(
-        files="data/raw/customs/customs_all_*.csv", encoding="utf-8", expected=294_420,   # 2026-09-16: 21개 268,909 + 신규 3개(852910·901410·901490) 25,511
+        files="data/raw/customs/customs_all_*.csv", encoding="utf-8", expected=294_420,   # 24개 = 21개 268,909 + 852910·901410·901490 25,511
         dataset_key="customs_all", tier="핵심"),
     "raw_customs_progress": dict(
         files="data/raw/customs/progress_all.csv", encoding="utf-8", expected=264,   # 231 + 33
         dataset_key="customs_progress", int_cols={"row_count"}, tier="메타"),
     "raw_customs_region": dict(
-        files="data/raw/customs/customs_region_*.csv", encoding="utf-8", expected=273_586,   # 2026-09-18 수집 24개(시군구별 15134343). 금액 천 달러
+        files="data/raw/customs/customs_region_*.csv", encoding="utf-8", expected=273_586,   # HS6 24개(시군구별 15134343). 금액 천 달러
         dataset_key="customs_region", tier="보조"),
     "raw_dapa_contract": dict(
         files="data/raw/dapa/dapa_domestic_contract_20251231.csv", encoding="cp949", expected=43_112,
@@ -72,7 +72,7 @@ RAW_TABLES: dict[str, dict] = {
         files="data/raw/dapa/dapa_localized_items_20260509.csv", encoding="cp949", expected=33_965,
         dataset_key="dapa_localized_item", tier="핵심"),
     "raw_krit_task": dict(
-        files="data/raw/krit/*_t*.csv", encoding="utf-8-sig", expected=96,   # 2026-09-18: 26-1차 2 + PDF 5건 74 + 26-2차 본공고(hwp) 20
+        files="data/raw/krit/*_t*.csv", encoding="utf-8-sig", expected=96,   # 26-1차 2 + PDF 5건 74 + 26-2차 본공고(hwp) 20
         dataset_key="krit_task", special="krit", tier="핵심"),
     "raw_dapa_bid_notice": dict(
         files="data/raw/dapa/dapa_domestic_bid_notice_20251231.csv", encoding="cp949", expected=10_842,
@@ -104,13 +104,13 @@ RAW_TABLES: dict[str, dict] = {
     "raw_dapa_contract_exec_by_service": dict(
         files="data/raw/dapa/dapa_contract_exec_by_service_20241231.csv", encoding="cp949", expected=40,
         dataset_key="dapa_contract_exec_by_service", tier="보조"),
-    # 무역안보관리원 HSK 연계표(data.go.kr 15034135). 2026-09-16 내려받아 확인: utf-8-sig, 2,161행(포털 표시와 일치), 헤더 품목번호·품명(국문)·품명(영문)·통제번호.
-    # 통제번호는 쉼표 목록(최대 1,218자) → raw_hsk_control.control_no TEXT (db/alter_2026-09-16_hs_rule.sql §2-0).
+    # 무역안보관리원 HSK 연계표(data.go.kr 15034135). utf-8-sig, 2,161행(포털 표시와 일치), 헤더 품목번호·품명(국문)·품명(영문)·통제번호.
+    # 통제번호는 쉼표 목록(최대 1,218자) → clean_hsk_control 에서 통제번호별 세로형으로 편다.
     "raw_hsk_control": dict(
         files="data/raw/kosti/hsk_control_15034135.csv", encoding="utf-8-sig", expected=2_161,
         dataset_key="kosti_hsk_control", tier="보조"),
     # 관세청 HS부호 마스터(data.go.kr 15049722, XLSX 1시트 20열) · HS부호 단위별 품목명(15130660, XLSX 5시트) — HS6 선정 규칙(schema.sql §6 v_hs6_candidate_rule)의 원본.
-    # 2026-09-16 내려받아 헤더 확인(12,469행 = 포털 표시와 일치 / 5시트 합 17,072행 일치). .xlsx 는 pandas read_excel(openpyxl)로 읽는다.
+    # 행 수: 마스터 12,469행 · 단위별 품목명 5시트 합 17,072행(포털 표시와 일치). .xlsx 는 pandas read_excel(openpyxl)로 읽는다.
     # 마스터는 frame_generic(첫 시트, 열 순서 column_dict 대조), 단위별 품목명은 special='hs_unit'(시트마다 첫 열 이름이 달라 5시트를 세로로 합침).
     "raw_hs_code_master": dict(
         files="data/raw/customs/hs_code_master_15049722.xlsx", encoding=None, expected=12_469,
@@ -118,12 +118,12 @@ RAW_TABLES: dict[str, dict] = {
     "raw_hs_unit_name": dict(
         files="data/raw/customs/hs_unit_name_15130660.xlsx", encoding=None, expected=17_072,
         dataset_key="customs_hs_unit_name", special="hs_unit", tier="참조"),
-    # 2026-09-16 팀 드라이브 채택 3종(db/alter_2026-09-16_api_budget.sql). 원본은 조장이 수집해 드라이브 1조/2_데이터수집_저장에 올린 것을 내려받음.
+    # 아래 3종은 팀 드라이브 수집본(국외 조달계획 API · 군급분류집 · 열린재정 예산).
     # 국외 조달계획 OpenAPI 품목 단위(15158418, 요구연도별 호출) — 파일판 raw_dapa_overseas_plan(사업 단위·원)과 다른 표. 헤더 24열 utf-8-sig, 13,615행.
     "raw_dapa_overseas_plan_api": dict(
         files="data/raw/dapa/dapa_overseas_plan_api_20260916.csv", encoding="utf-8-sig", expected=13_615,
         dataset_key="dapa_overseas_plan_api", tier="핵심"),
-    # 군급분류집(15119907) cp949 10열 756행(FSG 그룹행 80 + FSC 676) → ref_fsc 시드는 alter §3 INSERT…SELECT.
+    # 군급분류집(15119907) cp949 10열 756행(FSG 그룹행 80 + FSC 676) → ref_fsc 의 원천.
     "raw_dapa_fsc_catalog": dict(
         files="data/raw/dapa/dapa_fsc_catalog_20251231.csv", encoding="cp949", expected=756,
         dataset_key="dapa_fsc_catalog", tier="참조"),
@@ -131,15 +131,15 @@ RAW_TABLES: dict[str, dict] = {
     "raw_openfiscal_program_budget": dict(
         files="data/raw/budget/openfiscal_dapa_program_budget_*.csv", encoding="utf-8-sig", expected=2_860,
         dataset_key="openfiscal_program_budget", tier="보조"),
-    # 2026-09-17 국방표준종합서비스(KDSIS) NSN 목록 팀원 정리본(db/alter_2026-09-17_kdsis_nsn.sql). new_data/ 에 그대로 두고 읽는다(원본 두 파일 .txt+2016.csv 합본).
+    # 국방표준종합서비스(KDSIS) NSN 목록 정리본(원본 두 파일 .txt+2016.csv 합본). new_data/ 에 두고 읽는다.
     # utf-8-sig 22열 228,027행. CSV의 source_file/source_row_no 열은 origin_file/origin_row_no 로 들어가고, DB의 source_file/source_row_no 는 frame_generic 이 붙인다.
     "raw_kdsis_nsn": dict(
         files="new_data/raw_kdsis_nsn.csv", encoding="utf-8-sig", expected=228_027,
         dataset_key="kdsis_nsn", int_cols={"origin_row_no"}, tier="보조"),
 }
 
-REF_EXPECTED = {"ref_hs_whitelist": 24, "ref_country": 238, "meta_column_dict": 916}  # 916 = column_dict.csv (2026-09-23 국방반도체 참조표 7개 +58. 이전 858 · 831 · 823 · 842 · 862 · 849 · 855 · 853 · 827 · 806 · 681 · 546 · 489 · 388 · 337)
-# 국방반도체 발전전략 참조표(db/alter_2026-09-23_semi_ref.sql) — (표, data/reference 파일, 기대 행 수). CSV 의 date 열은 event_date 로,
+REF_EXPECTED = {"ref_hs_whitelist": 24, "ref_country": 238, "meta_column_dict": 916}  # 916 = db/column_dict.csv 행 수
+# 국방반도체 발전전략 참조표 — (표, data/reference 파일, 기대 행 수). CSV 의 date 열은 event_date 로,
 # 추진 경과는 CSV 행 순서를 row_no 로 붙인다. 표가 비어 있을 때만 채운다(다시 넣으려면 그 표를 비운다)
 SEMI_REF = [("ref_semi_chip_type", "semi_chip_type.csv", 7), ("ref_semi_domestic_case", "semi_domestic_case.csv", 13),
             ("ref_semi_market_share", "semi_market_share.csv", 16), ("ref_semi_policy_timeline", "semi_policy_timeline.csv", 12),
@@ -317,9 +317,8 @@ _KOSIS_YM = re.compile(r"\d{4}\.\d{2}")
 def frame_kosis_wide2(path: Path, spec: dict, dict_cols) -> tuple[list[str], list[tuple]]:
     """KOSIS 101: 헤더 2행(1행 'M201601 2016.01', 2행 'T10 …') 광폭 → 세로형.
 
-    2026-09-19 수정: 잠정치 열의 1행 헤더는 'M202606 M202606 2026.06 p)' 처럼 뒤에 p) 가 붙는다. 이전 코드 split()[-1] 은
-    마지막 토큰 'p)' 를 stat_ym 으로 넣어 raw_kosis_production_index 16행(2026.06·07 × T10/T20 × 4산업)이 stat_ym='p)' 로 적재됐다.
-    이제는 YYYY.MM 토큰을 정규식으로 찾는다. 잠정 표기 p) 는 raw 에 담을 열이 없어 버린다(잠정 여부는 clean_kosis_production_index.is_provisional).
+    잠정치 열의 1행 헤더는 'M202606 M202606 2026.06 p)' 처럼 뒤에 p) 가 붙으므로, 마지막 토큰이 아니라
+    YYYY.MM 토큰을 정규식으로 찾는다. 잠정 표기 p) 는 raw 에 담을 열이 없어 버린다(잠정 여부는 clean_kosis_production_index.is_provisional).
     이미 적재된 raw 는 원본 동결 원칙에 따라 재적재하지 않고, clean 이 source_col_no 로 월을 복원한다(notebooks/06_clean_kosis.ipynb §2).
     """
     with open(path, encoding=spec["encoding"], newline="") as f:
@@ -372,7 +371,7 @@ def resolve_files(spec: dict) -> list[Path]:
 
 
 # ---------------------------------------------------------------------------
-# 원본 파일 → DataFrame (정제 노트북·--fact 의 입력. 2026-09-22 raw_ 표 삭제 후 유일한 원본 읽기 경로)
+# 원본 파일 → DataFrame (정제 노트북·--fact 의 입력. 유일한 원본 읽기 경로)
 # ---------------------------------------------------------------------------
 _DICT_CACHE: dict[str, list[tuple[int, str, str]]] | None = None
 
@@ -473,9 +472,9 @@ def do_ref(conn, seed_overwrite: bool = False):
         conn.commit()
         exp = REF_EXPECTED.get(table)
         print(f"  {table}: {n:,}행 적재" + (f" (기대 {exp}: {'일치' if exp == n else '불일치'})" if exp else ""))
-    # 수작업 시드 (ref_sido_map · ref_fsg) — ref_category_map 시드는 2026-09-21 폐기
-    # 시드는 DB 값을 덮어쓰므로(ref_fsg ON DUPLICATE KEY UPDATE) 먼저 대조하고, 다르면 멈춘다 — DB에서만 고친 FSG 60 플래그가
-    # 09-23 --ref 로 0으로 되돌아간 사고(2026-09-28 QA D-01, data-cleaning-rules.md §1 #14) 재발 방지
+    # 수작업 시드 (ref_sido_map · ref_fsg)
+    # 시드는 DB 값을 덮어쓰므로(ref_fsg ON DUPLICATE KEY UPDATE) 먼저 대조하고, 다르면 멈춘다 — DB에서만 고친 값이
+    # --ref 로 시드 값으로 되돌아가지 않게 한다(data-cleaning-rules.md §1 #14)
     from check_integrity import seed_drift   # 함수 안에서 import(check_integrity 가 이 모듈을 import 한다)
     drift = seed_drift(cur) if SEED_SQL.exists() else []
     if drift and not seed_overwrite:
@@ -491,7 +490,7 @@ def do_ref(conn, seed_overwrite: bool = False):
             cur.execute(s)
         conn.commit()
         print(f"  seed_ref.sql: {len(stmts)}문 실행 → ref_sido_map {table_count(cur,'ref_sido_map')} · ref_fsg {table_count(cur,'ref_fsg')}")
-    # 관세청 HS 기준표 2종 — 원본 파일(read_raw)에서 만든다(2026-09-22 raw_ 표 삭제 후속. 첫 적재는 alter_2026-09-22_raw_successors.sql 이 raw_ 에서 했다)
+    # 관세청 HS 기준표 2종 — 원본 파일(read_raw)에서 만든다
     for table, src, builder, exp in [("ref_hs_code_master", "raw_hs_code_master", build_hs_code_master, 11_327),
                                      ("ref_hs6_name", "raw_hs_unit_name", build_hs6_name, 2_254)]:
         if table_count(cur, table) > 0:

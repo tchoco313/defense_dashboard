@@ -1,13 +1,13 @@
 
-/* ── 새 틀: 사이드바 없음 · 흰 바탕 · 본문 폭 제한 없음(줄마다 안쪽 여백으로 가운데 맞춤) ───────────── */
+/* ── 화면 틀: 사이드바 없음 · 흰 바탕 · 본문 폭 제한 없음(줄마다 안쪽 여백으로 가운데 맞춤) ───────────── */
 [data-testid="stSidebar"],[data-testid="stExpandSidebarButton"],[data-testid="stSidebarCollapseButton"]{display:none!important}
-/* Streamlit 기본 머리 띠(보이지 않는 도구 막대)가 로고 · ⓘ 위를 덮어 클릭을 가로챈다 — 사이드바가 없으니 통째로 숨긴다 */
+/* Streamlit 기본 머리 띠(보이지 않는 도구 막대)가 로고 위를 덮어 클릭을 가로챈다 — 사이드바가 없으니 통째로 숨긴다 */
 [data-testid="stHeader"],[data-testid="stToolbar"]{display:none!important}
 [data-testid="stAppViewContainer"]{background:#fff}
 .block-container{padding:0 0 0!important;max-width:none!important}
 [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"]{gap:0}
 
-/* ── 머리글 1줄: 로고 · 안내 · 데이터 정보 ─────────────────────────────────── */
+/* ── 머리글 1줄: 로고 ─────────────────────────────────── */
 .st-key-hdr_top{padding:0 ${PAD};height:78px!important;min-height:78px;align-items:center!important;border-bottom:1px solid #e3e8f0;background:#fff;
   position:relative}
 /* 로고 위 투명 링크 — 로고 자리(왼쪽 끝 · 폭 370px)만 덮는다 */
@@ -54,7 +54,7 @@ div[class*="st-key-gi_"] > div:first-child [data-testid="stPageLink"] a::after,.
 /* 펼침 메뉴 — 상단 메뉴 어디에 커서를 올려도 모든 메뉴의 블록 목록이 한꺼번에 짙은 파랑 띠에 펼쳐진다 */
 div[class*="st-key-gs_"]{display:none!important;position:absolute;top:66px;left:0;right:0;padding:14px 6px 0 12px;gap:0!important;z-index:3}
 .st-key-gnb:has(div[class*="st-key-gi_"]:hover) div[class*="st-key-gs_"],.st-key-gnb.open div[class*="st-key-gs_"]{display:flex!important}
-/* 띠는 「부품 현황」 왼쪽 세로선 ~ 「배경과 자료」 오른쪽 세로선 사이만(가운데 모은 메뉴 칸 폭) — 양옆과 전체 메뉴(≡) 아래는 비운다 */
+/* 띠는 「소개」 왼쪽 세로선 ~ 「배경과 자료」 오른쪽 세로선 사이만(가운데 모은 메뉴 칸 폭) — 양옆과 전체 메뉴(≡) 아래는 비운다 */
 .st-key-gnb::after{content:"";position:absolute;left:calc(50% - ${GNB_HALF}px);width:${GNB_TOTAL}px;top:66px;height:${DROP_H}px;background:${BLUE_D};border-radius:0 0 14px 14px;
   box-shadow:0 12px 24px rgba(0,30,90,.25);opacity:0;visibility:hidden;transition:opacity .15s;z-index:1}
 .st-key-gnb:has(div[class*="st-key-gi_"]:hover)::after,.st-key-gnb.open::after{opacity:1;visibility:visible}
@@ -70,7 +70,7 @@ div[class*="st-key-gs_"] [data-testid="stPageLink"] a p{font-size:16px!important
 div[class*="st-key-gs_"] [data-testid="stPageLink"] a:hover{background:rgba(255,255,255,.1)}
 div[class*="st-key-gs_"] [data-testid="stPageLink"] a:hover p{color:#fff!important}
 div[class*="st-key-gi_"]:hover div[class*="st-key-gs_"]{background:rgba(255,255,255,.06);height:${DROP_H}px}
-/* 펼침 메뉴 칸 나눔 — 메뉴(부품 현황 · 군급 분류와 조달 …)마다 띠 높이만큼 옅은 세로선으로 가른다. 맨 끝 배경과 자료는 오른쪽에도 선을 그어 양 끝을 닫는다 */
+/* 펼침 메뉴 칸 나눔 — 메뉴(소개 · 전자부품 현황 …)마다 띠 높이만큼 옅은 세로선으로 가른다. 맨 끝 배경과 자료는 오른쪽에도 선을 그어 양 끝을 닫는다 */
 div[class*="st-key-gs_"]{height:${DROP_H}px;box-sizing:border-box;border-left:1px solid rgba(255,255,255,.2)}
 .st-key-gs_background{border-right:1px solid rgba(255,255,255,.2)}
 /* 띠 아래 모서리를 둥글게 한 만큼 양 끝 칸(커서를 올리면 옅게 밝아짐)도 같은 반지름으로 깎는다 */
@@ -90,9 +90,8 @@ div[class*="st-key-gs_"]{height:${DROP_H}px;box-sizing:border-box;border-left:1p
 /* ── 서브 배너 — 짙은 파랑 바탕 + 항공모함 · K9 자주포 사진, 왼쪽 아래에 페이지 제목 칸 ─────────────── */
 .sv{position:relative;overflow:hidden;height:168px;padding:0 ${PAD};
   background:linear-gradient(100deg,#00236b 0%,${BLUE_D} 38%,${BLUE_D} 100%)}   /* 제목 칸부터 오른쪽 끝까지 제목 부분과 같은 짙은 파랑 */
-/* 배너 격자무늬 — 없앴다 */
-/* 배너 그림 — 예전 그림(HERO_IMG, 배 + 전투기 한 장 · 가로 811px)이 놓이던 자리를 그대로 쓴다.
-   왼쪽 배 자리(53.6%)에는 항공모함 사진(Unsplash, 파란 바탕 색을 입힘)을, 오른쪽 자리에는 K9 자주포를 둔다 */
+/* 배너 그림 자리(가로 811px, 본문 폭 오른쪽 끝에 맞춤).
+   왼쪽(53.6%)에는 항공모함 사진(Unsplash, 파란 바탕 색을 입힘)을, 오른쪽에는 K9 자주포를 둔다 */
 .sv-ph{position:absolute;top:0;bottom:0;right:max(0px, calc((100% - ${WRAP}px) / 2));width:811px;pointer-events:none}
 .sv-ph i{position:absolute;top:0;bottom:0;background-repeat:no-repeat}
 .sv-ph .ship{left:110px;width:53.6%;background-size:cover;background-position:center 62%;mix-blend-mode:luminosity;opacity:.5;
@@ -134,7 +133,7 @@ div[class*="st-key-gs_"]{height:${DROP_H}px;box-sizing:border-box;border-left:1p
 .st-key-lnb [data-testid="stPageLink"] a::after{content:"·";font-size:24px;font-weight:700;color:#9aa6bd}
 .st-key-lnb [data-testid="stPageLink"] a:hover{background:#e8effb}
 .st-key-lnb [data-testid="stPageLink"] a:hover p,.st-key-lnb [data-testid="stPageLink"] a:hover::after{color:${BLUE}!important}
-/* 소분류 링크(스크롤형) — 예전 page_link 칸과 같은 모양 · 크기. 지금 보이는 소분류(.on)는 선택 칸(✓) 모양 */
+/* 소분류 링크(스크롤형) — 위 소분류 칸과 같은 모양 · 크기. 지금 보이는 소분류(.on)는 선택 칸(✓) 모양 */
 .lnb-nav{display:flex;flex-direction:column;gap:6px}
 .lnb-a{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:50px;box-sizing:border-box;padding:0 18px;
   margin:0;border:1.5px solid transparent;border-radius:0;background:#f3f6fb;transition:background .15s;text-decoration:none!important;
@@ -177,7 +176,7 @@ div[class*="st-key-sub_"]{scroll-margin-top:22px}   /* 소분류로 스크롤해
 .st-key-crumb [data-testid="stPageLink"] a:hover [data-testid="stIconMaterial"]{color:${BLUE}}
 /* 블록 — 한 페이지에 차례로 이어진다. 테두리 · 이름표 대신 블록마다 제목 줄(.sec-h) */
 div[class*="st-key-zone_"]{border:none;border-radius:0;background:transparent;padding:0;margin:4px 0 64px;scroll-margin-top:22px}
-.sec-h{display:flex;align-items:baseline;gap:12px;margin:0 0 20px;padding-bottom:14px;border-bottom:2px solid #1b2540}   /* 10-01 — 제목 아래 검은 줄 다시 넣음(demo/KDD_v2 와 같게) */
+.sec-h{display:flex;align-items:baseline;gap:12px;margin:0 0 20px;padding-bottom:14px;border-bottom:2px solid #1b2540}   /* 제목 아래 검은 줄 */
 .sec-h h2{margin:0;padding:0;font-size:25px;font-weight:800;letter-spacing:-.7px;color:#101a33}
 div[class*="st-key-zone_"]::before{display:none}
 /* 첫 블록 KPI — 페이지마다 카드 수(4 · 5 · 6개)가 달라도 카드 한 장의 크기 · 비율은 모든 페이지에서 같게 한다.

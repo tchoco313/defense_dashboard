@@ -1,13 +1,13 @@
-# 테이블 카탈로그 — 역할·키·주요 열 (RDS `defense_dashboard` 실측 2026-09-28)
+# 테이블 카탈로그 — 역할·키·주요 열 (RDS `defense_dashboard` 실측)
 
-`scripts/gen_table_catalog.py`가 `db/table_dict.csv`(역할·원천·한 행·쓰는 곳·주의) + `db/column_dict.csv`(열 설명) + RDS(행 수·PK·뷰 열)로 만든다. **손으로 고치지 말고 두 CSV를 고친 뒤 재생성.** 테이블 44 · 뷰 31 · 원본 파일 데이터셋 23(DB 밖). 화면↔테이블 대응·SQL 예시는 `docs/db/table-guide.md`, DDL은 `db/schema.sql`.
+`scripts/gen_table_catalog.py`가 `db/table_dict.csv`(역할·원천·한 행·쓰는 곳·주의) + `db/column_dict.csv`(열 설명) + RDS(행 수·PK·뷰 열)로 만든다. **손으로 고치지 말고 두 CSV를 고친 뒤 재생성.** 테이블 44 · 뷰 31 · 원본 파일 데이터셋 23(DB 밖). 설계는 `docs/db/schema-design.md`, 관계도는 `docs/db/erd.md`, DDL은 `db/schema.sql`.
 
 읽는 법: 행 수는 실측 `COUNT(*)`(원본 파일은 파서 기대 건수). `raw_`는 원본 파일 데이터셋 키이며 열은 원본 파일 열 사전(`column_dict.csv`)이고 파서가 붙이는 `source_file`·`source_row_no`는 표에서 뺐다. PK 열은 굵게. 뷰 열은 열 사전 대상이 아니라(설계 원칙) 이름·타입만 싣는다.
 
 ## 목차
 
 - **ref_** 참조표 — 기준·라벨: `ref_country`, `ref_equipment_alias`, `ref_fsc`, `ref_fsg`, `ref_hs6_name`, `ref_hs_code_master`, `ref_hs_indicator`, `ref_hs_rule_flag`, `ref_hs_whitelist`, `ref_semi_chip_type`, `ref_semi_domestic_case`, `ref_semi_market_share`, `ref_semi_policy_timeline`, `ref_semi_public_fab`, `ref_semi_stat`, `ref_semi_strategy_task`, `ref_sido_map`
-- **raw_** 원본 파일 — DB 밖(data/raw/, read_raw 로 읽음. RDS raw_ 표는 2026-09-22 삭제): `raw_customs_progress`, `raw_customs_region`, `raw_customs_trade`, `raw_dapa_bid_notice`, `raw_dapa_bid_result`, `raw_dapa_contract`, `raw_dapa_contract_exec_by_service`, `raw_dapa_defense_company`, `raw_dapa_domestic_plan`, `raw_dapa_fsc_catalog`, `raw_dapa_localized_item`, `raw_dapa_overseas_bid_result`, `raw_dapa_overseas_contract`, `raw_dapa_overseas_plan`, `raw_dapa_overseas_plan_api`, `raw_hs_code_master`, `raw_hs_unit_name`, `raw_hsk_control`, `raw_kdsis_nsn`, `raw_kosis_production_index`, `raw_kosis_utilization`, `raw_krit_task`, `raw_openfiscal_program_budget`
+- **raw_** 원본 파일 — DB 밖(data/raw/, read_raw 로 읽음): `raw_customs_progress`, `raw_customs_region`, `raw_customs_trade`, `raw_dapa_bid_notice`, `raw_dapa_bid_result`, `raw_dapa_contract`, `raw_dapa_contract_exec_by_service`, `raw_dapa_defense_company`, `raw_dapa_domestic_plan`, `raw_dapa_fsc_catalog`, `raw_dapa_localized_item`, `raw_dapa_overseas_bid_result`, `raw_dapa_overseas_contract`, `raw_dapa_overseas_plan`, `raw_dapa_overseas_plan_api`, `raw_hs_code_master`, `raw_hs_unit_name`, `raw_hsk_control`, `raw_kdsis_nsn`, `raw_kosis_production_index`, `raw_kosis_utilization`, `raw_krit_task`, `raw_openfiscal_program_budget`
 - **meta_** 기록 — 출처·적재 단계·열 사전: `meta_column_dict`, `meta_dataset`, `meta_load_log`
 - **dim_** 차원 — 관세청 HS10: `dim_hs10`
 - **fact_** 사실 — 관세청 월별 수출입: `fact_customs_monthly`
@@ -20,7 +20,7 @@
 
 - **역할**: 관세청 국가코드 → 한글명·좌표
 - **원천**: Google DSPL + 수기 · **한 행**: 국가코드 1개 · **PK**: `stat_cd` · **행 수**: 238
-- **쓰는 곳**: 화면 ① 국가 라벨·지도
+- **쓰는 곳**: 화면 「전자부품 현황」 국가 라벨·지도
 - **주의**: ZZ(기타국) 좌표 NULL
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -58,7 +58,7 @@
 
 - **역할**: FSC 군급분류 4자리 라벨(폐지 여부·전자군 플래그)
 - **원천**: 원본 파일 raw_dapa_fsc_catalog에서 파생 · **한 행**: FSC4 1개 · **PK**: `fsc4` · **행 수**: 676
-- **쓰는 곳**: v_overseas_plan_api_fsc, B2 라벨
+- **쓰는 곳**: v_overseas_plan_api_fsc, 화면 「군급 분류와 조달」 · 「국산화 현황」 군급 이름
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -67,13 +67,13 @@
 | `name_ko` | VARCHAR(200) | 명칭(한글) | 명칭(한글), 최대 104자 |
 | `name_en` | VARCHAR(200) | 명칭(영문) | 명칭(영문) |
 | `status` | CHAR(1) | 군급상태 | A 유효 / C 폐지 |
-| `is_electronic_group` | TINYINT(1) | (파생) | 58xx·59xx·60xx = 1 (전자 계열 기본 필터, 기준 확정 2026-09-21 M4) |
+| `is_electronic_group` | TINYINT(1) | (파생) | 58xx·59xx·60xx = 1 (전자 계열 기본 필터) |
 
 ### `ref_fsg`
 
 - **역할**: FSG 군급 2자리 라벨(전자군 58·59·60 플래그)
 - **원천**: data/reference/fsg_master.csv · **한 행**: FSG 1개 · **PK**: `fsg_code` · **행 수**: 80
-- **쓰는 곳**: v_b2_fsg_summary, v_overseas_plan_api_fsc
+- **쓰는 곳**: 화면 「군급 분류와 조달」 · 「국산화 현황」 군 이름, v_b2_fsg_summary, v_overseas_plan_api_fsc
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -82,7 +82,7 @@
 | `name_ko` | VARCHAR(100) | fsg_name_ko | 국문 군급명(팀원 번역) |
 | `status` | CHAR(1) | status | 원 파일 status(전부 A) |
 | `is_historical` | TINYINT(1) | is_historical | 21·33 Historical FSG |
-| `is_electronic_group` | TINYINT(1) | (파생) | 58·59·60 = 1. 핵심 ② 기본 필터(기준 확정 2026-09-21 M4) |
+| `is_electronic_group` | TINYINT(1) | (파생) | 58·59·60 = 1. 전자 군급 기본 필터 |
 | `note_ko` | VARCHAR(300) | note_ko | 보완 3행(95·96·99) 출처·미대조 사유 |
 | `source_url` | VARCHAR(300) | source_url | DLA ZSMT_FSG.txt / GSA PSC Manual 2025-04 |
 
@@ -103,7 +103,7 @@
 
 - **역할**: 관세청 HS부호 마스터 중 2026 현행 HSK10 11,327개 — 코드·한글/영문 품명·적용기간(기준표)
 - **원천**: 원본 파일 raw_hs_code_master 12,469행 중 10자리(load_db.py --ref, read_raw) · **한 행**: HS10 1개 · **PK**: `hs10` · **행 수**: 11,327
-- **쓰는 곳**: 화면 ①·조회 HS10 품명 라벨, dim_hs10 보강(01_clean_customs §3), v_hs10_use_tag_all(HS6 선정 규칙 R1·R2)
+- **쓰는 곳**: 화면 「전자부품 현황 › 상세 조회」 HS10 품명 라벨, dim_hs10 보강(01_clean_customs §3), v_hs10_use_tag_all(HS6 선정 규칙 R1·R2)
 - **주의**: 7~9자리 중간 수준 1,142·규격/단위 열은 사용처 없어 넣지 않음(원본 파일에만)
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -116,7 +116,7 @@
 
 ### `ref_hs_indicator`
 
-- **역할**: HS6별 정량 지표(군용 HS10 비중, 항공·자동차 비중, B2 부품 수, HSK 통제 비율 등) — 라벨의 수치 근거
+- **역할**: HS6별 정량 지표(군용 HS10 비중, 항공·자동차 비중, 국산화개발품목 부품 수, HSK 통제 비율 등) — 라벨의 수치 근거
 - **원천**: 뷰에서 계산해 물질화 · **한 행**: HS6 × 지표 × 기간 · **PK**: `indicator_id` · **행 수**: 61
 - **쓰는 곳**: v_civil_mix_rule, 노트북
 - **주의**: hsk_control_* 비율은 판별력 약함(문턱값 미정)
@@ -131,7 +131,7 @@
 | `numerator` | BIGINT | (파생) | 분자(재현용) |
 | `denominator` | BIGINT | (파생) | 분모(재현용). 건수 지표는 NULL |
 | `unit` | VARCHAR(10) | (파생) | % / 건 / USD / KRW |
-| `period_start` | SMALLINT | (파생) | 연도. 시점 미상(B2)은 NULL |
+| `period_start` | SMALLINT | (파생) | 연도. 시점 미상(국산화개발품목)은 NULL |
 | `period_end` | SMALLINT | (파생) | 연도 |
 | `period_key` | SMALLINT | (파생) | 생성열 COALESCE(period_start,0) — UNIQUE(hs6, indicator, period_key)용 |
 | `link_status` | ENUM('확정','후보','해당없음') | (파생) | 확정 / 후보 / 해당없음. 대응표 경유 지표만 확정·후보, 관세청 HS10 지표는 해당없음 |
@@ -145,7 +145,7 @@
 - **역할**: 84·85·88·90류 HS6 1,003개 전부의 선정 규칙 R1~R4 판정·근거 수치 스냅샷(버전 관리)
 - **원천**: v_hs6_candidate_rule 물질화 · **한 행**: HS6 × rule_version · **PK**: `hs6,rule_version` · **행 수**: 1,003
 - **쓰는 곳**: v_hs_whitelist_rule, v_hs6_candidate_vs_whitelist, 노트북
-- **주의**: 진입식은 R1 OR R2로 확정(2026-09-21 M5) — 스냅샷의 is_candidate_provisional은 09-16 잠정식 참고값
+- **주의**: 진입식은 R1 OR R2로 확정 — 스냅샷의 is_candidate_provisional은 이전 잠정식 참고값
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -157,7 +157,7 @@
 | `r2_aero_nav` | TINYINT(1) | r2_aero_nav | R2 항공·항행·레이더·무인기 |
 | `r3_du` | TINYINT(1) | r3_du | R3 이중용도 3·5·6·7부 |
 | `r3_ml` | TINYINT(1) | r3_ml | R3 군용물자 ML(현재 자료 0건) |
-| `r4_b2` | TINYINT(1) | r4_b2 | R4 B2 FSC 후보 대응 |
+| `r4_b2` | TINYINT(1) | r4_b2 | R4 국산화개발품목 FSC 후보 대응 |
 | `mil_cnt` | SMALLINT | mil_cnt |  |
 | `aero_cnt` | SMALLINT | aero_cnt |  |
 | `uav_cnt` | SMALLINT | uav_cnt |  |
@@ -182,10 +182,10 @@
 
 ### `ref_hs_whitelist`
 
-- **역할**: HS6 24개 기준표(수집 범위). 분석 대상은 priority IN (1·2) 13개 — 사이드바 필터·모든 집계의 범위
+- **역할**: HS6 24개 기준표(수집 범위). 분석 대상은 priority IN (1·2) 13개 — 모든 집계의 범위
 - **원천**: data/reference/hs_whitelist.csv · **한 행**: HS6 1개 · **PK**: `hs6` · **행 수**: 24
-- **쓰는 곳**: 화면 ①③, v_review_list, v_hs_whitelist_rule
-- **주의**: priority 3 = 규칙 미해당 11개(2026-09-21 M5 R4 제외 6 포함). related_fsc·b2_scope 열은 09-21 카테고리 맵 폐기로 삭제
+- **쓰는 곳**: 화면 「전자부품 현황」 · 홈, v_review_list, v_hs_whitelist_rule
+- **주의**: priority 3 = 규칙 미해당 11개(R4 제외 6 포함)
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -195,22 +195,22 @@
 | `name_ko` | VARCHAR(100) | name_ko |  |
 | `name_en` | VARCHAR(200) | name_en |  |
 | `rationale` | TEXT | rationale |  |
-| `priority` | TINYINT | priority | 1~3. 1·2 = 분석 대상 13개(진입 R1 OR R2, 2026-09-21 M5) / 3 = 규칙 미해당 11개(09-16 팀판단 5 + 09-21 R4 제외 6, 화면 '분석 제외') |
+| `priority` | TINYINT | priority | 1~3. 1·2 = 분석 대상 13개(진입 R1 OR R2) / 3 = 규칙 미해당 11개(팀판단 5 + R4 제외 6, 배경 자료) |
 | `axis` | ENUM('import','export','both') | axis |  |
-| `system_family` | VARCHAR(30) | system_family | 무기체계 계열(2026-09-15 추가) |
+| `system_family` | VARCHAR(30) | system_family | 무기체계 계열 |
 | `defense_use_ko` | VARCHAR(300) | defense_use_ko | 국방 용도 1문장(팀 판단) |
 | `evidence` | VARCHAR(120) | evidence | 근거 키 A6;B2-FSC;KRIT;A7;팀판단 |
-| `civil_mix` | ENUM('높음','중간','낮음') | civil_mix | 민수 혼합 정도 — v_civil_mix_rule 규칙 도출값(2026-09-16). 정량 지표 없으면 NULL. docs/reference/hs-whitelist-definition.md §7 |
-| `civil_mix_basis` | ENUM('hs10','hsk','판단불가') | civil_mix_basis | civil_mix를 정한 지표 종류(2026-09-16) |
+| `civil_mix` | ENUM('높음','중간','낮음') | civil_mix | 민수 혼합 정도 — v_civil_mix_rule 규칙 도출값. 정량 지표 없으면 NULL. docs/reference/hs-whitelist-definition.md §7 |
+| `civil_mix_basis` | ENUM('hs10','hsk','판단불가') | civil_mix_basis | civil_mix를 정한 지표 종류 |
 | `civil_mix_note` | VARCHAR(200) | civil_mix_note | 근거 수치 요약. 원값은 ref_hs_indicator |
-| `evidence_basis` | ENUM('rule','팀판단') | evidence_basis | evidence를 정한 방식(2026-09-16): rule=공식 자료 규칙 도출 / 팀판단=09-15 기획 단계 |
+| `evidence_basis` | ENUM('rule','팀판단') | evidence_basis | evidence를 정한 방식: rule=공식 자료 규칙 도출 / 팀판단=기획 단계 팀 판단 |
 | `evidence_note` | VARCHAR(300) | evidence_note | 규칙 근거 수치 요약. 원값은 v_hs6_candidate_rule |
 
 ### `ref_semi_chip_type`
 
 - **역할**: 국방반도체 7대 유형(개요·소재·대표 소자·참고 HS6)
 - **원천**: data/reference/semi_chip_type.csv(발전전략 참고9) · **한 행**: 유형 1개 · **PK**: `type_no` · **행 수**: 7
-- **쓰는 곳**: 화면 ⓪ 반도체 구역 유형별 사례 표
+- **쓰는 곳**: 화면 「배경과 자료 › 정책과 예산」 수요 7대 유형 표
 - **주의**: related_hs6 는 팀 참고 표시 — 수입액 연결 키 아님
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -228,7 +228,7 @@
 
 - **역할**: 국방반도체 국내 개발 사례(기관·제목·시점·단계·출처 URL)
 - **원천**: data/reference/semi_domestic_case.csv(보도자료·기사) · **한 행**: 사례 1건 · **PK**: `case_no` · **행 수**: 13
-- **쓰는 곳**: 화면 ⓪ 핵심기술 과제 KPI·유형별 사례 수
+- **쓰는 곳**: 화면 미사용 · 분석 참고
 - **주의**: 기사 표현 그대로 — 금액 미공시 다수
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -250,7 +250,7 @@
 
 - **역할**: 국가별 반도체 공급망 점유율(IDM·파운드리 등)
 - **원천**: data/reference/semi_market_share.csv(발전전략 참고3) · **한 행**: 국가 × 단계 · **PK**: `country,segment` · **행 수**: 16
-- **쓰는 곳**: 화면 ⓪ 공급망 점유율 막대
+- **쓰는 곳**: 화면 미사용 · 분석 참고
 - **주의**: 막대그래프에서 읽은 값. 원출처·기준연도 미표기
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -265,7 +265,7 @@
 
 - **역할**: 국방반도체 발전전략 추진 경과
 - **원천**: data/reference/semi_policy_timeline.csv · **한 행**: 사건 1건 · **PK**: `row_no` · **행 수**: 12
-- **쓰는 곳**: 화면 ⓪ 추진 경과 타임라인
+- **쓰는 곳**: 화면 「배경과 자료 › 정책과 예산」 정책 연표
 - **주의**: 시점 정밀도가 행마다 다름(연·월·일)
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -283,7 +283,7 @@
 
 - **역할**: 공공 나노팹 14곳(부처·분야·도시·근사 좌표)
 - **원천**: data/reference/semi_public_fab.csv(발전전략 참고10) · **한 행**: 나노팹 1곳 · **PK**: `fab_no` · **행 수**: 14
-- **쓰는 곳**: 화면 ⓪ 공공 나노팹 지도·KPI
+- **쓰는 곳**: 화면 미사용 · 분석 참고
 - **주의**: 좌표는 도시 단위 근사. 관세청 신고 지역과 무관
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -305,7 +305,7 @@
 
 - **역할**: 발전전략 본문 인용 수치(해외 도입 98.9% · 미국 85% 이상)
 - **원천**: data/reference/semi_stat.csv(발전전략 본문 17-1) · **한 행**: 인용 수치 1개 · **PK**: `stat_key` · **행 수**: 2
-- **쓰는 곳**: 화면 ⓪ 반도체 구역 KPI 2장
+- **쓰는 곳**: 화면 「배경과 자료 › 정책과 예산」 인용 수치
 - **주의**: 팀 계산값 아님 · 분모 기준 미확인 — 「인용」 배지
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -321,7 +321,7 @@
 
 - **역할**: 국방반도체 발전전략 4방향 12과제
 - **원천**: data/reference/semi_strategy_task.csv(발전전략 본문 17-3) · **한 행**: 과제 1개 · **PK**: `task_no` · **행 수**: 12
-- **쓰는 곳**: 화면 ⓪ 12과제 표
+- **쓰는 곳**: 화면 「배경과 자료 › 정책과 예산」 12과제 표
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -337,7 +337,7 @@
 
 - **역할**: 주소 첫 토큰 → 17개 시도 코드
 - **원천**: 수작업 시드 · **한 행**: 토큰 1개 · **PK**: `token` · **행 수**: 44
-- **쓰는 곳**: clean_dapa_contract.sido_code 백필, 화면 ⑤
+- **쓰는 곳**: clean_dapa_contract.sido_code 백필
 - **주의**: 광주는 둘째 토큰 규칙
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -346,7 +346,7 @@
 | `sido_code` | CHAR(2) | (수작업) | 행정표준코드 앞 2자리(11 서울 … 50 제주) |
 | `sido_name` | VARCHAR(20) | (수작업) | 표준 시도명 |
 
-## raw_ — 원본 파일 — DB 밖(data/raw/, read_raw 로 읽음. RDS raw_ 표는 2026-09-22 삭제)
+## raw_ — 원본 파일 — DB 밖(data/raw/, read_raw 로 읽음)
 
 ### `raw_customs_progress`
 
@@ -367,7 +367,7 @@
 - **역할**: 관세청 시군구별 HS6×시군구×월 수출입실적 원본(수입 = 납세의무자 주소지 기준)
 - **원천**: customs_region_<HS6>.csv ×24 · **한 행**: HS6 × 시군구 × 월 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 273,586(파서 기대)
 - **쓰는 곳**: clean_customs_region(load_db.py --fact, read_raw)
-- **주의**: 금액 단위 천 달러(raw_customs_trade 는 달러). 시군구 코드 없이 명칭만. 원본 CSV 24개는 맥에 있음(2026-09-18 수집) — 이 PC 미보유
+- **주의**: 금액 단위 천 달러(raw_customs_trade 는 달러). 시군구 코드 없이 명칭만. 원본 CSV 24개(HS6별)
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -400,9 +400,9 @@
 | `hs_cd` | VARCHAR(10) | hsCd | HS10 세부코드. 총계행은 `-` |
 | `item_name_ko` | VARCHAR(300) | statKor | HS10 품명 |
 | `exp_wgt` | VARCHAR(20) | expWgt | 수출중량(kg) |
-| `exp_dlr` | VARCHAR(20) | expDlr | 수출금액(USD, FOB). 달러 단위이며 천 달러가 아니다 — 2026-09-19 자릿수 검증 |
+| `exp_dlr` | VARCHAR(20) | expDlr | 수출금액(USD, FOB). 달러 단위이며 천 달러가 아니다(자릿수 검증) |
 | `imp_wgt` | VARCHAR(20) | impWgt | 수입중량(kg) |
-| `imp_dlr` | VARCHAR(20) | impDlr | 수입금액(USD, CIF). 달러 단위이며 천 달러가 아니다 — 2026-09-19 자릿수 검증. 국가 전체 수입(민수 포함) |
+| `imp_dlr` | VARCHAR(20) | impDlr | 수입금액(USD, CIF). 달러 단위이며 천 달러가 아니다(자릿수 검증). 국가 전체 수입(민수 포함) |
 | `bal_payments` | VARCHAR(20) | balPayments | 무역수지(USD) = expDlr − impDlr. 파생값이라 fact 계산에 쓰지 않음 |
 | `req_hs` | CHAR(6) | req_hs | 요청 HS6(화이트리스트) |
 | `req_cnty` | VARCHAR(4) | req_cnty | 요청 국가코드. 전체 국가 수집은 `ALL` |
@@ -505,7 +505,7 @@
 
 ### `raw_dapa_contract`
 
-- **역할**: 방사청 국내조달 계약정보 원본 — 부록(43,112행, 09-21 M2로 1만 건 요건 2종에서 제외)
+- **역할**: 방사청 국내조달 계약정보 원본 — 부록(43,112행, 1만 건 요건 2종에는 넣지 않음)
 - **원천**: dapa_domestic_contract_20251231.csv · **한 행**: 계약번호 × 차수 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 43,112(파서 기대)
 - **쓰는 곳**: clean_dapa_contract
 - **주의**: '전자부품 1만 건' 아님 — 전 계약
@@ -593,7 +593,7 @@
 
 - **역할**: 방사청 군급분류집(FSC 4자리 명칭·주석·포함·제외)
 - **원천**: 파일데이터 15119907 · **한 행**: 군급 1개 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 756(파서 기대)
-- **쓰는 곳**: ref_fsc 시드(alter_2026-09-16_api_budget.sql, raw_ 표가 있던 시점)
+- **쓰는 곳**: ref_fsc 시드
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -610,7 +610,7 @@
 
 ### `raw_dapa_localized_item`
 
-- **역할**: 국산화개발품목(B2, 지상체계) 원본. 완전 중복 8,940행 포함
+- **역할**: 국산화개발품목(지상체계) 원본. 완전 중복 8,940행 포함
 - **원천**: dapa_localized_items_20260509.csv · **한 행**: 사업 × 부품(중복 있음) · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 33,965(파서 기대)
 - **쓰는 곳**: clean_dapa_localized_item
 
@@ -846,7 +846,7 @@
 
 ### `raw_krit_task`
 
-- **역할**: KRIT 부품국산화 공고 과제 목록(B1) 원본 — 차수·공고유형별 표
+- **역할**: KRIT 부품국산화 공고 과제 목록 원본 — 차수·공고유형별 표
 - **원천**: data/raw/krit/*_t*.csv · **한 행**: 차수 × 공고유형 × 과제 · **PK**: `없음(파일 — read_raw row_id = 파서 순번)` · **행 수**: 96(파서 기대)
 - **쓰는 곳**: clean_krit_task
 - **주의**: 예비→본→재공고는 별개 문서라 합산 금지
@@ -911,7 +911,7 @@
 - **역할**: 데이터셋 1건 = 1행 — 제공기관·ID·URL·확보일·기간·SHA-256·파서 건수·포털 표시 건수
 - **원천**: 수기 + 스크립트 · **한 행**: 데이터셋 1개 · **PK**: `dataset_key` · **행 수**: 27
 - **쓰는 곳**: 출처 표, 보고서
-- **주의**: A7 5행 dataset_id NULL(조장 확인 대기)
+- **주의**: A7 5행 dataset_id NULL(포털 데이터 ID 미확인)
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -964,7 +964,7 @@
 
 - **역할**: HS10 → HS6·품명(가장 최근 연월 기준) + 2026 현행 마스터 대조
 - **원천**: 원본 파일 raw_customs_trade(load_db.py --fact) + ref_hs_code_master(01_clean_customs §3) · **한 행**: HS10 1개 · **PK**: `hs10` · **행 수**: 211
-- **쓰는 곳**: 화면 ① HS10 드릴다운, v_hs10_use_*
+- **쓰는 곳**: v_hs10_use_*(화면 미사용)
 - **주의**: 마스터에 없는 코드 = HS 2022 개정 전 폐지 코드(화면 '폐지 코드(구 명칭)')
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -972,7 +972,7 @@
 | **`hs10`** | CHAR(10) | hsCd | PK. 관세청 HS10 세부코드(raw_customs_trade 고유값) |
 | `hs6` | CHAR(6) | (파생) | LEFT(hs10,6) → ref_hs_whitelist.hs6 |
 | `name_ko` | VARCHAR(300) | statKor | HS10 품명(코드당 최근 값) |
-| `master_name_ko` | VARCHAR(500) | 한글품목명 | 관세청 HS부호 마스터(15049722, 2026 현행) 품목명. NULL = 원본 결측 104행(현행 마스터에 없는 이력 코드 — 851762 35·852990 18·848620 16…, master_link_status=마스터없음 1:1, 추정 금지) → 화면 「현행 마스터 없음」(품명은 name_ko 표시), 집계 무시(라벨 열). 편중 확인(09-20 stats-advisor, null-profile §6): MAR, hs6 V=0.56(HS 2022 개정 전 폐지 코드, 2016~21 수입액 14~24%) |
+| `master_name_ko` | VARCHAR(500) | 한글품목명 | 관세청 HS부호 마스터(15049722, 2026 현행) 품목명. NULL = 원본 결측 104행(현행 마스터에 없는 이력 코드 — 851762 35·852990 18·848620 16…, master_link_status=마스터없음 1:1, 추정 금지) → 화면 「현행 마스터 없음」(품명은 name_ko 표시), 집계 무시(라벨 열). 편중 확인: MAR, hs6 V=0.56(HS 2022 개정 전 폐지 코드, 2016~21 수입액 14~24%) |
 | `apply_start` | DATE | 적용시작일자 | 마스터 적용시작일. NULL = 원본 결측 104행(master_name_ko와 같은 행) → 화면 표시 안 함, 집계 무시 |
 | `apply_end` | DATE | 적용종료일자 | 마스터 적용종료일(현행 코드는 전부 2026-12-31). NULL = 원본 결측 104행(master_name_ko와 같은 행) → 화면 표시 안 함, 집계 무시 |
 | `master_link_status` | ENUM | (파생) | 현행 = 2026 마스터에 있음 / 마스터없음 = 과거 연도에만 있던 이력 코드 |
@@ -981,9 +981,9 @@
 
 ### `fact_customs_monthly`
 
-- **역할**: HS10×국가×월 수입·수출액(숫자형, 총계행 제외) — 화면 ①의 사실 표
+- **역할**: HS10×국가×월 수입·수출액(숫자형, 총계행 제외) — 화면 「전자부품 현황」의 사실 표
 - **원천**: 원본 파일 raw_customs_trade(load_db.py --fact, read_raw → pandas) · **한 행**: HS10 × 국가 × 월 · **PK**: `hs10,stat_cd,yyyymm` · **행 수**: 294,174
-- **쓰는 곳**: v_import_hs6_year 등 무역 뷰 전부, 화면 ① 월별
+- **쓰는 곳**: v_import_hs6_year 등 무역 뷰 전부, 화면 「전자부품 현황」 최근 12개월 추이 · 상세 조회
 - **주의**: 2026은 is_partial_year=1
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -994,8 +994,8 @@
 | `hs6` | CHAR(6) | (파생) | LEFT(hs10,6) 화이트리스트 키 |
 | `year` | SMALLINT | (파생) | yyyymm 앞 4자리 |
 | `month` | TINYINT | (파생) | yyyymm 뒤 2자리 |
-| `imp_dlr` | BIGINT | impDlr | 수입금액(USD, CIF) — 달러 단위(천 달러 아님, 2026-09-19 검증). 국가 전체 수입(민수 포함)이며 방산 수입이 아니다 |
-| `exp_dlr` | BIGINT | expDlr | 수출금액(USD, FOB) — 달러 단위(천 달러 아님, 2026-09-19 검증). 국가 전체 수출(민수 포함) |
+| `imp_dlr` | BIGINT | impDlr | 수입금액(USD, CIF) — 달러 단위(천 달러 아님, 자릿수 검증). 국가 전체 수입(민수 포함)이며 방산 수입이 아니다 |
+| `exp_dlr` | BIGINT | expDlr | 수출금액(USD, FOB) — 달러 단위(천 달러 아님, 자릿수 검증). 국가 전체 수출(민수 포함) |
 | `imp_wgt` | BIGINT | impWgt | 수입중량 kg(참고값, 반올림 오차) |
 | `exp_wgt` | BIGINT | expWgt | 수출중량 kg(참고값) |
 | `bal_payments` | BIGINT | balPayments | 무역수지(USD) = exp_dlr − imp_dlr |
@@ -1016,12 +1016,12 @@
 | `name_norm` | VARCHAR(200) | (파생) | 법인격 표기 제거·공백 정리한 업체명(이름 매칭 키) |
 | `name_raw` | VARCHAR(200) | 대표업체명 | 가장 많이 쓰인 원문 업체명 |
 | `address` | VARCHAR(300) | 대표업체주소 | 계약업체 소재지(생산·납품 위치 아님) |
-| `sido_code` | CHAR(2) | (파생) | address → ref_sido_map 적용 결과. NULL = 의도된 NULL 2행(결정: 미매핑 토큰 **·1은 추정 금지, 규칙 §2-2) → 화면 「미기재(시도 미확인)」, 집계 시도별 집계 시 미확인 건수 병기 |
+| `sido_code` | CHAR(2) | (파생) | address → ref_sido_map 적용 결과. NULL = 의도된 NULL 2행(미매핑 토큰 **·1은 추정 금지, 규칙 §2-2) → 화면 「미기재(시도 미확인)」, 집계 시도별 집계 시 미확인 건수 병기 |
 | `first_seen_source` | ENUM('contract','bid_result') | (파생) | 처음 관측된 출처 |
 
 ### `clean_company_name_link`
 
-- **역할**: 사업자번호 없는 출처(방산업체 지정현황·B2 계약업체)의 업체명 → clean_company 연결 결과
+- **역할**: 사업자번호 없는 출처(방산업체 지정현황·국산화개발품목 계약업체)의 업체명 → clean_company 연결 결과
 - **원천**: clean_dapa_defense_company, clean_dapa_localized_item · **한 행**: 출처 × 업체명 · **PK**: `link_id` · **행 수**: 491
 - **쓰는 곳**: 업체 축 보강
 - **주의**: none·multi는 미연결로 둔다
@@ -1029,7 +1029,7 @@
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
 | **`link_id`** | INT UNSIGNED | (파생) | PK |
-| `source` | ENUM('localized_item','defense_company') | (파생) | 사업자번호 없는 출처(B2 계약업체 / 방산업체 지정현황) |
+| `source` | ENUM('localized_item','defense_company') | (파생) | 사업자번호 없는 출처(국산화개발품목 계약업체 / 방산업체 지정현황) |
 | `name_raw` | VARCHAR(200) | 업체명 | 출처 원문 업체명(UNIQUE source+name_raw) |
 | `name_norm` | VARCHAR(200) | (파생) | 법인격 제거 정규화명 |
 | `biz_reg_no` | CHAR(12) | (파생) | 연결된 clean_company 키(FK). NULL = 구조적 324행(match_type≠exact — multi 14·none 310, 예외 0) → 화면 「해당 없음(미연결)」, 집계 연결률 분모 포함 + 미연결·다중 건수 병기(규칙 §2-10) |
@@ -1040,8 +1040,8 @@
 ### `clean_customs_region`
 
 - **역할**: 관세청 시군구별 수출입실적 정제 — HS6 × 시군구 × 월, 건수·금액 숫자형(천 달러), 부분연도 플래그
-- **원천**: 원본 파일 raw_customs_region(load_db.py --fact, read_raw → pandas; 첫 적재는 alter_2026-09-22_raw_successors.sql) · **한 행**: HS6 × 시군구 × 월 · **PK**: `hs6,sgg_name,yyyymm` · **행 수**: 273,586
-- **쓰는 곳**: v_customs_region_gwacheon_year(화면 미사용 — M7 2026-09-28 화면 제외 · EDA 참고)
+- **원천**: 원본 파일 raw_customs_region(load_db.py --fact, read_raw → pandas) · **한 행**: HS6 × 시군구 × 월 · **PK**: `hs6,sgg_name,yyyymm` · **행 수**: 273,586
+- **쓰는 곳**: v_customs_region_gwacheon_year(화면 미사용 · EDA 참고)
 - **주의**: 금액 천 달러(fact_customs_monthly 는 달러) — 합산 금지. 수입은 납세의무자 주소지 기준이라 「군 직접 수입」이 아님
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -1064,7 +1064,7 @@
 - **역할**: 국내 입찰공고 정제 — 참조공고번호+차수 키, 날짜·금액 형 변환, 면허제한 결합
 - **원천**: raw_dapa_bid_notice (notebooks/04_clean_domestic.ipynb) · **한 행**: 참조공고번호 × 정규화 차수 · **PK**: `ref_notice_no,ref_notice_seq_norm` · **행 수**: 10,840
 - **쓰는 곳**: v_bid_notice_monthly, v_bid_notice_result_link
-- **주의**: 공고 예산 ≠ 낙찰·계약액. 09-21 저분산 원본 속성 10열 제거(개찰장소 전부 국방전자조달 시스템, 지역제한 0·참가가능지역 전부 NULL, 전자입찰·나라장터 99.7%, 설명회·공동계약 5% 미만 — raw에 보존)
+- **주의**: 공고 예산 ≠ 낙찰·계약액. 저분산 원본 속성 10열 제거(개찰장소 전부 국방전자조달 시스템, 지역제한 0·참가가능지역 전부 NULL, 전자입찰·나라장터 99.7%, 설명회·공동계약 5% 미만 — raw에 보존)
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -1145,8 +1145,8 @@
 
 - **역할**: 국내조달 계약정보 정제 — 차수 정규화, 날짜·금액 형 변환, 계약 5분류(class5)·전자/부품/방산 속성, 수의계약 사유, 시도 코드
 - **원천**: raw_dapa_contract (notebooks/04_clean_domestic.ipynb) · **한 행**: 계약번호 × 정규화 차수(계약 단위는 is_latest_seq=1) · **PK**: `contract_no,contract_seq_norm` · **행 수**: 43,105
-- **쓰는 곳**: 화면 ②⑤, v_contract_monthly, v_contract_private_reason, clean_company
-- **주의**: class5는 전행 '판단 보류'(표본 검수 전). 금액 합산은 최종 차수만. 09-21 저분산 3열 제거(계약체결형태 97.4% 총액계약, 수요기관명=계약기관명 전 행 동일, 공동계약 1.4% — raw에 보존). contract_org_name은 금액 59.2%가 방위사업청이라 유지
+- **쓰는 곳**: 화면 「군급 분류와 조달 › 국내 계약 · 입찰」, v_contract_monthly, v_contract_private_reason, clean_company
+- **주의**: class5는 전행 '판단 보류'(표본 검수 전). 금액 합산은 최종 차수만. 저분산 3열 제거(계약체결형태 97.4% 총액계약, 수요기관명=계약기관명 전 행 동일, 공동계약 1.4% — raw에 보존). contract_org_name은 금액 59.2%가 방위사업청이라 유지
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -1167,7 +1167,7 @@
 | `vendor_name` | VARCHAR(200) | 대표업체명 | 대표업체명 |
 | `vendor_biz_reg_no` | CHAR(12) | 대표업체사업자등록번호 | 사업자등록번호(clean_company 키) |
 | `vendor_address` | VARCHAR(300) | 대표업체주소 | 계약업체 소재지(화면 미노출·sido_code 파생용) |
-| `sido_code` | CHAR(2) | (파생) | 주소 첫 토큰 → ref_sido_map 적용 결과. NULL = 의도된 NULL 2행(결정: 미매핑 토큰 **·1은 추정 금지, 규칙 §2-2. 충남대전시 16행은 09-19 30으로 백필) → 화면 「미기재(시도 미확인)」, 집계 시도별 집계 시 미확인 건수 병기 |
+| `sido_code` | CHAR(2) | (파생) | 주소 첫 토큰 → ref_sido_map 적용 결과. NULL = 의도된 NULL 2행(미매핑 토큰 **·1은 추정 금지, 규칙 §2-2. 충남대전시 16행은 30으로 백필) → 화면 「미기재(시도 미확인)」, 집계 시도별 집계 시 미확인 건수 병기 |
 | `contract_type` | VARCHAR(50) | 계약유형 | 계약유형 |
 | `is_latest_seq` | TINYINT(1) | (파생) | 계약번호별 최종 차수=1(집계 기준). 계약번호당 정확히 1행 |
 | `seq_conflict_flag` | TINYINT(1) | (파생) | 같은 키에 원본 여러 행(2024UMM1504-01) → 대표 행 1개만 적재하고 1 |
@@ -1179,8 +1179,8 @@
 | `matched_keywords` | VARCHAR(200) | (파생) | 후보 선정 키워드(후보일 뿐, 합산 금지). NULL = 의도된 NULL(후속 예정: class5 키워드 규칙 확정 후 UPDATE, 현재 전 행 43,105) → 화면 「판단 보류」, 집계 무시 |
 | `evidence` | TEXT | (파생) | 분류 근거(검수 메모·출처·충돌 행에서 달랐던 열). NULL = 구조적 43,104행(충돌 1행만 값, class5 근거는 규칙 확정 후) → 화면 표시 안 함, 집계 무시 |
 | `review_status` | ENUM('후보','검수완료','보류') | (파생) | 검수 상태(기본 후보) |
-| `is_target_b1` | ENUM('예','아니오','미확인') | (파생) | B1 KRIT 공고 대상 |
-| `is_completed_b2` | ENUM('예','아니오','미확인') | (파생) | B2 국산화개발품목(지상체계 한정) |
+| `is_target_b1` | ENUM('예','아니오','미확인') | (파생) | KRIT 부품국산화 공고 대상 |
+| `is_completed_b2` | ENUM('예','아니오','미확인') | (파생) | 국산화개발품목 해당(지상체계 한정) |
 | `domestic_mfg_status` | ENUM('국내 제조 확인','미확인') | 국내업체여부 | 국내 제조 판정(기본 미확인). raw 국내업체여부는 전부 국내라 국산 근거 아님 — 그대로 옮기지 않고 판정 열로 대체 |
 | `cleaned_at` | DATETIME | (파생) | 정제 시각 |
 | `cleaned_by` | VARCHAR(50) | (파생) | 정제 담당 |
@@ -1204,8 +1204,8 @@
 ### `clean_dapa_defense_company`
 
 - **역할**: 방산업체 지정현황 84개 정제 — 지정일 DATE, 분야 공란 NULL
-- **원천**: 원본 파일 raw_dapa_defense_company(notebooks/04_clean_domestic.ipynb §6; 첫 적재는 alter_2026-09-22_raw_successors.sql) · **한 행**: 업체 1개 · **PK**: `seq_no` · **행 수**: 84
-- **쓰는 곳**: v_defense_company_sector(화면 ④ 배경), clean_company_name_link
+- **원천**: 원본 파일 raw_dapa_defense_company(notebooks/04_clean_domestic.ipynb §6) · **한 행**: 업체 1개 · **PK**: `seq_no` · **행 수**: 84
+- **쓰는 곳**: v_defense_company_sector(화면 「배경과 자료 › 국내 생산 현황」), clean_company_name_link
 - **주의**: 주소·사업자번호 없음. 분야 미기재 3
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -1224,7 +1224,7 @@
 - **역할**: 국내 조달계획 정제(raw 1:1) — 집행유형 표준값, 예산 숫자화, 계약완료 여부
 - **원천**: raw_dapa_domestic_plan · **한 행**: raw 행 1개 · **PK**: `raw_row_id` · **행 수**: 35,859
 - **쓰는 곳**: v_domestic_plan_yearly
-- **주의**: 2024 불완전, 예산 NULL 4,965는 0이 아님. 09-21 입찰방법 열 제거(98.4% 총액제 — raw에 보존)
+- **주의**: 2024 불완전, 예산 NULL 4,965는 0이 아님. 입찰방법 열 제거(98.4% 총액제 — raw에 보존)
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -1238,7 +1238,7 @@
 | `exec_type` | VARCHAR(30) | 집행유형 | 집행유형 표준값 |
 | `contract_method` | VARCHAR(30) | 계약방법 | 계약방법 |
 | `exec_agency` | VARCHAR(100) | 집행기관 | 집행기관 |
-| `budget_krw` | BIGINT | 예산금액 | 예산금액(원, 집행 예정액). 지수 표기 11행은 정수로 변환. NULL = 원본 결측 4,965행(raw 공란, 0 아님. 2024 778/4,545·2025 4,187/31,314) → 화면 「미기재」, 집계 분모 제외 + 미기재 건수 병기(v_domestic_plan_yearly.budget_missing_count). 편중 확인(09-20 stats-advisor, null-profile §6): MAR, 상태별 V=0.99(집행계획 단계 99.5% NULL, 그 외 0.3%) |
+| `budget_krw` | BIGINT | 예산금액 | 예산금액(원, 집행 예정액). 지수 표기 11행은 정수로 변환. NULL = 원본 결측 4,965행(raw 공란, 0 아님. 2024 778/4,545·2025 4,187/31,314) → 화면 「미기재」, 집계 분모 제외 + 미기재 건수 병기(v_domestic_plan_yearly.budget_missing_count). 편중 확인: MAR, 상태별 V=0.99(집행계획 단계 99.5% NULL, 그 외 0.3%) |
 | `progress_status` | VARCHAR(30) | 진행상태 | 진행상태. NULL = 원본 결측 190행(raw 공란 — 2024 14·2025 176) → 화면 「미기재」, 집계 is_contracted 판정 불가 → 미확인 별도 건수 병기 |
 | `is_contracted` | TINYINT(1) | (파생) | 계약완료 1/0 |
 | `cleaned_at` | DATETIME | (파생) | 정제 시각 |
@@ -1247,10 +1247,10 @@
 
 ### `clean_dapa_localized_item`
 
-- **역할**: B2 국산화개발품목 — 완전 중복 제거한 사업×부품(dup_count 보존)
+- **역할**: 국산화개발품목 — 완전 중복 제거한 사업×부품(dup_count 보존)
 - **원천**: raw_dapa_localized_item (notebooks/02_clean_localized_overseas_plan.ipynb) · **한 행**: 사업 × 부품관리번호 · **PK**: `project_name,part_mgmt_no` · **행 수**: 25,025
-- **쓰는 곳**: 화면 ②(FSC 축), v_b2_fsg_summary, v_b2_localized_kdsis
-- **주의**: HS6 대응 없음(09-21 카테고리 맵 폐기 — category·category_link_status 열 삭제). FSC 축에서만
+- **쓰는 곳**: 화면 「국산화 현황」(군급 축), v_b2_fsg_summary, v_b2_localized_kdsis
+- **주의**: HS6 대응 없음 — FSC 축에서만
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -1262,9 +1262,9 @@
 | `item_name` | VARCHAR(200) | 품명 | 품명(raw 그대로. 부품명이며 HS 매핑에 쓰지 않음). NULL = 원본 결측 30행(raw 공란) → 화면 「미기재」, 집계 무시 |
 | `contractor_name` | VARCHAR(200) | 계약업체 | 계약 상대(개발 주체 아님). 국산 제조의 증거로 쓰지 않음. NULL = 원본 결측 34행(raw 공란, 중복 축약 후) → 화면 「미기재」, 집계 업체 연결 분모 제외 |
 | `contractor_name_norm` | VARCHAR(200) | (파생) | 업체명 정규화(법인 표기 제거·공백 제거). clean_company_name_link 연결률 보고용. NULL = 구조적 34행(contractor_name NULL 파생, 1:1) → 화면 「미기재」, 집계 contractor_name과 같음 |
-| `last_modified_date` | DATE | 최종수정일 | 포털 스냅샷 수정일. 연도 축으로 쓰지 않음. NULL = 원본 결측 18,160행(raw 공란, 72.6%) → 화면 표시 안 함, 집계 무시. 편중 확인(09-20 stats-advisor, null-profile §6): MAR, 사업별 V=0.33, 값은 2021-06~07 일괄갱신 창, MNAR 배제 불가 |
+| `last_modified_date` | DATE | 최종수정일 | 포털 스냅샷 수정일. 연도 축으로 쓰지 않음. NULL = 원본 결측 18,160행(raw 공란, 72.6%) → 화면 표시 안 함, 집계 무시. 편중 확인: MAR, 사업별 V=0.33, 값은 2021-06~07 일괄갱신 창, MNAR 배제 불가 |
 | `dup_count` | SMALLINT | (파생) | 원본 완전 중복 행 수(원본 규모 재현용) |
-| `is_electronic_group` | TINYINT(1) | (파생) | fsc2 IN (58,59,60) = 1. 전자 여부 속성(기본 필터), 기준 확정 2026-09-21(M4). 60은 2026-09-21 기준 통일(해당 행 0) |
+| `is_electronic_group` | TINYINT(1) | (파생) | fsc2 IN (58,59,60) = 1. 전자 여부 속성(기본 필터). 60은 해당 행 0 |
 | `first_raw_row_id` | BIGINT UNSIGNED | (파생) | 대표 원본 행의 파서 순번(read_raw raw_dapa_localized_item.row_id) |
 | `cleaned_at` | DATETIME | (파생) | 정제 시각 |
 
@@ -1273,7 +1273,7 @@
 - **역할**: 국외조달 입찰결과 정제(2025-01~09 부분연도)
 - **원천**: raw_dapa_overseas_bid_result (notebooks/03_clean_overseas.ipynb) · **한 행**: raw 행 1개(공고 × 판단번호 × 항목) · **PK**: `raw_row_id` · **행 수**: 2,494
 - **쓰는 곳**: v_overseas_bid_chain
-- **주의**: 달러 — 원화와 합산 금지. 09-21 발주기관·계약방법·입찰방법·낙찰방법 4열 제거(2,489/2,494 동일, 5행 화력총괄계약팀 2단계경쟁 — raw에 보존)
+- **주의**: 달러 — 원화와 합산 금지. 발주기관·계약방법·입찰방법·낙찰방법 4열 제거(2,489/2,494 동일, 5행 화력총괄계약팀 2단계경쟁 — raw에 보존)
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -1323,7 +1323,7 @@
 
 - **역할**: 국외조달 조달계획(파일판) 판단번호 단위 — 집행유형·예산·전자 후보·검수 상태
 - **원천**: raw_dapa_overseas_plan (notebooks/02_clean_localized_overseas_plan.ipynb) · **한 행**: 판단번호 1개 · **PK**: `decision_no` · **행 수**: 3,023
-- **쓰는 곳**: 화면 ⓪, v_overseas_plan_yearly, v_overseas_bid_chain
+- **쓰는 곳**: 화면 「배경과 자료 › 정책과 예산」, v_overseas_plan_yearly, v_overseas_bid_chain
 - **주의**: 전자 후보는 미검수(잠정)
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -1350,7 +1350,7 @@
 
 - **역할**: 국외 조달계획 OpenAPI 품목 단위 정제 — NSN 판별, FSC4/FSG2, 전자 플래그(58·59·60), KDSIS 연결 상태, 적용장비 표준명
 - **원천**: raw_dapa_overseas_plan_api (notebooks/03_clean_overseas.ipynb) · **한 행**: 조달요구번호 × 품목순번 · **PK**: `procure_demand_no,item_seq` · **행 수**: 13,615
-- **쓰는 곳**: 화면 ② 국외조달 FSC 축, v_overseas_plan_api_fsc, v_overseas_plan_api_kdsis
+- **쓰는 곳**: 화면 「군급 분류와 조달」 · 「국산화 현황」 군급 축, v_overseas_plan_api_fsc, v_overseas_plan_api_kdsis
 - **주의**: 금액 통화 미검증 — 건수만 쓴다
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -1379,7 +1379,7 @@
 | `equipment_code` | VARCHAR(20) | eqpmnCode | 적용장비코드(코드로 장비를 묶지 않음). NULL = 원본 결측 1,834행(raw 공란) → 화면 표시 안 함, 집계 무시 |
 | `equipment_name` | VARCHAR(100) | eqpmnNm | 적용장비명 원문. NULL = 원본 결측 2,018행(raw 공란 1,159 + 자리표시 * 859 → is_equipment_missing=1, 규칙 §2-6) → 화면 「미기재」, 집계 장비명 수 분모 제외 + 미기재 건수 병기 |
 | `equipment_name_norm` | VARCHAR(100) | (파생) | 기계적 정규화 결과. NULL = 구조적 2,018행(equipment_name NULL 파생, 1:1) → 화면 「미기재」, 집계 equipment_name과 같음 |
-| `equipment_name_std` | VARCHAR(100) | (파생) | 표준명(잠정). NULL = 의도된 NULL 13,176행(결정: 표준명 근거 없음 — ref_equipment_alias는 표기 변이 관측 40종만 후보, 값 439행·원문 39종, 규칙 §2-6) → 화면 「원문 표시(표준명 없음)」, 집계 원문 기준 |
+| `equipment_name_std` | VARCHAR(100) | (파생) | 표준명(잠정). NULL = 의도된 NULL 13,176행(표준명 근거 없음 — ref_equipment_alias는 표기 변이 관측 40종만 후보, 값 439행·원문 39종, 규칙 §2-6) → 화면 「원문 표시(표준명 없음)」, 집계 원문 기준 |
 | `is_equipment_missing` | TINYINT(1) | (파생) | 적용장비명 공란 또는 * 1/0 |
 | `quantity` | INT | qy | 수량 |
 | `unit` | VARCHAR(10) | unit | 단위 |
@@ -1394,7 +1394,7 @@
 ### `clean_excluded_row`
 
 - **역할**: clean으로 옮기지 않은 raw 행 + 사유 코드(공용)
-- **원천**: 각 정제 노트북 · **한 행**: 제외 행 1개 · **PK**: `excl_id` · **행 수**: 17
+- **원천**: 각 정제 노트북 · **한 행**: 제외 행 1개 · **PK**: `excl_id` · **행 수**: 23
 - **쓰는 곳**: 검산 raw = clean + excluded
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -1447,9 +1447,9 @@
 | `review_note` | VARCHAR(50) | (파생) | 검토 사유(nsn_format=검토일 때). NULL = 구조적 135,331행(nsn_format=숫자13, 예외 0) → 화면 표시 안 함, 집계 무시 |
 | `fsc4` | VARCHAR(4) | fsgFsc | 군급 4자리 |
 | `fsg2` | VARCHAR(2) | (파생) | 군급 앞 2자리(ref_fsg) |
-| `is_electronic_group` | TINYINT(1) | (파생) | fsg2 IN (58,59,60) = 1, 기준 확정 2026-09-21(M4). 60은 2026-09-21 추가(317행) |
+| `is_electronic_group` | TINYINT(1) | (파생) | fsg2 IN (58,59,60) = 1(60 해당 317행) |
 | `ncb_code` | VARCHAR(4) | ncbCd_4130 | NCB. NULL = 원본 결측 3행(raw 공란, NIIN 없는 4자 NSN) → 화면 「미기재」, 집계 무시(조회 전용) |
-| `niin` | VARCHAR(10) | (파생) | NCB 2자 + 일련번호 7자 = NSN 뒤 9자리. NULL = 원본 결측 3행(ncb_code·iin_serial 모두 공란, 2026-09-20 빈 문자열→NULL) → 화면 「미기재」, 집계 무시 |
+| `niin` | VARCHAR(10) | (파생) | NCB 2자 + 일련번호 7자 = NSN 뒤 9자리. NULL = 원본 결측 3행(ncb_code·iin_serial 모두 공란, 빈 문자열→NULL) → 화면 「미기재」, 집계 무시 |
 | `niin_status` | VARCHAR(2) | niinStatCd_2670 | NIIN 상태. NULL = 원본 결측 2,189행(raw 공란, 코드 정의 미확인) → 화면 「미기재」, 집계 무시 |
 | `inc` | VARCHAR(10) | inc_4080 | INC |
 | `item_div_code` | VARCHAR(4) | itemDvsCd | 품목 구분(의미 미확인) |
@@ -1471,7 +1471,7 @@
 
 - **역할**: 광공업생산지수 C26 계열 월별(raw 1:1) — 코드 분리, 월 복원, 잠정·부분연도·범위 등급
 - **원천**: raw_kosis_production_index (notebooks/06_clean_kosis.ipynb) · **한 행**: 산업 × 항목 × 월 · **PK**: `raw_row_id` · **행 수**: 1,016
-- **쓰는 곳**: 화면 ④
+- **쓰는 곳**: 화면 「배경과 자료 › 국내 생산 현황」
 - **주의**: 지수는 금액과 합산 금지. 화면은 ★만
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -1497,7 +1497,7 @@
 
 - **역할**: 방산업체 분야별 평균가동률(raw 1:1) — 숫자화, 범위 플래그
 - **원천**: raw_kosis_utilization (notebooks/06_clean_kosis.ipynb) · **한 행**: 분야 × 연도 · **PK**: `raw_row_id` · **행 수**: 81
-- **쓰는 곳**: 화면 ④
+- **쓰는 곳**: 화면 「배경과 자료 › 국내 생산 현황」
 - **주의**: %를 금액과 합산·비율 계산 금지
 
 | 열 | 타입 | 원본 열명 | 설명 |
@@ -1515,10 +1515,10 @@
 
 ### `clean_krit_task`
 
-- **역할**: B1 KRIT 부품국산화 과제 — 차수·공고유형·과제번호 단위, 최신 차수 플래그
+- **역할**: KRIT 부품국산화 과제 — 차수·공고유형·과제번호 단위, 최신 차수 플래그
 - **원천**: raw_krit_task (notebooks/05_clean_krit_budget.ipynb) · **한 행**: 차수 × 공고유형 × 과제번호 · **PK**: `round_id,notice_type,task_no` · **행 수**: 96
-- **쓰는 곳**: 화면 ②
-- **주의**: 정부지원금 단위가 차수마다 달라 합산 금지. hs6·category·category_link_status 열은 09-21 삭제(HS6와 잇지 않음)
+- **쓰는 곳**: 화면 미사용 · 분석 참고
+- **주의**: 정부지원금 단위가 차수마다 달라 합산 금지. HS6와 잇지 않는다
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -1532,7 +1532,7 @@
 | `gov_fund_100m_krw` | DECIMAL(10,2) | 정부지원\n연구개발비 | 정부지원 연구개발비(억원). 원문 23.67억 → 숫자 변환. NULL = 원본 결측 11행(24-1차 예비 공고는 정부지원금 열 자체 없음, gov_fund_unit_text=없음, 규칙 §2-4) → 화면 「미기재」, 집계 지원금 합 분모 제외 + 미기재 건수 병기 |
 | `dev_period_months` | SMALLINT | 개발\n기간 | 개발 기간(개월). 원문 30개월 → 숫자 변환 |
 | `is_counted` | TINYINT(1) | (파생) | 같은 차수 중복 공고(예비→본공고) 중 집계에 쓰는 1건 = 1. 공고 수와 과제 수 구분용 |
-| `raw_row_id` | BIGINT UNSIGNED | (파생) | 원본 파일 파서 순번(read_raw raw_krit_task.row_id — 파일명 정렬 × 행 순. 2026-09-22 재번호) |
+| `raw_row_id` | BIGINT UNSIGNED | (파생) | 원본 파일 파서 순번(read_raw raw_krit_task.row_id — 파일명 정렬 × 행 순) |
 | `source_file` | VARCHAR(200) | (파생) | 추출 CSV 파일명(raw 그대로) |
 | `cleaned_at` | DATETIME | (파생) | 정제 시각 |
 | `task_seq_text` | VARCHAR(10) | 순 | 원문 순번(표마다 1부터. 24-1차 예비는 구분값 핵심/수출) |
@@ -1549,8 +1549,8 @@
 
 - **역할**: 열린재정 방위사업청 세부사업 예산(raw 1:1) — 천원·억원 두 벌, 정부안/확정 구분, 3선 후보 태그
 - **원천**: raw_openfiscal_program_budget (notebooks/05_clean_krit_budget.ipynb) · **한 행**: 회계연도 × 세부사업 · **PK**: `raw_row_id` · **행 수**: 2,860
-- **쓰는 곳**: 화면 ④(배경), v_budget_rnd_yearly
-- **주의**: 3선 후보는 겹치므로 합산 금지. 배경 ④ 전용. 09-21 경비구분·지출구분 열 제거(주요사업비·일반지출 외 인건비·기본경비·내부거래 72행 = 금액 0.6%, 합계에 포함 — raw에 보존)
+- **쓰는 곳**: 화면 「배경과 자료 › 정책과 예산」, v_budget_rnd_yearly
+- **주의**: 3선 후보는 겹치므로 합산 금지. 배경 화면 전용. 경비구분·지출구분 열 제거(주요사업비·일반지출 외 인건비·기본경비·내부거래 72행 = 금액 0.6%, 합계에 포함 — raw에 보존)
 
 | 열 | 타입 | 원본 열명 | 설명 |
 |---|---|---|---|
@@ -1569,7 +1569,7 @@
 | `amount_basis` | ENUM | (파생) | 확정 / 정부안(그 해 확정액 합이 0) |
 | `is_unconfirmed` | TINYINT(1) | (파생) | 1 = 국회확정 전(2027 268행). 0원이 아님 |
 | `is_unit_tech_dev` | TINYINT(1) | (파생) | 1 = 단위사업 국방기술개발(93행) |
-| `budget_group_candidate` | VARCHAR(20) | (파생) | ⑤ 탭 예산 3선 키워드 후보(확정 아님, 합산 금지). NULL = 의도된 NULL 2,767행(결정: 규칙 §2-12 키워드 후보 93행 외 — 국방기술개발 85·부품국산화 7·국방반도체 1) → 화면 「해당 없음(3선 외)」, 집계 후보만 집계, 세 값 합산 금지 |
+| `budget_group_candidate` | VARCHAR(20) | (파생) | 예산 3선 키워드 후보(확정 아님, 합산 금지). NULL = 의도된 NULL 2,767행(규칙 §2-12 키워드 후보 93행 외 — 국방기술개발 85·부품국산화 7·국방반도체 1) → 화면 「해당 없음(3선 외)」, 집계 후보만 집계, 세 값 합산 금지 |
 | `budget_group_basis` | VARCHAR(200) | (파생) | 후보값 판정 근거. NULL = 구조적 2,767행(budget_group_candidate NULL과 1:1, 예외 0) → 화면 표시 안 함, 집계 무시 |
 | `cleaned_at` | DATETIME | (파생) | 정제 시각 |
 | `cleaned_by` | VARCHAR(50) | (파생) | 정제 담당 |
@@ -1600,9 +1600,9 @@
 
 ### `v_b2_fsg_summary`
 
-- **역할**: B2 국산화개발품목 FSG 2자리 집계 — 행 수·고유 부품·사업 수·FSC4 수
+- **역할**: 국산화개발품목 FSG 2자리 집계 — 행 수·고유 부품·사업 수·FSC4 수
 - **원천**: clean_dapa_localized_item + ref_fsg · **한 행**: FSG 1개 · **PK**: `없음(뷰)` · **행 수**: 57
-- **쓰는 곳**: 화면 ② 히트맵·막대
+- **쓰는 곳**: 화면 미사용 · 분석 참고
 
 | 열 | 타입 |
 |---|---|
@@ -1617,7 +1617,7 @@
 
 ### `v_b2_localized_kdsis`
 
-- **역할**: B2 사업×부품 ← KDSIS NSN 연결(fsc4 + 재고번호9)
+- **역할**: 국산화개발품목 사업×부품 ← KDSIS NSN 연결(fsc4 + 재고번호9)
 - **원천**: clean_dapa_localized_item LEFT JOIN clean_kdsis_nsn · **한 행**: 사업 × 부품 · **PK**: `없음(뷰)` · **행 수**: 25,025
 - **쓰는 곳**: 연결 점검
 - **주의**: 0 채움 금지
@@ -1644,7 +1644,7 @@
 
 - **역할**: 국내 입찰공고 공고월 × 상태(긴급/재공고/…) × 계약방법 × 업무구분 건수·예산
 - **원천**: clean_dapa_bid_notice · **한 행**: 월 × 상태 × 방법 × 구분 · **PK**: `없음(뷰)` · **행 수**: 538
-- **쓰는 곳**: 화면 ② 월별 공고
+- **쓰는 곳**: 화면 미사용 · 분석 참고
 - **주의**: 전 행 미기재 그룹은 NULL(0 아님)
 
 | 열 | 타입 |
@@ -1679,7 +1679,7 @@
 
 - **역할**: 국내 경쟁입찰 결과 — 개찰연도 × 업무구분 × 결과(개찰완료/유찰/순위확정) 키 수·행 수·낙찰률 통계
 - **원천**: clean_dapa_bid_result · **한 행**: 연도 × 구분 × 결과 · **PK**: `없음(뷰)` · **행 수**: 12
-- **쓰는 곳**: 화면 ② 유찰률·낙찰률
+- **쓰는 곳**: 화면 미사용 · 분석 참고
 
 | 열 | 타입 |
 |---|---|
@@ -1698,7 +1698,7 @@
 
 - **역할**: 열린재정 연도별 합계(억원) — 일반회계 합, 국방기술개발 정부안/확정, 부품국산화·국방반도체·기초연구·공급망
 - **원천**: clean_openfiscal_program_budget · **한 행**: 회계연도 · **PK**: `없음(뷰)` · **행 수**: 12
-- **쓰는 곳**: 화면 ④(배경)
+- **쓰는 곳**: 화면 「배경과 자료 › 정책과 예산」
 - **주의**: 2027은 정부안. 다른 금액과 합산 금지
 
 | 열 | 타입 |
@@ -1735,7 +1735,7 @@
 
 - **역할**: 계약번호별 최초 체결월 기준 월별 건수·최종 금액(물품/용역 × class5)
 - **원천**: clean_dapa_contract · **한 행**: 월 × 업무구분 × class5 · **PK**: `없음(뷰)` · **행 수**: 28
-- **쓰는 곳**: 화면 ②
+- **쓰는 곳**: 화면 미사용 · 분석 참고
 - **주의**: class5 전행 판단 보류
 
 | 열 | 타입 |
@@ -1751,7 +1751,7 @@
 
 - **역할**: 연도 × 계약방법 × 업무구분 × 수의계약 사유(조문 원문) × 사유 그룹 건수·금액
 - **원천**: clean_dapa_contract · **한 행**: 연도 × 방법 × 구분 × 사유 · **PK**: `없음(뷰)` · **행 수**: 144
-- **쓰는 곳**: 화면 ②
+- **쓰는 곳**: 화면 「군급 분류와 조달 › 국내 계약 · 입찰」
 - **주의**: '국산화 필요 근거'라 쓰지 않는다
 
 | 열 | 타입 |
@@ -1769,7 +1769,7 @@
 
 - **역할**: 연도 × 수의계약 사유 그룹 건수와 그 해 전체 대비 비중(카드용)
 - **원천**: v_contract_private_reason · **한 행**: 연도 × 그룹 · **PK**: `없음(뷰)` · **행 수**: 20
-- **쓰는 곳**: 화면 ② 카드
+- **쓰는 곳**: 화면 미사용 · 분석 참고
 - **주의**: 2024는 11~12월만
 
 | 열 | 타입 |
@@ -1784,7 +1784,7 @@
 
 - **역할**: 과천시 소재 수입자 비중(방위사업청 소재지, 추정) — 전국 대비 과천 수입액·건수·시군구 수
 - **원천**: clean_customs_region · **한 행**: HS6 × 연도 · **PK**: `없음(뷰)` · **행 수**: 246
-- **쓰는 곳**: 화면 미사용(2026-09-28 M7 화면 제외) · EDA 참고
+- **쓰는 곳**: 화면 미사용 · EDA 참고
 - **주의**: 「군 직접 수입 하한」 표현 금지
 
 | 열 | 타입 |
@@ -1802,7 +1802,7 @@
 
 - **역할**: 방산업체 분야별 업체 수·지정연도 범위
 - **원천**: clean_dapa_defense_company · **한 행**: 분야 1개 · **PK**: `없음(뷰)` · **행 수**: 10
-- **쓰는 곳**: 화면 ⓪ 보조
+- **쓰는 곳**: 화면 「배경과 자료 › 국내 생산 현황」
 - **주의**: 미기재 3
 
 | 열 | 타입 |
@@ -1816,7 +1816,7 @@
 
 - **역할**: 국내 조달계획 연도 × 집행유형 × 계약방법 건수·예산·계약완료(국외와 열 맞춤)
 - **원천**: clean_dapa_domestic_plan · **한 행**: 연도 × 집행유형 × 방법 · **PK**: `없음(뷰)` · **행 수**: 62
-- **쓰는 곳**: 화면 ⓪ 국내 vs 국외
+- **쓰는 곳**: 화면 미사용 · 분석 참고
 - **주의**: 2024~2025만, 2024 불완전
 
 | 열 | 타입 |
@@ -1834,7 +1834,7 @@
 
 - **역할**: 수출 국가 점유율·순위
 - **원천**: v_import_hs6_year · **한 행**: HS6 × 연도 × 국가 · **PK**: `없음(뷰)` · **행 수**: 18,250
-- **쓰는 곳**: 화면 ①
+- **쓰는 곳**: 화면 「전자부품 현황」
 
 | 열 | 타입 |
 |---|---|
@@ -1851,7 +1851,7 @@
 
 - **역할**: 수출 집중도 HHI(수입과 동일 정의), 수출 실적(>0) 국가 수
 - **원천**: v_export_share_hs6_year · **한 행**: HS6 × 연도 · **PK**: `없음(뷰)` · **행 수**: 246
-- **쓰는 곳**: 화면 ①
+- **쓰는 곳**: 화면 「전자부품 현황」
 
 | 열 | 타입 |
 |---|---|
@@ -1868,7 +1868,7 @@
 
 - **역할**: 수입 집중도 HHI = Σ(점유율×100)²(share DOUBLE 정밀), 상위 1국·점유율·수입 실적(>0) 국가 수
 - **원천**: v_import_share_hs6_year · **한 행**: HS6 × 연도 · **PK**: `없음(뷰)` · **행 수**: 246
-- **쓰는 곳**: 화면 ①③, v_review_list
+- **쓰는 곳**: 화면 「전자부품 현황」, v_review_list
 - **주의**: 검토 목록 정렬 기준(HHI↓)
 
 | 열 | 타입 |
@@ -1886,7 +1886,7 @@
 
 - **역할**: HS6 아래 HS10을 용도(군용전용/항공기용/자동차용/기타)로 태그해 2021~2025 수입액 비중
 - **원천**: fact_customs_monthly + dim_hs10 · **한 행**: HS6 × 용도 · **PK**: `없음(뷰)` · **행 수**: 36
-- **쓰는 곳**: ref_hs_indicator 계산, 화면 ① 보조
+- **쓰는 곳**: ref_hs_indicator 계산
 
 | 열 | 타입 |
 |---|---|
@@ -1915,10 +1915,10 @@
 
 ### `v_hs6_candidate_rule`
 
-- **역할**: 84·85·88·90류 HS6마다 규칙 판정(R1 군용전용 / R2 항공·항행·레이더·무인기 / R3 이중용도 / R4 B2) → 후보 여부·우선 규칙·근거
+- **역할**: 84·85·88·90류 HS6마다 규칙 판정(R1 군용전용 / R2 항공·항행·레이더·무인기 / R3 이중용도 / R4 국산화개발품목 FSC) → 후보 여부·우선 규칙·근거
 - **원천**: v_hs10_use_tag_all + v_hsk_control_by_hs6 + v_defense_relevance_b2 · **한 행**: HS6 1개 · **PK**: `없음(뷰)` · **행 수**: 1,003
 - **쓰는 곳**: ref_hs_rule_flag 물질화 원천
-- **주의**: 09-16 잠정 진입식 스냅샷. 확정 진입식은 R1 OR R2(2026-09-21 M5) — R4 제외
+- **주의**: 잠정 진입식 스냅샷. 확정 진입식은 R1 OR R2 — R4 제외
 
 | 열 | 타입 |
 |---|---|
@@ -1971,7 +1971,7 @@
 
 - **역할**: 화이트리스트 24행 × 최신 rule_version 플래그·근거 수치 한 번에
 - **원천**: ref_hs_whitelist + ref_hs_rule_flag · **한 행**: HS6 1개 · **PK**: `없음(뷰)` · **행 수**: 24
-- **쓰는 곳**: 화면 ①③ 툴팁, 노트북
+- **쓰는 곳**: 노트북(화면 미사용)
 
 | 열 | 타입 |
 |---|---|
@@ -2012,7 +2012,7 @@
 
 - **역할**: HS6별 전략물자 통제 HSK 수 — ML / 이중용도 3·5·6·7부 / 통제번호 목록
 - **원천**: clean_hsk_control · **한 행**: HS6 1개 · **PK**: `없음(뷰)` · **행 수**: 1,119
-- **쓰는 곳**: 화면 ① 규칙 근거
+- **쓰는 곳**: HS6 선정 규칙 근거(화면 미사용)
 
 | 열 | 타입 |
 |---|---|
@@ -2026,7 +2026,7 @@
 
 - **역할**: HS6 × 연도 × 국가 수입·수출액 합(월 수·부분연도 플래그)
 - **원천**: fact_customs_monthly · **한 행**: HS6 × 연도 × 국가 · **PK**: `없음(뷰)` · **행 수**: 18,250
-- **쓰는 곳**: 화면 ①
+- **쓰는 곳**: 화면 「전자부품 현황」 · 홈
 
 | 열 | 타입 |
 |---|---|
@@ -2042,7 +2042,7 @@
 
 - **역할**: 수입 국가 점유율·순위
 - **원천**: v_import_hs6_year · **한 행**: HS6 × 연도 × 국가 · **PK**: `없음(뷰)` · **행 수**: 18,250
-- **쓰는 곳**: 화면 ①
+- **쓰는 곳**: 화면 「전자부품 현황」
 
 | 열 | 타입 |
 |---|---|
@@ -2077,7 +2077,7 @@
 
 - **역할**: 국외 입찰결과를 판단번호 × 항목으로 접고 조달계획과 연결 — 공고 횟수·최종 결과·계획 집행유형
 - **원천**: clean_dapa_overseas_bid_result + clean_dapa_overseas_plan · **한 행**: 판단번호 × 항목 · **PK**: `없음(뷰)` · **행 수**: 1,362
-- **쓰는 곳**: 화면 ⓪ 보강
+- **쓰는 곳**: 화면 미사용 · 분석 참고
 - **주의**: 2025-01~09 부분연도. 달러·원화 합산 금지
 
 | 열 | 타입 |
@@ -2101,7 +2101,7 @@
 
 - **역할**: 국외 계약 연도 × 계약방법 건수·고유 업체 수
 - **원천**: clean_dapa_overseas_contract · **한 행**: 연도 × 방법 · **PK**: `없음(뷰)` · **행 수**: 39
-- **쓰는 곳**: 화면 ⓪ 보조
+- **쓰는 곳**: 화면 미사용 · 분석 참고
 - **주의**: 금액·국가 없음
 
 | 열 | 타입 |
@@ -2116,7 +2116,7 @@
 
 - **역할**: 국외 조달계획 API를 FSC4 × 군 × 요구연도로 집계 — 건수·장비명 수·장비 예시
 - **원천**: clean_dapa_overseas_plan_api + ref_fsc + ref_fsg · **한 행**: FSC4 × 군 × 연도 · **PK**: `없음(뷰)` · **행 수**: 2,566
-- **쓰는 곳**: 화면 ② 국외조달 FSC 축
+- **쓰는 곳**: 화면 미사용 · 분석 참고
 - **주의**: 건수만(금액 통화 미검증)
 
 | 열 | 타입 |
@@ -2160,7 +2160,7 @@
 
 - **역할**: 국외 조달계획(파일판) 연도 × 집행유형 건수·예산·계약완료·전자 후보
 - **원천**: clean_dapa_overseas_plan · **한 행**: 연도 × 집행유형 · **PK**: `없음(뷰)` · **행 수**: 75
-- **쓰는 곳**: 화면 ⓪
+- **쓰는 곳**: 화면 「배경과 자료 › 정책과 예산」
 
 | 열 | 타입 |
 |---|---|
@@ -2175,10 +2175,10 @@
 
 ### `v_review_list`
 
-- **역할**: 화이트리스트 × 연도 HHI + B1 과제 수 + B2 완료 부품 수 — 화면 ③ 검토 목록
+- **역할**: 화이트리스트 × 연도 HHI + KRIT 과제 수 + 국산화개발 완료 부품 수 — 검토 목록
 - **원천**: v_hhi_hs6_year + ref_hs_whitelist + clean_krit_task + ref_category_map · **한 행**: HS6 × 연도 · **PK**: `없음(뷰)` · **행 수**: 246
-- **쓰는 곳**: 화면 ③
-- **주의**: B2 열은 '대응표 없음'·NULL, B1 hs6 NULL이라 b1_target_count=0 — '대응 근거 없음'으로 표기
+- **쓰는 곳**: 화면 미사용 · 분석 참고
+- **주의**: 국산화개발 열은 '대응표 없음'·NULL, KRIT 과제 hs6 NULL이라 b1_target_count=0 — '대응 근거 없음'으로 표기
 
 | 열 | 타입 |
 |---|---|

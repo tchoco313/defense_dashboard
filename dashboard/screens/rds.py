@@ -1,15 +1,14 @@
 """소분류 화면의 조회 — 운영 DB(AWS RDS)에서 읽어 화면이 쓰는 모양으로 바꾼다.
 
-화면 파일(screens/*.py)은 이 모듈만 부른다. 조회는 dashboard/db.py 의 query(바인딩 파라미터 · 캐시 1시간)이고,
-표 · 뷰 · 조건은 예전 운영 앱(pages/1~5, 2026-10-01 정리)과 같다 — 아래 「운영 앱 …」 주석은 그때 맞춘 기준이다.
+화면 파일(screens/*.py)은 이 모듈만 부른다. 조회는 dashboard/db.py 의 query(바인딩 파라미터 · 캐시 1시간)이다.
 - 관세청: v_import_hs6_year · v_hhi_hs6_year · v_hhi_export_hs6_year · v_import_share_hs6_year · v_export_share_hs6_year ·
   fact_customs_monthly(최근 12개월) · ref_hs_whitelist(분석 대상 13 = priority 1 · 2) · ref_hs_rule_flag(선정 깔때기) · ref_country
 - 방위사업청: clean_dapa_overseas_plan_api(전자 군급 = is_elec, 건수만 — 금액은 통화 미검증) · clean_dapa_localized_item ·
   ref_fsg · ref_fsc · clean_dapa_contract · v_contract_private_reason · clean_dapa_bid_result · clean_dapa_bid_notice · v_overseas_plan_yearly
 - 그 밖: v_budget_rnd_yearly · clean_kosis_utilization · clean_kosis_production_index · v_defense_company_sector ·
   ref_semi_policy_timeline · ref_semi_stat · meta_dataset
-HS 품목군과 군급(FSG · FSC)은 어떤 수준에서도 잇지 않는다(CLAUDE.md). 단위: 관세청 억 달러(USD ÷ 1e8), 예산 억 원(원 ÷ 1e8).
-화면에는 DB 표 · 뷰 · 열 이름을 쓰지 않는다 — 출처는 기관 · 데이터명 · 자료 기간만(2026-09-24 사용자).
+HS 품목군과 군급(FSG · FSC)은 어떤 수준에서도 잇지 않는다. 단위: 관세청 억 달러(USD ÷ 1e8), 예산 억 원(원 ÷ 1e8).
+화면에는 DB 표 · 뷰 · 열 이름을 쓰지 않는다 — 출처는 기관 · 데이터명 · 자료 기간만.
 """
 from __future__ import annotations
 
@@ -24,14 +23,14 @@ from ui import SHORT, country_colors
 
 E8 = 1e8
 TTL = 3600
-TARGET = "SELECT hs6 FROM ref_hs_whitelist WHERE priority IN (1, 2)"   # 분석 대상 13개(2026-09-21 M5)
+TARGET = "SELECT hs6 FROM ref_hs_whitelist WHERE priority IN (1, 2)"   # 분석 대상 13개
 FAMILY_ORDER = ["반도체", "레이더", "통신·레이더 부분품", "항법", "항공전자", "소재장비"]
 RULE_BADGE = (("r1", "군용 전용 세분류"), ("r2", "전문 용도 명시"))
-FSGS = ["58", "59", "60"]                    # 전자 관련 군 — clean.is_elec = fsg2 IN (58, 59, 60), 2026-09-21 M4
+FSGS = ["58", "59", "60"]                    # 전자 관련 군 — clean.is_elec = fsg2 IN (58, 59, 60)
 FSG_COLOR = {"58": SERIES[0], "59": SERIES[1], "60": SERIES[2]}
 ARMY_COLOR = {"육군": SERIES[0], "해군": SERIES[1], "공군": SERIES[2], "해병대": SERIES[3], "국직": SERIES[4], "미확인": ETC}
 PROD_NAME = {"C261": "반도체", "C262": "전자 부품", "C264": "통신 · 방송장비"}   # 광공업생산지수 산업(KSIC) — 짧은 이름
-# 출처 표에 싣는 자료 — 키 → 쓰인 곳(v2 메뉴). 1만 건 요건 2종은 관세청 · 국산화개발품목(2026-09-21 M2)
+# 출처 표에 싣는 자료 — 키 → 쓰인 곳(메뉴). 1만 건 요건 2종은 관세청 · 국산화개발품목
 SOURCE_USE = {
     "customs_all": "① 부품 현황 · 1만 건 요건", "customs_hs_code_master": "① 품목 선정",
     "dapa_overseas_plan_api": "② 군급 분류와 조달 · ③", "dapa_fsc_catalog": "② · ③ 군급 이름",
@@ -61,7 +60,7 @@ def stamps(cat: str) -> list[tuple[str, dict]]:
 
 
 def no_dep(s: str) -> str:
-    """화면 표현 경계 — 인용 원문의 「의존율 · 의존도 · 의존」을 「도입 비중 · 도입」으로(DB 값은 그대로, 운영 앱 4_ 와 같은 규칙)."""
+    """화면 표현 경계 — 인용 원문의 「의존율 · 의존도 · 의존」을 「도입 비중 · 도입」으로(DB 값은 그대로)."""
     return str(s).replace("의존율", "도입 비중").replace("의존도", "도입 비중").replace("의존", "도입")
 
 
@@ -120,7 +119,7 @@ def country_names() -> dict[str, str]:
 
 
 def colors(codes: list[str]) -> dict[str, str]:
-    """국가 색 — 운영 앱과 같은 규칙(주요 7개국 고정, 그 밖은 1색 뒤 기타)."""
+    """국가 색 — ui.country_colors 규칙(주요 7개국 고정, 그 밖은 1색 뒤 기타)."""
     return country_colors(list(codes))
 
 
@@ -231,7 +230,7 @@ def plan() -> pd.DataFrame:
 
 @st.cache_data(ttl=TTL, show_spinner=False)
 def plan_funnel() -> list[tuple[str, int]]:
-    """국외 조달계획 분류 깔때기(행) — 운영 앱 DATA CENTER load_fsc_funnel 과 같은 조건."""
+    """국외 조달계획 분류 깔때기(행)."""
     r = query("""SELECT COUNT(*) AS n_all, SUM(nsn IS NOT NULL) AS n_nsn,
                         SUM(nsn IS NOT NULL AND fsc4 <> '9999') AS n_pop, SUM(is_elec) AS n_elec
                  FROM clean_dapa_overseas_plan_api""").iloc[0]
@@ -247,7 +246,7 @@ def plan_years() -> list[int]:
 
 @st.cache_data(ttl=TTL, show_spinner=False)
 def army_share(y0: int, y1: int) -> pd.DataFrame:
-    """소요군별 전자 군급 비중(운영 앱 2_ load_army_share 와 같은 분모 · 분자) — army · n_valid · n_elec · pct.
+    """소요군별 전자 군급 비중 — army · n_valid · n_elec · pct.
     분모 = 군급 판별 가능 행(군급 있음 · 「9999」 기타 품목 제외, 전자 외 군급 포함)."""
     df = query("""
         SELECT army_std AS army,
@@ -356,7 +355,7 @@ def companies() -> pd.DataFrame:
 
 @st.cache_data(ttl=TTL, show_spinner=False)
 def domestic() -> dict:
-    """국내 조달(부록) — 계약 방법 · 수의계약 사유 · 입찰 결과 · 공고 수(운영 앱 2_ load_domestic 과 같은 조건, 건수만)."""
+    """국내 조달(부록) — 계약 방법 · 수의계약 사유 · 입찰 결과 · 공고 수(건수만)."""
     method = query("SELECT contract_method_name AS m, COUNT(*) AS n FROM clean_dapa_contract "
                    "WHERE is_latest_seq = 1 GROUP BY contract_method_name ORDER BY n DESC")
     reason = query("SELECT reason_group AS g, SUM(contract_count) AS n FROM v_contract_private_reason "
@@ -379,7 +378,7 @@ def sources() -> pd.DataFrame:
 
 @st.cache_data(ttl=TTL, show_spinner=False)
 def bid_match() -> dict[str, int]:
-    """입찰 공고 ↔ 결과 연결(행) — 공고번호 + 차수 대조(운영 앱 DATA CENTER load_bid_match 와 같은 조건)."""
+    """입찰 공고 ↔ 결과 연결(행) — 공고번호 + 차수 대조."""
     r = query("""SELECT (SELECT COUNT(*) FROM clean_dapa_bid_notice) AS n_notice,
                         (SELECT COUNT(*) FROM clean_dapa_bid_result) AS n_result,
                         (SELECT COUNT(*) FROM clean_dapa_bid_result WHERE notice_link_status <> '미연결') AS n_linked,
@@ -389,7 +388,7 @@ def bid_match() -> dict[str, int]:
 
 @st.cache_data(ttl=TTL, show_spinner=False)
 def procedure() -> dict:
-    """국외조달 절차 단계별 자료 건수 · 기간(운영 앱 4_ load 의 proc 와 같은 조건). 단계마다 자료 · 기간이 달라 전환율로 읽지 않는다."""
+    """국외조달 절차 단계별 자료 건수 · 기간. 단계마다 자료 · 기간이 달라 전환율로 읽지 않는다."""
     r = query("""SELECT (SELECT COUNT(*) FROM clean_dapa_overseas_plan) AS plan_n,
                         (SELECT MIN(plan_year) FROM v_overseas_plan_yearly) AS plan_y0,
                         (SELECT MAX(plan_year) FROM v_overseas_plan_yearly) AS plan_y1,

@@ -1,6 +1,5 @@
-"""v2 메뉴 레지스트리 — 홈 + 대분류 4개 · 소분류(한 소분류 = 한 화면). 메뉴 순서 · 이름 · 주소는 이 파일 한 곳에서 고친다.
+"""메뉴 레지스트리 — 홈 + 대분류 4개 · 소분류(한 소분류 = 한 화면). 메뉴 순서 · 이름 · 주소는 이 파일 한 곳에서 고친다.
 
-명세: 공동작업 저장소 app/specs/10_home.md · 11~14_cat_*.md · 00_common.md §4-1(2026-09-30 교수 피드백).
 주소 = /{대분류 키}-{소분류 키}. 화면 파일 = dashboard/screens/{대분류 키}_{소분류 키}.py
 """
 from __future__ import annotations
@@ -11,14 +10,14 @@ from typing import NamedTuple
 class Sub(NamedTuple):
     key: str        # 소분류 키 — 주소 · 파일 이름에 쓴다
     name: str       # 왼쪽 메뉴 · 펼침 메뉴 이름
-    question: str   # 이 화면이 답하는 질문(명세 §3 소분류 표)
+    question: str   # 이 화면이 답하는 질문
 
 
 class Cat(NamedTuple):
     key: str        # 대분류 키
     no: str         # 화면 번호 ①~④
     name: str       # 대분류 이름
-    question: str   # 이 대분류가 답하는 질문(명세 §1 첫 줄) — 서브 배너 부제 · 홈 이야기 카드
+    question: str   # 이 대분류가 답하는 질문 — 서브 배너 부제 · 홈 이야기 카드
     who: str        # 주로 찾는 분(타겟 3그룹, 순위 없음)
     icon: str       # Material Symbols 이름
     subs: tuple[Sub, ...]
@@ -67,5 +66,5 @@ def split(key: str) -> tuple[Cat | None, Sub | None]:
     return cat, next(x for x in cat.subs if x.key == s)
 
 
-# 이야기 연결 — 상세 조회 앞 마지막 소분류 아래에 「다음 →」(00_common.md §4-1). ④는 홈으로 돌아간다
+# 이야기 연결 — 상세 조회 앞 마지막 소분류 아래에 「다음 →」. ④는 홈으로 돌아간다
 NEXT = {"parts-conc": "fsc-code", "fsc-army": "loc-done", "loc-pair": "bg-policy", "bg-source": "home"}

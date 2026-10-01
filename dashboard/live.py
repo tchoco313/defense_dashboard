@@ -6,7 +6,7 @@
 - 캐시: 성공 6시간(개발계정 10,000회/일). 실패는 캐시하지 않되 10분간 다시 부르지 않는다(해외 서버에서 막힐 때 페이지가 매번 기다리지 않게).
 - 키: DATA_GO_KR_SERVICE_KEY — 환경변수 · 로컬 .env · 공개 앱 st.secrets 순. 요청 URL 에 키가 들어가므로 예외는 **클래스명만** 남긴다
   (str(e) 를 화면 · 로그에 내지 않는다).
-- 문구: 「실시간 · 모니터링 · 감시」라고 부르지 않는다(CLAUDE.md) — 「원천 최신 월 확인 · 확인 시각」.
+- 문구: 「실시간 · 모니터링 · 감시」라고 부르지 않는다 — 「원천 최신 월 확인 · 확인 시각」.
 - 순수 함수(parse_items · month_window · monthly_totals · classify)는 streamlit · 네트워크 없이 tests/test_live.py 가 검증한다.
 """
 from __future__ import annotations

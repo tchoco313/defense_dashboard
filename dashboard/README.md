@@ -23,24 +23,4 @@ streamlit run dashboard/main.py
 
 `static/` — `main.py` 가 쓰는 CSS · JS · 인트로 HTML. CSS 안 `${이름}` 자리는 `css(파일, 이름=값)` 이 파이썬 값(색 · 폭)으로 채운다. K9 배너 사진은 `assets/k9_banner.jpg`.
 
-`demo/` 는 혼자 도는 시안이다 — `KDD_v2.py`(숫자 없는 설계도판) · `KDD_v1.py` · `K-Defense_brandnew.py`(동현님 새 디자인 — 화면 틀의 기준) · `design_demo.py` · `무기체계v1.py`. **숫자는 전부 샘플**이라 발표 · 보고에 쓰지 않는다.
-
-## 공동작업 저장소와 파일 대응
-
-배포는 공동작업 저장소(`kimhh080888-blip/Defense_Dashboard`)의 `app/main.py` → `app/KDD_v2.py` 로 돈다. 2026-10-01 그 저장소 `ba65b6c` 를 아래처럼 옮겼고, 샘플 코드를 걷어낸 판을 양쪽에 같이 넣었다(이 저장소 `9115406` · 공동작업 `8643587`).
-한쪽에서 고치면 다른 쪽에도 같은 파일로 옮긴다(옮길 때 주석의 `app/` → `dashboard/`, `app/proto/…` → `dashboard/screens/…` 경로만 바꾼다).
-`main.py` ↔ `KDD_v2.py` 는 머리 설명글과 경로 설정(`SCREENS_DIR` · `sys.path`) 몇 줄만 다르다 — 옮길 때 그 몇 줄은 각 저장소 것을 그대로 둔다.
-
-| 공동작업 저장소 | 이 저장소 |
-|---|---|
-| `app/KDD_v2.py` | `main.py` (`PROTO_DIR` → `SCREENS_DIR`, `proto_parts` → `screen_parts`, `mock_screen` → `story_screen`, `MOCK_CSS` → `STORY_CSS`, 샘플 코드 삭제) |
-| `app/proto/{parts,rds,menu}.py` | `screens/{parts,rds,menu}.py` |
-| `app/proto/screens/*.py` (home 제외) | `screens/*.py` |
-| `app/static/*` | `static/*` (그대로 같음) |
-| `app/{db,kdesign,ui,live,metrics,weapon_context,datacenter_viz}.py` | 같은 이름 (`kdesign.py` 는 `LABEL_KEY` 를 직접 둔다 — 이 저장소에는 `frame.py` 가 없다) |
-| `app/main.py`(진입점 — KDD_v2 를 runpy 로 실행) · `app/main_v1.py` · `app/pages/` · `app/proto/main.py` · `shell.py` · `app/demo_v2/` | 없음 — 배포 화면이 쓰지 않는다 |
-
-## 지난 정리
-
-- 2026-10-01: 예전 운영 앱(`main.py` 라우터 · `nav.py` · `frame.py` · `landing.py` · `home.py` · `pages/1~5 · 7`)을 지우고 `main.py` 를 배포 화면으로 바꿨다. 예전 파일은 git 기록(`7fc938a` 까지)에 있다. `specs/` 는 예전 운영 앱 기준 화면 명세다.
-- 2026-09-28: 파일 번호를 화면 번호와 맞췄다(옛 이름은 날짜가 붙은 `docs/report/` 문서에 남아 있다). 공동작업 저장소의 `app/` 는 이 저장소의 `dashboard/` 다.
+`demo/` — 혼자 도는 디자인 시안(`KDD_v2.py` · `KDD_v1.py` · `K-Defense_brandnew.py` · `design_demo.py` · `무기체계v1.py`). 숫자는 샘플이다.

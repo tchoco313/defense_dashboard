@@ -142,7 +142,7 @@ def _hwp_para_text(b: bytes) -> str:
 
 
 def extract_tables_hwp(path: Path) -> list[pd.DataFrame]:
-    import olefile  # 설치: pip install olefile (docs/install-log/INSTALLED.md)
+    import olefile  # requirements.txt 의 olefile
 
     ole = olefile.OleFileIO(str(path))
     hdr = ole.openstream("FileHeader").read()

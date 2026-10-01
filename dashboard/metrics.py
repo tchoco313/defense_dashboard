@@ -26,7 +26,7 @@ def concentration(df: pd.DataFrame, value_col: str) -> pd.DataFrame:
     - total = 양수 합 · top1_share 0~1 · top3_share = 상위 3개국 점유율 합 0~1(국가가 3개 미만이면 있는 만큼) · hhi = Σ(share×100)² (0~10,000) · country_count = 양수 국가 수
     - 합계 0 인 hs6 는 결과에 없다(= 이 기간 실적 없음. 호출부는 join 뒤 NaN 으로 구분). 빈 입력 → 열만 있는 빈 표
     - 1위 동률: value 내림차순 → stat_cd **내림차순** — DB 뷰 v_hhi_hs6_year 의 `MAX(CASE WHEN rnk=1 THEN stat_cd END)` 와 같은 규칙
-      (단일 연도를 넣으면 뷰와 같은 1위국·점유율·HHI 가 나와야 한다. 2026-09-20 실측: 1위 자리 동률 0건)
+      (단일 연도를 넣으면 뷰와 같은 1위국·점유율·HHI 가 나와야 한다)
     """
     if df.empty:
         return _empty_conc()

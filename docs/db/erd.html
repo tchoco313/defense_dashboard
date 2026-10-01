@@ -26,12 +26,12 @@ footer{ color:var(--muted); font-size:13px; border-top:1px solid var(--line); pa
 <div class="wrap">
 <header>
   <h1>국방 핵심 전자부품 대시보드 — 테이블 관계도</h1>
-  <p class="lede"><code>db/schema.sql</code>(테이블 37·뷰 31)의 PK·FK와, 뷰가 실제로 JOIN하는 논리 키를 도메인별로 나눠 그린다. 원본은 DB 밖 파일(<code>data/raw/</code>, 2026-09-22 raw_ 표 삭제)이며 <code>clean_*.raw_row_id</code>는 파일 파서 순번(<code>load_db.read_raw</code>)으로 원본 행을 가리킨다 — §5에 한 번만 표시한다. 연결률은 RDS 실측(2026-09-22, <code>app_ro</code>).</p>
+  <p class="lede"><code>db/schema.sql</code>(테이블 44 · 뷰 31) 중 주요 표의 PK·FK와, 뷰가 실제로 JOIN하는 논리 키를 도메인별로 나눠 그린다. 원본은 DB 밖 파일(<code>data/raw/</code>)이며 <code>clean_*.raw_row_id</code>는 파일 파서 순번(<code>load_db.read_raw</code>)으로 원본 행을 가리킨다 — §5에 한 번만 표시한다. 연결률은 RDS 실측값이다(<code>db/query_erd_link_rates.sql</code>).</p>
   <p class="legend"><b>범례</b> — 실선 <code>||--o{</code> = DB에 선언된 FK · 점선 <code>||..o{</code> = FK는 아니지만 뷰·문서가 쓰는 논리 키(라벨의 <code>일치/전체</code>는 실측 행 수) · 선 없는 표 = 단독 집계표.</p>
 </header>
 <section>
-<h2>① 관세청 수출입 (P1) — 화면 ①·③</h2>
-<p class="note">뷰 계보: <code>fact_customs_monthly</code> → <code>v_import_hs6_year</code> → <code>v_import_share_hs6_year</code> → <code>v_hhi_hs6_year</code> → <code>v_review_list</code>(③ 검토 목록, <code>ref_hs_whitelist</code> JOIN). <code>ref_hs_rule_flag</code>·<code>clean_hsk_control</code>은 HS6 후보 전체를 담으므로 화이트리스트 24개와만 겹친다.</p>
+<h2>관세청 수출입 — 화면 「전자부품 현황」</h2>
+<p class="note">뷰 계보: <code>fact_customs_monthly</code> → <code>v_import_hs6_year</code> → <code>v_import_share_hs6_year</code> → <code>v_hhi_hs6_year</code> → <code>v_review_list</code>(검토 목록, <code>ref_hs_whitelist</code> JOIN). <code>ref_hs_rule_flag</code>·<code>clean_hsk_control</code>은 HS6 후보 전체를 담으므로 화이트리스트 24개와만 겹친다.</p>
 <div class="diagram"><pre class="mermaid">erDiagram
   ref_hs_whitelist {
     char hs6 PK
@@ -79,7 +79,7 @@ footer{ color:var(--muted); font-size:13px; border-top:1px solid var(--line); pa
 </pre></div>
 </section>
 <section>
-<h2>② 국내조달·업체 (P4)</h2>
+<h2>국내조달·업체 — 화면 「군급 분류와 조달 › 국내 계약 · 입찰」</h2>
 <p class="note"><code>clean_dapa_bid_result</code>(7,403행) ↔ <code>clean_dapa_bid_notice</code>는 같은 <code>bid_notice_no+seq</code>에 공고 행이 여럿이라 일치가 7,543건으로 결과 행보다 많다(다중 일치 — 뷰 <code>v_bid_notice_result_link</code>는 이 키 대신 낙찰 업체 <code>biz_reg_no</code>로 계약과 잇는다).</p>
 <div class="diagram"><pre class="mermaid">erDiagram
   clean_dapa_contract {
@@ -132,8 +132,8 @@ footer{ color:var(--muted); font-size:13px; border-top:1px solid var(--line); pa
 </pre></div>
 </section>
 <section>
-<h2>② 국외조달·NSN (P3·B2)</h2>
-<p class="note">NSN 연결은 낮다(국외조달계획 4.7%, 국산화개발품목 1.2%) — <code>clean_kdsis_nsn</code>이 전자 FSG 58·59·60 범위만 담기 때문이며, 연결 실패가 아니라 범위 밖이다. 관세청 HS 표와 FSC·NSN은 어떤 선으로도 잇지 않는다(09-21 결정).</p>
+<h2>국외조달·군급·NSN — 화면 「군급 분류와 조달」 · 「국산화 현황」</h2>
+<p class="note">NSN 연결은 낮다(국외조달계획 4.7%, 국산화개발품목 1.2%) — <code>clean_kdsis_nsn</code>이 전자 FSG 58·59·60 범위만 담기 때문이며, 연결 실패가 아니라 범위 밖이다. 관세청 HS 표와 FSC·NSN은 공식 대응표가 없어 어떤 선으로도 잇지 않는다.</p>
 <div class="diagram"><pre class="mermaid">erDiagram
   clean_dapa_overseas_plan {
     varchar decision_no PK
@@ -192,8 +192,8 @@ footer{ color:var(--muted); font-size:13px; border-top:1px solid var(--line); pa
 </pre></div>
 </section>
 <section>
-<h2>⓪ 배경 — KRIT·예산·KOSIS (P5·P2)</h2>
-<p class="note">네 표는 서로 잇지 않고 연도 축으로만 화면 ⓪에 나란히 놓는다. <code>clean_krit_task</code>에 HS6 열은 없다(품목군 대응표 폐기).</p>
+<h2>배경 — KRIT·예산·KOSIS — 화면 「배경과 자료」</h2>
+<p class="note">네 표는 서로 잇지 않고 연도 축으로만 배경 화면 · 분석에 나란히 놓는다. <code>clean_krit_task</code>에 HS6 열은 없다(HS 품목군과 잇지 않는다).</p>
 <div class="diagram"><pre class="mermaid">erDiagram
   clean_krit_task {
     varchar round_id PK
@@ -227,7 +227,7 @@ footer{ color:var(--muted); font-size:13px; border-top:1px solid var(--line); pa
 </pre></div>
 </section>
 <section>
-<h2>메타·계보 (raw → clean)</h2>
+<h2>메타·계보 (원본 파일 → clean)</h2>
 <p class="note"><code>raw_file_X ||..o| clean_X</code>가 대신하는 계보 16표(전부 점선 — RDS raw_ 표가 없어 FK 아님): <code>clean_dapa_contract</code>·<code>_bid_notice</code>·<code>_bid_result</code>·<code>_domestic_plan</code>·<code>_contract_exec_by_service</code>·<code>_overseas_plan</code>(first_raw_row_id)·<code>_overseas_plan_api</code>·<code>_overseas_contract</code>·<code>_overseas_bid_result</code>·<code>_defense_company</code>·<code>clean_krit_task</code>·<code>clean_openfiscal_program_budget</code>·<code>clean_hsk_control</code>·<code>clean_kosis_utilization</code>·<code>clean_kosis_production_index</code>·<code>clean_dapa_localized_item</code>(first_raw_row_id) → 원본 파일 데이터셋(<code>raw_X</code> 키, <code>scripts/load_db.py RAW_TABLES</code>). <code>fact_customs_monthly</code>·<code>clean_customs_region</code>은 자연키(hs10·국가·월 / hs6·시군구·월)와 파일명(<code>customs_all_<HS6>.csv</code>·<code>customs_region_<HS6>.csv</code>)으로 추적하며 <code>raw_row_id</code> 열이 없다. 계보를 문서로만 두는 표: <code>clean_company</code>·<code>clean_company_name_link</code>·<code>clean_kdsis_nsn</code>(first_raw_row_id)·<code>clean_openfiscal_program_link</code>. 기준표 <code>ref_hs_code_master</code>·<code>ref_hs6_name</code>은 원본 파일(HS 마스터·단위별 품목명)에서 <code>load_db.py --ref</code>가 만든다.</p>
 <div class="diagram"><pre class="mermaid">erDiagram
   meta_dataset {

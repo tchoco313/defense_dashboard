@@ -7,9 +7,9 @@
 사용법 (저장소 루트에서):
   python scripts/md_to_pdf.py docs/db/schema-design.md                     # 같은 폴더에 schema-design.pdf
   python scripts/md_to_pdf.py docs/db/schema-design.md -o out/schema.pdf
-  python scripts/md_to_pdf.py docs/idea-review.md --subtitle "기획 확정본" --no-toc
+  python scripts/md_to_pdf.py docs/data-sources.md --subtitle "데이터 출처" --no-toc
 
-생성된 PDF는 파생 파일이라 git에 넣지 않는다(.gitignore `docs/**/*.pdf`). md 수정 후 다시 뽑는다.
+생성된 PDF는 md 에서 만든 파생 파일이다(.gitignore 대상 아님 — 커밋할지는 문서마다 정한다). md 를 고치면 다시 뽑는다.
 """
 
 import argparse
