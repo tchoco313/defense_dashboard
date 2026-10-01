@@ -1731,14 +1731,7 @@ def render() -> None:
                 st.info("지표를 하나 이상 고르세요. 분석영역에 맞는 지표만 목록에 나옵니다.")
             else:
                 query_result(q, y0, y1)
-    if q["type"] == "군수품 FSG/FSC":
-        cap, src = "국외 조달계획은 품목 단위 건수만 셉니다(금액은 통화 미검증). 관세청 HS 자료와 엮지 않습니다.", SRC_PLAN
-    elif q["type"] == "국산화개발":
-        cap, src = "국산화개발품목은 스냅샷 목록이라 건수 · 개수만 셉니다(국산화율 · 연도별 추이 아님). 관련 업체는 계약업체입니다.", SRC_B2
-    else:
-        cap = "수출입액은 국가 전체(민수 포함) 교역액이며 군수 수요 규모를 뜻하지 않습니다. 중량은 참고값(반올림 오차)."
-        src = f'{SOURCE} · 자료 기간 {STAMP["period"]}'
-    st.html(f'<div class="caption">{cap}</div>' + source_pop(src))
+    # 카드 아래 한 줄 설명 · 맨 아래 「? 출처」 원은 두지 않는다(출처는 결과 카드 안 「?」 · PNG · CSV 에 있다)
 
 
 render()
