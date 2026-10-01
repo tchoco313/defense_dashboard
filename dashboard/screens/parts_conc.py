@@ -43,21 +43,21 @@ a, b = st.columns(2, gap="medium")
 with a, P.card("bar7"):
     sh = R.shares([hs], by, flow).head(7)
     if sh.empty:
-        P.title(f"{by}년 {flow_lb} 상위 7개국")
+        P.title(f"{flow_lb} 상위국 점유율", f"% · {by}년")
         st.info(f"{by}년 {flow_lb} 실적이 없습니다(실제 0).")
     else:
         col = R.colors(sh["stat_cd"].tolist())
-        P.title(f'{by}년 {flow_lb} 상위 7개국 — 1위 <span class="key">{escape(sh.iloc[0]["country"])} {sh.iloc[0]["share"]:.1f}%</span>',
-                f"% · {by}년 · 점선 = 50%")
+        P.title(f"{flow_lb} 상위국 점유율", f"% · {by}년 · 점선 = 50%")
         fig = P.hbar([(r.country, round(r.share, 1), col[r.stat_cd]) for r in sh.itertuples()], "%", 320)
         fig.add_vline(x=50, line_dash="dot", line_color="#94a3b8")
         P.chart(fig, "p13_bar")
+        P.caption(f'{by}년 {flow_lb} 상위 7개국 — 1위 <span class="key">{escape(sh.iloc[0]["country"])} {sh.iloc[0]["share"]:.1f}%</span>')
 with b, P.card("scatter"):
     sc = base if flow == "imp" else R.conc((by,), "exp")
     sc = sc.dropna(subset=["hhi"])
     hi = int((sc["hhi"] >= 2500).sum())
     col13 = R.colors(sc["top1_stat_cd"].tolist())
-    P.title(f'13개 품목군 중 <span class="key">{hi}개가 {flow_lb} HHI 2,500 이상</span>이다',
+    P.title("품목군별 점유율 분포",
             f"{by}년 · 가로 = 1위 {'공급국' if flow == 'imp' else '수출국'} 점유율(%) · 세로 = HHI · 색 = 1위 국가")
     fig = go.Figure(go.Scatter(x=(sc["top1_share"] * 100).round(1), y=sc["hhi"].round(0), mode="markers+text",
                                text=[s if h == hs else "" for s, h in zip(sc["short"], sc["hs6"])], textposition="top center",
@@ -68,6 +68,7 @@ with b, P.card("scatter"):
     fig.add_hline(y=2500, line_dash="dash", line_color="#94a3b8")
     fig.update_layout(height=320, showlegend=False, xaxis_title=f"1위 국가 점유율(%)", yaxis_title="HHI")
     P.chart(fig, "p13_scatter")
+    P.caption(f'13개 품목군 중 <span class="key">{hi}개가 {flow_lb} HHI 2,500 이상</span>이다')
 P.see(SEE, source)
 
 a, b = st.columns(2, gap="medium")

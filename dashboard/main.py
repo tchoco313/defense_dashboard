@@ -460,9 +460,11 @@ def _why_select() -> None:
         for i, ((name, n), w, sub) in enumerate(zip(steps, widths, (
             "방위사업청 국외 조달계획(품목)", "재고번호(NSN) 앞 4자리가 군급 — 없으면 분류할 수 없다",
             "「9999」는 기타 품목 — 군급으로 나눌 수 없어 뺀다", "분석 대상 — 군 58 · 59 · 60에 속한 군급"))))
-    fsc_block = (f'<div class="mk-grp" style="margin-top:48px;color:{GREEN_D}">군수품 분류 — 군급(FSC)<span>국외 조달계획 · 국산화 현황은 이 분류로 본다</span></div>'
+    fsc_block = (f'<div class="mk-grp" style="margin:64px 0 12px;font-size:19px;color:{GREEN_D}">군수품 분류 — 군급(FSC)'
+                 '<span style="font-size:14.5px;margin-left:10px">국외 조달계획 · 국산화 현황은 이 분류로 본다</span></div>'
                  + (f'<div class="mk-funnel">{fsc_funnel}</div>' if steps else ""))
-    funnel = '<div class="mk-grp">무역 통계 분류 — HS<span>전자부품 현황은 이 분류로 본다</span></div>' + funnel + fsc_block
+    funnel = ('<div class="mk-grp" style="margin:6px 0 12px;font-size:19px">무역 통계 분류 — HS'
+              '<span style="font-size:14.5px;margin-left:10px">전자부품 현황은 이 분류로 본다</span></div>') + funnel + fsc_block
 
     def code_links() -> None:
         # 제목 「어떻게 골랐나」 줄 오른쪽 끝에 놓는 링크 단추 — 두 분류(HS · 군급)를 설명하는 화면으로 간다(자리 · 모양은 story.css .st-key-code_links)

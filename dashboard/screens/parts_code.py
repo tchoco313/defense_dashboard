@@ -71,8 +71,9 @@ with a, st.container(border=True, key="card_hsd", height="stretch"):
             '<ul class="basis">' + "".join(f"<li>{x}</li>" for x in BASIS) + "</ul>"
             f'<div class="basis-src">출처: {BASIS_SRC}</div>')
 with b, st.container(border=True, key="card_hsun", height="stretch"):      # 왼쪽 카드와 높이를 맞춘다
-    ttl = st.empty()          # 제목 자리 — 보기 단추보다 위(제목 문장은 고른 보기에 따라 아래에서 채운다)
-    mode = st.segmented_control("보기", ["분류 체계", "수입액"], default="분류 체계", key="p10_mode", label_visibility="collapsed") or "분류 체계"
+    ttl = st.empty()          # 제목 자리(「보기」 라벨 대신) — 부제는 고른 보기에 따라 아래에서 채운다
+    mode = st.segmented_control("보기", ["분류 체계", "수입액"], default="분류 체계", key="p10_mode",
+                                label_visibility="collapsed") or "분류 체계"
     ids, labels, parents, values, colors, hover = [], [], [], [], [], []
     for ch, rows in it.groupby("ch"):
         vals = {r.hs6: (1 if mode == "분류 체계" else round(float(imp.get(r.hs6, 0) or 0), 2)) for r in rows.itertuples()}
@@ -84,22 +85,23 @@ with b, st.container(border=True, key="card_hsun", height="stretch"):      # 왼
             colors.append(CH_COLOR.get(ch, "#94a3b8") + "99"); hover.append(r.name_ko)
     if mode == "분류 체계":
         cmax = by_ch.idxmax()
+        cap = f'분석 대상 {len(it)}개 품목군은 류 {len(by_ch)}개에 걸쳐 있다 — <span class="key">{cmax}류가 {int(by_ch[cmax])}개</span>로 가장 많다'
         with ttl.container():
-            P.title(f'분석 대상 {len(it)}개 품목군은 류 {len(by_ch)}개에 걸쳐 있다 — <span class="key">{cmax}류가 {int(by_ch[cmax])}개</span>로 가장 많다',
-                    "안쪽 = 류(HS 2자리) · 바깥 = 품목군(HS 6자리) · 칸 크기 같음 · 안쪽 · 바깥 어느 칸이든 누르면 그 류만 펼치기")
+            P.title("품목군의 HS 분류 체계", "안쪽 = 류(HS 2자리) · 바깥 = 품목군(HS 6자리) · 칸 크기 같음 · 안쪽 · 바깥 어느 칸이든 누르면 그 류만 펼치기")
     else:
         tot = imp.reindex(it["hs6"]).fillna(0)
         top = tot.idxmax()
+        cap = (f'{by}년 수입액 {tot.sum():,.1f}억 달러 중 <span class="key">{escape(dict(zip(it["hs6"], it["short"]))[top])}가 '
+               f'{tot.max():,.1f}억 달러</span>로 가장 많다')
         with ttl.container():
-            P.title(f'{by}년 수입액 {tot.sum():,.1f}억 달러 중 <span class="key">{escape(dict(zip(it["hs6"], it["short"]))[top])}가 '
-                    f'{tot.max():,.1f}억 달러</span>로 가장 많다',
-                    f"안쪽 = 류 · 바깥 = 품목군 · 칸 크기 = {by}년 수입액(억 달러 · 국가 전체 수입 · 민수 포함)")
+            P.title("품목군의 HS 분류 체계", f"안쪽 = 류 · 바깥 = 품목군 · 칸 크기 = {by}년 수입액(억 달러 · 국가 전체 수입 · 민수 포함)")
     fig = go.Figure(go.Sunburst(ids=ids, labels=labels, parents=parents, values=values, branchvalues="total",
                                 marker=dict(colors=colors, line=dict(color="#fff", width=1)),
                                 customdata=hover, insidetextorientation="horizontal", textfont=dict(color="#111827"),   # 칸 안 글씨는 검정(10-01 사용자)
                                 hovertemplate="%{label} %{customdata}<br>%{value:,}<extra></extra>"))
     fig.update_layout(height=444, margin=dict(l=0, r=0, t=4, b=20))   # 고리 아래에 여백 — 카드 바닥에 붙어 보이지 않게
     P.chart(fig, "p10_sun")
+    P.caption(cap)
     P.ring_hint("card_hsun")      # 바깥 칸도 눌리게 + 안내 딱지
 P.see(SEE, SOURCE)
 

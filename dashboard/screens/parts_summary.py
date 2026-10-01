@@ -129,8 +129,9 @@ P.see(SEE, source)
 c1, c2 = st.columns([1.4, 1], gap="medium")
 with c1, P.card("tree"):
     lo = c.iloc[-1]
-    P.title(f'{period} 합계 HHI는 <span class="key">{escape(t["short"])} {t["hhi"]:,.0f}</span>로 가장 높고 '
-            f'{escape(lo["short"])} {lo["hhi"]:,.0f}로 가장 낮다',
+    cap = (f'{period} 합계 HHI는 <span class="key">{escape(t["short"])} {t["hhi"]:,.0f}</span>로 가장 높고 '
+           f'{escape(lo["short"])} {lo["hhi"]:,.0f}로 가장 낮다')
+    P.title("품목군별 수입 집중도",
             "칸 크기 = HHI(0~10,000, 클수록 수입이 소수 국가에 몰림) · 칸 색 · 오른쪽 아래 국기 = 1위 공급국")
     tiles = ""
     ASPECT = 1.75                    # 그림 가로 ÷ 세로(약 630 × 360px) — 이 비율로 배치해야 칸이 정사각형에 가깝다. 좌표는 % 로 바꿔 쓴다
@@ -143,13 +144,15 @@ with c1, P.card("tree"):
                   f'style="--c:{col.get(cd, "#94a7c8")};left:{x:.3f}%;top:{y:.3f}%;width:{w:.3f}%;height:{h:.3f}%">{flag}'
                   f'<b>{escape(r["short"])}</b><span>HHI {r["hhi"]:,.0f}</span><em>{escape(nat)}</em></div>')
     st.html(TREE_CSS + f'<div class="ftree">{tiles}</div>')
+    P.caption(cap)
 with c2, P.card("nctry"):
     top_n = c.loc[c["country_count"].idxmax()]
-    P.title(f'수입국 수는 <span class="key">{escape(top_n["short"])} {int(top_n["country_count"])}개국</span>이 가장 많다',
+    P.title("품목군별 수입국 수",
             f"개국 · {period} · 수입 실적 > 0인 선적국 · 색 = 1위 공급국")
     rows = [(r["short"], int(r["country_count"]), col.get(r["top1_stat_cd"], "#94a7c8"))
             for r in c.sort_values("country_count", ascending=False).to_dict("records")]
     P.chart(P.hbar(rows, "개국", 360), "p11_nctry")
+    P.caption(f'수입국 수는 <span class="key">{escape(top_n["short"])} {int(top_n["country_count"])}개국</span>이 가장 많다')
 P.read1("HHI 2,500 이상 = 「높음」(미 법무부 · 연방거래위원회 2010 합병 지침의 고집중 기준) · 집중 수준 구간일 뿐 위험 예측이 아닙니다")
 
 with P.more("자세히 보기 — 산식 · 선정 규칙"):

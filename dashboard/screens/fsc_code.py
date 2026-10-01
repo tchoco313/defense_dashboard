@@ -61,8 +61,9 @@ with a, st.container(border=True, key="card_nsn", height="stretch"):
             '<ul class="basis">' + "".join(f"<li>{x}</li>" for x in BASIS) + "</ul>"
             f'<div class="basis-src">출처: {BASIS_SRC}</div>')
 with b, st.container(border=True, key="card_sun", height="stretch"):       # 왼쪽 카드와 높이를 맞춘다
-    ttl = st.empty()          # 제목 자리 — 보기 단추보다 위(제목 문장은 고른 보기에 따라 아래에서 채운다)
-    mode = st.segmented_control("보기", ["분류 체계", "조달계획 건수"], default="분류 체계", key="p21_mode", label_visibility="collapsed") or "분류 체계"
+    ttl = st.empty()          # 제목 자리(「보기」 라벨 대신) — 부제는 고른 보기에 따라 아래에서 채운다
+    mode = st.segmented_control("보기", ["분류 체계", "조달계획 건수"], default="분류 체계", key="p21_mode",
+                                label_visibility="collapsed") or "분류 체계"
     ids, labels, parents, values, colors, hover = [], [], [], [], [], []
     for g in R.FSGS:
         rows = ref[ref["fsg"] == g]
@@ -79,13 +80,15 @@ with b, st.container(border=True, key="card_sun", height="stretch"):       # 왼
             hover.append(r.name + (" (폐지)" if r.closed else ""))
     if mode == "분류 체계":
         gmax = by_g.idxmax()
+        cap = f'전자 관련 군 3개 아래 군급 {len(ref)}개 — <span class="key">군 {gmax}가 {int(by_g[gmax])}개</span>로 가장 많다'
         with ttl.container():
-            P.title(f'전자 관련 군 3개 아래 군급 {len(ref)}개 — <span class="key">군 {gmax}가 {int(by_g[gmax])}개</span>로 가장 많다',
+            P.title("군급 분류 체계",
                     f"안쪽 = 군(FSG 2자리) · 바깥 = 군급(FSC 4자리) · 칸 크기 같음 · 회색 = 폐지 {int(ref['closed'].sum())}개 · 안쪽 · 바깥 어느 칸이든 누르면 그 군만 펼치기")
     else:
         pg = R.plan().groupby("fsg").size()
+        cap = f'국외 조달계획 {int(pg.sum()):,}건 중 <span class="key">군 {pg.idxmax()}가 {int(pg.max()):,}건</span>으로 가장 많다'
         with ttl.container():
-            P.title(f'국외 조달계획 {int(pg.sum()):,}건 중 <span class="key">군 {pg.idxmax()}가 {int(pg.max()):,}건</span>으로 가장 많다',
+            P.title("군급 분류 체계",
                     "안쪽 = 군 · 바깥 = 군급 · 칸 크기 = 국외 조달계획 건수(0건 군급은 빠짐)")
     fig = go.Figure(go.Sunburst(ids=ids, labels=labels, parents=parents, values=values, branchvalues="total",
                                 marker=dict(colors=colors, line=dict(color="#fff", width=1)),
@@ -93,6 +96,7 @@ with b, st.container(border=True, key="card_sun", height="stretch"):       # 왼
                                 hovertemplate="%{label} %{customdata}<br>%{value:,}<extra></extra>"))
     fig.update_layout(height=444, margin=dict(l=0, r=0, t=4, b=20))   # 고리 아래에 여백 — 카드 바닥에 붙어 보이지 않게
     P.chart(fig, "p21_sun")
+    P.caption(cap)
     P.ring_hint("card_sun")      # 바깥 칸도 눌리게 + 안내 딱지
 P.see(SEE, SOURCE)
 

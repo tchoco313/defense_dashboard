@@ -575,7 +575,7 @@ def rules_card(title: str, items: list[tuple[str, str]]) -> str:
     return f'<div class="card"><div class="h">{title}</div>{body}</div>'
 
 
-def rank_card(title: str, sub: str, rows: list[tuple[str, float, str]], unit: str) -> str:
+def rank_card(title: str, sub: str, rows: list[tuple[str, float, str]], unit: str, note: str = "") -> str:
     top = max(v for _, v, _ in rows) or 1
     body = "".join(
         f'<div class="rank"><span class="no">{i}</span><span class="nm" title="{n}">{n}</span>'
@@ -584,7 +584,8 @@ def rank_card(title: str, sub: str, rows: list[tuple[str, float, str]], unit: st
         for i, (n, v, c) in enumerate(rows, 1))
     # 제목은 한 <span> 으로 싼다 — .h 는 flex 라 글자 · 강조 구절이 따로 놓이면 사이가 벌어진다
     return (f'<div class="card"><div class="h"><span>{title}</span><span class="sub">단위: {unit}</span></div>'
-            f'<div style="font-size:13px;color:{MUTED};margin-bottom:6px">{sub}</div>{body}</div>')
+            f'<div style="font-size:13px;color:{MUTED};margin-bottom:6px">{sub}</div>{body}'
+            + (f'<div class="caption">{note}</div>' if note else "") + '</div>')
 
 
 # ── 공급망 현황 · 공급 집중도 요소 ────────────────────────────────────────────

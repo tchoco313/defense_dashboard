@@ -91,6 +91,11 @@ def title(text: str, sub: str = "") -> None:
     st.html(f'<div class="h"><span>{text}</span>' + (f'<span class="sub">{sub}</span>' if sub else "") + "</div>")
 
 
+def caption(text: str) -> None:
+    """차트 아래 작은 글씨 설명 — 제목 자리에 있던 결론 문장을 옮겨 둔다(static/base.css .caption)."""
+    st.html(f'<div class="caption">{text}</div>')
+
+
 def chart(fig: go.Figure, key: str, height: int | None = None) -> None:
     st.plotly_chart(style_fig(fig, height), width="stretch", theme=None, key=key, config=PLOT_CFG)
 
