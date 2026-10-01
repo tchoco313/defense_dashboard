@@ -11,8 +11,8 @@
   - 서브 배너 → 왼쪽 메뉴(이 페이지의 소분류) + 본문. 소분류는 주소의 ?sec= 로 고른다
 
 실행:  streamlit run dashboard/main.py
-배포본: 공동작업 저장소(kimhh080888-blip/Defense_Dashboard)의 app/KDD_v2.py(2026-10-01 ba65b6c)에서 쓰지 않는 샘플 화면 ·
-  샘플 데이터 코드를 걷어낸 판이다. 파일 대응은 dashboard/README.md 「공동작업 저장소와 파일 대응」.
+배포본: 공동작업 저장소(kimhh080888-blip/Defense_Dashboard)의 app/KDD_v2.py 와 같은 코드다(경로만 app/ ↔ dashboard/).
+  2026-10-01 양쪽에서 KDD_v1 에서 복사돼 남아 있던 샘플 화면 · 샘플 데이터 코드를 걷어냈다. 파일 대응은 dashboard/README.md.
 설계도판(숫자 없는 목업): dashboard/demo/KDD_v2.py · 기록 docs/report/app/kdd-v2-mockup-2026-09-30.md
 """
 from __future__ import annotations

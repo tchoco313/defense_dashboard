@@ -25,9 +25,9 @@ streamlit run dashboard/main.py
 
 ## 공동작업 저장소와 파일 대응
 
-배포는 공동작업 저장소(`kimhh080888-blip/Defense_Dashboard`)의 `app/main.py` → `app/KDD_v2.py` 로 돈다. 2026-10-01 그 저장소 `ba65b6c` 를 아래처럼 옮겼다.
+배포는 공동작업 저장소(`kimhh080888-blip/Defense_Dashboard`)의 `app/main.py` → `app/KDD_v2.py` 로 돈다. 2026-10-01 그 저장소 `ba65b6c` 를 아래처럼 옮겼고, 샘플 코드를 걷어낸 판을 양쪽에 같이 넣었다(이 저장소 `9115406` · 공동작업 `8643587`).
 한쪽에서 고치면 다른 쪽에도 같은 파일로 옮긴다(옮길 때 주석의 `app/` → `dashboard/`, `app/proto/…` → `dashboard/screens/…` 경로만 바꾼다).
-단 `main.py` 는 통째로 덮어쓰지 않는다 — `KDD_v2.py` 에 남아 있는 샘플 화면 · 샘플 데이터(KDD_v1 에서 복사해 온 숫자 · `page_parts` 같은 옛 페이지 함수)를 이 저장소에서는 지웠으므로(2026-10-01, 7,468 → 약 2,400줄), 바뀐 함수만 골라 옮긴다.
+`main.py` ↔ `KDD_v2.py` 는 머리 설명글과 경로 설정(`SCREENS_DIR` · `sys.path`) 몇 줄만 다르다 — 옮길 때 그 몇 줄은 각 저장소 것을 그대로 둔다.
 
 | 공동작업 저장소 | 이 저장소 |
 |---|---|
