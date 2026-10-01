@@ -1358,7 +1358,7 @@ function loadPlotly() {
     sc.onload = ok; sc.onerror = fail; document.head.appendChild(sc);
   });
 }
-document.getElementById('b').onclick = async () => {
+const go = async () => {
   const b = document.getElementById('b'); b.disabled = true;
   try {
     try { await loadPlotly(); } catch (e) { b.textContent = '그래프 도구를 불러오지 못했습니다(인터넷 연결 확인)'; return; }
@@ -1367,6 +1367,10 @@ document.getElementById('b').onclick = async () => {
     await Plotly.downloadImage('hid', {format: 'png', filename: "__FILE__", width: __W__, height: __HGT__, scale: 2});
   } finally { b.disabled = false; }
 };
+document.getElementById('b').onclick = go;
+// trigger — 이 칸의 단추는 숨기고, 바깥 화면의 Streamlit 단추(키 __TRIGGER__)가 window.parent.__kdPng[키]() 로 부른다
+const TRIGGER = "__TRIGGER__";
+if (TRIGGER) { (window.parent.__kdPng = window.parent.__kdPng || {})[TRIGGER] = go; document.getElementById('b').style.display = 'none'; }
 </script></body></html>"""
 
 
@@ -1378,9 +1382,11 @@ def _plotly_rich(text: str) -> str:
 
 
 def png_button(fig, filename: str, label: str = "PNG 이미지 내려받기", width: int = 1100, align: str = "flex-end",
-               title: str | None = None, source: str | None = None) -> None:
+               title: str | None = None, source: str | None = None, trigger: str | None = None) -> None:
     """지금 화면의 plotly 그림(fig)을 PNG 로 내려받는 단추(Datawrapper 내보내기 모양).
-    title = 화면의 결론형 제목(HTML 가능, 강조 구절은 파랑), source = 아래 출처 한 줄 — 둘 다 이미지에만 들어가고 화면 그림은 그대로다."""
+    title = 화면의 결론형 제목(HTML 가능, 강조 구절은 파랑), source = 아래 출처 한 줄 — 둘 다 이미지에만 들어가고 화면 그림은 그대로다.
+    trigger = 바깥 Streamlit 단추의 key — 주면 이 칸의 단추는 숨기고(높이 0) 그 단추가 이 그림을 내려받게 한다
+    (단추 모양을 CSV 단추와 똑같이 하려고. 클릭 연결은 static/img_dl.js)."""
     out = go.Figure(fig)
     h = int(out.layout.height or 420)
     m = out.layout.margin
@@ -1398,8 +1404,8 @@ def png_button(fig, filename: str, label: str = "PNG 이미지 내려받기", wi
     h = int(out.layout.height)
     html = (_PNG_BTN.replace("__FIG__", out.to_json()).replace("__FILE__", escape(filename).replace('"', ""))
             .replace("__LABEL__", escape(label)).replace("__W__", str(width)).replace("__HGT__", str(h))
-            .replace("__ALIGN__", align).replace("__FONTLINK__", _FONT_LINK))
-    components.html(html, height=42, scrolling=False)
+            .replace("__ALIGN__", align).replace("__FONTLINK__", _FONT_LINK).replace("__TRIGGER__", trigger or ""))
+    components.html(html, height=0 if trigger else 42, scrolling=False)
 
 
 def inject() -> None:

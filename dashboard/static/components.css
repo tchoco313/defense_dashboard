@@ -71,14 +71,40 @@
 .st-key-card_form [data-testid="stHorizontalBlock"]{margin-bottom:4px}
 /* 조회 결과 — 탭(차트 · 지도 · 표)을 바꿔도 창 크기가 그대로이게 탭 칸 높이를 고정(차트 탭 기준) */
 .st-key-card_res [data-testid="stTabs"] [role="tabpanel"]{height:500px;box-sizing:border-box;overflow-y:auto}
-/* 내려받기(차트 · 지도 = 그림, 결과 표 = CSV) — 탭 칸 오른쪽 아래, 차트 캡션(그래프 기준 …)과 같은 줄로 끌어올린다 */
-.st-key-res_dl{margin-top:-78px;padding-right:22px;position:relative;z-index:2;pointer-events:none}
+/* 내려받기(차트 · 지도 = PNG, 표 = CSV) — 탭 칸(tabpanel) 바깥, 결과 카드 안 맨 아래 평범한 줄(오른쪽 정렬).
+   음수 margin · position:fixed 로 내용 위에 띄우지 않는다(행이 많은 표 · 넓은 차트와 겹치던 원인) */
+.st-key-res_dl{margin-top:8px;padding-right:4px;position:relative;z-index:2;pointer-events:none}
 /* 분석 조건 설정 · 조회 결과 — 두 카드 세로 길이를 긴 쪽에 맞춘다(국가 칩이 늘어도 같이) */
 [data-testid="stLayoutWrapper"]:has(> .st-key-card_form),[data-testid="stLayoutWrapper"]:has(> .st-key-card_res),
 .st-key-card_form,.st-key-card_res{flex:1 1 auto}
 .st-key-res_dl button{pointer-events:auto}
 /* 탭마다 내려받기 단추가 다르다 — 지금 고른 탭(aria-selected)의 단추만 보인다.
-   단추 칸을 감싼 바깥 칸(stLayoutWrapper)까지 숨겨야 숨은 칸이 자리 · 간격을 차지하지 않아, 어느 탭이든 같은 자리(오른쪽 끝)에 온다 */
+   단추 칸을 감싼 바깥 칸(stLayoutWrapper)까지 숨겨야 숨은 칸이 자리 · 간격을 차지하지 않아, 어느 탭이든 같은 자리(오른쪽 끝)에 온다.
+   칸 dl_t0 · dl_t1 · dl_t2 = 첫째 · 둘째 · 셋째 탭(datacenter_viz._dl_area) */
+.st-key-res_dl div[class*="st-key-dl_t"],
+.st-key-res_dl [data-testid="stLayoutWrapper"]:has(> div[class*="st-key-dl_t"]){display:none!important}
+.st-key-card_res:has([role="tab"]:nth-of-type(1)[aria-selected="true"]) .st-key-dl_t0,
+.st-key-card_res:has([role="tab"]:nth-of-type(2)[aria-selected="true"]) .st-key-dl_t1,
+.st-key-card_res:has([role="tab"]:nth-of-type(3)[aria-selected="true"]) .st-key-dl_t2,
+.st-key-card_res:has([role="tab"]:nth-of-type(1)[aria-selected="true"]) [data-testid="stLayoutWrapper"]:has(> .st-key-dl_t0),
+.st-key-card_res:has([role="tab"]:nth-of-type(2)[aria-selected="true"]) [data-testid="stLayoutWrapper"]:has(> .st-key-dl_t1),
+.st-key-card_res:has([role="tab"]:nth-of-type(3)[aria-selected="true"]) [data-testid="stLayoutWrapper"]:has(> .st-key-dl_t2){display:flex!important}
+/* PNG 단추(dlbtn_png · dlbtn_map)는 CSV 와 같은 Streamlit primary 단추. 차트 PNG 를 그리는 칸(png_js)은 보이지 않게
+   흐름 밖에 두되 display:none 은 쓰지 않는다(숨기면 iframe 안 그림이 크기를 못 재 PNG 가 깨진다) */
+[data-testid="stLayoutWrapper"]:has(> .st-key-png_js),.st-key-png_js{position:absolute!important;left:0;top:0;width:320px!important;
+  height:1px!important;overflow:hidden;opacity:0;pointer-events:none}
+.st-key-imgdl_js,[data-testid="stLayoutWrapper"]:has(> .st-key-imgdl_js){display:none!important}
+/* 내려받기 줄 왼쪽 「?」 출처(datacenter_viz._dl_area) — 단추와 같은 높이 · 왼쪽 끝. 펼친 출처는 「?」 위로 떠서 줄 높이를 바꾸지 않는다.
+   줄 전체가 pointer-events:none 이라 「?」는 다시 켠다 */
+.st-key-res_dl details.src{margin:0;position:relative;pointer-events:auto}
+.st-key-res_dl details.src > summary{margin-left:0}
+.st-key-res_dl details.src .src-body{position:absolute;left:0;bottom:calc(100% + 8px);margin:0;width:min(560px,60vw);z-index:30;
+  box-shadow:0 10px 28px rgba(19,42,84,.16);background:#fff}
+/* 군급별 국외 조달계획 > 「군급 표 전체」(screens/fsc_plan.py p22_fsc_all)만 — 45행 전부 두고 --rows 행 높이로 고정 · 세로 스크롤.
+   행 수는 --rows 로 조정(머리 줄 약 38px · 한 줄 약 40px — screens/parts.py 의 .pt 기준). 머리 줄은 스크롤해도 위에 붙는다 */
+.st-key-p22_fsc_all{--rows:10;--row-h:40px;--head-h:38px;max-height:calc(var(--head-h) + var(--rows) * var(--row-h));overflow-y:auto;
+  border:1px solid #eef2f9;border-radius:8px;scrollbar-width:thin;scrollbar-color:#b7c4da transparent}
+.st-key-p22_fsc_all .pt th{position:sticky;top:0;z-index:1}
 .st-key-chipfit_js,[data-testid="stLayoutWrapper"]:has(> .st-key-chipfit_js){display:none!important}
 /* 안 잘린 칩에 커서가 있을 때(_CHIP_FIT_JS) — 말풍선 층을 숨긴다 */
 html[data-chipfit] [role="tooltip"]:has([data-testid="stTooltipContent"]),
