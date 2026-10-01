@@ -36,6 +36,9 @@ CSS = """<style>
   position:relative;border-top:1px dashed #dde5f2} .basis li::before{content:"";position:absolute;left:3px;top:15px;width:6px;height:6px;
   border-radius:50%;background:#1d4ed8}
 .basis-src{font-size:12.5px;color:#7a879e;margin-top:6px}
+.basis-h{display:flex;align-items:center;gap:7px;margin:16px 0 0;font-size:15px;font-weight:800;color:#12234a}
+.basis-h .ms{font-family:'Material Symbols Rounded'!important;font-weight:400;font-style:normal;font-size:21px;line-height:1;color:#1d4ed8}
+.basis-h + .basis{margin-top:8px}
 </style>"""
 st.html(CSS)
 
@@ -54,12 +57,12 @@ with a, st.container(border=True, key="card_nsn", height="stretch"):
             '<div class="nb n"><b>37</b><small>국가부호(대한민국)</small></div>'
             '<div class="nb s"><b>xxx-xxxx</b><small>일련번호 7자리</small></div></div>'
             '<div class="nsn-br"><span style="flex:2">군급(FSC) 4자리</span><span style="flex:3.2">품목식별번호(NIIN) 9자리</span></div>'
-            '<div class="nsn-cap">군급 앞 2자리가 곧 군입니다 — 군 하나 아래에 여러 군급이 있습니다(계층 관계).</div></div>'
+            '</div><div class="basis-h"><span class="ms">account_tree</span>FSG · FSC 분류 기준</div>'
             '<ul class="basis">' + "".join(f"<li>{x}</li>" for x in BASIS) + "</ul>"
             f'<div class="basis-src">출처: {BASIS_SRC}</div>')
 with b, st.container(border=True, key="card_sun", height="stretch"):       # 왼쪽 카드와 높이를 맞춘다
     ttl = st.empty()          # 제목 자리 — 보기 단추보다 위(제목 문장은 고른 보기에 따라 아래에서 채운다)
-    mode = st.segmented_control("보기", ["분류 체계", "조달계획 건수"], default="분류 체계", key="p21_mode") or "분류 체계"
+    mode = st.segmented_control("보기", ["분류 체계", "조달계획 건수"], default="분류 체계", key="p21_mode", label_visibility="collapsed") or "분류 체계"
     ids, labels, parents, values, colors, hover = [], [], [], [], [], []
     for g in R.FSGS:
         rows = ref[ref["fsg"] == g]
@@ -78,7 +81,7 @@ with b, st.container(border=True, key="card_sun", height="stretch"):       # 왼
         gmax = by_g.idxmax()
         with ttl.container():
             P.title(f'전자 관련 군 3개 아래 군급 {len(ref)}개 — <span class="key">군 {gmax}가 {int(by_g[gmax])}개</span>로 가장 많다',
-                    f"안쪽 = 군(FSG 2자리) · 바깥 = 군급(FSC 4자리) · 칸 크기 같음 · 회색 = 폐지 {int(ref['closed'].sum())}개 · 눌러서 한 군만 펼치기")
+                    f"안쪽 = 군(FSG 2자리) · 바깥 = 군급(FSC 4자리) · 칸 크기 같음 · 회색 = 폐지 {int(ref['closed'].sum())}개 · 안쪽 · 바깥 어느 칸이든 누르면 그 군만 펼치기")
     else:
         pg = R.plan().groupby("fsg").size()
         with ttl.container():
@@ -88,8 +91,9 @@ with b, st.container(border=True, key="card_sun", height="stretch"):       # 왼
                                 marker=dict(colors=colors, line=dict(color="#fff", width=1)),
                                 customdata=hover, insidetextorientation="auto", textfont=dict(color="#111827"),   # 칸 안 글씨는 검정(10-01 사용자)
                                 hovertemplate="%{label} %{customdata}<br>%{value:,}<extra></extra>"))
-    fig.update_layout(height=420, margin=dict(l=0, r=0, t=0, b=0))
+    fig.update_layout(height=444, margin=dict(l=0, r=0, t=4, b=20))   # 고리 아래에 여백 — 카드 바닥에 붙어 보이지 않게
     P.chart(fig, "p21_sun")
+    P.ring_hint("card_sun")      # 바깥 칸도 눌리게 + 안내 딱지
 P.see(SEE, SOURCE)
 
 with P.more("HS와 군급은 무엇이 다른가 — 같은 전자부품을 보는 두 공식 분류"):

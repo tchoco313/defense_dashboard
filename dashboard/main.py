@@ -443,6 +443,27 @@ def _why_select() -> None:
               '<div style="width:38%;background:#0f2f73"><b>분석 대상 13개 품목군</b><small>전자 계열만 — 「항공기용」 세분류로 걸린 기계 · 전장 계열 39개 제외</small></div>'
               '</div>'
               '<div class="mk-q" style="text-align:center">수집은 24개 = 분석 대상 13개 + 배경 자료 11개 (배경 11개는 진입 52개 밖에서 따로 모았다)</div>')
+    # 군수품 쪽 — 군급(FSC)에서 전자 군급을 어떻게 골랐나(HS 깔때기와 짝). 값은 RDS(군급 분류와 조달 화면과 같은 계산),
+    # 조회가 안 되면 깔때기를 그리지 않는다. 분류 기준 설명은 군급코드란(screens/fsc_code.py)에 있다
+    import rds as R                                  # dashboard/screens/rds.py
+    from db import DBConfigError
+    from sqlalchemy.exc import SQLAlchemyError
+    try:
+        steps = R.plan_funnel()
+    except (DBConfigError, SQLAlchemyError):
+        steps = []
+    widths = (92, 74, 56, 38)
+    GREEN, GREEN_D = "#12a08a", "#0b5f52"            # 군수품 분류는 녹색 계열 — 위 HS(파랑)와 구분한다
+    fsc_funnel = f'<i style="color:#9fd4c8">▼</i>'.join(
+        f'<div style="width:{w}%;background:' + (f'{GREEN_D}"><b>' if i == len(steps) - 1 else f'{GREEN}">')
+        + f'{name} {n:,}건' + ('</b>' if i == len(steps) - 1 else '') + f'<small>{sub}</small></div>'
+        for i, ((name, n), w, sub) in enumerate(zip(steps, widths, (
+            "방위사업청 국외 조달계획(품목)", "재고번호(NSN) 앞 4자리가 군급 — 없으면 분류할 수 없다",
+            "「9999」는 기타 품목 — 군급으로 나눌 수 없어 뺀다", "분석 대상 — 군 58 · 59 · 60에 속한 군급"))))
+    fsc_block = (f'<div class="mk-grp" style="margin-top:48px;color:{GREEN_D}">군수품 분류 — 군급(FSC)<span>국외 조달계획 · 국산화 현황은 이 분류로 본다</span></div>'
+                 + (f'<div class="mk-funnel">{fsc_funnel}</div>' if steps else ""))
+    funnel = '<div class="mk-grp">무역 통계 분류 — HS<span>전자부품 현황은 이 분류로 본다</span></div>' + funnel + fsc_block
+
     def code_links() -> None:
         # 제목 「어떻게 골랐나」 줄 오른쪽 끝에 놓는 링크 단추 — 두 분류(HS · 군급)를 설명하는 화면으로 간다(자리 · 모양은 story.css .st-key-code_links)
         with st.container(key="code_links", horizontal=True, width="content"):
@@ -452,7 +473,8 @@ def _why_select() -> None:
     story_screen(
         "select", "어떻게 골랐나",
         "1,003개 품목 중 왜 이 13개인가",
-        "무역 통계의 공식 분류(HS)에서 군용 · 항공 · 항행 전용으로 나뉜 품목만 골랐다 — 팀이 임의로 고른 것이 아니다.",
+        "무역 통계의 공식 분류(HS)에서 군용 · 항공 · 항행 전용으로 나뉜 품목만 골랐다 — 팀이 임의로 고른 것이 아니다. "
+        "군수품 쪽은 군급분류(FSC)에서 전자 관련 군 58 · 59 · 60만 골랐다.",
         extra=funnel, head=code_links,
         notes=("HS 품목과 군급(FSC)을 잇는 공식 연계표가 없어 R4(국산화개발품목 FSC 대응)는 규칙에서 뺐다",
                "무역 값은 국가 전체 수입 · 수출(민수 포함)이다 — 「방산 수입」이 아니다"))

@@ -10,6 +10,7 @@ from pathlib import Path
 
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 
 from kdesign import TEXT, kpi, style_fig  # noqa: F401  (kpi 는 화면 파일이 여기서 가져다 쓴다)
 from menu import NEXT, split
@@ -100,6 +101,33 @@ def read1(text: str) -> None:
 
 def see(what: str, source: str) -> None:
     st.html(f'<div class="see"><b>이 화면에서 보는 것</b><span>{what}</span><span class="src">출처: {source}</span></div>')
+
+
+RING_CSS = """<style>
+/* 고리 차트 — 칸마다 누를 수 있다(커서 = 손 모양 · 올리면 색이 진해진다). 오른쪽 위 안내 딱지가 까딱인다 */
+.st-key-CARD{position:relative}
+.st-key-CARD .sunburstlayer g.slice{cursor:pointer}
+.st-key-CARD .sunburstlayer g.slice path{transition:filter .15s}
+.st-key-CARD .sunburstlayer g.slice:hover path{filter:brightness(1.06) saturate(1.25)}
+.st-key-CARD [data-testid="stElementContainer"]:has(.ring-hint){position:absolute;right:16px;top:68px;width:auto!important;z-index:2;pointer-events:none}
+.ring-hint{display:inline-flex;align-items:center;gap:5px;padding:5px 11px 5px 8px;border-radius:999px;background:#eef4ff;border:1px solid #c9d9f8;
+  font-size:12.5px;font-weight:700;color:#1d4ed8;animation:ringNudge 1.8s ease-in-out infinite}
+.ring-hint .ms{font-family:'Material Symbols Rounded'!important;font-weight:400;font-style:normal;font-size:17px;line-height:1;
+  animation:ringTap 1.8s ease-in-out infinite}
+@keyframes ringNudge{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes ringTap{0%,55%,100%{transform:scale(1)}70%{transform:scale(.8)}85%{transform:scale(1.08)}}
+.st-key-CARD_ringjs,[data-testid="stLayoutWrapper"]:has(> .st-key-CARD_ringjs){display:none!important}
+@media (prefers-reduced-motion:reduce){.ring-hint,.ring-hint .ms{animation:none!important}}
+</style>"""
+RING_JS = Path(__file__).resolve().parents[1] / "static" / "ring_click.js"
+
+
+def ring_hint(card: str, text: str = "칸을 눌러 펼쳐 보세요") -> None:
+    """고리 차트 카드(card = card_○○ 키) 안에서 부른다 — 바깥 칸도 눌리게 하고(static/ring_click.js),
+    오른쪽 위 안내 딱지로 누르도록 이끈다."""
+    st.html(RING_CSS.replace("CARD", card) + f'<div class="ring-hint"><span class="ms">touch_app</span>{text}</div>')
+    with st.container(key=f"{card}_ringjs"):
+        components.html("<script>" + RING_JS.read_text(encoding="utf-8").replace("__CARD__", card) + "</script>", height=0)
 
 
 def share_bar(pct: float, color: str = "#2b6ef6") -> str:

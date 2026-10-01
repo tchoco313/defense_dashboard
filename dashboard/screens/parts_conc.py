@@ -33,9 +33,10 @@ if hy.empty:
     P.lead(f"{escape(pick)}의 {flow_lb} 연도별 HHI를 계산할 실적이 없습니다", "완결 연도 기준")
 else:
     h0, h1 = hy.iloc[0], hy.iloc[-1]
-    word = "보다 높다" if h1["hhi"] > h0["hhi"] else "보다 낮다" if h1["hhi"] < h0["hhi"] else "와 같다"
+    gap = round(h1["hhi"]) - round(h0["hhi"])      # 첫 해와의 차이 — 문장에는 차이를 적는다(「2016년보다 907 높다」)
+    word = f"보다 {abs(gap):,} 높다" if gap > 0 else f"보다 {abs(gap):,} 낮다" if gap < 0 else "와 같다"
     P.lead(f'{escape(pick)}의 {flow_lb} HHI는 <span class="key">{int(h1["year"])}년 {h1["hhi"]:,.0f}</span>이다 — '
-           f'{int(h0["year"])}년 {h0["hhi"]:,.0f}{word}',
+           f'{int(h0["year"])}년{word}',
            f"연도별 HHI(그해 값 — 1-1 기간 합계 HHI와 다름) · {flow_lb} 기준 · 국가 = {'선적국' if flow == 'imp' else '도착국'}")
 
 a, b = st.columns(2, gap="medium")

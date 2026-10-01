@@ -44,6 +44,9 @@ CSS = """<style>
   position:relative;border-top:1px dashed #dde5f2} .basis li::before{content:"";position:absolute;left:3px;top:15px;width:6px;height:6px;
   border-radius:50%;background:#1d4ed8}
 .basis-src{font-size:12.5px;color:#7a879e;margin-top:6px}
+.basis-h{display:flex;align-items:center;gap:7px;margin:16px 0 0;font-size:15px;font-weight:800;color:#12234a}
+.basis-h .ms{font-family:'Material Symbols Rounded'!important;font-weight:400;font-style:normal;font-size:21px;line-height:1;color:#1d4ed8}
+.basis-h + .basis{margin-top:8px}
 </style>"""
 st.html(CSS)
 
@@ -64,12 +67,12 @@ with a, st.container(border=True, key="card_hsd", height="stretch"):
             f'<div class="nb n"><b>{EX[4:]}</b><small>소호 · Subheading</small></div>'
             '<div class="nb s"><b>xxxx</b><small>국내 세분류 4자리(HSK)</small></div></div>'
             '<div class="nsn-br"><span style="flex:3.1">HS 6자리 — 국제 공통(= 품목군 하나)</span><span style="flex:2.2">우리나라만</span></div>'
-            '<div class="nsn-cap">앞 2자리가 류, 4자리가 호입니다 — 류 하나 아래에 여러 호 · 소호가 있습니다(계층 관계).</div></div>'
+            '</div><div class="basis-h"><span class="ms">account_tree</span>무역 통계 분류 기준</div>'
             '<ul class="basis">' + "".join(f"<li>{x}</li>" for x in BASIS) + "</ul>"
             f'<div class="basis-src">출처: {BASIS_SRC}</div>')
 with b, st.container(border=True, key="card_hsun", height="stretch"):      # 왼쪽 카드와 높이를 맞춘다
     ttl = st.empty()          # 제목 자리 — 보기 단추보다 위(제목 문장은 고른 보기에 따라 아래에서 채운다)
-    mode = st.segmented_control("보기", ["분류 체계", "수입액"], default="분류 체계", key="p10_mode") or "분류 체계"
+    mode = st.segmented_control("보기", ["분류 체계", "수입액"], default="분류 체계", key="p10_mode", label_visibility="collapsed") or "분류 체계"
     ids, labels, parents, values, colors, hover = [], [], [], [], [], []
     for ch, rows in it.groupby("ch"):
         vals = {r.hs6: (1 if mode == "분류 체계" else round(float(imp.get(r.hs6, 0) or 0), 2)) for r in rows.itertuples()}
@@ -83,7 +86,7 @@ with b, st.container(border=True, key="card_hsun", height="stretch"):      # 왼
         cmax = by_ch.idxmax()
         with ttl.container():
             P.title(f'분석 대상 {len(it)}개 품목군은 류 {len(by_ch)}개에 걸쳐 있다 — <span class="key">{cmax}류가 {int(by_ch[cmax])}개</span>로 가장 많다',
-                    "안쪽 = 류(HS 2자리) · 바깥 = 품목군(HS 6자리) · 칸 크기 같음 · 눌러서 한 류만 펼치기")
+                    "안쪽 = 류(HS 2자리) · 바깥 = 품목군(HS 6자리) · 칸 크기 같음 · 안쪽 · 바깥 어느 칸이든 누르면 그 류만 펼치기")
     else:
         tot = imp.reindex(it["hs6"]).fillna(0)
         top = tot.idxmax()
@@ -95,8 +98,9 @@ with b, st.container(border=True, key="card_hsun", height="stretch"):      # 왼
                                 marker=dict(colors=colors, line=dict(color="#fff", width=1)),
                                 customdata=hover, insidetextorientation="horizontal", textfont=dict(color="#111827"),   # 칸 안 글씨는 검정(10-01 사용자)
                                 hovertemplate="%{label} %{customdata}<br>%{value:,}<extra></extra>"))
-    fig.update_layout(height=420, margin=dict(l=0, r=0, t=0, b=0))
+    fig.update_layout(height=444, margin=dict(l=0, r=0, t=4, b=20))   # 고리 아래에 여백 — 카드 바닥에 붙어 보이지 않게
     P.chart(fig, "p10_sun")
+    P.ring_hint("card_hsun")      # 바깥 칸도 눌리게 + 안내 딱지
 P.see(SEE, SOURCE)
 
 with P.more("HS와 군급은 무엇이 다른가 — 같은 전자부품을 보는 두 공식 분류"):

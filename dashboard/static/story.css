@@ -32,6 +32,9 @@
 .st-key-code_links [data-testid="stPageLink"] a{display:flex;align-items:center;justify-content:center;gap:0;background:#1d4ed8;border-radius:999px;
   height:36px;box-sizing:border-box;padding:0 18px;margin:0;box-shadow:0 2px 6px rgba(29,78,216,.28);transition:background .15s,transform .15s}
 .st-key-code_links [data-testid="stPageLink"] a:hover{background:#003899;transform:translateY(-1px)}
+/* 「군급코드란?」은 녹색 — 아래 군수품 분류(군급) 깔때기와 같은 색 */
+.st-key-code_links [data-testid="stPageLink"] a[href*="fsc"]{background:#12a08a}
+.st-key-code_links [data-testid="stPageLink"] a[href*="fsc"]:hover{background:#0b5f52}
 .st-key-code_links [data-testid="stPageLink"] a > *{display:flex;align-items:center;justify-content:center;margin:0;padding:0}
 .st-key-code_links [data-testid="stPageLink"] a p{font-size:14px!important;font-weight:800;color:#fff!important;white-space:nowrap;letter-spacing:-.2px;
   line-height:1!important;margin:0!important;padding:1px 0 0;text-align:center}   /* 줄 높이 28px 안에서 글씨가 위로 떠 보이지 않게 한 줄 높이로 */
