@@ -17,7 +17,7 @@ import plotly.graph_objects as go
 import streamlit as st
 import streamlit.components.v1 as components
 
-from frame import LABEL_KEY
+LABEL_KEY = "_kd_label"        # 경로 표시(⌂ › 페이지)에 쓰는 현재 페이지 이름 — hero 가 읽는다(예전 frame.py 에서 옮김, 2026-10-01)
 
 # ════════════════════════════════════════════════════════════════════════════
 # 1. 색 토큰 · CSS

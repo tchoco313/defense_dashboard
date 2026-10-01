@@ -5,35 +5,38 @@ pip install -r requirements.txt
 streamlit run dashboard/main.py
 ```
 
-배포본: https://defense-trade.streamlit.app (Streamlit Community Cloud)
+배포본: https://defense-trade.streamlit.app (Streamlit Community Cloud) — `main.py` 를 열면 이 배포 화면과 같은 화면이 나온다.
 
 - DB 접속은 `scripts/dbconf.py` 가 저장소 루트 `.env`(로컬) 또는 Streamlit Secrets(배포)의 `MARIADB_*` 를 읽는다. 배포 Secrets 틀은 `.streamlit/secrets.toml.example`. RDS TLS 는 `certs/rds-global-bundle.pem`(공개 CA).
-- 페이지 파일 · 제목 · URL · 메뉴 순서는 `nav.py` 한 곳에서 정한다. 화면 명세는 `specs/`, 디자인 규칙은 `specs/01_design_system.md`.
+- 메뉴 · 소분류 · 주소는 `main.py` 안의 `PAGES` · `SECTIONS` · `SCREENS` 에서 정한다. 소분류 주소는 `/{메뉴}?sec={소분류}`.
 
-| 파일 | 화면 | URL |
+| 메뉴 | URL | 소분류 → 화면 파일 |
 |---|---|---|
-| `home.py` | 홈 | `/` |
-| `pages/1_수출입_현황.py` | ① 수출입 현황 | `/import` |
-| `pages/2_국외조달_예산_배경.py` | ② 국외조달 예산 · 배경 | `/background` |
-| `pages/3_조달_국산화_근거.py` | ③ 조달·국산화 근거 | `/parts` |
-| `pages/4_검토_목록.py` | ④ 검토 목록 | `/table` |
-| `pages/5_데이터_센터.py` | DATA CENTER — 데이터 시각화 · 출처 · 결합 검증 · 한계 · 상세 정의 | `/info` (데이터 시각화 = `/info?sec=sel`) |
+| 홈 | `/` | `main.py` 안(첫 화면) |
+| 소개 | `/intro` | `main.py` 안 + `weapon_context.py`(무기체계 분류 · 공개 사례) |
+| 전자부품 현황 | `/parts` | 종합 현황표 `screens/parts_summary.py` · 수출입 현황 `parts_trade` · 공급국 집중도 변화 `parts_conc` · 상세 조회 `parts_detail` |
+| 군급 분류와 조달 | `/fsc` | 군급코드란 `fsc_code` · 군급별 국외 조달계획 `fsc_plan` · 소요군별 `fsc_army` · 국내 계약 · 입찰 `bg_domestic` · 상세 조회 `fsc_detail` |
+| 국산화 현황 | `/local` | 국산화 완료 부품 `loc_done` · 군급 국산화 현황 `loc_pair` · 상세 조회 `loc_detail` |
+| 배경과 자료 | `/background` | 정책과 예산 `bg_policy` · 국내 생산 현황 `bg_industry` · 데이터 출처와 검증 `bg_source` |
 
-공용 모듈: `main.py`(진입점 · 라우터) · `nav.py`(페이지 목록) · `db.py`(조회) · `metrics.py`(지표 계산) · `frame.py`(화면 틀 — 머리글 · 메뉴 · 배너 · 바닥글, `assets/k9_banner.jpg`) · `landing.py`(홈 첫 화면) · `kdesign.py`(본문 디자인 · 차트 공통) · `ui.py`(공용 화면 요소) · `live.py`(관세청 원천 최신 월 확인) · `datacenter_viz.py`(DATA CENTER 「데이터 시각화」 블록 — `pages/5_데이터_센터.py` 가 실행).
+공용 모듈: `main.py`(진입점 — 틀 · 홈 · 소개 · 메뉴) · `screens/parts.py`(소분류 화면 공통 조각 — 카드 · KPI · 차트 · 출처) · `screens/rds.py`(소분류 화면의 조회 한 곳) · `screens/menu.py`(소분류 화면의 「다음」 연결) · `db.py`(조회 · 캐시 1시간) · `metrics.py`(지표 계산) · `kdesign.py`(본문 디자인 · 차트 공통) · `ui.py`(공용 화면 요소) · `live.py`(관세청 원천 최신 월 확인) · `datacenter_viz.py`(상세 조회 도구 — `screens/parts.py` 의 detail 이 자료 유형 하나로 고정해 실행).
 
-`demo/design_demo.py` · `demo/K-Defense_brandnew.py`(2026-09-28 새 디자인 — 운영 앱 화면 틀의 기준) 는 디자인 시안용 단독 실행본이다. **숫자는 전부 샘플**이라 발표 · 보고에 쓰지 않는다.
+`demo/` 는 혼자 도는 시안이다 — `KDD_v2.py`(숫자 없는 설계도판) · `KDD_v1.py` · `K-Defense_brandnew.py`(동현님 새 디자인 — 화면 틀의 기준) · `design_demo.py` · `무기체계v1.py`. **숫자는 전부 샘플**이라 발표 · 보고에 쓰지 않는다.
 
-## 옛 파일 이름 (2026-09-28 정리 전)
+## 공동작업 저장소와 파일 대응
 
-파일 번호를 화면 번호와 맞췄다. URL 은 그대로다. 날짜가 붙은 보고 문서(`docs/report/`)에는 옛 이름이 남아 있다.
+배포는 공동작업 저장소(`kimhh080888-blip/Defense_Dashboard`)의 `app/main.py` → `app/KDD_v2.py` 로 돈다. 2026-10-01 그 저장소 `ba65b6c` 를 아래처럼 옮겼다.
+한쪽에서 고치면 다른 쪽에도 같은 파일로 옮긴다(옮길 때 주석의 `app/` → `dashboard/`, `app/proto/…` → `dashboard/screens/…` 경로만 바꾼다).
 
-| 지금 | 옛 이름 |
+| 공동작업 저장소 | 이 저장소 |
 |---|---|
-| `pages/2_국외조달_예산_배경.py` | `pages/4_정책_산업_배경.py` |
-| `pages/3_조달_국산화_근거.py` | `pages/2_부품_무기체계.py` |
-| `pages/4_검토_목록.py` | `pages/3_품목군_현황표.py` |
-| `pages/5_데이터_센터.py` | `pages/5_데이터_정보.py`(09-28) · `pages/5_DATA_INFO.py` — 2026-09-29 DATA CENTER 로 합침 |
-| `datacenter_viz.py` | `pages/6_조회.py`(URL `/search`) — 2026-09-29 DATA CENTER 첫 블록으로 합침 |
-| `demo/design_demo.py` | 루트 `K-Defense_대시보드_demo.py` |
-| (팀 공동 저장소) `app/K-Defense_brandnew.py` | `demo/K-Defense_brandnew.py` |
-| (팀 공동 저장소) `app/` | 이 저장소 `dashboard/` |
+| `app/KDD_v2.py` | `main.py` (`PROTO_DIR` → `SCREENS_DIR`, `proto_parts` → `screen_parts`) |
+| `app/proto/{parts,rds,menu}.py` | `screens/{parts,rds,menu}.py` |
+| `app/proto/screens/*.py` (home 제외) | `screens/*.py` |
+| `app/{db,kdesign,ui,live,metrics,weapon_context,datacenter_viz}.py` | 같은 이름 (`kdesign.py` 는 `LABEL_KEY` 를 직접 둔다 — 이 저장소에는 `frame.py` 가 없다) |
+| `app/main.py`(진입점 — KDD_v2 를 runpy 로 실행) · `app/main_v1.py` · `app/pages/` · `app/proto/main.py` · `shell.py` · `app/demo_v2/` | 없음 — 배포 화면이 쓰지 않는다 |
+
+## 지난 정리
+
+- 2026-10-01: 예전 운영 앱(`main.py` 라우터 · `nav.py` · `frame.py` · `landing.py` · `home.py` · `pages/1~5 · 7`)을 지우고 `main.py` 를 배포 화면으로 바꿨다. 예전 파일은 git 기록(`7fc938a` 까지)에 있다. `specs/` 는 예전 운영 앱 기준 화면 명세다.
+- 2026-09-28: 파일 번호를 화면 번호와 맞췄다(옛 이름은 날짜가 붙은 `docs/report/` 문서에 남아 있다). 공동작업 저장소의 `app/` 는 이 저장소의 `dashboard/` 다.

@@ -1,8 +1,8 @@
 """DATA CENTER 「데이터 시각화」 구역 — 선택형 시각화(팀원 디자인 데모 「DATA CENTER · 데이터 시각화」 화면을 옮기고 값만 RDS 로 바꿨다).
 
-pages/5_데이터_센터.py 가 zone("sel", "데이터 시각화") 안에서 runpy.run_path 로 매 실행 새로 돌린다(페이지 파일처럼 —
-import 하면 모듈이 프로세스에 한 번만 실행돼 화면이 그려지지 않는다). 서브 배너 · 자료 기준(hero)과 관세청 자료 확인은 페이지가 맡는다.
-2026-09-29 전까지는 따로 된 「조회」 페이지(pages/6_조회.py)였다.
+main.py 의 「상세 조회」 3곳(screens/parts.py detail)이 runpy.run_path 로 매 실행 새로 돌린다(페이지 파일처럼 —
+import 하면 모듈이 프로세스에 한 번만 실행돼 화면이 그려지지 않는다). init_globals={"FIXED_TYPE": 유형}으로 유형을 하나로 고정한다(query_panel).
+2026-10-01 전까지는 예전 운영 앱의 DATA CENTER 페이지(pages/5_데이터_센터.py)가 불렀다.
 
 맨 위 「데이터 유형」 — 수출입 HS · 군수품 FSG/FSC · 국산화개발. 유형마다 조건 · 지표 · 차트 · 결과 탭이 바뀐다
 (session_state 키 앞머리 qs_ · qf_ · ql_, 데모 2026-09-29 확장판과 같은 키).
@@ -128,7 +128,7 @@ def trade_frame(names: list[str], y0: int, y1: int, unit: str, items: list[str] 
 STAMP = data_stamp("customs_all", "fact_customs_monthly")
 S_PLAN = data_stamp("dapa_overseas_plan_api", "clean_dapa_overseas_plan_api")
 S_B2 = data_stamp("dapa_localized_item", "clean_dapa_localized_item")
-# 관세청 자료가 없으면 이 구역은 실행되지 않는다(5_데이터_센터.py 가 먼저 확인)
+# DB 접속 확인은 부르는 쪽(main.py)이 먼저 한다
 
 with globe_loading("기준표를 읽는 중"):
     WL, CTRY, YRS = load_ref()
@@ -628,7 +628,12 @@ def _q_chart_grid(charts: list[str], state_key: str, subject: str = "국가", sh
 
 def query_panel() -> dict:
     """분석 조건 설정 카드(목업 「분석 조건 설정」). 맨 위 데이터 유형에 따라 HS · FSG/FSC · 국산화개발 조건을 그리고,
-    고른 조건을 dict 로 돌려준다(q["type"] = 데이터 유형)."""
+    고른 조건을 dict 로 돌려준다(q["type"] = 데이터 유형).
+    FIXED_TYPE — 부르는 쪽이 runpy init_globals 로 넘기면 그 유형으로 고정하고 「데이터 유형」 칸을 숨긴다(main.py 상세 조회 3곳).
+    다른 유형 키는 그리지 않으면 Streamlit 이 치우므로, 돌아오면 아래 _q_apply 가 기본값을 다시 채운다."""
+    fixed = globals().get("FIXED_TYPE")
+    if fixed in Q_TYPES:
+        st.session_state["qd_type"] = fixed
     st.session_state.setdefault("qd_type", Q_TYPES[0])
     dtype = st.session_state["qd_type"]
     _q_apply(Q_TYPE_DEFAULT[dtype])
@@ -638,9 +643,10 @@ def query_panel() -> dict:
         if dtype == "수출입 HS":                                   # 빠른 설정은 HS 조건 묶음이라 HS 에서만
             h2.selectbox("빠른 설정", list(Q_QUICK), key="qs_quick", on_change=_q_quick, label_visibility="collapsed")
         # filter_mode=None — 클릭하면 목록만 열리고 글자 입력(검색)은 받지 않는다
-        _q_row(":material/database:", "데이터 유형", "dtype").selectbox(
-            "데이터 유형", Q_TYPES, key="qd_type", on_change=_q_type_change, label_visibility="collapsed",
-            filter_mode=None)
+        if fixed not in Q_TYPES:
+            _q_row(":material/database:", "데이터 유형", "dtype").selectbox(
+                "데이터 유형", Q_TYPES, key="qd_type", on_change=_q_type_change, label_visibility="collapsed",
+                filter_mode=None)
         panel = {"수출입 HS": query_panel_hs, "군수품 FSG/FSC": query_panel_fsg, "국산화개발": query_panel_localized}[dtype]
         q = panel()
         _q_reset_button()
@@ -1624,7 +1630,7 @@ def query_result_localized(q: dict) -> None:
 
 
 def render() -> None:
-    """조건 카드 | 결과 카드 + 캡션 · 출처. 구역(zone)은 5_데이터_센터.py 가 연다."""
+    """조건 카드 | 결과 카드 + 캡션 · 출처. 구역(소분류 제목)은 main.py 가 연다."""
     c_form, c_res = st.columns([1.15, 1.45], gap="medium")   # 1280 폭에서 차트 유형 · 지표 이름이 잘리지 않게 조건 칸을 넓게
     with c_form:
         q = query_panel()

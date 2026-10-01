@@ -107,3 +107,8 @@ KDD_v1 은 진짜 화면 아래(또는 위)에 첫 목업 칸(`_v2_*`)을 붙여
 
 - 운영앱 시제품(`app/proto`, 공동작업 저장소 `c21f5b2`)의 ① 종합 현황표가 `kdesign.share_bar` 가 없어 열리지 않는다 — 훈희님 미커밋 `app/kdesign.py` 에 있는 것으로 보임.
 - `dashboard/pages/7_무기체계_사례.py`(수아 `85da16f`)는 메인 대시보드 `nav.py` 에 연결돼 있지 않다 — 무기체계v1 데모 안에서만 보인다.
+
+## 8. 배포판을 이 저장소로 (10-01)
+
+- 공동작업 저장소 `ba65b6c`의 실데이터판(`app/KDD_v2.py` + `app/proto`)을 `dashboard/main.py` + `dashboard/screens/`로 옮겼다. `streamlit run dashboard/main.py` = 온라인 배포 화면(6메뉴 AppTest 예외 0 · 브라우저로 전자부품 현황 숫자 같음 확인).
+- 예전 운영 앱(`nav.py` · `frame.py` · `landing.py` · `home.py` · `pages/`, 위 7절의 `pages/7_무기체계_사례.py` 포함)은 지웠다(사용자 결정). 파일 대응표는 `dashboard/README.md` 「공동작업 저장소와 파일 대응」.

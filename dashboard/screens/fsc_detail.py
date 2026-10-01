@@ -1,0 +1,7 @@
+"""② 2-4 상세 조회 — DATA CENTER 도구를 「군수품 FSG/FSC」 유형으로 고정(명세 12_cat_fsc.md §3, 91_search.md)."""
+from __future__ import annotations
+
+import parts as P
+
+P.detail("군수품 FSG/FSC", "전자 관련 군(58 · 59 · 60) 국외 조달계획 품목을 군 · 군급 · 소요군 · 요구연도로 골라 봅니다 — 건수만(금액은 통화 미확인)")
+P.see("조건을 골라 만든 군급별 국외 조달계획 표 · 차트(CSV 내려받기)", "방위사업청 · 국외 조달계획(품목) · 군급분류집")
