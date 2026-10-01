@@ -18,7 +18,7 @@ SOURCE = "방위사업청 · 국외 조달계획(품목) · 군급분류집"
 fsg_name, fsc_name = R.fsg_names(), R.fsc_names()
 allp = R.plan()
 armies = [a for a in R.ARMY_COLOR if a in set(allp["army"])]
-c1, c2 = st.columns([1.6, 1], vertical_alignment="bottom")
+c1, c2 = st.columns([2.6, 1], vertical_alignment="bottom")   # 군 이름이 길어 왼쪽을 넓게(1.6 일 때 셋째 단추가 잘렸다)
 g_pick = c1.pills("군(FSG)", R.FSGS, selection_mode="multi", default=R.FSGS, key="p22_fsg",
                   format_func=lambda g: f"{g} {fsg_name[g]}") or R.FSGS
 a_pick = c2.pills("소요군", armies, selection_mode="multi", default=armies, key="p22_army") or armies

@@ -717,7 +717,10 @@ _GLOBE = r"""
   <div id="tip"></div>
 </div>
 <script>
-const PTS = __DATA__, KOREA = __KOREA__, UNIT = "__UNIT__";
+const PTS = __DATA__, KOREA = __KOREA__, UNIT = "__UNIT__", OUTBOUND = __DIR__;
+// 선 · 화살표 방향 — 수입은 그 나라 → 한국, 수출(OUTBOUND)은 한국 → 그 나라
+const lane=p=>OUTBOUND?d3.geoInterpolate(KOREA,[p.lon,p.lat]):d3.geoInterpolate([p.lon,p.lat],KOREA);
+const FLOW_RGB=OUTBOUND?'15,165,149':'43,110,246';     // 선 · 화살표 색 — 수입 파랑 · 수출 청록(ui.EXP #0fa595)
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const wrap=document.getElementById('wrap'), tip=document.getElementById('tip'), statusEl=document.getElementById('status');
 const gc=document.getElementById('globe-c'), mc=document.getElementById('map-c');
@@ -753,6 +756,17 @@ function paintSphere(ctx,path,proj,isGlobe){
   ctx.strokeStyle=isGlobe?'rgba(43,110,246,.45)':'rgba(150,180,220,.5)'; ctx.lineWidth=1.1; ctx.stroke();
 }
 function radius(v){return 4+20*Math.sqrt((+v||0)/maxVal);}
+// 국기 — p.code(ISO 두 글자)가 있으면 원 안에 국기를 그린다(못 받으면 색 원 그대로). 작은 원은 국기가 보이게 9px 까지 키운다
+const flagR=p=>p._flag?Math.max(radius(p.value),9):radius(p.value);
+function loadFlag(o,code){
+  if(!/^[A-Za-z]{2}$/.test(code||'')) return;
+  const im=new Image(); im.onload=()=>{o._flag=im;}; im.src='https://flagcdn.com/w80/'+code.toLowerCase()+'.png';
+}
+const KR={}; loadFlag(KR,'kr'); PTS.forEach(p=>loadFlag(p,p.code));
+function drawFlag(ctx,im,x,y,r){
+  const k=Math.max(2*r/im.width,2*r/im.height), w=im.width*k, h=im.height*k;   // 원을 꽉 채우게(cover)
+  ctx.save(); ctx.beginPath(); ctx.arc(x,y,r,0,2*Math.PI); ctx.clip(); ctx.drawImage(im,x-w/2,y-h/2,w,h); ctx.restore();
+}
 function seen(lon,lat,isGlobe){
   if(!isGlobe) return true;
   const rot=projG.rotate();
@@ -763,7 +777,7 @@ function visible(p,proj,isGlobe){return seen(p.lon,p.lat,isGlobe);}
 /* ── 흐름 화살표 — 대권 위 t 지점의 진행 방향으로 삼각형을 그린다 ──────── */
 function arrow(ctx,proj,isGlobe,p,t,alpha,s){
   if(t<=0.03) return;
-  const inter=d3.geoInterpolate([p.lon,p.lat],KOREA);
+  const inter=lane(p);
   const c0=inter(Math.max(0,t-0.035)), c1=inter(t);
   if(!seen(c0[0],c0[1],isGlobe)||!seen(c1[0],c1[1],isGlobe)) return;
   const a=proj(c0), b=proj(c1); if(!a||!b) return;
@@ -775,22 +789,22 @@ function arrow(ctx,proj,isGlobe,p,t,alpha,s){
   ctx.lineTo(b[0]-ux*s*0.75-uy*s*0.62, b[1]-uy*s*0.75+ux*s*0.62);
   ctx.lineTo(b[0]-ux*s*0.28, b[1]-uy*s*0.28);
   ctx.lineTo(b[0]-ux*s*0.75+uy*s*0.62, b[1]-uy*s*0.75-ux*s*0.62);
-  ctx.closePath(); ctx.fillStyle='rgba(43,110,246,'+alpha+')'; ctx.fill();
+  ctx.closePath(); ctx.fillStyle='rgba('+FLOW_RGB+','+alpha+')'; ctx.fill();
 }
 function paintPoints(ctx,path,proj,isGlobe,arcProgress,hoverIdx,flow){
   if(arcProgress>0){
     PTS.forEach((p,i)=>{
       if(!visible(p,proj,isGlobe)) return;
-      const inter=d3.geoInterpolate([p.lon,p.lat],KOREA);
+      const inter=lane(p);
       const pts=d3.range(0,arcProgress+1e-9,1/28).map(inter);
       if(pts.length<2) return;
       const lw=0.9+2.4*Math.sqrt((+p.value||0)/maxVal);
       ctx.beginPath(); path({type:'LineString',coordinates:pts});
-      ctx.strokeStyle=i===hoverIdx?'rgba(43,110,246,.75)':'rgba(43,110,246,.38)';
+      ctx.strokeStyle='rgba('+FLOW_RGB+(i===hoverIdx?',.75)':',.38)');
       ctx.lineWidth=i===hoverIdx?lw+1:lw; ctx.lineCap='round'; ctx.stroke();
 
-      // 머리 화살표 — 그리는 동안은 선 끝, 다 그린 뒤에는 한국 바로 앞에 선다
-      arrow(ctx,proj,isGlobe,p,arcProgress<1?arcProgress:0.88,i===hoverIdx?1:.9,5+lw*0.85);
+      // 머리 화살표 — 선을 그리는 동안만 선 끝에. 다 그린 뒤에는 두지 않는다(한국 앞에 화살표가 여럿 겹쳐 멈춰 있었다)
+      if(arcProgress<1) arrow(ctx,proj,isGlobe,p,arcProgress,i===hoverIdx?1:.9,5+lw*0.85);
       // 흐름 화살표 — 선을 따라 계속 한국 쪽으로 흐른다
       if(arcProgress>=1){
         const t=0.12+0.72*((flow+i*0.17)%1);
@@ -801,33 +815,41 @@ function paintPoints(ctx,path,proj,isGlobe,arcProgress,hoverIdx,flow){
   PTS.forEach((p,i)=>{
     if(!visible(p,proj,isGlobe)){p._xy=null;return;}
     const xy=proj([p.lon,p.lat]); p._xy=xy; if(!xy) return;
-    const r=radius(p.value), on=i===hoverIdx;
-    ctx.beginPath(); ctx.arc(xy[0],xy[1],r,0,2*Math.PI);
-    ctx.fillStyle=p.color||'rgba(43,110,246,.55)';
-    ctx.globalAlpha=on?.95:.72; ctx.fill(); ctx.globalAlpha=1;
-    ctx.lineWidth=on?2.4:1.4; ctx.strokeStyle=on?'#12234a':'#fff'; ctx.stroke();
+    const r=flagR(p), on=i===hoverIdx;
+    if(p._flag){
+      drawFlag(ctx,p._flag,xy[0],xy[1],r);
+      ctx.beginPath(); ctx.arc(xy[0],xy[1],r,0,2*Math.PI);
+    } else {
+      ctx.beginPath(); ctx.arc(xy[0],xy[1],r,0,2*Math.PI);
+      ctx.fillStyle=p.color||'rgba(43,110,246,.55)';
+      ctx.globalAlpha=on?.95:.72; ctx.fill(); ctx.globalAlpha=1;
+    }
+    ctx.lineWidth=on?2.6:1.6; ctx.strokeStyle=on?'#12234a':'#fff'; ctx.stroke();
   });
   const k=proj(KOREA);
   if(k&&seen(KOREA[0],KOREA[1],isGlobe)){
-    ctx.beginPath(); ctx.arc(k[0],k[1],5.5,0,2*Math.PI);
-    ctx.fillStyle='#ff6b9a'; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#fff'; ctx.stroke();
+    const kr=KR._flag?10:5.5;
+    if(KR._flag) drawFlag(ctx,KR._flag,k[0],k[1],kr);
+    ctx.beginPath(); ctx.arc(k[0],k[1],kr,0,2*Math.PI);
+    if(!KR._flag){ctx.fillStyle='#ff6b9a'; ctx.fill();}
+    ctx.lineWidth=2; ctx.strokeStyle=KR._flag?'#ff6b9a':'#fff'; ctx.stroke();
     ctx.font='700 11px Pretendard, system-ui, sans-serif'; ctx.fillStyle='#12234a'; ctx.textAlign='center';
-    ctx.fillText('대한민국',k[0],k[1]-11);
+    ctx.fillText('대한민국',k[0],k[1]-kr-5);
   }
   if(!isGlobe){
     ctx.font='600 10.5px Pretendard, system-ui, sans-serif'; ctx.textAlign='center'; ctx.fillStyle='#41537a';
-    PTS.forEach(p=>{if(p._xy) ctx.fillText(p.name,p._xy[0],p._xy[1]+radius(p.value)+11);});
+    PTS.forEach(p=>{if(p._xy) ctx.fillText(p.name,p._xy[0],p._xy[1]+flagR(p)+11);});
   }
 }
 
 let mode='globe', spinning=true, arc=0, hover=-1, mouse=null, drag=null, t0=performance.now();
 function drawGlobe(){
-  const f=((performance.now()-t0)/2600)%1;
+  const f=((performance.now()-t0)/FLOW_MS)%1;
   paintSphere(gx,pathG,projG,true);
   paintPoints(gx,pathG,projG,true,mode==='globe'?arc:0,mode==='globe'?hover:-1,f);
 }
 function drawMap(){
-  const f=((performance.now()-t0)/2600)%1;
+  const f=((performance.now()-t0)/FLOW_MS)%1;
   paintSphere(mx,pathM,projM,false);
   paintPoints(mx,pathM,projM,false,mode==='map'?arc:0,mode==='map'?hover:-1,f);
 }
@@ -837,7 +859,7 @@ function hitTest(){
   if(!mouse||drag) return -1;
   let found=-1,best=1e9;
   PTS.forEach((p,i)=>{if(!p._xy)return;const d=Math.hypot(p._xy[0]-mouse[0],p._xy[1]-mouse[1]);
-    if(d<radius(p.value)+6&&d<best){best=d;found=i;}});
+    if(d<flagR(p)+6&&d<best){best=d;found=i;}});
   return found;
 }
 function fillTip(p){
@@ -854,12 +876,13 @@ function idleStatus(){
 }
 
 /* 화면 밖이거나 탭이 숨겨지면 그리기를 멈춘다 — 매 프레임 다시 그려 CPU 를 계속 쓰던 문제(2026-09-28 점검) */
-let onScreen=true, running=false;
+let onScreen=true, running=false, lastT=0;
+const SPIN=6, FLOW_MS=5200;     // 회전 초당 6도 · 흐름 화살표 한 바퀴 5.2초 — 프레임 수가 아니라 시간 기준이라 화면 주사율과 상관없이 같은 속도
 function wake(){ if(onScreen&&!document.hidden&&!running){running=true;requestAnimationFrame(loop);} }
 try{ new IntersectionObserver(es=>{onScreen=es[0].isIntersecting; wake();}).observe(wrap); }catch(e){}
 document.addEventListener('visibilitychange',wake);
 function loop(){
-  if(!onScreen||document.hidden){running=false;return;}
+  if(!onScreen||document.hidden){running=false;lastT=0;return;}
   try{
     const h=hitTest();
     if(h!==hover){
@@ -867,7 +890,8 @@ function loop(){
       if(h>=0){fillTip(PTS[h]); statusEl.textContent=PTS[h].name+' — 커서를 떼면 다시 돕니다';}
       else statusEl.textContent=idleStatus();
     }
-    if(spinning&&mode==='globe'&&hover<0&&!drag){const rot=projG.rotate();projG.rotate([rot[0]+0.2,rot[1],rot[2]]);}
+    const now=performance.now(), dt=Math.min(100,lastT?now-lastT:16); lastT=now;
+    if(spinning&&mode==='globe'&&hover<0&&!drag){const rot=projG.rotate();projG.rotate([rot[0]+SPIN*dt/1000,rot[1],rot[2]]);}
     if(arc<1) arc=Math.min(1,arc+0.02);
     if(mode==='globe') drawGlobe(); else drawMap();
     syncTip();
@@ -908,12 +932,14 @@ fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json", {int
 
 
 
-def supply_globe(points: list[dict], height: int = 430, unit: str = "백만 USD"):
+def supply_globe(points: list[dict], height: int = 430, unit: str = "백만 USD", outbound: bool = False):
     """공급국 지구본(데모 HOME 그대로) — 회전 · 끌어서 돌리기 · 지구본↔지도 전환 · 공급국 → 한국 흐름 화살표.
+    outbound=True(수출)면 선 · 화살표가 한국 → 그 나라 방향이다.
     points = [{name, lat, lon, value, color, note}] — 원 색 = 국가 색(표 · 막대와 같은 색), 원 크기 = 수입액.
     지구본은 HTML 이라 PNG 로 바로 저장할 수 없어, 같은 값의 평면 지도(plotly)를 만들어 돌려준다(화면에는 그리지 않음 — PNG 단추용)."""
     html = (_GLOBE.replace("__DATA__", _js(points))
             .replace("__KOREA__", _js(KOREA)).replace("__UNIT__", unit)
+            .replace("__DIR__", "true" if outbound else "false")
             .replace("__H__", str(height - 10)).replace("__FONTLINK__", _FONT_LINK))
     components.html(html, height=height, scrolling=False)
     fig = go.Figure()

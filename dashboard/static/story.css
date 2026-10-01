@@ -26,4 +26,15 @@
 .mk-grp{font-size:14px;font-weight:800;color:#27406b;margin:6px 0 8px}
 .mk-grp span{font-weight:600;color:#6b7c96;font-size:12px;margin-left:6px}
 .mk-card.warn{background:#fffbeb;border-color:#fde68a}
-@media (max-width:860px){.mk-cards{grid-template-columns:1fr!important}}
+/* 소개 「어떻게 골랐나」 제목 줄 오른쪽 끝 링크 단추(HS코드란? · 군급코드란?) — 제목 줄에 겹쳐 놓는 진한 파랑 알약 단추 */
+.st-key-code_links{position:absolute;top:17px;right:24px;left:auto;z-index:2;gap:8px!important;width:auto!important}
+[data-testid="stLayoutWrapper"]:has(> .st-key-code_links){position:static!important;height:0;min-height:0;margin:0 0 -17px!important}   /* 빈 칸이 만든 간격(16px + 1)을 되돌려 제목 ~ 상자 간격을 다른 소분류와 같게 */
+.st-key-code_links [data-testid="stPageLink"] a{display:flex;align-items:center;justify-content:center;gap:0;background:#1d4ed8;border-radius:999px;
+  height:36px;box-sizing:border-box;padding:0 18px;margin:0;box-shadow:0 2px 6px rgba(29,78,216,.28);transition:background .15s,transform .15s}
+.st-key-code_links [data-testid="stPageLink"] a:hover{background:#003899;transform:translateY(-1px)}
+.st-key-code_links [data-testid="stPageLink"] a > *{display:flex;align-items:center;justify-content:center;margin:0;padding:0}
+.st-key-code_links [data-testid="stPageLink"] a p{font-size:14px!important;font-weight:800;color:#fff!important;white-space:nowrap;letter-spacing:-.2px;
+  line-height:1!important;margin:0!important;padding:1px 0 0;text-align:center}   /* 줄 높이 28px 안에서 글씨가 위로 떠 보이지 않게 한 줄 높이로 */
+.st-key-code_links [data-testid="stPageLink"] a [data-testid="stIconMaterial"]{color:#fff!important;font-size:17px}
+@media (max-width:860px){.mk-cards{grid-template-columns:1fr!important}
+  .st-key-code_links{position:static}[data-testid="stLayoutWrapper"]:has(> .st-key-code_links){height:auto}}

@@ -183,4 +183,5 @@ div[class*="st-key-card_"]{background:var(--panel);border:1px solid var(--line)!
 [data-testid="stSegmentedControl"] button{border-radius:9px}
 [data-testid="stDataFrame"]{border-radius:12px;overflow:hidden;border:1px solid var(--line)}
 [data-testid="stExpander"]{background:#fff;border:1px solid var(--line)!important;border-radius:12px;box-shadow:var(--shadow)}
+[data-testid="stExpander"] summary p{font-weight:800;color:#12234a;letter-spacing:-.2px}   /* 펼침 단추 글씨 굵게(10-01 사용자) */
 .stButton button,.stDownloadButton button{border-radius:10px;font-weight:600}

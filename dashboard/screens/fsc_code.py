@@ -58,6 +58,7 @@ with a, P.card("nsn"):
             '<ul class="basis">' + "".join(f"<li>{x}</li>" for x in BASIS) + "</ul>"
             f'<div class="basis-src">출처: {BASIS_SRC}</div>')
 with b, P.card("sun"):
+    ttl = st.empty()          # 제목 자리 — 보기 단추보다 위(제목 문장은 고른 보기에 따라 아래에서 채운다)
     mode = st.segmented_control("보기", ["분류 체계", "조달계획 건수"], default="분류 체계", key="p21_mode") or "분류 체계"
     ids, labels, parents, values, colors, hover = [], [], [], [], [], []
     for g in R.FSGS:
@@ -75,15 +76,17 @@ with b, P.card("sun"):
             hover.append(r.name + (" (폐지)" if r.closed else ""))
     if mode == "분류 체계":
         gmax = by_g.idxmax()
-        P.title(f'전자 관련 군 3개 아래 군급 {len(ref)}개 — <span class="key">군 {gmax}가 {int(by_g[gmax])}개</span>로 가장 많다',
-                f"안쪽 = 군(FSG 2자리) · 바깥 = 군급(FSC 4자리) · 칸 크기 같음 · 회색 = 폐지 {int(ref['closed'].sum())}개 · 눌러서 한 군만 펼치기")
+        with ttl.container():
+            P.title(f'전자 관련 군 3개 아래 군급 {len(ref)}개 — <span class="key">군 {gmax}가 {int(by_g[gmax])}개</span>로 가장 많다',
+                    f"안쪽 = 군(FSG 2자리) · 바깥 = 군급(FSC 4자리) · 칸 크기 같음 · 회색 = 폐지 {int(ref['closed'].sum())}개 · 눌러서 한 군만 펼치기")
     else:
         pg = R.plan().groupby("fsg").size()
-        P.title(f'국외 조달계획 {int(pg.sum()):,}건 중 <span class="key">군 {pg.idxmax()}가 {int(pg.max()):,}건</span>으로 가장 많다',
-                "안쪽 = 군 · 바깥 = 군급 · 칸 크기 = 국외 조달계획 건수(0건 군급은 빠짐)")
+        with ttl.container():
+            P.title(f'국외 조달계획 {int(pg.sum()):,}건 중 <span class="key">군 {pg.idxmax()}가 {int(pg.max()):,}건</span>으로 가장 많다',
+                    "안쪽 = 군 · 바깥 = 군급 · 칸 크기 = 국외 조달계획 건수(0건 군급은 빠짐)")
     fig = go.Figure(go.Sunburst(ids=ids, labels=labels, parents=parents, values=values, branchvalues="total",
                                 marker=dict(colors=colors, line=dict(color="#fff", width=1)),
-                                customdata=hover, insidetextorientation="radial",
+                                customdata=hover, insidetextorientation="radial", textfont=dict(color="#111827"),   # 칸 안 글씨는 검정(10-01 사용자)
                                 hovertemplate="%{label} %{customdata}<br>%{value:,}<extra></extra>"))
     fig.update_layout(height=420, margin=dict(l=0, r=0, t=0, b=0))
     P.chart(fig, "p21_sun")

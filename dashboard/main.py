@@ -362,9 +362,11 @@ def _mk_css() -> None:
         st.html(STORY_CSS + '<i class="mk-mark"></i>')
 
 
-def story_screen(key: str, title: str, question: str, message: str, notes: tuple = (), extra: str = "") -> None:
-    """소분류 한 화면 — 질문 · 답 한 상자 · (설명 재료 extra) · 읽을 때 주의."""
+def story_screen(key: str, title: str, question: str, message: str, notes: tuple = (), extra: str = "", head=None) -> None:
+    """소분류 한 화면 — 질문 · 답 한 상자 · (설명 재료 extra) · 읽을 때 주의. head = 제목 줄 바로 다음에 부를 함수(제목 옆 링크 단추 등)."""
     for _ in zone(key, title):
+        if head:
+            head()
         st.html(f'<div class="mk-msg"><div class="q"><i>Q.</i>{question}</div><div class="a">{message}</div></div>')
         if extra:
             st.html(extra)
@@ -399,11 +401,17 @@ def _why_select() -> None:
               '<div style="width:38%;background:#0f2f73"><b>분석 대상 13개 품목군</b><small>전자 계열만 — 「항공기용」 세분류로 걸린 기계 · 전장 계열 39개 제외</small></div>'
               '</div>'
               '<div class="mk-q" style="text-align:center">수집은 24개 = 분석 대상 13개 + 배경 자료 11개 (배경 11개는 진입 52개 밖에서 따로 모았다)</div>')
+    def code_links() -> None:
+        # 제목 「어떻게 골랐나」 줄 오른쪽 끝에 놓는 링크 단추 — 두 분류(HS · 군급)를 설명하는 화면으로 간다(자리 · 모양은 story.css .st-key-code_links)
+        with st.container(key="code_links", horizontal=True, width="content"):
+            st.page_link(page_of["parts"][0], label="HS코드란?", query_params={"sec": "code"})
+            st.page_link(page_of["fsc"][0], label="군급코드란?", query_params={"sec": "code"})
+
     story_screen(
         "select", "어떻게 골랐나",
         "1,003개 품목 중 왜 이 13개인가",
         "무역 통계의 공식 분류(HS)에서 군용 · 항공 · 항행 전용으로 나뉜 품목만 골랐다 — 팀이 임의로 고른 것이 아니다.",
-        extra=funnel,
+        extra=funnel, head=code_links,
         notes=("HS 품목과 군급(FSC)을 잇는 공식 연계표가 없어 R4(국산화개발품목 FSC 대응)는 규칙에서 뺐다(09-21 결정)",
                "무역 값은 국가 전체 수입 · 수출(민수 포함)이다 — 「방산 수입」이 아니다"))
 
@@ -481,13 +489,13 @@ def pg_intro() -> None:
 
 # 실데이터 화면 — dashboard/screens/{screen}.py 를 소분류 자리에서 실행(runpy — 매 실행 새로 그린다)
 SCREENS = {
-    "parts": {"summary": "parts_summary", "trade": "parts_trade", "conc": "parts_conc", "detail": "parts_detail"},
+    "parts": {"code": "parts_code", "summary": "parts_summary", "trade": "parts_trade", "conc": "parts_conc", "detail": "parts_detail"},
     "fsc": {"code": "fsc_code", "plan": "fsc_plan", "army": "fsc_army", "domestic": "bg_domestic", "detail": "fsc_detail"},
     "local": {"done": "loc_done", "pair": "loc_pair", "detail": "loc_detail"},
     "background": {"policy": "bg_policy", "industry": "bg_industry", "source": "bg_source"},
 }
 # 화면 끝 「다음 대분류로」(screens/menu.py NEXT) → v2 주소 · 소분류
-_NEXT_V2 = {"parts-conc": ("fsc", "code"), "fsc-army": ("local", "done"), "loc-pair": ("background", "policy"),
+_NEXT_V2 = {"fsc-army": ("local", "done"), "loc-pair": ("background", "policy"),   # parts-conc → 군급 분류와 조달 링크는 뺐다(10-01 사용자)
             "bg-source": ("home", "main")}
 
 
@@ -505,6 +513,7 @@ def _next_link_v2(cur: str) -> None:
 # 소분류 맨 위 파란 상자의 질문 — 설계도판 v2 의 「Q.」. 「이 화면에서 보는 것」 설명 대신 쓴다(09-30 사용자).
 # 상세 조회는 질문 없이 출처만
 V2_Q = {
+    ("parts", "code"): "무역 통계는 전자부품을 어떤 분류로 나누나",
     ("parts", "summary"): "13개 품목군을 한 표로 보면 어떤가",
     ("parts", "trade"): "어느 나라에서 얼마나 들여오고 내보내나",
     ("parts", "conc"): "한 나라에 쏠린 정도는 나아지고 있나",
@@ -677,7 +686,7 @@ def glossary_button(key: str) -> None:
 SECTIONS = {   # KDD_v1 과 같은 키 · 이름 · 순서
     "home": [("main", "Main")],
     "intro": [("elec", "왜 전자부품인가"), ("select", "어떻게 골랐나"), ("items", "13개 품목군"), ("use", "어디에 쓰이나")],
-    "parts": [("summary", "종합 현황표"), ("trade", "수출입 현황"),
+    "parts": [("code", "HS코드란"), ("summary", "종합 현황표"), ("trade", "수출입 현황"),
               ("conc", "공급국 집중도 변화"), ("detail", "상세 조회")],
     "fsc": [("code", "군급코드란"), ("plan", "군급별 국외 조달계획"), ("army", "소요군별"),
             ("domestic", "국내 계약 · 입찰"), ("detail", "상세 조회")],

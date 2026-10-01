@@ -19,10 +19,10 @@ FLOW = {"수입": "imp", "수출": "exp"}
 by = R.base_year()
 base = R.conc((by,))
 top5 = base.sort_values("total", ascending=False).head(5)
-c1, c2 = st.columns([2.4, 1], vertical_alignment="bottom")
+c1, c2 = st.columns([1.15, 1], vertical_alignment="bottom")   # 수입/수출 단추를 품목군 단추 바로 옆에
 pick = c1.pills(f"품목군({by}년 수입액 상위 5)", top5["short"].tolist(), default=top5.iloc[0]["short"], key="p13_hs") \
     or top5.iloc[0]["short"]
-flow_lb = c2.segmented_control("수입 / 수출", list(FLOW), default="수입", key="p13_flow") or "수입"
+flow_lb = c2.segmented_control("수입 / 수출", list(FLOW), default="수입", key="p13_flow", label_visibility="collapsed") or "수입"
 flow = FLOW[flow_lb]
 hs = top5.loc[top5["short"] == pick, "hs6"].iloc[0]
 names = R.country_names()
