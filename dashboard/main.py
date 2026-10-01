@@ -294,7 +294,6 @@ def main_landing() -> None:
         components.html(MV_JS, height=0)
     with st.container(key="mv_cta", horizontal=True, vertical_alignment="center"):
         st.page_link(page_of["intro"][0], label="이야기 시작하기", icon=":material/play_arrow:", query_params={"sec": "elec"})
-        st.page_link(page_of["parts"][0], label="직접 조회하기", icon=":material/search:", query_params={"sec": "detail"})
 
     # 2) 왜 전자부품인가 — 이유(본문) + 그 이유를 확인하는 화면 네 곳(아이콘). 아이콘은 이야기 순서 ① → ① → ③ → ④
     #    98.9% 는 인용(국방반도체 발전전략 본문 · 2023-12 조사) — 본문에는 각주 표시(*)만, 출처 · 한계는 아래 각주 줄에.
@@ -405,8 +404,10 @@ def _mk_css() -> None:
         st.html(STORY_CSS + '<i class="mk-mark"></i>')
 
 
-def story_screen(key: str, title: str, question: str, message: str, notes: tuple = (), extra: str = "", head=None) -> None:
-    """소분류 한 화면 — 질문 · 답 한 상자 · (설명 재료 extra) · 읽을 때 주의. head = 제목 줄 바로 다음에 부를 함수(제목 옆 링크 단추 등)."""
+def story_screen(key: str, title: str, question: str, message: str, notes: tuple = (), extra: str = "", head=None,
+                 tail=None) -> None:
+    """소분류 한 화면 — 질문 · 답 한 상자 · (설명 재료 extra) · 읽을 때 주의. head = 제목 줄 바로 다음에 부를 함수(제목 옆 링크 단추 등),
+    tail = 읽을 때 주의 아래에 부를 함수(펼침 상자 등)."""
     for _ in zone(key, title):
         if head:
             head()
@@ -415,6 +416,8 @@ def story_screen(key: str, title: str, question: str, message: str, notes: tuple
             st.html(extra)
         if notes:
             st.html('<div class="mk-note"><b>읽을 때 주의</b><ul>' + "".join(f"<li>{n}</li>" for n in notes) + '</ul></div>')
+        if tail:
+            tail()
 
 
 # ── ① 왜 이 부품인가 ────────────────────────────────────────────────────────
@@ -472,12 +475,24 @@ def _why_select() -> None:
             st.page_link(page_of["parts"][0], label="HS코드란?", query_params={"sec": "code"})
             st.page_link(page_of["fsc"][0], label="군급코드란?", query_params={"sec": "code"})
 
+    def hs_vs_fsc() -> None:
+        # 읽을 때 주의 아래 펼침 상자 — 두 분류 비교표(군급코드란에서 옮김). 표 모양(.pt)은 screens/parts.py CSS 를 쓴다
+        import parts as screen_parts
+        screen_parts.inject()
+        with screen_parts.more("HS와 군급은 무엇이 다른가 — 같은 전자부품을 보는 두 공식 분류"):
+            st.html('<table class="pt"><thead><tr><th></th><th>HS(관세 · 무역 통계)</th><th>군급(군수품 분류)</th></tr></thead><tbody>'
+                    '<tr><td>누가 쓰나</td><td class="l">관세청 수출입 통계</td><td class="l">국방 군수품 목록 · 조달</td></tr>'
+                    '<tr><td>무엇으로 나누나</td><td class="l">품목의 성질 · 재질 · 용도</td><td class="l">보급 관리를 위한 기능 분류</td></tr>'
+                    '<tr><td>자릿수</td><td class="l">국제 6자리 + 국내 10자리</td><td class="l">군 2 · 군급 4 · 재고번호 13</td></tr>'
+                    '<tr><td>이 대시보드에서</td><td class="l">① 부품 현황(13개 품목군)</td><td class="l">② 군급 분류와 조달 · ③ 국산화 현황</td></tr>'
+                    '</tbody></table><div class="caption">두 분류 사이에 공식 대응표가 없어 품목끼리 짝짓지 않습니다.</div>')
+
     story_screen(
         "select", "어떻게 골랐나",
         "1,003개 품목 중 왜 이 13개인가",
         "무역 통계의 공식 분류(HS)에서 군용 · 항공 · 항행 전용으로 나뉜 품목만 골랐다 — 팀이 임의로 고른 것이 아니다. "
         "군수품 쪽은 군급분류(FSC)에서 전자 관련 군 58 · 59 · 60만 골랐다.",
-        extra=funnel, head=code_links,
+        extra=funnel, head=code_links, tail=hs_vs_fsc,
         notes=("HS 품목과 군급(FSC)을 잇는 공식 연계표가 없어 R4(국산화개발품목 FSC 대응)는 규칙에서 뺐다",
                "무역 값은 국가 전체 수입 · 수출(민수 포함)이다 — 「방산 수입」이 아니다"))
 
