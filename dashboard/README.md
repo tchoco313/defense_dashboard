@@ -21,6 +21,8 @@ streamlit run dashboard/main.py
 
 공용 모듈: `main.py`(진입점 — 틀 · 홈 · 소개 · 메뉴) · `screens/parts.py`(소분류 화면 공통 조각 — 카드 · KPI · 차트 · 출처) · `screens/rds.py`(소분류 화면의 조회 한 곳) · `screens/menu.py`(소분류 화면의 「다음」 연결) · `db.py`(조회 · 캐시 1시간) · `metrics.py`(지표 계산) · `kdesign.py`(본문 디자인 · 차트 공통) · `ui.py`(공용 화면 요소) · `live.py`(관세청 원천 최신 월 확인) · `datacenter_viz.py`(상세 조회 도구 — `screens/parts.py` 의 detail 이 자료 유형 하나로 고정해 실행).
 
+`static/` — `main.py` 가 쓰는 CSS · JS · 인트로 HTML. CSS 안 `${이름}` 자리는 `css(파일, 이름=값)` 이 파이썬 값(색 · 폭)으로 채운다. K9 배너 사진은 `assets/k9_banner.jpg`.
+
 `demo/` 는 혼자 도는 시안이다 — `KDD_v2.py`(숫자 없는 설계도판) · `KDD_v1.py` · `K-Defense_brandnew.py`(동현님 새 디자인 — 화면 틀의 기준) · `design_demo.py` · `무기체계v1.py`. **숫자는 전부 샘플**이라 발표 · 보고에 쓰지 않는다.
 
 ## 공동작업 저장소와 파일 대응
@@ -34,6 +36,7 @@ streamlit run dashboard/main.py
 | `app/KDD_v2.py` | `main.py` (`PROTO_DIR` → `SCREENS_DIR`, `proto_parts` → `screen_parts`, `mock_screen` → `story_screen`, `MOCK_CSS` → `STORY_CSS`, 샘플 코드 삭제) |
 | `app/proto/{parts,rds,menu}.py` | `screens/{parts,rds,menu}.py` |
 | `app/proto/screens/*.py` (home 제외) | `screens/*.py` |
+| `app/static/*` | `static/*` (그대로 같음) |
 | `app/{db,kdesign,ui,live,metrics,weapon_context,datacenter_viz}.py` | 같은 이름 (`kdesign.py` 는 `LABEL_KEY` 를 직접 둔다 — 이 저장소에는 `frame.py` 가 없다) |
 | `app/main.py`(진입점 — KDD_v2 를 runpy 로 실행) · `app/main_v1.py` · `app/pages/` · `app/proto/main.py` · `shell.py` · `app/demo_v2/` | 없음 — 배포 화면이 쓰지 않는다 |
 
