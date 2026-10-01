@@ -36,7 +36,7 @@ from ui import (EXP, EXP_DIM, IMP, IMP_DIM, SHORT, source_pop, chart_source, cha
 ALL = "__all__"
 STATIC_DIR = Path(__file__).resolve().parent / "static"     # 결과 카드의 HTML · JS 조각(넓은 차트 · 지도 PNG)
 # 분포 차트(막대) — 막대가 WIDE_MIN 개를 넘으면 실제 폭을 막대 수에 비례해 넓히고 가로 스크롤(wide_chart).
-# 폭 = 막대 수 / WIDE_MIN × WIDE_BASE px(10개 = 결과 카드 폭 정도). WIDE_MIN 이하는 예전처럼 카드 폭에 맞춘다
+# 폭 = 막대 수 / WIDE_MIN × WIDE_BASE px(10개 = 결과 카드 폭 정도). WIDE_MIN 이하는 카드 폭에 맞춘다
 WIDE_MIN, WIDE_BASE = 10, 700
 # 화면 · CSV 출처는 「기관 · 데이터명(포털 ID) · 자료 기간」만 — DB 표 · 뷰 이름과 적재일은 쓰지 않는다(보안)
 SOURCE = "관세청 품목별 국가별 수출입실적(15100475) · 국가 전체 교역(민수 포함) · 국가는 선적국"
