@@ -3162,6 +3162,11 @@ assert set(SYSTEM_FAMILY) == TARGET_HS, f"SYSTEM_FAMILY 키 ≠ TARGET_HS: {set(
 assert set(DEFENSE_USE_KO) == TARGET_HS, f"DEFENSE_USE_KO 키 ≠ TARGET_HS: {set(DEFENSE_USE_KO) ^ TARGET_HS}"
 
 items_df = pd.DataFrame(ITEMS, columns=["HS6", "품목군", "1위 공급국", "1위 점유율(%)", "HHI", "수입국 수"])
+# 품목군 × 연도 HHI(샘플) — 연도별 실측이 없어 ITEMS 의 HHI(2025)에서 품목군마다 완만한 기울기 · 잔물결을 준 값. 2025 열은 ITEMS 와 같다
+HHI_YEARS = YEARS[:-1]                                    # 완결연도 2016~2025
+HHI_YEARLY = {name: [round(hhi * (1 + (i % 3 - 1) * 0.02 * (y - 2025) + (0.03 * math.sin(i + y) if y != 2025 else 0)))
+                     for y in HHI_YEARS]
+              for i, (_, name, _, _, hhi, _) in enumerate(ITEMS)}
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -5240,8 +5245,8 @@ def _parts_summary() -> None:
     for _ in zone("kpi", "한눈에 보는 KPI"):
         n_top50 = int((items_df["1위 점유율(%)"] >= 50).sum())
         n_hhi = int((items_df["HHI"] >= 2500).sum())
-        st.html(f'<div class="lede"><div class="note"><b>{len(items_df)}개 품목군 중 {n_top50}개는 1위 공급국 점유율이 '
-                f'50% 이상이다</b>(2025·민수 포함).</div></div>')
+        ask(f"{len(items_df)}개 품목군을 한눈에 보면 어떤가",
+            f"{len(items_df)}개 중 {n_top50}개는 수입액의 절반 이상을 한 나라에서 들여온다(2025년 · 민수 포함).")
         st.html('<div class="kpis home k4 parts-kpi-row">'
                 + kpi("분석 대상 품목군", "13", "개",
                       "HS6 후보 1,003개 중 기준 충족 52개 → 전자 계열 13개 · 관세청 수집 24개 중", icon="inventory_2")
@@ -5253,7 +5258,15 @@ def _parts_summary() -> None:
                       f"공급국 집중도(HHI) 기준 · {len(items_df)}개 중 · 2025년 합계", icon="stacked_bar_chart")
                 + "</div>")
 
+    for _ in zone("itemtbl", "품목군 현황표"):
+        # 품목군마다 한 줄 — HHI 가 큰 순. 점유율 칸은 막대(_share_bar)
+        cat_table(items_df.sort_values("HHI", ascending=False)[["HS6", "품목군", "1위 공급국", "1위 점유율(%)", "HHI", "수입국 수"]],
+                  fmt={"1위 점유율(%)": _share_bar, "수입국 수": lambda v: f"{v}개"},
+                  note="HHI 가 큰 순 · 2025년 합계 · HHI = Σ(국가 점유율 %)², 0~10,000 · 2,500 이상 = 높은 집중")
+
     for _ in zone("hsbasis", "HS 분류기준"):
+        ask("왜 이 13개를 분석 대상으로 삼았나",
+            "HS 6단위 1,003개 가운데 군용 전용이거나 전문 용도가 이름에 적힌 52개를 추리고, 그중 전자 계열 13개만 남겼다.")
         # 왼쪽 = 분석 대상 선정 깔때기(1,003 → 52 → 13) · 오른쪽 = 분석 대상 13개의 선정 근거 매트릭스(R4 열 없음)
         c1, c2 = st.columns(2, gap="medium")
         c1.html(funnel_card("분석 대상 선정", "단위: HS 6단위 개수 · % = 모집단 대비", HS_SELECT,
@@ -5302,18 +5315,23 @@ def _parts_summary() -> None:
                       note="선정 기준: 관세청 HSK 세분류에서 군용 전용 또는 항공·항행·레이더 등 전문 용도가 확인된 품목을 기준으로 "
                            "선정(전략물자 통제 목록은 참고)<br>"
                            "출처: 관세청 HS부호 마스터 · 품목별 국가별 수출입실적 · 2016.01~2026.08")
+    caution("금액은 국가 전체 수입(민수 포함)이다 — 군 수요만 떼어 낸 값이 아니다",
+            "HHI 와 1위 공급국 점유율은 수입이 몇 나라에 몰렸는지를 보여 줄 뿐, 위험도나 의존도를 뜻하지 않는다")
 
 
 def _parts_trade() -> None:
     with globe_loading("수입 집계를 읽는 중"):
         time.sleep(DEMO_WAIT)
-    st.html('<div class="lede"><div class="note">HS/HSK 기반 방산 연관 수입 구조 · 공급국 집중도 · 품목군 동향. '
-            '군수 수요 비중이 아니라 <b>국가 전체 교역 규모</b>입니다.</div></div>')
     for _ in zone("kpi2", "핵심 지표"):
         # 1위 수입국 · 수출국 — TRADE_IMP · TRADE_EXP(2016~2025 합산, 백만 USD)에서 값이 가장 큰 나라와 그 비중
         top_i, top_e = max(TRADE_IMP, key=TRADE_IMP.get), max(TRADE_EXP, key=TRADE_EXP.get)
         sh_i = TRADE_IMP[top_i] / sum(TRADE_IMP.values()) * 100
         sh_e = TRADE_EXP[top_e] / sum(TRADE_EXP.values()) * 100
+        top2 = sorted(TRADE_IMP, key=TRADE_IMP.get, reverse=True)[:2]
+        sh2 = sum(TRADE_IMP[c] for c in top2) / sum(TRADE_IMP.values()) * 100
+        ask("어느 나라에서 얼마나 들여오고 내보내나",
+            f"수입의 {sh2:.0f}%는 {top2[0]} · {top2[1]} 두 나라에서 들어온다(2016~2025 합산). "
+            "2025년에는 수출(606.6억 달러)이 수입(478.2억 달러)보다 많았다.")
         st.html('<div class="kpis k4 parts-kpi-row">'                  # 한눈에 보는 KPI 처럼 1줄 4칸(860px 이하 2 × 2)
                 + kpi("2025 수입액", "478.2", "억 달러", "13개 합계 · 국가 전체 수입 · 민수 포함", icon="payments")
                 + kpi("2025 수출액", "606.6", "억 달러", "13개 합계 · 국가 전체 수출 · 민수 포함", icon="upload")
@@ -5352,6 +5370,8 @@ def _parts_trade() -> None:
                 rows = [(c[0], c[3], c[4]) for c in COUNTRIES] if imp else [(n, v, c) for n, _, _, v, c in EXPORT_TOP]
                 hover_donut(rows, f"{sum(r[1] for r in rows):,.0f}", "백만 USD", value_unit="백만 USD",
                             height=300, size=270, top=True)   # 도넛 360 → 270(약 25% 줄임) · 제목 바로 아래부터(위 여백 자름)
+        caution("군수 수요 비중이 아니라 국가 전체 교역 규모(민수 포함)다 — 「방산 수입 · 수출」로 읽지 않는다",
+                "수출 쪽 나라별 값은 샘플 값(상위 7개국)이다")
 
 
 def _flow_switch(key: str) -> str:
@@ -5370,6 +5390,9 @@ def _parts_conc() -> None:
     flow = _flow_switch("conc_flow")
     imp = flow == "수입"
     for _ in zone("conc", "공급국 집중도"):
+        n_hhi = int((items_df["HHI"] >= 2500).sum())
+        ask("수입은 몇 나라에 몰려 있나",
+            f"{len(items_df)}개 품목군 중 {n_hhi}개는 HHI 2,500 이상 — 수입이 소수 국가에 몰려 있다(2025년 합계).")
         c1, c2 = st.columns([1, 1.25], gap="medium")
         if imp:
             c1.html(rank_card("주요 수입국 TOP 7", "괄호 안은 전체 대비 비중",
@@ -5404,23 +5427,80 @@ def _parts_conc() -> None:
             with tab:
                 st.html(share_card(f))
 
+    for _ in zone("hhiyear", "연도별 집중도 변화"):
+        if not imp:
+            _no_export("품목군 × 연도 집중도(HHI)")
+            continue
+        names = list(items_df.sort_values("HHI")["품목군"])              # 아래 → 위로 HHI 가 커지게
+        always = [n for n in names if min(HHI_YEARLY[n]) >= 2500]
+        ask("한 나라에 쏠린 정도는 나아지고 있나",
+            f"{len(always)}개 품목군은 {HHI_YEARS[0]}~{HHI_YEARS[-1]}년 내내 HHI 2,500 이상이었다 — 쏠림이 풀리지 않은 품목이다(샘플 값).")
+        with st.container(border=True, key="card_hhiyear"):
+            st.html('<div class="h">품목군 × 연도 집중도(HHI) <span class="sub">칸 색 = 그해 HHI · 진한 칸이 이어지는 줄 = 늘 쏠린 품목<br>'
+                    '연도별 값은 샘플 값(2025년 열만 품목군 현황표와 같음)</span></div>')
+            z = [HHI_YEARLY[n] for n in names]
+            fig = go.Figure(go.Heatmap(
+                z=z, x=[str(y) for y in HHI_YEARS], y=names, zmin=1000, zmax=6000, xgap=3, ygap=3,
+                colorscale=[[0, "#eaf2ff"], [0.3, "#bfd6fb"], [1, ACCENT]],   # 0.3 = HHI 2,500 근처에서 색이 짙어지기 시작
+                text=[[f"{v:,}" for v in row] for row in z], texttemplate="%{text}", textfont=dict(size=10.5),
+                colorbar=dict(title="HHI", thickness=10, len=0.8),
+                hovertemplate="%{y} · %{x}년<br>HHI %{z:,}<extra></extra>"))
+            fig.update_layout(height=470, margin=dict(l=8, r=8, t=10, b=8))
+            fig.update_xaxes(type="category")                             # 연도를 한 칸도 빠짐없이 적는다
+            st.plotly_chart(style_fig(fig), width="stretch", theme=None)
+        caution("HHI = Σ(국가 점유율 %)², 0~10,000 · 2,500 이상 = 높은 집중. 위험도나 의존도를 뜻하지 않는다",
+                "품목군별 집중도는 수입 기준만 있다 — 품목군별 수출 상대국 자료가 없다")
+
 
 def page_parts() -> None:
     _mk_css()
-    # 소분류마다 KDD_v1 블록 다음에 KDD_v2 목업 화면(_v2_st_*)을 잇는다
-    _run_sub({"summary": lambda: (_parts_summary(), _v2_st_summary()), "trade": lambda: (_parts_trade(), _v2_st_trade()),
-              "conc": lambda: (_parts_conc(), _v2_st_conc()), "detail": lambda: search_block("수출입 HS")})
+    _run_sub({"summary": _parts_summary, "trade": _parts_trade,
+              "conc": _parts_conc, "detail": lambda: search_block("수출입 HS")})
 
 
 # ── ② 군급 분류와 조달 ───────────────────────────────────────────────────
 
 
+_FSG_NAME = {"58": "통신 · 탐지 장비", "59": "전기 · 전자 구성품", "60": "광섬유"}
+
+
 def _fsc_code() -> None:
-    st.html('<div class="lede"><div class="note">전자 군급(FSG 58 통신·탐지 · 59 전기·전자 구성품 · 60 광섬유)을 기준으로, '
-            '국외 조달계획과 국산화 개발 부품을 군급(FSC)별로 나란히 봅니다. '
-            'HS 품목군과는 <b>연결하지 않습니다</b>(공식 대응표 없음).</div></div>')
+    for _ in zone("codeintro", "군급코드란"):
+        ask("군은 전자부품을 어떤 분류로 관리하나",
+            "군은 무역 통계(HS)와 다른 분류(FSG → FSC → NSN)로 부품을 관리하고, 조달 · 국산화 자료는 모두 이 분류를 쓴다.")
+        st.html('<div class="mk-tree">'
+                '<div><h4>군(FSG) · 2자리</h4><p>큰 묶음. 전자는 58 통신 · 탐지 장비 · 59 전기 · 전자 구성품 · 60 광섬유</p></div><i>▶</i>'
+                '<div><h4>군급(FSC) · 4자리</h4><p>FSG 를 나눈 분류. 예: 5840 레이더 장비 · 5962 전자 집적회로 · 5935 커넥터</p></div><i>▶</i>'
+                '<div><h4>재고번호(NSN) · 13자리</h4><p>FSC 4자리 + 품목 식별번호 9자리 — 부품 하나하나의 번호</p></div></div>')
+        c1, c2 = st.columns([1.35, 1], gap="medium")
+        with c1.container(border=True, key="card_fsctree"):
+            st.html('<div class="h">전자 군(FSG) · 군급(FSC) 계층 <span class="sub">안쪽 고리 = 군(FSG) · 바깥 고리 = 군급(FSC)<br>'
+                    '대표 군급만 보여 주며 칸 크기는 모두 같다(건수가 아님)</span></div>')
+            # 고리 — 가운데(전자 군급) → 군(FSG) → 군급(FSC). 군급 칸은 모두 값 1(계층만 보여 준다)
+            ids, labels, parents, colors = ["전자 군급"], ["전자 군급"], [""], ["#ffffff"]
+            for i, (g, fs) in enumerate(MOCK_FSC.items()):
+                ids.append(f"FSG {g}"); labels.append(f"FSG {g}<br>{_FSG_NAME[g]}"); parents.append("전자 군급"); colors.append(SERIES[i])
+                for c, n in fs.items():
+                    ids.append(c); labels.append(f"{c}<br>{n}"); parents.append(f"FSG {g}"); colors.append(SERIES[i])
+            fig = go.Figure(go.Sunburst(ids=ids, labels=labels, parents=parents,
+                                        values=[1 if len(i) == 4 else 0 for i in ids],
+                                        marker=dict(colors=colors, line=dict(color="#fff", width=2)),
+                                        insidetextorientation="radial", textfont=dict(size=11),
+                                        hovertemplate="%{label}<extra></extra>"))
+            fig.update_layout(height=430, margin=dict(l=4, r=4, t=4, b=4))
+            st.plotly_chart(style_fig(fig), width="stretch", theme=None)
+        c2.html(rules_card("군급코드 읽는 법", [
+            ("앞 2자리 = 군(FSG)", "5962 의 59 — 전기 · 전자 구성품이라는 큰 묶음입니다."),
+            ("4자리 = 군급(FSC)", "5962 — 전자 집적회로. 조달계획 · 국산화 자료의 집계 단위입니다."),
+            ("13자리 = 재고번호(NSN)", "군급 4자리 뒤에 품목 식별번호 9자리가 붙어 부품 하나를 가리킵니다."),
+            ("전자 군급의 범위", "이 대시보드는 군(FSG) 58 · 59 · 60에 속한 군급만 전자 군급으로 봅니다."),
+        ]))
 
     for _ in zone("fscsel", "FSC/FSG 분류 기준 · 결합 원칙"):
+        n_src, n_elec = FSC_SELECT[0][1], FSC_SELECT[-1][1]
+        ask("전자 군급은 어떻게 추렸고, HS 품목과는 왜 잇지 않나",
+            f"국외 조달계획 {n_src:,}행에서 군급 미분류(FSC 9999)를 빼고 전자 군급 {n_elec:,}행을 추렸다. "
+            "HS 와 군급 사이에는 공식 대조표가 없어 두 분류를 코드로 잇지 않는다.")
         # 3줄 — 군수품 FSC/FSG 분류 기준 깔때기(QA 확정 값 FSC_SELECT) · HS ↔ FSC/FSG/NSN 결합 원칙
         # 깔때기 안 % 는 funnel_card 가 첫 층(원본 13,615행) 대비로 자동 계산 → 전자·통신 2,267행 ≈ 16.7%.
         # 따로 강조하는 17.42% 는 분석 모집단 13,017행 대비라 분모가 달라, 설명(ⓘ)에 둘 다 적는다
@@ -5438,10 +5518,15 @@ def _fsc_code() -> None:
                 '<span class="x">✕<small>공식 직접 매핑 없음</small></span>'
                 '<span class="sys">FSC/FSG/NSN<small>군수품 분류</small></span></div>',
            tip="NSN은 군수품 식별번호로 사용하며, FSC/FSG와의 계층·식별 기준은 원천 데이터의 코드 구조를 따릅니다."))
+        caution("소개 · 전자부품 현황의 HS 13개와 이 군급 분류는 코드로 잇지 않는다 — 같은 전자부품 영역을 두 공식 분류로 나란히 본다",
+                "깔때기 안 %는 원본 13,615행 대비, 전자 군급 비중 17.42%는 분석 모집단 13,017행 대비라 분모가 다르다")
 
 
 def _fsc_plan() -> None:
     for _ in zone("kpi3", "국외 조달계획 현황"):
+        (f1, v1, _), (f2, v2, _) = PLAN_BY_FSC[:2]
+        ask("군은 전자 군급 중 무엇을 해외에서 사려 하나",
+            f"해외 조달계획은 {f1}({v1:,}건) · {f2}({v2:,}건) 군급에 가장 많다.")
         # 2026 국외조달 예산 · 방위력개선비 대비 — BUDGET(연도 ↔ 값)에서 2026 행을 찾아 읽는다(값을 다시 적지 않는다)
         b26 = BUDGET.set_index("연도").loc[2026]
         unit_note = "예산(계획 금액)과 조달계획 건수/적용장비 수는 단위가 다르며 직접 계산된 비율이 아님"
@@ -5461,10 +5546,17 @@ def _fsc_plan() -> None:
 
     for _ in zone("eq", "적용장비"):
         st.html(rank_card("적용장비 TOP 품목", "국외 조달계획 기준", EQUIPMENT, "품목 수"))
+        caution("건수만 있다(금액 없음) — 품목 단위 자료라 계획 금액을 쓰지 않는다",
+                "예산(억 원)과 조달계획 건수 · 적용장비 수는 단위가 달라 서로 나누거나 더하지 않는다")
 
 
 def _fsc_army() -> None:
     for _ in zone("army", "연도별 군별 조달계획"):
+        tot = {a: int(ARMY_MIX[a].sum()) for a in ["육군", "해군", "공군", "해병대"]}
+        top = max(tot, key=tot.get)
+        y0, y1 = int(ARMY_MIX["연도"].iloc[0]), int(ARMY_MIX["연도"].iloc[-1])
+        ask("어느 군이 해외 조달을 가장 많이 요구하나",
+            f"{y0}~{y1}년 합계로는 {top}이 {tot[top]:,}건으로 가장 많고, 전체의 {tot[top] / sum(tot.values()) * 100:.0f}%를 차지한다.")
         with st.container(border=True, key="card_army"):
             st.html('<div class="h">연도별 군별 조달계획 <span class="sub">단위: 건</span></div>')
             fig = go.Figure()
@@ -5476,10 +5568,9 @@ def _fsc_army() -> None:
 
 
 def _fsc_domestic() -> None:
-    st.html('<div class="lede"><div class="note">방위사업청 <b>국내조달</b> 계약정보(clean_dapa_contract) · 입찰공고(clean_dapa_bid_notice) · '
-            '입찰결과(clean_dapa_bid_result)를 <b>건수</b>로만 봅니다. 금액은 쓰지 않습니다 — 공고 예산 ≠ 낙찰금액 ≠ 계약금액. '
-            'HS 품목군·관세청 수입액과는 연결하지 않습니다.</div></div>')
     for _ in zone("dkpi", "국내 조달 핵심 지표"):
+        ask("국내에서는 어떤 방법으로 계약하나",
+            "국내 계약의 70.2%가 수의계약이다. 다만 대부분 소액 · 소기업 사유라, 이 비중을 곧 진입 장벽으로 읽지 않는다.")
         st.html('<div class="kpis">'
                 + kpi("국내 계약", "37,602", "건", "계약 단위(최종 차수) · 정제 행 43,105", icon="description")
                 + kpi("수의계약 비중", "70.2", "%", "30,255 / 43,111행 · 국외조달은 20.1%", icon="handshake")
@@ -5499,8 +5590,11 @@ def _fsc_domestic() -> None:
                 + pct_rows([("국내조달", 70.2, SERIES[2]), ("국외조달", 20.1, SERIES[0])]) + '</div>')
 
     for _ in zone("dreason", "수의계약 사유"):
-        c1, c2 = st.columns([1.4, 1], gap="medium")
         total_private = sum(v for _, v, _ in DOM_METHOD[:1])
+        small = sum(v for _, v in PRIVATE_REASON[:2])
+        ask("왜 수의계약이 이렇게 많나",
+            f"수의계약 {total_private:,}행 중 {small / total_private * 100:.0f}%가 소액(추정가격 2천만원 이하) · 소기업(1억 이하) 사유다.")
+        c1, c2 = st.columns([1.4, 1], gap="medium")
         rows = [(n, v, SERIES[i]) for i, (n, v) in enumerate(PRIVATE_REASON)]
         rows.append(("기타 사유", total_private - sum(v for _, v in PRIVATE_REASON), ETC))
         with c1.container(border=True, key="card_dreason"):
@@ -5523,13 +5617,13 @@ def _fsc_domestic() -> None:
                 '국내와 나란히 두지 않습니다. 낙찰금액 ≠ 계약금액.</span></div>'
                 + pct_rows([("긴급 공고(국내)", 5677 / 10840 * 100, SERIES[3]), ("유찰(국내, 공고 키)", 1741 / 7201 * 100, DOWN)])
                 + '</div>')
+        caution("방위사업청 국내조달 계약정보 · 입찰공고 · 입찰결과를 건수로만 본다 — 공고 예산 ≠ 낙찰금액 ≠ 계약금액이라 금액은 쓰지 않는다",
+                "HS 품목군 · 관세청 수입액과는 연결하지 않는다")
 
 
 def page_fsc() -> None:
     _mk_css()
-    # KDD_v2 목업 화면(_v2_sp_*)도 함께 보이게(겹치는 내용 포함) — 군급코드란은 KDD_v2 블록을 맨 위에, 국외 조달계획은 KDD_v1 블록 다음에
-    _run_sub({"code": lambda: (_v2_sp_code(), _fsc_code()), "plan": lambda: (_fsc_plan(), _v2_sp_plan()),
-              "army": _fsc_army, "domestic": _fsc_domestic,
+    _run_sub({"code": _fsc_code, "plan": _fsc_plan, "army": _fsc_army, "domestic": _fsc_domestic,
               "detail": lambda: search_block("군수품 FSG/FSC")})
 
 
@@ -5538,6 +5632,9 @@ def page_fsc() -> None:
 
 def _local_done() -> None:
     for _ in zone("kpi3", "국산화 현황"):
+        (g1, n1, _), n_all = max(FSG_DIST, key=lambda r: r[1]), sum(v for _, v, _ in FSG_DIST)
+        ask("전자 부품 중 무엇을 국산화했나",
+            f"국산화개발을 마친 전자 계열 {n_all:,}행 중 {n1:,}행이 {g1}에 있다 — 가장 많은 군이다.")
         st.html('<div class="kpis k4 row1">'
                 + kpi("국산화개발 전자 계열", "2,717", "행", "FSG 58·59·60 · 군급 유효 25,009행 중 · 국산화율 아님", icon="library_books")
                 + kpi("반도체 군급", "67", "개", "전자 계열 2,717행 중 · FSG 60(광섬유)은 0행", icon="extension")
@@ -5559,10 +5656,16 @@ def _local_done() -> None:
                         '<span class="sub">조각에 커서를 올려 보세요 · 단위: 품목 수 · 국산화율 아님</span></div>')
                 hover_donut(LOCAL_STATUS, f"{sum(v for _, v, _ in LOCAL_STATUS):,}", "전체 품목 수",
                             value_unit="개", height=430)
+    caution("완료 부품 수 ≠ 국산화율 — 전체 부품 수(분모)가 없어 비율을 계산할 수 없다",
+            "국산화개발품목 원본에는 기준일이 없다 — 연도별 추이는 그릴 수 없다")
 
 
 def _local_pair() -> None:
     for _ in zone("pair", "군급 국산화 현황"):
+        top_plan = max(PLAN_BY_FSC, key=lambda r: r[1])[0]
+        top_loc = max(LOCAL_BY_FSC, key=LOCAL_BY_FSC.get)
+        ask("해외에서 많이 사려는 군급을 국산화도 많이 했나",
+            f"국외 조달계획이 가장 많은 군급은 {top_plan}, 국산화개발 기록이 가장 많은 군급은 {top_loc}다 — 두 순위가 같지 않다(샘플 값).")
         c1, c2 = st.columns([1.6, 1], gap="medium")
         with c1.container(border=True, key="card_pair"):
             st.html('<div class="h">군급별 국외 조달계획 · 국산화개발 <span class="sub">국외 조달계획 상위 5개 군급(FSC) · 단위: 건 · 샘플 값</span></div>')
@@ -5578,18 +5681,19 @@ def _local_pair() -> None:
 
 def page_local() -> None:
     _mk_css()
-    # 국산화 완료 부품은 KDD_v1 블록 다음에 KDD_v2 목업을 잇는다(군급코드란 · 국외 조달계획 목업은 군급 분류와 조달로)
-    _run_sub({"done": lambda: (_local_done(), _v2_sp_done()),
-              "pair": _local_pair, "detail": lambda: search_block("국산화개발")})
+    _run_sub({"done": _local_done, "pair": _local_pair, "detail": lambda: search_block("국산화개발")})
 
 
 # ── ④ 배경과 자료 ────────────────────────────────────────────────────────
 
 
 def _bg_policy() -> None:
-    st.html('<div class="lede"><div class="note">수입 의존 현황의 배경 — 정부 예산, 방위사업청 국외조달 계획, 국내 생산 기반. '
-            '각 자료는 단위·기준이 달라 서로 합하거나 관세청 수입액과 <b>직접 비교하지 않습니다</b>.</div></div>')
     for _ in zone("bud", "국외조달 예산 추이"):
+        b0, b1 = BUDGET.iloc[0], BUDGET.iloc[-1]
+        ask("정부는 해외 조달에 예산을 얼마나 쓰나",
+            f"국외조달 예산은 {int(b0['연도'])}년 {b0['국외조달 예산(억 원)']:,.0f}억 원에서 {int(b1['연도'])}년 "
+            f"{b1['국외조달 예산(억 원)']:,.0f}억 원으로 늘었고, 방위력개선비 대비 비중도 "
+            f"{b0['전체 방위력개선비 대비(%)']:.1f}%에서 {b1['전체 방위력개선비 대비(%)']:.1f}%로 올랐다.")
         st.caption("연도별 예산 막대와 방위력개선비 대비 비중 선 그래프입니다. 단위는 각각 억 원과 %입니다.")
         c1, c2 = st.columns(2, gap="medium")
         with c1.container(border=True, key="card_bud"):
@@ -5670,6 +5774,7 @@ def _bg_policy() -> None:
             fig.update_yaxes(range=[0, 2100])
             fig.update_layout(barmode="group", legend=dict(orientation="h", y=1.14), bargap=.25)
             st.plotly_chart(style_fig(fig, 330), width="stretch", theme=None)
+        caution("예산 · 조달계획 건수 · 국내 생산 지표는 단위와 기준이 서로 다르다 — 합하거나 관세청 수입액과 직접 비교하지 않는다")
 
 
 def _bg_industry() -> None:
@@ -5726,8 +5831,8 @@ def _bg_industry() -> None:
 def _bg_source() -> None:
     for _ in zone("src", "데이터 출처"):
         st.caption("사용한 자료의 제공 기관, 데이터 이름, 기간과 수집 방식을 표로 정리했습니다.")
-        st.html('<div class="lede"><div class="note">이 대시보드의 숫자가 어디서 왔고, '
-                '서로 다른 자료를 <b>어떻게 결합했는지</b> 적어 둔 곳입니다.</div></div>')
+        ask("이 대시보드의 숫자는 어디서 왔나",
+            "관세청 · 방위사업청 · 열린재정 · KOSIS 의 공개 자료다. 기준과 단위가 서로 달라 자료끼리 합치지 않고 각자 따로 본다.")
         cat_table(pd.DataFrame([
             ["관세청", "품목별 국가별 수출입실적", "OpenAPI", "2016.01~2026.08", "월 단위 갱신"],
             ["방위사업청", "국외 조달계획", "OpenAPI 15158418", "요구연도 2024~2027", "품목 단위, 건수만"],
@@ -5768,6 +5873,7 @@ def _bg_source() -> None:
 
 
 def page_background() -> None:
+    _mk_css()
     subs = {"policy": _bg_policy, "industry": _bg_industry, "source": _bg_source}
     for i, (key, title) in enumerate(SECTIONS["background"], 1):
         with st.container(key=f"sub_{key}"):
@@ -5776,24 +5882,17 @@ def page_background() -> None:
 
 
 # ── 소개(KDD_v2 의 「왜 이 부품인가」 + 「어디에 쓰이나」를 옮겨 옴) ──────────────────────
-# 소분류 한 화면 = 질문 · 이 화면이 말하려는 것 · 설명 재료 · 읽을 때 주의(mock_screen). 설명 문구는 숫자가 아니라 이야기 재료다
+# 구역 하나 = 질문 · 답(ask) → 설명 재료 → 읽을 때 주의(caution). 차트가 있는 화면은 ask · caution 을 구역 위 · 아래에 직접 쓴다
 MOCK_CSS = """<style>
 .mk-mark{display:none}
-.mk-slot .ms,.mk-card .ms{font-family:'Material Symbols Rounded'!important;font-weight:400;font-style:normal;line-height:1;
+.mk-card .ms{font-family:'Material Symbols Rounded'!important;font-weight:400;font-style:normal;line-height:1;
   letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
 .mk-q{font-size:15px;color:#5a6b85;margin:2px 0 10px}
-.mk-q b{color:#1d4ed8;margin-right:6px}
+/* 질문 + 결론 한 상자 — 윗줄 = 질문(파란 글씨 · Q. 는 흰 글씨 파란 칸), 아랫줄 = 그 답(짙은 남색 굵은 글씨) */
 .mk-msg{background:#eef4ff;border-left:4px solid #1d4ed8;border-radius:0 10px 10px 0;padding:14px 18px;margin:0 0 16px}
-.mk-msg small{display:block;font-size:11px;font-weight:800;color:#1d4ed8;letter-spacing:.04em;margin-bottom:4px}
-.mk-msg b{font-size:17px;color:#0f1f3d;line-height:1.55}
-.mk-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 14px}
-.mk-slot{border:2px dashed #b9c9e4;border-radius:12px;background:#f8faff;min-height:170px;padding:16px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px}
-.mk-slot.wide{grid-column:1 / -1}
-.mk-slot .ms{font-size:40px;color:#9fb3d6}
-.mk-slot b{font-size:15px;color:#27406b}
-.mk-slot span{font-size:13px;color:#6b7c96;line-height:1.5;max-width:520px}
-.mk-slot em{font-style:normal;font-size:11px;color:#9aa8bf;margin-top:2px}
+.mk-msg .q{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#1d4ed8;margin-bottom:7px;letter-spacing:-.2px}
+.mk-msg .q i{flex:0 0 auto;font-style:normal;font-size:11.5px;font-weight:800;color:#fff;background:#1d4ed8;border-radius:5px;padding:2px 7px}
+.mk-msg .a{font-size:17px;font-weight:700;color:#0f1f3d;line-height:1.55;word-break:keep-all}
 .mk-note{background:#fafafa;border:1px solid #e5e7eb;border-radius:10px;padding:10px 16px;margin:0 0 26px;font-size:13px;color:#4b5563}
 .mk-note b{color:#92400e;margin-right:6px}
 .mk-note ul{margin:4px 0 0;padding-left:18px}
@@ -5816,13 +5915,8 @@ MOCK_CSS = """<style>
 .mk-tree>i{align-self:center;font-style:normal;color:#9fb3d6;font-size:22px}
 .mk-tree h4{margin:0 0 4px;font-size:15px;color:#1d4ed8}
 .mk-tree p{margin:0;font-size:13px;color:#5a6b85;line-height:1.55}
-@media (max-width:860px){.mk-grid,.mk-cards{grid-template-columns:1fr!important}.mk-tree{flex-direction:column}.mk-tree>i{transform:rotate(90deg)}}
+@media (max-width:860px){.mk-cards{grid-template-columns:1fr!important}.mk-tree{flex-direction:column}.mk-tree>i{transform:rotate(90deg)}}
 </style>"""
-
-# 차트 모양 → Material Symbols 아이콘 이름
-_MK_ICON = {"line": "show_chart", "bar": "bar_chart", "table": "table_chart", "map": "public", "donut": "donut_large",
-            "heat": "grid_on", "tree": "account_tree", "kpi": "dashboard", "mirror": "align_horizontal_center"}
-
 
 def _mk_css() -> None:
     # <style> 만 있는 st.html 은 이벤트 칸으로 빠지므로 빈 표식을 붙여 본문 칸에 남긴다(main_landing 과 같은 방법)
@@ -5830,21 +5924,24 @@ def _mk_css() -> None:
         st.html(MOCK_CSS + '<i class="mk-mark"></i>')
 
 
-def mock_screen(key: str, title: str, question: str, message: str,
-                slots: tuple = (), notes: tuple = (), extra: str = "") -> None:
-    """소분류 한 화면 — 질문 · 이 화면이 말하려는 것 · (설명 재료 extra) · 차트 자리 · 읽을 때 주의."""
+def ask(question: str, message: str) -> None:
+    """질문 + 그 답(이 구역의 결론)을 한 상자에 — 구역 맨 위에 둔다."""
+    st.html(f'<div class="mk-msg"><div class="q"><i>Q.</i>{question}</div><div class="a">{message}</div></div>')
+
+
+def caution(*notes: str) -> None:
+    """읽을 때 주의 — 구역 맨 아래에 둔다."""
+    st.html('<div class="mk-note"><b>읽을 때 주의</b><ul>' + "".join(f"<li>{n}</li>" for n in notes) + '</ul></div>')
+
+
+def mock_screen(key: str, title: str, question: str, message: str, notes: tuple = (), extra: str = "") -> None:
+    """설명 화면 한 구역 — 질문 · 답 → 설명 재료(extra) → 읽을 때 주의."""
     for _ in zone(key, title):
-        st.html(f'<div class="mk-q"><b>Q.</b>{question}</div>'
-                f'<div class="mk-msg"><small>이 화면이 말하려는 것</small><b>{message}</b></div>')
+        ask(question, message)
         if extra:
             st.html(extra)
-        if slots:
-            st.html('<div class="mk-grid">' + "".join(
-                f'<div class="mk-slot{" wide" if wide else ""}"><span class="ms">{_MK_ICON[kind]}</span>'
-                f'<b>{name}</b><span>{desc}</span><em>차트 자리 · 데이터 연결 예정</em></div>'
-                for kind, name, desc, wide in slots) + '</div>')
         if notes:
-            st.html('<div class="mk-note"><b>읽을 때 주의</b><ul>' + "".join(f"<li>{n}</li>" for n in notes) + '</ul></div>')
+            caution(*notes)
 
 
 # ── 소개 — 왜 이 부품인가 ────────────────────────────────────────────────────────
@@ -5902,8 +5999,7 @@ def _why_items() -> None:
         "items", "13개 품목군",
         "13개는 각각 어떤 부품인가",
         "13개는 반도체 3 · 전자부품 8 · 소재장비 2로 나뉜다. 이야기의 중심은 반도체와 전자부품 11개다.",
-        extra=html,
-        notes=("소재장비 2개(841191 · 880730)를 분석 대상에 계속 둘지는 미결 — 11개로 줄이면 이 화면과 「어떻게 골랐나」 깔때기만 고치면 된다",))
+        extra=html)
 
 
 # ── 소개 — 어디에 쓰이나 ─────────────────────────────────────────────
@@ -5956,73 +6052,6 @@ def _intro_use() -> None:
 def page_intro() -> None:
     _mk_css()
     _run_sub({"elec": _why_elec, "select": _why_select, "items": _why_items, "use": _intro_use})
-
-
-# KDD_v2 의 차트 자리(목업) 화면 — KDD_v1 의 같은 소분류 아래에 이어 붙인다. 이미 있는 차트와 겹치는 부분이 있다(09-30 확인 후 정리 예정)
-# ── 전자부품 현황에 덧붙임(KDD_v2 「부품 현황」 목업) ─────────────────────────────────────────────────────────────
-def _v2_st_summary() -> None:
-    mock_screen(
-        "v2_summary", "종합 현황표",
-        "13개 품목군을 한 표로 보면 어떤가",
-        "13개 중 ○개는 수입액의 절반 이상을 한 나라에서 들여온다.",
-        slots=(("kpi", "KPI 4장", "총 수입액 · 총 수출액 · 1위 공급국 50% 이상 품목군 수 · 평균 수입국 수", True),
-               ("table", "품목군 현황표", "HS6 · 품목군 · 1위 공급국 · 점유율 · HHI — 품목군마다 한 줄", True)),
-        notes=("HHI 와 1위 공급국 점유율을 한 화면에 둘 다 올릴지는 미결(09-22 피드백)",))
-
-
-def _v2_st_trade() -> None:
-    mock_screen(
-        "v2_trade", "수출입 현황",
-        "어느 나라에서 얼마나 들여오고 내보내나",
-        "수입은 ○ · ○ 두 나라에 몰려 있고, 수출은 수입의 ○분의 1 수준이다.",
-        slots=(("line", "연도별 수입 · 수출 추이", "2016~2026, 수입 | 수출 전환", False),
-               ("map", "공급국 지구본", "나라별 수입 흐름 — 수출로 바꾸면 화살표 방향이 반대", False),
-               ("bar", "주요국 TOP 7", "품목군을 고르면 그 품목의 나라 순위", True)))
-
-
-def _v2_st_conc() -> None:
-    mock_screen(
-        "v2_conc", "공급국 집중도 변화",
-        "한 나라에 쏠린 정도는 나아지고 있나",
-        "○개 품목군은 10년 내내 한 나라 쏠림(HHI 2,500 이상)이 이어졌다.",
-        slots=(("heat", "품목군 × 연도 집중도", "칸 색 = 그해 HHI 등급 — 계속 진한 줄이 「늘 쏠린 품목」", True),),
-        notes=("HHI = Σ(국가 점유율 %)², 0~10,000 · 2,500 이상 = 높은 집중. 위험도나 의존도를 뜻하지 않는다",))
-
-
-# ── 국산화 현황에 덧붙임(KDD_v2 「조달과 국산화」 목업) ─────────────────────────────────────────────────────────
-def _v2_sp_code() -> None:
-    tree = ('<div class="mk-tree">'
-            '<div><h4>군(FSG) · 2자리</h4><p>큰 묶음. 전자는 58 통신 · 탐지 장비 · 59 전기 · 전자 구성품 · 60 광섬유</p></div><i>▶</i>'
-            '<div><h4>군급(FSC) · 4자리</h4><p>FSG 를 나눈 분류. 예: 5840 레이더 장비 · 5962 전자 집적회로 · 5935 커넥터</p></div><i>▶</i>'
-            '<div><h4>재고번호(NSN) · 13자리</h4><p>FSC 4자리 + 품목 식별번호 9자리 — 부품 하나하나의 번호</p></div></div>')
-    mock_screen(
-        "v2_code", "군급코드란",
-        "군은 전자부품을 어떤 분류로 관리하나",
-        "군은 무역 통계(HS)와 다른 분류(FSG → FSC → NSN)로 부품을 관리하고, 조달 · 국산화 자료는 모두 이 분류를 쓴다.",
-        extra=tree,
-        slots=(("tree", "FSG · FSC 계층 선버스트", "안쪽 고리 = 군(FSG) · 바깥 고리 = 군급(FSC)", True),),
-        notes=("소개 · 전자부품 현황의 HS 13개와 이 군급 분류는 코드로 잇지 않는다 — 같은 전자부품 영역을 두 공식 분류로 나란히 본다(09-21 결정)",))
-
-
-def _v2_sp_plan() -> None:
-    mock_screen(
-        "v2_plan", "국외 조달계획",
-        "군은 전자 군급 중 무엇을 해외에서 사려 하나",
-        "해외 조달계획은 ○ · ○ 군급에 몰려 있다.",
-        slots=(("bar", "군급별 국외 조달계획 건수", "전자 군급(FSG 58 · 59 · 60) 상위 순", False),
-               ("line", "요구연도별 추이", "2016~2026 · 소요군 색 구분", False)),
-        notes=("건수만 있다(금액 없음) — 품목 단위 API판",))
-
-
-def _v2_sp_done() -> None:
-    mock_screen(
-        "v2_done", "국산화 완료 부품",
-        "그중 무엇을 국산화했나",
-        "국산화개발을 마친 전자 부품은 ○ 군급에 가장 많다.",
-        slots=(("donut", "군급별 국산화 완료 부품 수", "FSG 58 · 59 나눔", False),
-               ("mirror", "조달계획 ↔ 국산화 나란히", "같은 군급 축에 왼쪽 = 해외 조달계획 · 오른쪽 = 국산화", False)),
-        notes=("완료 부품 수 ≠ 국산화율(분모가 없다) — 두 막대는 나란히 볼 뿐 나누거나 빼지 않는다",
-               "국산화개발품목 원본에는 기준일이 없다 — 연도별 추이는 그릴 수 없다"))
 
 
 # ════════════════════════════════════════════════════════════════════════════
