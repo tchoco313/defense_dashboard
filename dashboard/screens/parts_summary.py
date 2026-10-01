@@ -27,15 +27,16 @@ TBL_CSS = f"""<style>
 .pt-scroll .pt td:last-child,.pt-scroll .pt td.nm{{white-space:nowrap}}   /* 선정 근거 배지 · 품목군 이름 줄(HS + 묶음 배지)은 한 줄에 — 줄 높이를 같게 */
 </style>"""
 
-# HHI 칸 그림 — 칸은 .ftree 안에서 % 좌표로 놓는다. 칸 바탕은 흰색, 오른쪽 위에 1위 공급국 국기를 작게 둔다
+# HHI 칸 그림 — 칸은 .ftree 안에서 % 좌표로 놓는다. 칸 바탕 = 1위 공급국 색을 옅게(나라가 같으면 같은 색), 오른쪽 아래에 그 나라 국기
 TREE_CSS = """<style>
 .ftree{position:relative;height:360px;border-radius:8px;overflow:hidden}
-.ft{position:absolute;box-sizing:border-box;background:#fff;border:1px solid #c5d3ea;border-radius:4px;padding:6px 8px;overflow:hidden;
-  display:flex;flex-direction:column;gap:1px;transition:background .15s,box-shadow .15s}
-.ft:hover{background:#f3f7ff;box-shadow:inset 0 0 0 2px #1d4ed8;z-index:1}
-.ft img{position:absolute;top:6px;right:7px;width:26px;height:17px;object-fit:cover;border:1px solid #d5deee;border-radius:2px}
+.ft{position:absolute;box-sizing:border-box;border:2px solid #fff;border-radius:6px;padding:7px 9px;overflow:hidden;
+  display:flex;flex-direction:column;gap:1px;transition:filter .15s,box-shadow .15s;
+  background:color-mix(in srgb,var(--c) 24%,#fff)}        /* 파스텔 — 나라 색 24% + 흰색 */
+.ft:hover{filter:saturate(1.25) brightness(.97);box-shadow:inset 0 0 0 2px var(--c);z-index:1}
+.ft img{position:absolute;right:7px;bottom:7px;width:38px;height:25px;object-fit:cover;border:1px solid rgba(255,255,255,.9);border-radius:3px;
+  box-shadow:0 1px 4px rgba(11,31,77,.22)}
 .ft b,.ft span,.ft em{color:#0b1f4d;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ft b{padding-right:30px}        /* 국기 자리만큼 이름을 줄인다 */
 .ft b{font-size:13.5px;font-weight:800}
 .ft span{font-size:12.5px;font-weight:700}
 .ft em{font-style:normal;font-size:11.5px;font-weight:700;color:#33415c}
@@ -130,7 +131,7 @@ with c1, P.card("tree"):
     lo = c.iloc[-1]
     P.title(f'{period} 합계 HHI는 <span class="key">{escape(t["short"])} {t["hhi"]:,.0f}</span>로 가장 높고 '
             f'{escape(lo["short"])} {lo["hhi"]:,.0f}로 가장 낮다',
-            "칸 크기 = HHI(0~10,000, 클수록 수입이 소수 국가에 몰림) · 오른쪽 위 국기 = 1위 공급국")
+            "칸 크기 = HHI(0~10,000, 클수록 수입이 소수 국가에 몰림) · 칸 색 · 오른쪽 아래 국기 = 1위 공급국")
     tiles = ""
     ASPECT = 1.75                    # 그림 가로 ÷ 세로(약 630 × 360px) — 이 비율로 배치해야 칸이 정사각형에 가깝다. 좌표는 % 로 바꿔 쓴다
     for r, (x, y, w, h) in zip(c.to_dict("records"), squarify(c["hhi"].tolist(), 100.0 * ASPECT, 100.0)):
@@ -139,7 +140,7 @@ with c1, P.card("tree"):
         nat = names.get(cd, cd)
         flag = f'<img alt="" src="https://flagcdn.com/w80/{cd.lower()}.png">' if len(cd) == 2 and cd.isalpha() else ""
         tiles += (f'<div class="ft" title="{escape(r["short"])} · HHI {r["hhi"]:,.0f} · 1위 {escape(nat)}" '
-                  f'style="left:{x:.3f}%;top:{y:.3f}%;width:{w:.3f}%;height:{h:.3f}%">{flag}'
+                  f'style="--c:{col.get(cd, "#94a7c8")};left:{x:.3f}%;top:{y:.3f}%;width:{w:.3f}%;height:{h:.3f}%">{flag}'
                   f'<b>{escape(r["short"])}</b><span>HHI {r["hhi"]:,.0f}</span><em>{escape(nat)}</em></div>')
     st.html(TREE_CSS + f'<div class="ftree">{tiles}</div>')
 with c2, P.card("nctry"):

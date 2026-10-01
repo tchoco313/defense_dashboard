@@ -38,10 +38,17 @@ export default function (component) {
   const go = data.go
   if (go && go[1] !== window.__kdLnbGoN) {
     window.__kdLnbGoN = go[1]
-    let tries = 0
-    const tick = () => {
+    let tries = 0, stop = false
+    // 위쪽 소분류의 그림이 늦게 그려지면 자리가 밀린다 — 몇 초 동안 다시 맞춘다. 사용자가 직접 움직이면 그만둔다
+    const quit = () => { stop = true }
+    ;["wheel", "touchstart", "keydown", "mousedown"].forEach(ev => document.addEventListener(ev, quit, { capture: true, once: true }))
+    const snap = () => {
       const el = subOf(go[0])
-      if (el) { window.__kdLnbLock = Date.now() + 900; window.__kdLnbSetOn(go[0]); el.scrollIntoView({ block: "start" }) }
+      if (stop || !el || go[1] !== window.__kdLnbGoN) return
+      window.__kdLnbLock = Date.now() + 900; window.__kdLnbSetOn(go[0]); el.scrollIntoView({ block: "start" })
+    }
+    const tick = () => {
+      if (subOf(go[0])) [0, 300, 700, 1200, 2000, 3000, 4500].forEach(ms => setTimeout(snap, ms))
       else if (tries++ < 60) setTimeout(tick, 100)   // 그 소분류가 아직 그려지기 전이면 잠깐 기다린다
     }
     tick()

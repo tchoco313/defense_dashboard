@@ -24,10 +24,11 @@ else:
     P.lead(f'국외 조달계획 중 전자 군급 비중은 <span class="key">{top["army"]} {top["pct"]:.1f}%</span>로 가장 크다',
            f"% · 요구연도 {y0}~{y1} · 분모 = 소요군별 국외 조달계획 중 군급을 판별할 수 있는 행({int(sh['n_valid'].sum()):,}건, 「9999」 제외)")
     with P.card("army"):
-        P.title("소요군별 전자 군급 비중", "% · 가로 100% = 그 소요군의 국외 조달계획 · 파랑 = 전자 군급(군 58 · 59 · 60) · 괄호 = 분모 건수")
+        P.title("소요군별 전자 군급 비중", "% · 가로 100% = 그 소요군의 국외 조달계획 · 색 막대 = 전자 군급(군 58 · 59 · 60, 색 = 소요군) · 괄호 = 분모 건수")
         ylab = [f"{r.army} ({int(r.n_valid):,}건)" for r in sh.itertuples()]
         fig = go.Figure()
-        fig.add_trace(go.Bar(y=ylab, x=sh["pct"].round(1), orientation="h", name="전자 군급", marker_color="#2b6ef6",
+        fig.add_trace(go.Bar(y=ylab, x=sh["pct"].round(1), orientation="h", name="전자 군급", showlegend=False,
+                             marker_color=[R.ARMY_COLOR.get(a, "#2b6ef6") for a in sh["army"]],     # 소요군마다 다른 색(아래 연도 차트와 같은 색)
                              text=[f"{v:.1f}%" for v in sh["pct"]], textposition="inside",
                              customdata=sh["n_elec"].astype(int), hovertemplate="%{y}<br>전자 군급 %{x:.1f}% (%{customdata:,}건)<extra></extra>"))
         fig.add_trace(go.Bar(y=ylab, x=(100 - sh["pct"]).round(1), orientation="h", name="그 밖의 군급", marker_color="#e5e9f0",

@@ -106,3 +106,47 @@ div[class*="st-key-mc_"]:hover [data-testid="stPageLink"] a [data-testid="stIcon
 
 .st-key-landing,.st-key-zone_main{gap:0!important;margin:0!important}
 .st-key-main_css,[data-testid="stLayoutWrapper"]:has(> .st-key-main_css){display:none!important}   /* CSS 담는 칸 — 자리 차지 없음 */
+
+/* ── 숫자 띠 — 사진 위 파랑 ───────────────────────────────────────── */
+.mst{position:relative;padding:62px __PAD__;background-size:cover;background-position:center;background-attachment:fixed}
+.mst::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,rgba(0,35,107,.94),rgba(29,78,216,.86))}
+.mst-in{position:relative;display:grid;grid-template-columns:260px repeat(4,1fr);align-items:center}
+.mst-h b{display:block;font-size:26px;font-weight:900;color:#fff;letter-spacing:-.8px;line-height:1.3}
+.mst-h span{display:block;margin-top:8px;font-size:12.5px;color:#b9cdf2;line-height:1.6}
+.mst-i{text-align:center;border-left:1px solid rgba(255,255,255,.18);padding:6px 10px}
+.mst-i .v{font-size:46px;font-weight:900;color:#fff;letter-spacing:-1.5px;line-height:1.1}
+.mst-i .v small{font-size:16px;font-weight:700;color:#bcd6ff;margin-left:4px;letter-spacing:0}
+.mst-i .l{margin-top:8px;font-size:14px;font-weight:600;color:#d6e3fa}
+
+/* ── 아래 줄 — 데이터 갱신 목록 · 이용 안내 ─────────────────────────────── */
+.st-key-mb{padding:64px __PAD__ 76px;gap:40px!important;flex-wrap:nowrap!important;align-items:stretch!important;background:#fff}
+.st-key-mb > div:first-child{flex:1.7 1 0!important;min-width:0}
+.st-key-mb > div:last-child{flex:1 1 0!important;min-width:0;position:relative;top:49px}   /* GUIDE 상자 윗변 = 왼쪽 「데이터 출처」 제목 밑 남색 선 윗변(제목 줄 높이 − 선 2px). 크기는 그대로 두고 자리만 내린다 */
+.mb-h{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;border-bottom:2px solid #0b1f4d}
+.mb-h h3{margin:0;font-size:22px;font-weight:900;letter-spacing:-.7px;color:#0b1f4d}
+.mb-h span{font-size:12.5px;color:#6b7a99}
+.mb-list{list-style:none;margin:0!important;padding:0!important}
+.mb-list li{border-bottom:1px solid #e6ebf3;font-size:14.5px}
+.mb-list li a{display:flex;align-items:center;gap:16px;padding:15px 4px;color:inherit;text-decoration:none;transition:background .15s}   /* 줄 전체가 원본 페이지 링크 */
+.mb-list li a:hover{background:#f5f8fd}
+.mb-list li a:hover span{color:#1d4ed8;text-decoration:underline;text-underline-offset:3px}
+.mb-list li .ms{flex:0 0 auto;font-family:'Material Symbols Rounded';font-style:normal;font-size:16px;line-height:1;color:#a3afc4}
+.mb-list li a:hover .ms{color:#1d4ed8}
+.mb-list li b{flex:0 0 72px;box-sizing:border-box;text-align:center;font-size:11px;font-weight:800;color:#1d4ed8;background:#eaf1ff;padding:4px 8px;letter-spacing:.5px}   /* 기관 이름 길이가 달라도 자료 이름이 한 줄로 맞게 폭 고정 */
+.mb-list li span{flex:1;min-width:0;color:#1b2540;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mb-list li em{flex:0 0 auto;font-style:normal;font-size:13px;color:#7a879e}
+.mb-box{height:100%;padding:30px 30px 26px;color:#fff;background:linear-gradient(140deg,#002a73,#1d4ed8);position:relative;overflow:hidden}
+.mb-box::after{content:"shield";font-family:'Material Symbols Rounded';font-size:190px;line-height:1;position:absolute;right:-26px;bottom:-34px;
+  color:rgba(255,255,255,.08);font-feature-settings:'liga'}
+.mb-box small{font-size:12px;font-weight:800;letter-spacing:3px;color:#9fc2ff}
+.mb-box h3{margin:10px 0 0;font-size:24px;font-weight:900;letter-spacing:-.8px;line-height:1.35;color:#fff}
+.mb-box ul{margin:16px 0 0!important;padding:0!important;list-style:none}
+.mb-box li{font-size:13px;line-height:1.75;color:#a5d8ff;padding-left:14px;position:relative}   /* 파스텔 하늘색 */
+.mb-box li::before{content:"";position:absolute;left:0;top:10px;width:5px;height:5px;background:#7cc4ff}
+.st-key-mb_go{gap:8px!important;margin-top:-86px!important;padding:0 30px;position:relative;z-index:2}
+.st-key-mb_go [data-testid="stPageLink"] a{background:#fff;border-radius:0;padding:10px 16px}
+.st-key-mb_go [data-testid="stPageLink"] a p{font-size:13.5px!important;font-weight:800;color:#003899!important}
+.st-key-mb_go [data-testid="stPageLink"] a [data-testid="stIconMaterial"]{color:#003899}
+.st-key-mb_go [data-testid="stPageLink"] a:hover{background:#eaf1ff}
+.st-key-landing,.st-key-zone_main{gap:0!important;margin:0!important}
+.st-key-main_css,[data-testid="stLayoutWrapper"]:has(> .st-key-main_css){display:none!important}   /* CSS 담는 칸 — 자리 차지 없음 */

@@ -29,7 +29,9 @@ CSS = """<style>
 .sub-h p{margin:0;font-size:15px;color:#5b6b88}
 /* KPI 칸 수를 화면마다 — --n 칸 */
 .kpis.pk{grid-template-columns:repeat(var(--n),minmax(0,1fr))} .kpis.pk > .kpi{grid-column:auto!important}
-@container (max-width:620px){.kpis.pk{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* 카드가 적은 화면 — 카드 폭을 --w 칸짜리 화면과 같게 하고 가운데로 모은다 */
+.kpis.pk.fit{grid-template-columns:repeat(var(--n),calc((100% - (var(--w) - 1)*20px)/var(--w)));justify-content:center}
+@container (max-width:620px){.kpis.pk,.kpis.pk.fit{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* 이 화면에서 보는 것 + 출처(한 줄) */
 .see{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;padding:11px 16px;border:1px solid #dde5f2;border-radius:10px;
   background:#fff;font-size:14px;color:#33415c}
@@ -72,8 +74,11 @@ def lead(text: str, sub: str = "") -> None:
     st.html(f'<div class="pg-lead"><p>{text}</p>' + (f"<span>{sub}</span>" if sub else "") + "</div>")
 
 
-def kpis(cards: list[str]) -> None:
-    st.html(f'<div class="kpis pk" style="--n:{len(cards)}">' + "".join(cards) + "</div>")
+def kpis(cards: list[str], width_of: int | None = None) -> None:
+    """KPI 카드 한 줄. width_of = 카드 폭을 그 칸 수짜리 화면과 같게(카드가 적어 가로로 너무 길어질 때) — 가운데로 모은다."""
+    fit = width_of and width_of > len(cards)
+    st.html(f'<div class="kpis pk{" fit" if fit else ""}" style="--n:{len(cards)}' + (f";--w:{width_of}" if fit else "") + '">'
+            + "".join(cards) + "</div>")
 
 
 def card(key: str):

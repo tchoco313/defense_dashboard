@@ -360,7 +360,8 @@ def domestic() -> dict:
                    "WHERE is_latest_seq = 1 GROUP BY contract_method_name ORDER BY n DESC")
     reason = query("SELECT reason_group AS g, SUM(contract_count) AS n FROM v_contract_private_reason "
                    "GROUP BY reason_group ORDER BY n DESC")
-    bid = query("SELECT opening_result AS r, SUM(is_key_representative) AS keys_n FROM clean_dapa_bid_result GROUP BY opening_result")
+    bid = query("SELECT opening_result AS r, SUM(is_key_representative) AS keys_n, COUNT(*) AS n "
+                "FROM clean_dapa_bid_result GROUP BY opening_result ORDER BY n DESC")
     notice = int(query("SELECT COUNT(*) AS n FROM clean_dapa_bid_notice").iloc[0]["n"])
     return dict(method=method, reason=reason, bid=bid, notice=notice)
 

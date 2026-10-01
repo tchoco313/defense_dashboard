@@ -39,7 +39,7 @@ CSS = """<style>
 .nb.g{background:#1d4ed8} .nb.c{background:#5b8def} .nb.n{background:#17a597} .nb.s{background:#94a3b8;flex:2.2}
 .nsn-br{display:flex;gap:6px;font-size:12.5px;font-weight:800;color:#33415c;text-align:center}
 .nsn-br span{border-top:2px solid #33415c;padding-top:5px}
-.nsn-cap{font-size:13px;color:#5b6b88;line-height:1.6}
+.nsn-cap{font-size:13px;color:#5b6b88;line-height:1.6;text-align:center}
 .basis{margin:12px 0 0;padding:0;list-style:none} .basis li{font-size:14px;color:#1b2540;line-height:1.65;padding:6px 0 6px 18px;
   position:relative;border-top:1px dashed #dde5f2} .basis li::before{content:"";position:absolute;left:3px;top:15px;width:6px;height:6px;
   border-radius:50%;background:#1d4ed8}
@@ -56,7 +56,7 @@ ex_name = dict(zip(it["hs6"], it["short"])).get(EX, "")
 P.lead(LEAD.format(n=len(it)), "공식 표기: 류 = 앞 2자리 · 호 = 4자리 · 소호 = 6자리 · 군급(FSC)과는 서로 대응표가 없어 코드로 잇지 않습니다")
 
 a, b = st.columns([1, 1.15], gap="medium")
-with a, P.card("hsd"):
+with a, st.container(border=True, key="card_hsd", height="stretch"):
     P.title("HS 코드 10자리 안의 품목군", f"예시 = {EX[:4]}.{EX[4:]}(류 {EX[:2]} · 호 {EX[:4]}, {escape(ex_name)}) · 뒤 4자리는 가림")
     st.html('<div class="nsn"><div class="nsn-row">'
             f'<div class="nb g"><b>{EX[:2]}</b><small>류 · Chapter</small></div>'
@@ -67,7 +67,7 @@ with a, P.card("hsd"):
             '<div class="nsn-cap">앞 2자리가 류, 4자리가 호입니다 — 류 하나 아래에 여러 호 · 소호가 있습니다(계층 관계).</div></div>'
             '<ul class="basis">' + "".join(f"<li>{x}</li>" for x in BASIS) + "</ul>"
             f'<div class="basis-src">출처: {BASIS_SRC}</div>')
-with b, P.card("hsun"):
+with b, st.container(border=True, key="card_hsun", height="stretch"):      # 왼쪽 카드와 높이를 맞춘다
     ttl = st.empty()          # 제목 자리 — 보기 단추보다 위(제목 문장은 고른 보기에 따라 아래에서 채운다)
     mode = st.segmented_control("보기", ["분류 체계", "수입액"], default="분류 체계", key="p10_mode") or "분류 체계"
     ids, labels, parents, values, colors, hover = [], [], [], [], [], []
@@ -76,7 +76,8 @@ with b, P.card("hsun"):
         ids.append(ch); labels.append(f"{ch}류"); parents.append(""); values.append(sum(vals.values()))
         colors.append(CH_COLOR.get(ch, "#94a3b8")); hover.append(CHAPTER.get(ch, ""))
         for r in rows.itertuples():
-            ids.append(r.hs6); labels.append(f"{r.hs6}<br>{r.short}"); parents.append(ch); values.append(vals[r.hs6])
+            name = r.short.replace(" ", "<br>") if len(r.short) >= 8 else r.short   # 긴 이름은 줄을 나눠 가로로 들어가게
+            ids.append(r.hs6); labels.append(f"{r.hs6}<br>{name}"); parents.append(ch); values.append(vals[r.hs6])
             colors.append(CH_COLOR.get(ch, "#94a3b8") + "99"); hover.append(r.name_ko)
     if mode == "분류 체계":
         cmax = by_ch.idxmax()
@@ -92,7 +93,7 @@ with b, P.card("hsun"):
                     f"안쪽 = 류 · 바깥 = 품목군 · 칸 크기 = {by}년 수입액(억 달러 · 국가 전체 수입 · 민수 포함)")
     fig = go.Figure(go.Sunburst(ids=ids, labels=labels, parents=parents, values=values, branchvalues="total",
                                 marker=dict(colors=colors, line=dict(color="#fff", width=1)),
-                                customdata=hover, insidetextorientation="radial", textfont=dict(color="#111827"),   # 칸 안 글씨는 검정(10-01 사용자)
+                                customdata=hover, insidetextorientation="horizontal", textfont=dict(color="#111827"),   # 칸 안 글씨는 검정(10-01 사용자)
                                 hovertemplate="%{label} %{customdata}<br>%{value:,}<extra></extra>"))
     fig.update_layout(height=420, margin=dict(l=0, r=0, t=0, b=0))
     P.chart(fig, "p10_sun")

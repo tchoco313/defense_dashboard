@@ -26,7 +26,7 @@ P.lead(f'전자 군급 국산화 완료 부품 {sc["parts"]:,}개 중 <span clas
        f'{by_g[top_g]:,}개</span>다', "부품 고유 수(부품관리번호) · 시점 미상 · 국산화율 아님")
 P.kpis([P.kpi("국산화 완료 부품", f"{sc['parts']:,}", "개", f"전자 군급 · 전체 {sc['parts_all']:,}개 중"),
         P.kpi("해당 군급", f"{lc['fsc4'].nunique()}", "개", "완료 부품이 있는 군급(FSC)"),
-        P.kpi("국산화 사업", f"{sc['proj']}", "개", f"전체 {sc['proj_all']}개 사업 중 · 이름은 싣지 않음")])
+        P.kpi("국산화 사업", f"{sc['proj']}", "개", f"전체 {sc['proj_all']}개 사업 중 · 이름은 싣지 않음")], width_of=4)
 
 a, b = st.columns([1.2, 1], gap="medium")
 with a, P.card("donut"):

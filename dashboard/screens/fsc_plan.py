@@ -18,10 +18,36 @@ SOURCE = "방위사업청 · 국외 조달계획(품목) · 군급분류집"
 fsg_name, fsc_name = R.fsg_names(), R.fsc_names()
 allp = R.plan()
 armies = [a for a in R.ARMY_COLOR if a in set(allp["army"])]
+ALL = "전체"
+
+
+def pick_all(label: str, opts: list[str], key: str, where, fmt=str) -> list[str]:
+    """여러 개 고르는 단추 + 맨 왼쪽 「전체」. 처음에는 「전체」만 눌려 있다. 개별 단추를 누르면 「전체」가 풀리고,
+    개별을 모두 누르거나 하나도 안 남기면 다시 「전체」만 눌린 상태가 된다. 돌려주는 값 = 실제로 고른 항목(전체면 opts 전부)."""
+    prev_key = f"{key}_prev"
+    st.session_state.setdefault(key, [ALL])
+    st.session_state.setdefault(prev_key, [ALL])
+
+    def fix() -> None:
+        cur, prev = list(st.session_state.get(key) or []), st.session_state.get(prev_key, [ALL])
+        if ALL in cur and ALL not in prev:                    # 「전체」를 방금 눌렀다
+            new = [ALL]
+        elif ALL in cur and len(cur) > 1:                     # 「전체」 상태에서 개별을 눌렀다 → 전체를 푼다
+            new = [x for x in cur if x != ALL]
+        elif not cur or set(opts) <= set(cur):                # 다 풀었거나 개별을 모두 골랐다 → 전체
+            new = [ALL]
+        else:
+            new = cur
+        st.session_state[key] = st.session_state[prev_key] = new
+
+    sel = where.pills(label, [ALL] + list(opts), selection_mode="multi", key=key, on_change=fix,
+                      format_func=lambda x: ALL if x == ALL else fmt(x)) or [ALL]
+    return list(opts) if ALL in sel else [x for x in opts if x in sel]
+
+
 c1, c2 = st.columns([2.6, 1], vertical_alignment="bottom")   # 군 이름이 길어 왼쪽을 넓게(1.6 일 때 셋째 단추가 잘렸다)
-g_pick = c1.pills("군(FSG)", R.FSGS, selection_mode="multi", default=R.FSGS, key="p22_fsg",
-                  format_func=lambda g: f"{g} {fsg_name[g]}") or R.FSGS
-a_pick = c2.pills("소요군", armies, selection_mode="multi", default=armies, key="p22_army") or armies
+g_pick = pick_all("군(FSG)", R.FSGS, "p22_fsg", c1, lambda g: f"{g} {fsg_name[g]}")
+a_pick = pick_all("소요군", armies, "p22_army", c2)
 p = allp[allp["fsg"].isin(g_pick) & allp["army"].isin(a_pick)]
 by_fsc = p.groupby("fsc4").size().sort_values(ascending=False)
 by_g = {g: int((p["fsg"] == g).sum()) for g in g_pick}
@@ -37,9 +63,10 @@ else:
     P.lead(f'전자 군급 국외 조달계획 {total:,}건 중 <span class="key">군 {top_g}({escape(fsg_name[top_g])})가 '
            f'{by_g[top_g] / total * 100:.0f}%</span>다', "건 · 품목 단위(조달요구번호 × 품목순번) · 금액은 쓰지 않음(통화 미확인)")
     P.kpis([P.kpi("국외 조달계획", f"{total:,}", "건", f"전자 군급 · 요구연도 {yr_txt}"),
-            P.kpi("해당 군급", f"{p['fsc4'].nunique()}", "개", "조달계획이 있는 군급(FSC)"),
+            P.kpi("해당 군급", f"{p['fsc4'].nunique()}", "개", "조달계획이 있는 군급(FSC)", icon="account_tree"),
             P.kpi("적용장비", f"{p['equipment'].nunique():,}", "종", "종류 수만(결측 제외) · 이름은 싣지 않음"),
-            P.kpi("요구연도", yr_txt, "", f"{'·'.join(map(str, gap))}은 원자료가 적음" if gap else "요구연도 기준")])
+            P.kpi("요구연도", yr_txt, "", f"{'·'.join(map(str, gap))}은 원자료가 적음" if gap else "요구연도 기준",
+                  icon="calendar_month")])
 
     a, b = st.columns(2, gap="medium")
     with a, P.card("fsg"):

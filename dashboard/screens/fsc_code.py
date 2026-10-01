@@ -31,7 +31,7 @@ CSS = """<style>
 .nb.g{background:#1d4ed8} .nb.c{background:#5b8def} .nb.n{background:#17a597} .nb.s{background:#94a3b8;flex:2.2}
 .nsn-br{display:flex;gap:6px;font-size:12.5px;font-weight:800;color:#33415c;text-align:center}
 .nsn-br span{border-top:2px solid #33415c;padding-top:5px}
-.nsn-cap{font-size:13px;color:#5b6b88;line-height:1.6}
+.nsn-cap{font-size:13px;color:#5b6b88;line-height:1.6;text-align:center}
 .basis{margin:12px 0 0;padding:0;list-style:none} .basis li{font-size:14px;color:#1b2540;line-height:1.65;padding:6px 0 6px 18px;
   position:relative;border-top:1px dashed #dde5f2} .basis li::before{content:"";position:absolute;left:3px;top:15px;width:6px;height:6px;
   border-radius:50%;background:#1d4ed8}
@@ -46,7 +46,7 @@ by_g = ref.groupby("fsg").size()
 P.lead(LEAD.format(n=len(ref)), "공식 표기: 군급 = 4자리 FSC · 군 = 앞 2자리 FSG · HS 품목군(①)과는 서로 대응표가 없어 코드로 잇지 않습니다")
 
 a, b = st.columns([1, 1.15], gap="medium")
-with a, P.card("nsn"):
+with a, st.container(border=True, key="card_nsn", height="stretch"):
     P.title("재고번호(NSN) 13자리 안의 군급", f"예시 = 5962(군 59 · 급 62, {R.fsc_names().get('5962', '')}) · 일련번호는 가림")
     st.html('<div class="nsn"><div class="nsn-row">'
             '<div class="nb g"><b>59</b><small>군 · Group(FSG)</small></div>'
@@ -57,7 +57,7 @@ with a, P.card("nsn"):
             '<div class="nsn-cap">군급 앞 2자리가 곧 군입니다 — 군 하나 아래에 여러 군급이 있습니다(계층 관계).</div></div>'
             '<ul class="basis">' + "".join(f"<li>{x}</li>" for x in BASIS) + "</ul>"
             f'<div class="basis-src">출처: {BASIS_SRC}</div>')
-with b, P.card("sun"):
+with b, st.container(border=True, key="card_sun", height="stretch"):       # 왼쪽 카드와 높이를 맞춘다
     ttl = st.empty()          # 제목 자리 — 보기 단추보다 위(제목 문장은 고른 보기에 따라 아래에서 채운다)
     mode = st.segmented_control("보기", ["분류 체계", "조달계획 건수"], default="분류 체계", key="p21_mode") or "분류 체계"
     ids, labels, parents, values, colors, hover = [], [], [], [], [], []
@@ -86,7 +86,7 @@ with b, P.card("sun"):
                     "안쪽 = 군 · 바깥 = 군급 · 칸 크기 = 국외 조달계획 건수(0건 군급은 빠짐)")
     fig = go.Figure(go.Sunburst(ids=ids, labels=labels, parents=parents, values=values, branchvalues="total",
                                 marker=dict(colors=colors, line=dict(color="#fff", width=1)),
-                                customdata=hover, insidetextorientation="radial", textfont=dict(color="#111827"),   # 칸 안 글씨는 검정(10-01 사용자)
+                                customdata=hover, insidetextorientation="auto", textfont=dict(color="#111827"),   # 칸 안 글씨는 검정(10-01 사용자)
                                 hovertemplate="%{label} %{customdata}<br>%{value:,}<extra></extra>"))
     fig.update_layout(height=420, margin=dict(l=0, r=0, t=0, b=0))
     P.chart(fig, "p21_sun")

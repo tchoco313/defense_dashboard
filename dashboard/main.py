@@ -251,6 +251,20 @@ MAIN_CARDS = [  # (url, 소분류, 사진, 분류, 제목, 설명) — 이야기
      "정책 흐름과 예산, 국내 생산 기반, 그리고 이 숫자들이 어디서 왔는지 봅니다."),
 ]
 
+# 첫 화면 「데이터 출처」 목록 — (기관, 데이터, 수록 기간 · 기준, 원본 페이지). 누르면 새 탭에서 원본 페이지로
+MAIN_SOURCES = [("관세청", "품목별 국가별 수출입실적", "2016.01 ~ 2026.08 · 2026년 부분연도",
+                 "https://www.data.go.kr/data/15100475/openapi.do"),
+                ("방위사업청", "국외 조달계획", "요구연도 2016 ~ 2026",
+                 "https://www.data.go.kr/data/15158418/openapi.do"),
+                ("방위사업청", "국산화개발품목", "시점 미상 · 원본에 기준일 없음",
+                 "https://www.data.go.kr/data/15119899/fileData.do"),
+                ("방위사업청", "군급분류집(FSG/FSC)", "2025-12-31 기준",
+                 "https://www.data.go.kr/data/15119907/fileData.do"),
+                ("KOSIS", "방산 가동률 · 광공업생산지수", "가동률 2016 ~ 2024 · 생산지수 2016.01 ~ 2026.07",
+                 "https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1F02001"),
+                ("열린재정", "세부사업 예산", "2016 ~ 2027 · 2027년 정부안",
+                 "https://www.openfiscaldata.go.kr/op/ko/sd/UOPKOSDA01")]
+
 MAIN_CSS = css("landing.css")
 
 
@@ -290,11 +304,16 @@ def main_landing() -> None:
     import rds as R                                  # dashboard/screens/rds.py
     from db import DBConfigError
     from sqlalchemy.exc import SQLAlchemyError
+    main_stats, stats_note = None, ""                # 숫자 띠(아래 4) — 조회 실패면 띠를 그리지 않는다
     try:
         _y = R.full_years()[-1]
         _c = R.conc((_y,))
-        why_top1 = (f'분석 대상 {len(_c)}개 품목군 중 <b>{int((_c["top1_share"] >= 0.5).sum())}개</b>는 '
+        _k50 = int((_c["top1_share"] >= 0.5).sum())
+        why_top1 = (f'분석 대상 {len(_c)}개 품목군 중 <b>{_k50}개</b>는 '
                     f'{_y}년 수입액의 절반 이상을 한 나라에서 들여왔습니다(민수 포함). ')
+        main_stats = [(f"{len(_c)}", "개", "분석 대상 품목군"), (f"{_c['total'].sum() / R.E8:,.1f}", "억 달러", f"{_y} 수입액"),
+                      (f"{_k50}", "개", "1위 공급국 50% 이상 품목군"), (f"{R.loc_scope()['parts']:,}", "개", "전자 군급 국산화 완료 부품")]
+        stats_note = f"{_y}년 기준 · 수입액은 국가 전체 수입(민수 포함)"
     except (DBConfigError, SQLAlchemyError, pd.errors.DatabaseError):
         why_top1 = '분석 대상 품목군 여럿은 수입액의 절반 이상을 한 나라에서 들여왔습니다(민수 포함). '
     with st.container(key="mi", horizontal=True):
@@ -315,14 +334,41 @@ def main_landing() -> None:
                 st.page_link(page_of[u][0], label=label, icon=f":material/{icon}:", query_params={"sec": sec})
 
     # 3) 주요 분석 사진 카드
-    st.html('<div class="mc-head"><h2><small>STORY</small>이야기 순서대로 보기</h2>'
-            '<span>전자부품 현황부터 배경과 자료까지 차례로 이어집니다</span></div>')
+    st.html('<div class="mc-head"><h2><small>ANALYSIS</small>주요 분석 바로가기</h2>'
+            '<span>카드를 누르면 해당 메뉴의 첫 화면으로 이동합니다</span></div>')
     with st.container(key="mcards", horizontal=True):
         for i, (u, sec, img, cat, title, desc) in enumerate(MAIN_CARDS):
             with st.container(key=f"mc_{i}"):
                 st.html(f'<div class="mc-img"><b>{cat}</b><div style="background-image:url(\'{img}\')"></div></div>'
                         f'<div class="mc-body"><h3>{title}</h3><p>{desc}</p></div>')
                 st.page_link(page_of[u][0], label="자세히 보기", icon=":material/arrow_forward:", query_params={"sec": sec})
+
+    # 4) 숫자 띠 — 값은 RDS 에서(위 「왜 전자부품인가」와 같은 조회). 조회 실패면 띠를 건너뛴다
+    if main_stats:
+        stats = "".join(f'<div class="mst-i"><div class="v">{v}<small>{u}</small></div><div class="l">{l}</div></div>'
+                        for v, u, l in main_stats)
+        st.html(f'<div class="mst" style="background-image:url(\'{_ph("1562408590-e32931084e23", 1800)}\')"><div class="mst-in">'
+                f'<div class="mst-h"><b>숫자로 보는<br>K-Defense</b><span>{stats_note}</span></div>'
+                f'{stats}</div></div>')
+
+    # 5) 데이터 출처 목록 · 이용 안내
+    with st.container(key="mb", horizontal=True):
+        rows = "".join(f'<li><a href="{link}" target="_blank" rel="noopener" title="{org} · {n} 원본 페이지 새 탭으로 열기">'
+                       f'<b>{org}</b><span>{n}</span><em>{when}</em><i class="ms">open_in_new</i></a></li>'
+                       for org, n, when, link in MAIN_SOURCES)
+        st.html(f'<div><div class="mb-h"><h3>데이터 출처</h3><span>자료별 제공 기관 · 수록 기간</span></div>'
+                f'<ul class="mb-list">{rows}</ul></div>')
+        with st.container():
+            st.html('<div class="mb-box"><small>GUIDE</small><h3>처음 오셨나요?<br>이렇게 보시면 됩니다</h3><ul>'
+                    '<li>상단 메뉴에 커서를 올리면 메뉴별 화면 목록이 펼쳐집니다</li>'
+                    '<li>각 메뉴 왼쪽 목록을 누르면 그 화면으로 내려갑니다</li>'
+                    '<li>각 메뉴의 「상세 조회」에서 조건을 골라 직접 그려 봅니다</li>'
+                    '<li>카드 오른쪽 위 ⓘ 에 커서를 올리면 단위와 기준이 나옵니다</li></ul>'
+                    '<div style="height:70px"></div></div>')
+            with st.container(key="mb_go", horizontal=True):
+                st.page_link(page_of["parts"][0], label="현황표 보기", icon=":material/insights:", query_params={"sec": "summary"})
+                st.page_link(page_of["background"][0], label="데이터 출처", icon=":material/folder_open:",
+                             query_params={"sec": "source"})
 
 
 # 왼쪽 메뉴(스크롤형) — 소분류 링크(a.lnb-a)를 누르면 페이지를 다시 열지 않고 그 소분류 칸(.st-key-sub_*)으로 부드럽게
@@ -490,20 +536,9 @@ SCREENS = {
     "local": {"done": "loc_done", "pair": "loc_pair", "detail": "loc_detail"},
     "background": {"policy": "bg_policy", "industry": "bg_industry", "source": "bg_source"},
 }
-# 화면 끝 「다음 대분류로」(screens/menu.py NEXT) → 갈 대분류 · 소분류. 전자부품 현황(parts-conc) 아래에는 두지 않는다
-_NEXT_V2 = {"fsc-army": ("local", "done"), "loc-pair": ("background", "policy"),
-            "bg-source": ("home", "main")}
-
-
 def _next_link_v2(cur: str) -> None:
-    t = _NEXT_V2.get(cur)
-    if not t:
-        return
-    u, sec = t
-    label = "처음으로: 홈" if u == "home" else f"다음: {page_of[u][1]} — {page_of[u][4]}"
-    with st.container(key="next"):
-        st.page_link(page_of[u][0], label=label, icon=":material/arrow_forward:", query_params={"sec": sec},
-                     width="stretch")
+    """화면 끝 「다음: … / 처음으로: 홈」 링크는 두지 않는다 — 이동은 상단 메뉴 · 왼쪽 메뉴로 한다. 화면 파일의 P.next_link 호출은 그대로 둔다."""
+    return
 
 
 # 소분류 맨 위 파란 상자의 질문(「Q.」) — 화면 파일의 「이 화면에서 보는 것」 설명 대신 쓴다.
@@ -742,7 +777,8 @@ _SEC["landing"] = url == "home"
 # 소분류는 한 페이지에 모두 이어 그린다(_run_sub). 다른 페이지 · 위쪽 메뉴 · 첫 화면 바로가기에서 ?sec= 로 들어오면
 # 열린 뒤 그 소분류로 한 번만 스크롤한다(_LNB_JS). 주소의 sec 는 지운다 — 남겨 두면 버튼 · 전환으로 화면을 다시 그릴
 # 때마다 그 자리로 되돌아간다. 번호(n)는 같은 소분류로 다시 들어와도 또 스크롤하게 바꿔 준다
-if not _SEC["landing"] and _q in dict(secs):
+_GO_NOW = not _SEC["landing"] and _q in dict(secs)     # 이번 실행이 ?sec= 로 들어온 것 — 맨 위로 올리지 않고 그 소분류로 간다
+if _GO_NOW:
     st.session_state["_lnb_go"] = [_q, st.session_state.get("_lnb_go", [None, 0])[1] + 1]
     del st.query_params["sec"]
 nav_secs = [(k, t) for k, t in secs if k != "main"]      # 왼쪽 메뉴의 소분류 — 누르면 그 소분류로 스크롤한다
@@ -852,4 +888,5 @@ with st.container(key="ft", horizontal=True):
 # __NAV__ 에 대분류 · 소분류를 넣어 화면이 바뀔 때만 새로 붙는다(같은 화면에서 위젯을 만질 때는 스크롤 그대로)
 _TOP_JS = script("scroll_top.js")
 with st.container(key="kdjs"):
-    components.html(_TOP_JS.replace("__NAV__", f"{url}|{_SEC['sel']}"), height=0)
+    # 페이지가 바뀔 때만 맨 위로 — 소분류로 들어온 실행(_GO_NOW)은 올리지 않는다(올리면 lnb_scroll.js 의 스크롤을 덮어쓴다)
+    components.html(_TOP_JS.replace("__NAV__", url).replace("__GO__", "1" if _GO_NOW else ""), height=0)
