@@ -1,4 +1,4 @@
-"""① 1-3 공급국 집중도 변화 — 수입 쏠림은 어떻게 바뀌었나(명세 11_cat_parts.md §3, 차트 세부 20_trade.md conc · rank · focus).
+"""① 1-3 공급국 집중도 변화 — 수입 쏠림은 어떻게 바뀌었나.
 
 값: 연도별 HHI · 순위 = 관세청 연도별 집중도 · 점유율 뷰(rds.hhi_years · rds.ranks, 완결 연도), 기준 연도 국가 구성 · 산점 = rds.shares · rds.conc.
 「연도별 HHI」(그해 값)와 1-1의 기간 합계 HHI는 다른 지표다.

@@ -1,4 +1,4 @@
-"""③ 3-3 상세 조회 — DATA CENTER 도구를 「국산화개발」 유형으로 고정(명세 13_cat_localization.md §3, 91_search.md)."""
+"""③ 3-3 상세 조회 — 「데이터 시각화」 도구를 「국산화개발」 유형으로 고정."""
 from __future__ import annotations
 
 import parts as P

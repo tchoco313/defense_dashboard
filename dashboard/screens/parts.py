@@ -1,4 +1,4 @@
-"""소분류 화면 공통 조각 — 한 소분류 = 한 화면(공동작업 저장소 app/specs/00_common.md §4-1).
+"""소분류 화면 공통 조각 — 한 소분류 = 한 화면.
 
 화면 순서: 결론 한 문장(lead) → KPI 최대 4개(kpis) → 주 차트 + 보조 차트(card · chart) → 「이 화면에서 보는 것」 + 출처(see)
 → 아래 「자세히 보기」(more) → 다음 대분류 링크(next_link). 화면 파일은 이 함수들만 불러 쓰고, 문구는 파일 맨 위 상수에 둔다.
@@ -23,7 +23,7 @@ CSS = """<style>
 .pg-lead p{margin:0;font-size:22px;font-weight:800;letter-spacing:-.6px;line-height:1.45;color:#0b1f4d}
 .pg-lead p .key{display:inline;font-size:inherit;font-weight:inherit;color:#1d4ed8}
 .pg-lead > span{display:block;margin-top:6px;font-size:13.5px;color:#5b6b88}
-/* 소분류 제목 줄 — 아래 검은 줄 없음(2026-09-30 사용자) */
+/* 소분류 제목 줄 — 아래 검은 줄 없음 */
 .sub-h{display:flex;align-items:baseline;gap:14px;padding-bottom:4px;margin-bottom:6px}
 .sub-h h2{margin:0;padding:0;font-size:27px;font-weight:800;letter-spacing:-.7px;color:#101a33}
 .sub-h p{margin:0;font-size:15px;color:#5b6b88}
@@ -65,11 +65,6 @@ CSS = """<style>
 
 def inject() -> None:
     st.html(CSS)
-
-
-def pages() -> dict:
-    """main.py 가 이번 실행에서 만든 페이지 사전(세션마다 따로)."""
-    return st.session_state["proto_pages"]
 
 
 def lead(text: str, sub: str = "") -> None:

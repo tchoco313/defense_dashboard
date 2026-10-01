@@ -1,17 +1,17 @@
 -- =============================================================================
--- defense_dashboard 스키마 DDL  (작성 2026-09-15, 리뷰 반영 2026-09-15, 교수 피드백 반영 2026-09-15 A7 국외조달 5테이블, 2026-09-16 정량 지표 ref_hs_indicator·raw_hsk_control·뷰 3, 2026-09-16 HS6 선정 규칙 raw_hs_code_master·raw_hs_unit_name·뷰 4·evidence 2열·ref_hs_rule_flag·v_hs_whitelist_rule, 2026-09-16 FSG 참조표 ref_fsg·v_b2_fsg_summary, 2026-09-16 팀 드라이브 채택 3종 raw_dapa_overseas_plan_api·raw_dapa_fsc_catalog·raw_openfiscal_program_budget·뷰 2(v_overseas_plan_api_fsc·v_budget_rnd_yearly)·ref_fsc 시드(alter_2026-09-16_api_budget.sql), 2026-09-17 KDSIS NSN 보조 조회 raw_kdsis_nsn·clean_kdsis_nsn·clean_kdsis_nsn_ref·뷰 3(alter_2026-09-17_kdsis_nsn.sql), 2026-09-17 국내 축 확장 뷰 9개(조달 보조 6종+수의계약 사유, alter_2026-09-17_procurement_aux.sql), 2026-09-18 P4 국내조달 clean 4개+제외 행 공용 clean_excluded_row(alter_2026-09-18_p4_clean.sql), 2026-09-19 P3 국외조달 clean 3개+표기 통일 사전 ref_equipment_alias+FSG/FSC 60 전자 플래그(alter_2026-09-19_p3_clean.sql), 2026-09-19 P5-4 clean_krit_task 열 9개 보강 + P2-6 열린재정 예산 clean 2개(clean_openfiscal_program_budget·clean_openfiscal_program_link, alter_2026-09-19_krit_budget_clean.sql), 2026-09-19 P1 관세청 수입 축 — dim_hs10 현행 마스터 열 4개 + clean_hsk_control(HSK 연계표 세로형) + ref_hs_rule_flag.hs6_name_src + ref_hs_indicator hsk_control_* 48행(alter_2026-09-19_p1_customs_hs.sql), 2026-09-19 P5-5 KOSIS 2종 clean 세로형 clean_kosis_utilization·clean_kosis_production_index(alter_2026-09-19_kosis_clean.sql), 2026-09-19 raw 직독 뷰 14개 clean 전환 + clean_dapa_contract.private_contract_reason·clean_dapa_domestic_plan.is_budget_approx 열 2개(alter_2026-09-19_views_to_clean.sql), 설계 문서: docs/db/schema-design.md) · 2026-09-19 미사용 표 삭제(clean_kdsis_nsn_ref·test_table, alter_2026-09-19_drop_unused.sql) · 2026-09-22 P1 관세청 정제 4표 폐기(clean_customs_trade·clean_customs_progress·clean_hs_code_master·clean_hs_unit_name — 팀 결정, 분석 축은 fact_customs_monthly·dim_hs10. RDS DROP + 사전 47행 삭제는 alter_2026-09-22_drop_p1_clean.sql) · 2026-09-22 raw_ 계층 제거(교수 피드백 — 원본은 파일. raw_ 23표 DROP, 후속 표 4개 ref_hs_code_master·ref_hs6_name·clean_customs_region·clean_dapa_defense_company, raw_ 참조 FK 15개·fact_customs_monthly.raw_row_id 삭제, 뷰 4개 재정의; alter_2026-09-22_raw_successors.sql·alter_2026-09-22_drop_raw_layer.sql)
+-- defense_dashboard 스키마 DDL (설계 문서: docs/db/schema-design.md, 관계도: docs/db/erd.md)
 --
 -- 대상: MariaDB 10.4+ / MySQL 8.0.16+ 양쪽에서 실행되는 문법만 사용
---       (팀 서버 실측 VERSION()=8.4.11, 로컬 검증 MariaDB 12.2)
--- 팀 서버(MySQL 8.4)에서 뷰를 만들 때는 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci 를 먼저 둔다 (2026-09-17: 뷰 콜레이션 0900_ai_ci 불일치 → db/alter_2026-09-17_view_collation.sql)
--- 실행: mysql -h <서버IP> -u <계정> -p --default-character-set=utf8mb4 < db/schema.sql
+--       (운영 DB AWS RDS MySQL 8.4, 로컬 검증 MariaDB 12.2)
+-- MySQL 8.4 에서 뷰를 만들 때는 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci 를 먼저 둔다(기본 0900_ai_ci 와 콜레이션이 섞이면 비교가 실패한다).
+-- 실행: mysql -h <호스트> -u <계정> -p --default-character-set=utf8mb4 < db/schema.sql
 -- 용도: 최초 구축 · 빈 개발 DB 초기화 전용. 아래 DROP이 수작업 참조표(ref_sido_map)와
 --       meta_ 기록까지 전부 지우므로 데이터가 들어간 DB에는 재실행하지 않는다.
 --       데이터만 비우고 다시 적재할 때는 db/reset_data.sql(ref_·meta_dataset·meta_column_dict 보존) 사용.
 -- 순서: 0 DB → 1 ref_ → 2 (원본 파일 계층 — DB 밖) → 3 meta_ → 4 dim_/fact_ → 5 clean_ → 6 v_ 뷰
 --
 -- 원칙
---   원본 파일: DB 에 넣지 않는다(2026-09-22). data/raw/ 파일이 원본이며 scripts/load_db.py read_raw(<데이터셋 키>) 가
+--   원본 파일: DB 에 넣지 않는다. data/raw/ 파일이 원본이며 scripts/load_db.py read_raw(<데이터셋 키>) 가
 --            파일을 DataFrame 으로 읽는다(열명·헤더 대조는 db/column_dict.csv 의 raw_* 행 = 원본 파일 열 사전).
 --            read_raw 의 row_id(파일명 정렬 × 행 순 파서 순번) 가 clean_*.raw_row_id 의 정의다. 원본 위치·크기·SHA-256·파서 건수는 meta_dataset.
 --   clean_*: 정제 결과(형 변환·정규화·분류 속성). 값은 사용자 정제 노트북이 채운다.
@@ -25,8 +25,7 @@ CREATE DATABASE IF NOT EXISTS defense_dashboard
 USE defense_dashboard;
 
 -- -----------------------------------------------------------------------------
--- 안전장치 (2026-09-15 추가): 이미 데이터가 적재된 DB에서 이 파일을 실행하면 아래 DROP 전에 오류로 중단된다.
---   2026-09-15 15:12 팀 서버에서 이 파일이 다시 실행되어 적재 데이터 65만 행이 전부 지워진 사고 이후 추가.
+-- 안전장치: 이미 데이터가 적재된 DB에서 이 파일을 실행하면 아래 DROP 전에 오류로 중단된다(전체 DROP 으로 적재 데이터가 지워지는 것을 막는다).
 --   (ERD 도구에 "Import"할 때는 서버에 연결하지 말고 파일만 읽히거나, 빈 로컬 DB를 쓴다.)
 --   정말 초기화하려면 ① 먼저 덤프(mysqldump)를 뜨고 ② 이 블록(SET @has_tbl … DEALLOCATE PREPARE guard2;)을 지운 뒤 실행한다.
 --   중단 시 메시지: ERROR 1146 Table 'stop_schema_sql_db_has_data_remove_guard_to_force_reset' doesn't exist
@@ -64,11 +63,11 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- 1. ref_  참조표  (data/reference/*.csv 및 수작업 대응표)
 -- =============================================================================
 
--- HS6 화이트리스트 24행(2026-09-16: 21 + 규칙 신규 852910·901410·901490). 수집·집계·사이드바 필터의 기준 테이블.
--- 원본: data/reference/hs_whitelist.csv (16열: 8열 + 2026-09-15 정의 열 3개 + civil_mix 3열 + evidence_basis·evidence_note. related_fsc·b2_scope 는 2026-09-21 삭제)
--- civil_mix 3열은 v_civil_mix_rule(정량 지표 → 규칙 도출)의 스냅샷이다. 값을 손으로 고치지 말고 db/alter_2026-09-16_indicator.sql §5 UPDATE로 갱신한다.
--- evidence 3열(evidence·evidence_basis·evidence_note)은 v_hs6_candidate_rule(관세청 HSK 마스터·전략물자 HSK 연계표 규칙 도출)의 스냅샷 — db/alter_2026-09-16_hs_rule.sql §5(정적 UPDATE, 2026-09-16 반영: rule 19 · 팀판단 5, 미해당 5개는 priority 3).
--- 분석 대상 = priority IN (1, 2) 13개(2026-09-21 회의 M5: 진입식 R1 OR R2, R4 제외 — R3∧R4로만 진입했던 6개는 priority 3, db/alter_2026-09-21_m5_r4_exclude.sql). evidence_basis 는 근거 도출 방식이지 분석 대상 여부가 아니다.
+-- HS6 화이트리스트 24행. 수집·집계·사이드바 필터의 기준 테이블.
+-- 원본: data/reference/hs_whitelist.csv (16열: 기본 8열 + 정의 열 3개 + civil_mix 3열 + evidence_basis·evidence_note)
+-- civil_mix 3열은 v_civil_mix_rule(정량 지표 → 규칙 도출)의 스냅샷이다. 값을 손으로 고치지 않는다.
+-- evidence 3열(evidence·evidence_basis·evidence_note)은 v_hs6_candidate_rule(관세청 HSK 마스터·전략물자 HSK 연계표 규칙 도출)의 스냅샷(rule 19 · 팀판단 5, 미해당 5개는 priority 3).
+-- 분석 대상 = priority IN (1, 2) 13개(진입식 R1 OR R2, R4 제외 — R3∧R4로만 진입했던 6개는 priority 3). evidence_basis 는 근거 도출 방식이지 분석 대상 여부가 아니다.
 CREATE TABLE ref_hs_whitelist (
   hs6        CHAR(6)      NOT NULL COMMENT 'HS 6단위 코드(원본 hs_code)',
   hs_level   TINYINT      NOT NULL DEFAULT 6,
@@ -101,8 +100,6 @@ CREATE TABLE ref_country (
   PRIMARY KEY (stat_cd)
 ) ENGINE=InnoDB COMMENT='국가코드 → 명칭·좌표';
 
--- (ref_category_map 품목군 대응표는 2026-09-21 폐기 — db/alter_2026-09-21_drop_category_map.sql. 카테고리 맵 자체를 두지 않는다: CLAUDE.md 핵심 제약)
-
 -- 주소 첫 토큰 → 17개 시도 정규화(보조 ⑤ choropleth). 수작업.
 CREATE TABLE ref_sido_map (
   token      VARCHAR(30) NOT NULL COMMENT '주소 첫 토큰 원문(서울/서울특별시/서울시 …)',
@@ -113,7 +110,7 @@ CREATE TABLE ref_sido_map (
 ) ENGINE=InnoDB COMMENT='대표업체주소 첫 토큰 → 시도';
 
 -- FSC(군급분류) 4자리 라벨. B2 히트맵·조회표·국외 조달계획 API 라벨용.
---   시드(2026-09-16): 군급분류집(15119907) raw_dapa_fsc_catalog 756행 중 FSG 그룹행(끝 00) 80을 뺀 676행 → db/alter_2026-09-16_api_budget.sql §3 INSERT…SELECT(raw 적재 후 실행).
+--   시드: 군급분류집(15119907) 756행 중 FSG 그룹행(끝 00) 80을 뺀 676행.
 CREATE TABLE ref_fsc (
   fsc4                 CHAR(4)      NOT NULL,
   fsc2                 CHAR(2)      NOT NULL,
@@ -125,8 +122,8 @@ CREATE TABLE ref_fsc (
   KEY ix_fsc2 (fsc2)
 ) ENGINE=InnoDB COMMENT='FSC 군급분류 4자리 라벨 676행(군급분류집 15119907, 2026-09-16 시드)';
 
--- FSG(군급 2자리) 라벨. 시드는 db/seed_ref.sql(load_db.py --ref) / 증분은 db/alter_2026-09-16_fsg.sql. 2026-09-16 신설.
---   원본 data/reference/fsg_master.csv 80행 = 팀원 공유 DLA 표 77행 + 95·96·99 보완(GSA PSC Manual 2025-04). 4자리 라벨 ref_fsc는 2026-09-16 군급분류집(15119907)에서 시드.
+-- FSG(군급 2자리) 라벨. 시드는 db/seed_ref.sql(load_db.py --ref).
+--   원본 data/reference/fsg_master.csv 80행 = DLA FSG 표 77행 + 95·96·99 보완(GSA PSC Manual 2025-04). 4자리 라벨 ref_fsc는 군급분류집(15119907)에서 시드.
 CREATE TABLE ref_fsg (
   fsg_code             CHAR(2)      NOT NULL COMMENT 'FSG 2자리 = FSC 앞 2자리',
   name_en              VARCHAR(200) NOT NULL,
@@ -139,9 +136,9 @@ CREATE TABLE ref_fsg (
   PRIMARY KEY (fsg_code)
 ) ENGINE=InnoDB COMMENT='FSG 군급 2자리 라벨 80행 (data/reference/fsg_master.csv). 4자리 라벨 ref_fsc는 군급분류집 시드(2026-09-16)';
 
--- 적용장비명 표기 통일 사전 (2026-09-19, db/alter_2026-09-19_p3_clean.sql §2 — 명세 §4-3). 한 행 = 원문 1종. 843행은 notebooks/03_clean_overseas.ipynb §2가 채운다.
+-- 적용장비명 표기 통일 사전. 한 행 = 원문 1종. 843행은 notebooks/03_clean_overseas.ipynb §2가 채운다.
 --    name_norm 은 기계적 정규화(판단 아님). name_std 는 같은 정규화 키에 원문이 2종 이상 모여 표기 변이가 실제로 관측된 묶음에만 채우고(link_status='후보'),
---    변이 근거가 없는 원문은 name_std NULL + link_status='미확인' 으로 둔다(근거 없는 팀 판단 값 대신 NULL — 사용자 원칙).
+--    변이 근거가 없는 원문은 name_std NULL + link_status='미확인' 으로 둔다(근거 없는 판단 값 대신 NULL).
 --    장비코드로는 묶지 않는다(같은 장비가 파생형별로 코드 여러 개).
 CREATE TABLE ref_equipment_alias (
   name_raw            VARCHAR(100) COLLATE utf8mb4_bin NOT NULL COMMENT '적용장비명 원문(raw_dapa_overseas_plan_api.equipment_name). utf8mb4_bin — 기본 콜레이션(unicode_ci)에서는 서로 다른 원문 2종이 같은 키로 취급돼 적재가 막힘(2026-09-19 실측)',
@@ -162,12 +159,12 @@ CREATE TABLE ref_equipment_alias (
   KEY ix_rea_status (link_status, in_elec_scope)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='적용장비명 원문 → 표준명 사전(잠정). 자동 매핑은 link_status=후보, 근거 없으면 name_std NULL';
 
--- 품목군별 정량 지표 (2026-09-16). 한 행 = HS6 × 지표 × 기간. "팀판단" 라벨을 대체하는 수치의 원본 저장소.
+-- 품목군별 정량 지표. 한 행 = HS6 × 지표 × 기간. "팀판단" 라벨을 대체하는 수치의 원본 저장소.
 --   axis='civil_mix'          : 민수 혼합 — mil_hs10_share(군용 전용 HS10 수입 비중, 하한선) · aero_hs10_share(항공기용, 민항 포함) ·
---                               auto_hs10_share(자동차용) · hsk_control_hs10_ratio / hsk_control_imp_share(전략물자 HSK 연계표, raw_hsk_control 적재 후)
---   axis='defense_relevance'  : (2026-09-21 폐기 — 카테고리 맵 삭제로 b2_* 지표 28행 DELETE, ENUM 값만 남음)) ·
+--                               auto_hs10_share(자동차용) · hsk_control_hs10_ratio / hsk_control_imp_share(전략물자 HSK 연계표)
+--   axis='defense_relevance'  : (카테고리 맵을 두지 않아 현재 쓰지 않음 — ENUM 값만 남음) ·
 --                               a7_plan_count / a7_plan_budget(국외조달 조달계획, 사용자 키워드 검수 후) · krit_task_count(clean_krit_task 적재 후)
---   값은 v_hs10_use_share에서 INSERT…SELECT로 채우고(db/alter_2026-09-16_indicator.sql), 산식은 method에 남긴다.
+--   값은 v_hs10_use_share에서 INSERT…SELECT로 채우고, 산식은 method에 남긴다.
 --   라벨 도출 규칙은 v_civil_mix_rule. 문턱값은 팀 규칙이며 docs/reference/hs-whitelist-definition.md §7.
 CREATE TABLE ref_hs_indicator (
   indicator_id  INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -193,10 +190,10 @@ CREATE TABLE ref_hs_indicator (
   CONSTRAINT fk_ind_hs6 FOREIGN KEY (hs6) REFERENCES ref_hs_whitelist (hs6)
 ) ENGINE=InnoDB COMMENT='품목군별 정량 지표(민수 혼합·국방 관련성) — 라벨의 수치 근거';
 
--- HS6 규칙 판정 스냅샷 (2026-09-16 팀 회의: "R1~R4를 전부 만들어 두고, 해외 수입 의존도 시각화 때 DB에서 가져와 주피터에서 정제한 뒤 쓸지 정한다").
+-- HS6 규칙 판정 스냅샷. R1~R4를 전부 계산해 두고 노트북·화면이 DB에서 읽어 쓴다.
 --   한 행 = HS6(84·85·88·90류, 마스터·dim_hs10·연계표에 등장하는 것 전부) × rule_version. v_hs6_candidate_rule을 그대로 물질화한 것이라
---   원본 3개(raw_hs_code_master·raw_hs_unit_name·raw_hsk_control)가 없는 DB에서도 읽을 수 있다. 채우기: db/alter_2026-09-16_hs_rule.sql §5-4(삭제 후 재삽입).
---   진입 규칙은 2026-09-21 회의 M5로 R1 OR R2 확정 — is_candidate_provisional은 09-16 잠정식 R1 OR R2 OR (R3∧R4)의 참고값(스냅샷 불변).
+--   원본 3개(HS 마스터·HS6 명칭·HSK 연계표)가 없는 DB에서도 읽을 수 있다.
+--   진입 규칙은 R1 OR R2 — is_candidate_provisional은 잠정식 R1 OR R2 OR (R3∧R4)의 참고값(스냅샷 불변).
 --   노트북: SELECT * FROM ref_hs_rule_flag WHERE rule_version = '2026-09-16';
 CREATE TABLE ref_hs_rule_flag (
   hs6                       CHAR(6)       NOT NULL,
@@ -235,7 +232,7 @@ CREATE TABLE ref_hs_rule_flag (
   KEY ix_hrf_hs2 (hs2)
 ) ENGINE=InnoDB COMMENT='HS6별 선정 규칙 R1~R4 판정·근거 수치 스냅샷(84·85·88·90류 전체). 진입식은 2026-09-21 M5로 R1 OR R2 확정(is_candidate_provisional은 09-16 잠정식 참고값)';
 
--- 2026-09-22 raw_ 계층 제거 후속 — 관세청 HS 기준표 2종(원본 파일에서 load_db.py --ref 가 만든다. 첫 적재는 alter_2026-09-22_raw_successors.sql)
+-- 관세청 HS 기준표 2종(원본 파일에서 load_db.py --ref 가 만든다)
 CREATE TABLE ref_hs_code_master (
   hs10         CHAR(10)     NOT NULL COMMENT 'HSK 10자리(2026-01-01 현행)',
   name_ko      VARCHAR(500) NULL COMMENT '한글품목명(관세청 HS부호 마스터 15049722)',
@@ -255,8 +252,8 @@ CREATE TABLE ref_hs6_name (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='HS6 공식 명칭 2,254행 — v_hs6_candidate_rule R2 용도어 · ref_hs_rule_flag.hs6_name_ko. 원본 파일 raw_hs_unit_name 5시트 17,072행 중 06시트 6자리만(5자리 중간 수준 1,024 제외, 10시트 11,327은 ref_hs_code_master 와 코드·품명 동일)';
 
--- 국방반도체 발전전략 참조표 7개(alter_2026-09-23_semi_ref.sql). data/reference/semi_*.csv 를 load_db.py --ref 로 적재.
--- ⓪ 배경 화면 반도체 구역 전용 — 관세청 수입액과 합산·비교하지 않는다. related_hs6 는 팀 참고 표시(연결 키 아님).
+-- 국방반도체 발전전략 참조표 7개. data/reference/semi_*.csv 를 load_db.py --ref 로 적재.
+-- 배경 화면 반도체 구역 전용 — 관세청 수입액과 합산·비교하지 않는다. related_hs6 는 참고 표시(연결 키 아님).
 CREATE TABLE ref_semi_chip_type (
   type_no          TINYINT UNSIGNED NOT NULL COMMENT '국방반도체 7대 유형 번호(참고9)',
   name_ko          VARCHAR(50)  NOT NULL,
@@ -346,9 +343,9 @@ CREATE TABLE ref_semi_stat (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='국방반도체 발전전략 본문 인용 수치 2행(팀 계산값 아님)';
 
 -- =============================================================================
--- 2. 원본 파일 계층 — DB 밖 (2026-09-22, 교수 피드백: 원본은 파일로, DB 는 정제·기준·뷰만)
+-- 2. 원본 파일 계층 — DB 밖 (원본은 파일로, DB 는 정제·기준·뷰만)
 -- =============================================================================
--- RDS 에 raw_ 표는 없다(23표 DROP — alter_2026-09-22_drop_raw_layer.sql). 원본은 data/raw/(gitignore, 훅·읽기 전용) 파일이며
+-- RDS 에 raw_ 표는 없다. 원본은 data/raw/(gitignore, 읽기 전용) 파일이며
 -- scripts/load_db.py 의 RAW_TABLES(원본 파일 데이터셋 키 raw_… 23종 — 옛 표 이름을 그대로 물려받음) + read_raw(키) 가 파서 순번
 -- row_id 를 붙여 DataFrame 으로 읽는다. 데이터셋별 파일·인코딩·건수·SHA-256 은 meta_dataset(db/meta_dataset.csv), 원본 열 사전은
 -- db/column_dict.csv 의 raw_* 행(319, table_dict.csv kind=file). 정제 노트북(notebooks/clean_*.ipynb)과 --fact/--ref 가 이 경로로 읽는다.
@@ -421,7 +418,7 @@ CREATE TABLE meta_column_dict (
 -- 4. dim_ / fact_  관세청 정형 (규칙 확정: 총계행 제외 · YYYY.MM 파싱 · hs6 = LEFT(hs10,6))
 -- =============================================================================
 
--- 2026-09-19(P1) 현행 마스터 열 4개 추가: 관세청 HS부호 마스터(15049722, 2026-01-01 현행) 10자리 11,327행과 hs10 로 조인.
+-- 현행 마스터 열 4개: 관세청 HS부호 마스터(15049722, 2026-01-01 현행) 10자리 11,327행과 hs10 로 조인.
 --   실측 211행 중 현행 107 / 마스터없음 104(과거 연도에만 있던 이력 코드 — 값을 추정하지 않고 NULL).
 --   name_ko(관세청 statKor)는 그대로 둔다 — v_hs10_use_tag_all·v_hs10_use_share 가 이 열을 읽는다.
 CREATE TABLE dim_hs10 (
@@ -437,7 +434,7 @@ CREATE TABLE dim_hs10 (
   CONSTRAINT fk_dh_hs6 FOREIGN KEY (hs6) REFERENCES ref_hs_whitelist (hs6)
 ) ENGINE=InnoDB COMMENT='HS10 → HS6 · 품명 · 현행 마스터 대조';
 
--- 한 행 = HS10 × 국가 × 월 (총계행 제외). 기대 건수: 294,174(24개, 2026-09-16; 21개일 때 268,696). 2025 단독 26,211(21개일 때 23,844).
+-- 한 행 = HS10 × 국가 × 월 (총계행 제외). 기대 건수: 294,174(화이트리스트 24개). 2025 단독 26,211.
 CREATE TABLE fact_customs_monthly (
   hs10             CHAR(10)  NOT NULL,
   stat_cd          CHAR(2)   NOT NULL,
@@ -508,7 +505,6 @@ CREATE TABLE clean_dapa_contract (
   matched_keywords        VARCHAR(200) NULL COMMENT '후보 선정 키워드(후보일 뿐, 합산 금지)',
   evidence                TEXT         NULL COMMENT '분류 근거(검수 메모·출처)',
   review_status           ENUM('후보','검수완료','보류') NOT NULL DEFAULT '후보',
-  -- (품목군 연결 열 contract_group·category·category_link_status 는 2026-09-21 카테고리 맵 폐기로 삭제 — alter_2026-09-21_drop_category_link_cols.sql)
   -- 국산화 상태(우선순위 아님, 두 열 독립)
   is_target_b1            ENUM('예','아니오','미확인') NOT NULL DEFAULT '미확인' COMMENT 'B1 KRIT 공고 대상',
   is_completed_b2         ENUM('예','아니오','미확인') NOT NULL DEFAULT '미확인' COMMENT 'B2 국산화개발품목(지상체계 한정)',
@@ -538,7 +534,6 @@ CREATE TABLE clean_dapa_localized_item (
   last_modified_date    DATE         NULL COMMENT '연도 축 사용 금지(스냅샷)',
   dup_count             SMALLINT     NOT NULL DEFAULT 1 COMMENT '원본 완전 중복 행 수',
   is_electronic_group   TINYINT(1)   NOT NULL DEFAULT 0 COMMENT 'fsc2 IN (58,59,60) = 1. 전자 여부 속성(기본 필터), 기준 확정 2026-09-21(M4). 60은 2026-09-21 기준 통일(해당 행 0)',
-  -- (category·category_link_status 는 2026-09-21 카테고리 맵 폐기로 삭제)
   first_raw_row_id      BIGINT UNSIGNED NULL COMMENT '대표 원본 행의 파서 순번(read_raw)',
   cleaned_at            DATETIME     NULL,
   PRIMARY KEY (project_name, part_mgmt_no),
@@ -548,7 +543,7 @@ CREATE TABLE clean_dapa_localized_item (
 ) ENGINE=InnoDB COMMENT='B2 국산화개발품목 정제 25,025행(사업×부품). 부품 수는 part_mgmt_no 고유 12,788';
 
 -- B1 정제: 차수·공고유형·과제번호 단위. 같은 차수의 예비·본·재공고 합산 금지 → notice_type 포함 키 + is_latest.
--- (2026-09-19 alter_2026-09-19_krit_budget_clean.sql §1) 원문 순번(raw task_seq)은 표(구분)마다 1부터 다시 시작해 PK 로 쓸 수 없다
+-- 원문 순번(raw task_seq)은 표(구분)마다 1부터 다시 시작해 PK 로 쓸 수 없다
 -- (그대로 쓰면 30행 충돌, 24-1차 예비는 숫자도 아님) → task_no 는 (round_id, notice_type) 안에서 raw row_id 순으로 재부여하고
 -- 원문은 task_seq_text 에 보존한다. 금액 단위도 차수마다 달라(억 / 억원 / 백만원 / 없음) gov_fund_text·gov_fund_unit_text 를 함께 남긴다.
 CREATE TABLE clean_krit_task (
@@ -561,7 +556,6 @@ CREATE TABLE clean_krit_task (
   task_name           VARCHAR(300) NOT NULL,
   gov_fund_100m_krw   DECIMAL(10,2) NULL COMMENT '정부지원 연구개발비(억원)',
   dev_period_months   SMALLINT     NULL,
-  -- (category·hs6·category_link_status 는 2026-09-21 카테고리 맵 폐기로 삭제 — HS6 품목군과 잇지 않는다)
   is_counted          TINYINT(1)   NOT NULL DEFAULT 1 COMMENT '같은 차수 중복 공고 중 집계에 쓰는 1건 = 1',
   raw_row_id          BIGINT UNSIGNED NULL COMMENT '원본 파일 파서 순번(read_raw raw_krit_task.row_id)',
   source_file         VARCHAR(200) NULL,
@@ -581,7 +575,7 @@ CREATE TABLE clean_krit_task (
 ) ENGINE=InnoDB COMMENT='B1 KRIT 국산화 대상 과제 정제(raw 96행 1:1. 차수별 과제 수는 is_latest=1 로 센다 — 예비·본·재공고 합산 금지)';
 
 
--- 열린재정 방위사업청 일반회계 세부사업 예산 정제 (2026-09-19 신설, alter_2026-09-19_krit_budget_clean.sql §2). raw 2,860행 1:1, 제외 0.
+-- 열린재정 방위사업청 일반회계 세부사업 예산 정제. 원본 2,860행 1:1, 제외 0.
 -- 뺀 raw 열: No.·소관명·회계명·계정명(전부 공란)·분야명·부문명(각 1값)·source_*. 금액은 천원(_krw_k) + 억원(_100m_krw) 두 벌.
 -- 배경 ④ 전용 — 관세청 수입액(달러·실적)·조달계획(원·집행 예정)과 합산·비율 금지.
 CREATE TABLE clean_openfiscal_program_budget (
@@ -611,7 +605,7 @@ CREATE TABLE clean_openfiscal_program_budget (
 ) ENGINE=InnoDB COMMENT='열린재정 방위사업청 세부사업 예산 정제 2,860행(2016~2027). 배경 ④ 전용 — 관세청 수입액·조달계획과 합산·비율 금지';
 
 
--- 세부사업명 개편 연결표 (2026-09-19 신설). 공식 개편 고시를 확인한 것이 아니라 근거 없는 1:1 연결을 만들지 않는다.
+-- 세부사업명 개편 연결표. 공식 개편 고시를 확인한 것이 아니라 근거 없는 1:1 연결을 만들지 않는다.
 -- 확정 9 = 표기 차이만(같은 단위사업·정규화 키). 후보 5 = 국방기술개발 안에서 연도 인접(핵심기술개발 → 2023 3분할 등, candidate_count>1이면 1:1 불가).
 -- 미확인 8 = 짝 없는 신설. 다른 단위사업의 승계는 후보 쌍이 1,028개라 넣지 않고 budget 표의 first/last_year 로만 읽는다.
 CREATE TABLE clean_openfiscal_program_link (
@@ -634,7 +628,7 @@ CREATE TABLE clean_openfiscal_program_link (
   KEY ix_copl_to (to_sub_program_name(80))
 ) ENGINE=InnoDB COMMENT='열린재정 세부사업명 개편 연결표(2021·2023 개편). 확정=표기 차이만, 승계는 후보 — 공식 근거 없음';
 
--- HSK 연계표 세로형(2026-09-19 P1 신설, db/alter_2026-09-19_p1_customs_hs.sql §2).
+-- HSK 연계표 세로형.
 -- raw_hsk_control 2,161행은 HSK10 1행 + 통제번호 쉼표 목록(최대 1,218자) 구조라 통제번호 단위 집계를 못 한다 → 1행 = HSK10 × 통제번호 1개.
 -- 행이 늘어난 것은 원본 규모가 아니다: 원본 건수는 HSK10 2,161개이고 이 표의 행 수(실측 10,104)는 「통제번호 부여 건수」다.
 -- 통제번호 체계(대외무역법 §19 → 전략물자수출입고시): 첫 글자 = 부(0~9), 둘째 글자 = 그룹(A~E). ML(별표3 군용물자)은 이 자료에 0건 — 「자료에 없음」.
@@ -676,7 +670,7 @@ CREATE TABLE clean_company (
 ) ENGINE=InnoDB COMMENT='업체 마스터(사업자번호 기준)';
 
 -- 사업자번호 없는 출처(B2 계약업체·방산업체 지정현황)의 업체명 → clean_company 연결 시도 기록.
--- 연결률·다중 일치를 보고한 뒤에만 화면에 사용(idea-review §4 업체 조회 탭 규칙).
+-- 연결률·다중 일치를 보고한 뒤에만 화면에 사용.
 CREATE TABLE clean_company_name_link (
   link_id      INT UNSIGNED NOT NULL AUTO_INCREMENT,
   source       ENUM('localized_item','defense_company') NOT NULL,
@@ -717,8 +711,8 @@ CREATE TABLE clean_dapa_overseas_plan (
   KEY ix_cop_elec (is_electronics_candidate, electronics_review_status)
 ) ENGINE=InnoDB COMMENT='A7 국외조달 조달계획 정제(판단번호 단위, 배경 ⓪)';
 
--- KDSIS NSN 파생 표 2개(2026-09-17) — 노트북이 아니라 db/alter_2026-09-17_kdsis_nsn.sql §2-3 INSERT…SELECT가 raw_kdsis_nsn에서 채운다(재실행 시 다시 만든다).
--- 2-1 NSN 기본정보: NSN별 1행. 원본에서 NSN이 같으면 아래 속성이 모두 같았다(2026-09-17 pandas 검증, 속성 불일치 NSN 0) → 대표 행 = row_id 최소 행.
+-- KDSIS NSN 파생 표 — 원본 파일 raw_kdsis_nsn 에서 채운다.
+-- 2-1 NSN 기본정보: NSN별 1행. 원본에서 NSN이 같으면 아래 속성이 모두 같았다(pandas 검증, 속성 불일치 NSN 0) → 대표 행 = row_id 최소 행.
 --     그래도 has_attr_conflict 로 재검증한다(속성 조합이 2개 이상인 NSN = 1).
 CREATE TABLE clean_kdsis_nsn (
   nsn                 VARCHAR(20)  NOT NULL,
@@ -751,10 +745,8 @@ CREATE TABLE clean_kdsis_nsn (
   KEY ix_ckn_niin (niin)
 ) ENGINE=InnoDB COMMENT='KDSIS NSN 기본정보 — NSN별 1행 135,864(숫자13 135,331 + 검토 533). 조회·연결 키 전용';
 
--- 2-2 (삭제됨 2026-09-19) clean_kdsis_nsn_ref — NSN×CAGE×참조번호 225,635행. 뷰·앱·노트북 참조 0이라 db/alter_2026-09-19_drop_unused.sql로 DROP(사유 docs/db/report-views.md §3). 재생성은 alter_2026-09-17_kdsis_nsn.sql INSERT…SELECT.
-
--- P4 국내조달 clean 4개 + 제외 행 공용 표 (2026-09-18, db/alter_2026-09-18_p4_clean.sql — 열별 근거·검산은 그 파일 §1~§7).
--- 적재는 사용자 정제 노트북. 열 밀림·중복 등 clean 으로 옮기지 않은 raw 행은 clean_excluded_row 에 사유 코드로 남긴다(검산 raw = clean + excluded).
+-- 국내조달 clean 4개 + 제외 행 공용 표.
+-- 적재는 정제 노트북(04_clean_domestic). 열 밀림·중복 등 clean 으로 옮기지 않은 원본 행은 clean_excluded_row 에 사유 코드로 남긴다(검산 원본 = clean + excluded).
 CREATE TABLE clean_excluded_row (
   excl_id      INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   table_name   VARCHAR(64)      NOT NULL COMMENT '제외 대상 raw 테이블명(예 raw_dapa_bid_notice)',
@@ -878,14 +870,14 @@ CREATE TABLE clean_dapa_contract_exec_by_service (
   UNIQUE KEY ux_ces_raw (raw_row_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='군별 계약집행 현황 정제(연도×군, 40행 기대). KPI 배경 — 조달 금액 ≠ 방산 매출';
 
--- P3 국외조달 clean 3개 (2026-09-19, db/alter_2026-09-19_p3_clean.sql — 열별 근거·검산은 그 파일 §1~§7).
--- 적재는 notebooks/03_clean_overseas.ipynb. P3 는 제외 행 0(열 밀림·키 충돌 없음)이라 raw = clean 이 그대로 검산이다.
+-- 국외조달 clean 3개.
+-- 적재는 notebooks/03_clean_overseas.ipynb. 제외 행 0(열 밀림·키 충돌 없음)이라 원본 = clean 이 그대로 검산이다.
 -- §1 clean_dapa_overseas_plan_api — 국외 조달계획 OpenAPI 품목 단위(raw 13,615).
---    키: (procure_demand_no, item_seq) 는 raw 에서 고유 13,615(2026-09-19 실측) → PK. 품목순번 공란 842행은 빈 문자열 + is_item_seq_missing=1.
+--    키: (procure_demand_no, item_seq) 는 원본에서 고유 13,615 → PK. 품목순번 공란 842행은 빈 문자열 + is_item_seq_missing=1.
 --    NSN: stock_no 13자 중 숫자13 9,970 · 영숫자13 3,266(NCB 37 국내 부여) → nsn 채움. 나머지 379행(13자 1 + 13자 아님 378, NSN·NSN001 같은 자리표시 포함)은 nsn NULL.
---    is_elec = fsg2 IN ('58','59','60') — 명세 §4-2. 13자 기준 2,267행(v3 문서 2,270 은 길이 무관 앞 2자리 집계라 3행 차이, §7 참조).
+--    is_elec = fsg2 IN ('58','59','60'). 13자 기준 2,267행.
 --    금액: budget_amount·unit_price 는 통화 미검증(원화 혼입 의심) → DECIMAL 로 담되 amount_unverified=1 고정, 합산 금지.
---    제외 열(명세 §2-6 등급 ✕): org_name·org_code·purchase_request_no·qa_grade·standard_no·component_no 는 내부 행정 코드라 clean 에 두지 않는다(raw 참조).
+--    제외 열: org_name·org_code·purchase_request_no·qa_grade·standard_no·component_no 는 내부 행정 코드라 clean 에 두지 않는다.
 CREATE TABLE clean_dapa_overseas_plan_api (
   procure_demand_no    VARCHAR(20)      NOT NULL COMMENT '조달요구번호 prcureDemandNo (PK 1)',
   item_seq             VARCHAR(10)      NOT NULL DEFAULT '' COMMENT '품목순번 iemNo (PK 2). 원본 공란 842행은 빈 문자열',
@@ -930,10 +922,10 @@ CREATE TABLE clean_dapa_overseas_plan_api (
   KEY ix_copa_eq (equipment_name_std)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='국외 조달계획 OpenAPI 품목 단위 정제(조달요구번호+품목순번, 13,615 기대). 금액은 통화 미검증 — 건수만 사용. 파일판 clean_dapa_overseas_plan 과 조인·합산 금지';
 
--- §3 clean_dapa_overseas_contract — 국외조달 계약정보(raw 6,333). 계약번호 고유 6,333(2026-09-19 실측) → PK.
+-- §3 clean_dapa_overseas_contract — 국외조달 계약정보(원본 6,333). 계약번호 고유 6,333 → PK.
 --    계약기간은 단일 패턴(완결 5,602 + 종료일 없음 731) → period_start/period_end + is_open_ended.
 --    제외 열: contract_org_officer_name(개인정보), 그리고 단일값 3열(계약기관구분명·계약기관명·수요기관구분명·수요기관명 = 전부 '국가기관'/'방위사업청')은 정보가 없어 두지 않는다.
---    금액·국가 열이 원본에 없다. vendor_name 으로 국가를 추정하지 않는다(명세 §4, idea-review §3).
+--    금액·국가 열이 원본에 없다. vendor_name 으로 국가를 추정하지 않는다.
 CREATE TABLE clean_dapa_overseas_contract (
   contract_no             VARCHAR(20)      NOT NULL COMMENT '계약번호(PK, raw 고유 6,333)',
   raw_row_id              BIGINT UNSIGNED  NOT NULL COMMENT '원본 파일 파서 순번(read_raw raw_dapa_overseas_contract.row_id)',
@@ -955,7 +947,7 @@ CREATE TABLE clean_dapa_overseas_contract (
   KEY ix_coc_vendor (vendor_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='국외조달 계약정보 정제(계약번호 단위, 6,333 기대). 금액·국가 열 없음 — 건수·업체 수만. 담당자명 제외';
 
--- §4 clean_dapa_overseas_bid_result — 국외조달 입찰결과(raw 2,494). 업무 식별자만으로는 고유하지 않다(2026-09-19 실측:
+-- §4 clean_dapa_overseas_bid_result — 국외조달 입찰결과(원본 2,494). 업무 식별자만으로는 고유하지 않다(실측:
 --    공고번호 고유 14 · 판단번호 고유 97 · 판단번호+항목번호 1,362) → PK 는 raw_row_id, 고유 조합 (공고번호, 판단번호, 항목번호, 개찰일시) 2,494 는 UNIQUE 로만 건다.
 --    개찰일시 2025-03-27 ~ 2025-09-15 = 부분연도 → is_partial_year=1 고정. 연간 유찰률로 표현하지 않는다.
 --    예산금액은 원본이 달러 표기라 budget_amount_usd 로 두되 A7 원화(clean_dapa_overseas_plan.budget_krw)와 합산하지 않는다.
@@ -983,8 +975,8 @@ CREATE TABLE clean_dapa_overseas_bid_result (
   KEY ix_cobr_decision (decision_no)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='국외조달 입찰결과 정제(2,494 기대, 개찰 2025-03~09 부분연도). 달러 예산은 원화와 합산 금지. 낙찰업체 열 원본에 없음';
 
--- P5-5 KOSIS 2종 clean 세로형 (2026-09-19, db/alter_2026-09-19_kosis_clean.sql — 열별 근거·검산은 그 파일 머리 주석·§4). 적재 notebooks/06_clean_kosis.ipynb.
--- raw 는 이미 세로형이라 두 표 모두 raw 1:1(PK raw_row_id, FK). 형 변환(연도·월·숫자) + data-cleaning-rules §2-11 등급 플래그 + 잠정치 플래그만 더하고 원문은 value_text 에 보존.
+-- KOSIS 2종 clean 세로형. 적재 notebooks/06_clean_kosis.ipynb.
+-- 원본이 이미 세로형이라 두 표 모두 원본 1:1(PK raw_row_id). 형 변환(연도·월·숫자) + data-cleaning-rules §2-11 등급 플래그 + 잠정치 플래그만 더하고 원문은 value_text 에 보존.
 -- 지수·가동률(%)을 금액과 합산·비율 계산하지 않는다(§1-10). 가동률은 KOSIS 원본 통계 명칭 그대로("율" 오용 아님).
 CREATE TABLE clean_kosis_utilization (
   raw_row_id       BIGINT UNSIGNED NOT NULL COMMENT 'PK. → raw_kosis_utilization.row_id (raw 1:1)',
@@ -1028,7 +1020,7 @@ CREATE TABLE clean_kosis_production_index (
   KEY ix_ckp_ind (industry_code, item_code, stat_month)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='KOSIS 101 광공업생산지수 C26 계열 정제 1,016행(raw 1:1, 2016.01~2026.07, 2020=100). 보조 ④ — ★는 전국×C26·C261×계절조정. 지수를 금액과 합산·비율 계산 금지';
 
--- 2026-09-22 raw_ 계층 제거 후속 — 뷰가 raw 를 직독하던 2곳의 정제 표(clean_customs_region 은 load_db.py --fact, clean_dapa_defense_company 는 04_clean_domestic §6)
+-- 뷰가 원본을 직접 읽던 2곳의 정제 표(clean_customs_region 은 load_db.py --fact, clean_dapa_defense_company 는 04_clean_domestic §6)
 CREATE TABLE clean_customs_region (
   hs6                 CHAR(6)      NOT NULL COMMENT '요청 HS6(원본 req_hs = hs_cd)',
   sido_code           CHAR(2)      NOT NULL COMMENT '요청 시도코드(11 26 27 28 29 30 31 36 41 43 44 46 47 48 50 51 52)',
@@ -1082,7 +1074,7 @@ GROUP BY f.hs6, f.year, f.stat_cd;
 CREATE OR REPLACE VIEW v_import_share_hs6_year AS
 SELECT v.hs6, v.year, v.stat_cd, v.imp_dlr, v.is_partial_year,
        SUM(v.imp_dlr) OVER (PARTITION BY v.hs6, v.year)                     AS imp_dlr_total,
-       CAST(v.imp_dlr AS DOUBLE) / NULLIF(SUM(v.imp_dlr) OVER (PARTITION BY v.hs6, v.year), 0) AS share,   -- DOUBLE: DECIMAL 4자리 반올림 방지(2026-09-21)
+       CAST(v.imp_dlr AS DOUBLE) / NULLIF(SUM(v.imp_dlr) OVER (PARTITION BY v.hs6, v.year), 0) AS share,   -- DOUBLE: DECIMAL 4자리 반올림 방지
        RANK() OVER (PARTITION BY v.hs6, v.year ORDER BY v.imp_dlr DESC)     AS rnk
 FROM v_import_hs6_year v;
 
@@ -1119,7 +1111,7 @@ FROM v_export_share_hs6_year s
 GROUP BY s.hs6, s.year;
 
 -- 과천시 소재 수입자 비중(방위사업청 소재지), 추정 — HS6 × 연도. 분모 전국(17시도) 수입액, 분자 sgg_name '경기도 과천시'. 금액 천 달러.
--- 「군 직접 수입 하한」이라 쓰지 않는다. 화면 반영 여부는 팀 결정(open-decisions D1·M7). 246행(HS2022 신설 코드는 2022 이전 행 없음).
+-- 「군 직접 수입 하한」이라 쓰지 않는다. 화면에는 쓰지 않고 EDA 참고로 둔다. 246행(HS2022 신설 코드는 2022 이전 행 없음).
 CREATE OR REPLACE VIEW v_customs_region_gwacheon_year AS
 SELECT r.hs6,
        r.year,
@@ -1139,7 +1131,7 @@ GROUP BY r.hs6, r.year;
 --   · 무역 열(imp_dlr_total·hhi 등)만 year를 따른다.
 --     화면에는 근거 기준(b1_latest_round_year, B2 원본 파일 날짜 dapa_localized_items_20260509)을 따로 표시한다.
 -- 건수 규칙:
---   · (2026-09-21) 카테고리 맵 폐기로 B1·B2 열 전부 제거(alter_2026-09-21_drop_category_map.sql · _drop_category_link_cols.sql). 국산화 근거(B1 KRIT·B2 국산화개발품목)는 HS6에 붙이지 않고 FSC 축(화면 ②)에서만 본다.
+--   · 카테고리 맵을 두지 않으므로 B1·B2 열은 없다. 국산화 근거(B1 KRIT·B2 국산화개발품목)는 HS6에 붙이지 않고 FSC 축에서만 본다.
 --   · NULL = 미확인(해당 clean_ 테이블 미적재 / 대응표 없음 / B2 범위 밖). 0 = 확인 결과 실제로 없음. 사유는 b1_status·b2_status.
 --   · 한 FSC·과제가 여러 hs6에 대응하면 각 hs6 행에 중복 집계된다. HS별 값을 합산하면 같은 부품·과제가 다시 중복된다.
 CREATE OR REPLACE VIEW v_review_list AS
@@ -1153,7 +1145,7 @@ JOIN v_hhi_hs6_year h ON h.hs6 = w.hs6;
 --          MIN(contract_date)가 첫 차수의 계약일과 다른 계약이 있으면 정제 노트북에서 확인해 기록한다.
 --   건수 = 계약번호당 1(is_latest_seq=1 행), 금액 = 최종 차수의 total_contract_amount. 변경계약은 최초 월에 최종 금액으로 잡힌다.
 --   변경일 기준 월별 추이가 필요하면 이 뷰가 아니라 clean_dapa_contract.contract_date를 직접 집계한다.
---   2026-09-20 amount_missing_count 추가(alter_2026-09-20_null_vocab.sql §2-1, total_contract_amount NULL 1건 — 규칙 #9 분모 제외·건수 병기).
+--   amount_missing_count = total_contract_amount NULL 건수(규칙 #9 분모 제외·건수 병기).
 CREATE OR REPLACE VIEW v_contract_monthly AS
 SELECT DATE_FORMAT(f.first_contract_date, '%Y%m') AS yyyymm,
        c.biz_type, c.class5,
@@ -1166,7 +1158,7 @@ JOIN (SELECT contract_no, MIN(contract_date) AS first_contract_date
 WHERE c.is_latest_seq = 1
 GROUP BY DATE_FORMAT(f.first_contract_date, '%Y%m'), c.biz_type, c.class5;
 
--- 배경 ⓪: 연도 × 집행유형 예산(계획)·건수·전자 관련 후보(검수 확정분 별도). 관세청 수입액과 합산·비교 금지.
+-- 배경: 연도 × 집행유형 예산(계획)·건수·전자 관련 후보(검수 확정분 별도). 관세청 수입액과 합산·비교 금지.
 CREATE OR REPLACE VIEW v_overseas_plan_yearly AS
 SELECT plan_year, exec_type,
        COUNT(*)                                                                     AS plan_count,
@@ -1198,10 +1190,8 @@ FROM (SELECT d.hs6, d.hs10,
       LEFT JOIN fact_customs_monthly f ON f.hs10 = d.hs10 AND f.year BETWEEN 2021 AND 2025 AND f.is_partial_year = 0) t
 GROUP BY t.hs6, t.use_tag;
 
--- 3-1 (v_defense_relevance_b2 는 2026-09-21 폐기 — 카테고리 맵 삭제, db/alter_2026-09-21_drop_category_map.sql)
-
--- 3-2 v_b2_fsg_summary — clean fsc2·dup_count. 행 수 = SUM(dup_count)(33,965 기대), 고유 부품 = part_mgmt_no DISTINCT(12,788 기대).
---     의미 변경: raw 의 fsc ''·'0' 두 그룹이 clean fsc2 NULL 한 그룹으로 합쳐져 58→57행. NULL 그룹의 fsc4_count 는 0(raw 는 ''·'0' 을 값으로 세어 1).
+-- 3-2 v_b2_fsg_summary — clean fsc2·dup_count. 행 수 = SUM(dup_count)(33,965), 고유 부품 = part_mgmt_no DISTINCT(12,788).
+--     원본 fsc ''·'0' 은 clean fsc2 NULL 한 그룹으로 모인다(57행). NULL 그룹의 fsc4_count 는 0.
 CREATE OR REPLACE VIEW v_b2_fsg_summary AS
 SELECT b.fsc2                              AS fsg_code,
        f.name_ko                           AS fsg_name_ko,
@@ -1215,7 +1205,7 @@ FROM clean_dapa_localized_item b
 LEFT JOIN ref_fsg f ON f.fsg_code = b.fsc2
 GROUP BY b.fsc2, f.name_ko, f.name_en, f.is_electronic_group;
 
--- 민수 혼합 라벨 도출 규칙 (팀 규칙 2026-09-16, docs/reference/hs-whitelist-definition.md §7). ref_hs_whitelist.civil_mix 3열은 이 뷰의 스냅샷.
+-- 민수 혼합 라벨 도출 규칙 (docs/reference/hs-whitelist-definition.md §7). ref_hs_whitelist.civil_mix 3열은 이 뷰의 스냅샷.
 --   1) mil_hs10_share 있음 → <1% 높음 / 1~20% 중간 / ≥20% 낮음
 --   2) 아니면 aero_hs10_share 있음 → <20% 높음 / 20~80% 중간 / ≥80% 낮음
 --   3) 아니면 hsk_control_hs10_ratio 있음 → 문턱값 미정(적재 후 분포 보고 결정) — 현재는 NULL
@@ -1246,15 +1236,14 @@ LEFT JOIN ref_hs_indicator aero ON aero.hs6 = w.hs6 AND aero.indicator = 'aero_h
 LEFT JOIN ref_hs_indicator hsk  ON hsk.hs6  = w.hs6 AND hsk.indicator  = 'hsk_control_hs10_ratio';
 
 -- -----------------------------------------------------------------------------
--- HS6 선정 규칙 (2026-09-16, docs/reference/hs-whitelist-definition.md §8). "어떤 HS6를 수집할지"를 팀 판단이 아니라
--- 공식 자료에 규칙을 적용해 도출한다. raw_hs_code_master·raw_hsk_control 적재 전에는 빈 결과(또는 전부 '규칙 미해당')를 낸다.
+-- HS6 선정 규칙 (docs/reference/hs-whitelist-definition.md §8). "어떤 HS6를 수집할지"를 팀 판단이 아니라
+-- 공식 자료에 규칙을 적용해 도출한다. HS 마스터·HSK 연계표 적재 전에는 빈 결과(또는 전부 '규칙 미해당')를 낸다.
 --   자료 S1 관세청 HS부호 마스터(15049722, 2026 현행) ∪ 수집된 dim_hs10(2016~2026 이력 코드) — 법령: 관세법 §84 → 관세·통계통합품목분류표(기획재정부 고시)
 --   자료 S2 무역안보관리원 HSK 연계표(15034135) — 법령: 대외무역법 §19·§29 → 전략물자수출입고시(산업통상부 고시) **별표2 이중용도품목(0~9부)만** 실려 있다
---            (2026-09-16 확인: 2,161행 중 ML(별표3 군용물자) 0건. 통제번호는 '3A001.a.1.,5A002.' 같은 쉼표 목록). 84·85·88·90류 HS6 486개가 걸리는
+--            (2,161행 중 ML(별표3 군용물자) 0건. 통제번호는 '3A001.a.1.,5A002.' 같은 쉼표 목록). 84·85·88·90류 HS6 486개가 걸리는
 --            "해당 가능성" 목록이라 단독 진입 근거로 쓰지 않는다.
---   (자료 S3 B2 국산화개발품목 FSC 대응은 2026-09-21 카테고리 맵 폐기로 규칙에서 제거)
 -- 규칙: R1 군용전용 HSK 존재 / R2 항공기용·항행·레이더·무인기 HSK 세분류(또는 HS6 명칭의 같은 용도어) 존재 / R3 이중용도 3·5·6·7부 통제 HSK 존재(참고, 진입 아님)
---   진입 = R1 OR R2(2026-09-21 M5 확정). priority_rule = R1→1, R2→2, R3만→3(진입 아님). 09-16 잠정식 R1 OR R2 OR (R3 AND R4)의 결과는 ref_hs_rule_flag(rule_version 2026-09-16)에 스냅샷으로만 남고, R4·b2_part_count 열은 0·NULL 상수(카테고리 맵 폐기). 범위 HS 2단위 84·85·88·90(93·87·89류는 주제 밖).
+--   진입 = R1 OR R2. priority_rule = R1→1, R2→2, R3만→3(진입 아님). 잠정식 R1 OR R2 OR (R3 AND R4)의 결과는 ref_hs_rule_flag(rule_version 2026-09-16)에 스냅샷으로만 남고, R4·b2_part_count 열은 0·NULL 상수. 범위 HS 2단위 84·85·88·90(93·87·89류는 주제 밖).
 -- -----------------------------------------------------------------------------
 
 -- 규칙 ① 관세청 HSK 용도 태그 — 현행 마스터 10자리 ∪ 수집된 dim_hs10(마스터에 없는 과거 세분류, 예 8542.31-4010 군용전용). v_hs10_use_share와 같은 규칙에 무인기·레이더·항행을 더했다.
@@ -1274,9 +1263,9 @@ FROM (SELECT LEFT(m.hs10, 6) AS hs6, m.hs10, m.name_ko, 'master_2026' AS src
       FROM dim_hs10 d
       WHERE NOT EXISTS (SELECT 1 FROM ref_hs_code_master m2 WHERE m2.hs10 = d.hs10)) u;
 
--- 3-3 v_hsk_control_by_hs6 — raw_hsk_control(쉼표 목록) → clean_hsk_control(HSK10 × 통제번호 1개 세로형).
---     HS6 1,119 · DU 707 유지 기대. ml = regime '군용물자'(자료에 0), du_elec = is_du_elec(part_no 3·5·6·7).
---     의미 변경: control_no_list 가 raw 쉼표 목록 문자열들의 ';' 결합에서 통제번호 낱개(DISTINCT)의 ';' 결합으로 바뀐다. group_concat_max_len(기본 1024) 초과분은 잘린다(종전과 같은 제약).
+-- 3-3 v_hsk_control_by_hs6 — clean_hsk_control(HSK10 × 통제번호 1개 세로형) 기준.
+--     HS6 1,119 · DU 707. ml = regime '군용물자'(자료에 0), du_elec = is_du_elec(part_no 3·5·6·7).
+--     control_no_list 는 통제번호 낱개(DISTINCT)의 ';' 결합. group_concat_max_len(기본 1024) 초과분은 잘린다.
 CREATE OR REPLACE VIEW v_hsk_control_by_hs6 AS
 SELECT c.hs6,
        COUNT(DISTINCT c.hsk10)                                                     AS control_hsk10_count,
@@ -1363,12 +1352,12 @@ FROM ref_hs_whitelist w
 LEFT JOIN ref_hs_rule_flag f
        ON f.hs6 = w.hs6
       AND f.rule_version = (SELECT MAX(rule_version) FROM ref_hs_rule_flag);
--- 3-4 v_overseas_plan_api_fsc — raw_dapa_overseas_plan_api → clean_dapa_overseas_plan_api.
---     의미 변경(§7-24⑤ 해소): ① 모집단을 숫자13 NSN(9,970)에서 clean nsn 전체(숫자13 9,970 + 영숫자13 3,266 = 13,236)로 넓힌다 — P3 정제가 NCB 37 영숫자 NSN 을 유효로 확정.
---     ② is_electronic_group = is_elec(fsg2 58·59·60, 종전 58·59) → 전자군 품목 1,819→2,267 기대. ③ army_name = army_std(군 표준값, 종전 원문 부대명).
---     ④ 적용장비 집계는 is_equipment_missing=0(공란·'*' 제외, 종전과 같은 규칙). 금액은 통화 미검증이라 뷰에 넣지 않는다(건수만). 파일판과 합산 금지.
---     화면 미사용 — 화면(dashboard/pages/3_조달_국산화_근거.py)은 clean_dapa_overseas_plan_api 를 직접 읽고, 군별 전자 비중 분모는
---     「FSG 판별 가능 − FSC 9999」 13,017(2026-09-24). 이 뷰의 모집단(NSN 있음 13,236)과 다르다(data-cleaning-rules.md §1 #16).
+-- 3-4 v_overseas_plan_api_fsc — clean_dapa_overseas_plan_api 기준.
+--     ① 모집단은 clean nsn 전체(숫자13 9,970 + 영숫자13 3,266 = 13,236) — NCB 37 영숫자 NSN 도 유효.
+--     ② is_electronic_group = is_elec(fsg2 58·59·60) → 전자군 품목 2,267. ③ army_name = army_std(군 표준값).
+--     ④ 적용장비 집계는 is_equipment_missing=0(공란·'*' 제외). 금액은 통화 미검증이라 뷰에 넣지 않는다(건수만). 파일판과 합산 금지.
+--     화면 미사용 — 화면은 clean_dapa_overseas_plan_api 를 직접 읽고, 군별 전자 비중 분모는
+--     「FSG 판별 가능 − FSC 9999」 13,017. 이 뷰의 모집단(NSN 있음 13,236)과 다르다(data-cleaning-rules.md §1 #16).
 CREATE OR REPLACE VIEW v_overseas_plan_api_fsc AS
 SELECT a.fsc4,
        a.fsg2                                                       AS fsg_code,
@@ -1386,8 +1375,8 @@ LEFT JOIN ref_fsg g ON g.fsg_code = a.fsg2
 WHERE a.nsn IS NOT NULL
 GROUP BY a.fsc4, a.fsg2, f.name_ko, g.name_ko, a.is_elec, a.army_std, a.demand_year;
 
--- 3-5 v_budget_rnd_yearly — raw_openfiscal_program_budget(쉼표 문자열) → clean_openfiscal_program_budget(정수 천원 열).
---     §7-26⑦ "raw 그대로" 결정 번복. 규칙 동일(억원 = 천원 ÷ 100,000, 확정 합 0 → 정부안) → 연도별 합 차이 0 기대(total 1,995,815 · tech_dev 215,989).
+-- 3-5 v_budget_rnd_yearly — clean_openfiscal_program_budget(정수 천원 열) 기준.
+--     억원 = 천원 ÷ 100,000, 확정 합 0 → 정부안(total 1,995,815 · tech_dev 215,989).
 CREATE OR REPLACE VIEW v_budget_rnd_yearly AS
 SELECT fiscal_year,
        CASE WHEN SUM(confirmed_krw_k) = 0 THEN '정부안' ELSE '확정' END                                                    AS amount_basis,
@@ -1402,8 +1391,8 @@ SELECT fiscal_year,
 FROM clean_openfiscal_program_budget
 GROUP BY fiscal_year;
 
--- KDSIS 연결 조회 뷰 3개(2026-09-17, db/alter_2026-09-17_kdsis_nsn.sql §3 신설 → 2026-09-19 alter_2026-09-19_views_to_clean.sql 3-6~3-8 에서 왼쪽 표를 clean 으로 전환). 모두 LEFT JOIN이라 왼쪽 표 행수가 그대로다(clean_kdsis_nsn PK nsn).
--- 3-6 v_overseas_plan_api_kdsis — clean_dapa_overseas_plan_api(raw 1:1) ↔ clean_kdsis_nsn. 13,615행 · 연결 616 유지 기대.
+-- KDSIS 연결 조회 뷰 3개. 모두 LEFT JOIN이라 왼쪽 표 행수가 그대로다(clean_kdsis_nsn PK nsn).
+-- 3-6 v_overseas_plan_api_kdsis — clean_dapa_overseas_plan_api(원본 1:1) ↔ clean_kdsis_nsn. 13,615행 · 연결 616.
 --     stock_no = 원문(stock_no_raw), is_nsn13 = nsn_format '숫자13'(9,970), 조인 키 = 정제된 nsn(13자, 하이픈 없음). kdsis_matched 는 조인 결과(clean kdsis_link_status='연결' 과 같아야 함).
 CREATE OR REPLACE VIEW v_overseas_plan_api_kdsis AS
 SELECT a.raw_row_id                               AS api_row_id,
@@ -1425,8 +1414,8 @@ FROM clean_dapa_overseas_plan_api a
 LEFT JOIN clean_kdsis_nsn k ON k.nsn = a.nsn;
 
 -- 3-7 v_b2_localized_kdsis — clean_dapa_localized_item(사업×부품 고유 25,025) ↔ clean_kdsis_nsn.
---     의미 변경: 행 단위가 raw 행(33,965)에서 고유 사업×부품(25,025)으로. b2_row_id = first_raw_row_id(대표 원본 행). 끝에 dup_count 추가(raw 행 기준 값 복원용).
---     link_key 규칙 동일: fsc4 숫자 4 + nsn 숫자 9 = 13자, 아니면 NULL(임의 0 채움 금지).
+--     행 단위 = 고유 사업×부품(25,025, 원본 33,965행). b2_row_id = first_raw_row_id(대표 원본 행). 끝에 dup_count(원본 행 기준 값 복원용).
+--     link_key 규칙: fsc4 숫자 4 + nsn 숫자 9 = 13자, 아니면 NULL(임의 0 채움 금지).
 CREATE OR REPLACE VIEW v_b2_localized_kdsis AS
 SELECT b.first_raw_row_id                         AS b2_row_id,
        b.project_name, b.part_mgmt_no,
@@ -1446,8 +1435,8 @@ FROM clean_dapa_localized_item b
 LEFT JOIN clean_kdsis_nsn k
        ON b.fsc4 REGEXP '^[0-9]{4}$' AND b.nsn REGEXP '^[0-9]{9}$' AND k.nsn = CONCAT(b.fsc4, b.nsn);
 
--- 3-8 v_kdsis_link_summary — 기존 6열 유지 + raw 행 기준 3열(total_raw_rows·eligible_raw_rows·matched_raw_rows) 추가.
---     의미 변경: B2 행의 total/eligible/matched_rows 가 고유 사업×부품 기준(25,025 / … / 310 기대)이 되고, raw 행 기준(33,965 / 31,531 / 449)은 *_raw_rows 열로 읽는다. API 행은 raw 1:1 이라 두 값이 같다.
+-- 3-8 v_kdsis_link_summary — 연결 요약 6열 + 원본 행 기준 3열(total_raw_rows·eligible_raw_rows·matched_raw_rows).
+--     B2 행의 total/eligible/matched_rows 는 고유 사업×부품 기준(25,025 / … / 310)이고, 원본 행 기준(33,965 / 31,531 / 449)은 *_raw_rows 열로 읽는다. API 행은 원본 1:1 이라 두 값이 같다.
 CREATE OR REPLACE VIEW v_kdsis_link_summary AS
 SELECT '국외 조달계획 API(stock_no=nsn)' AS link_target,
        COUNT(*)                                        AS total_rows,
@@ -1467,11 +1456,9 @@ SELECT '국산화 B2(fsc4+재고번호9=nsn)',
 FROM v_b2_localized_kdsis;
 
 -- -----------------------------------------------------------------------------
--- 국내 축 확장 뷰 9개 (2026-09-17 db/alter_2026-09-17_procurement_aux.sql 신설 → 2026-09-19 db/alter_2026-09-19_views_to_clean.sql 3-9~3-15 에서
--- v_defense_company_sector(clean 없음)를 뺀 8개를 clean_ 기준으로 전환. 현재 정의는 2026-09-19 alter 와 동일 — 바꿀 때 두 파일을 함께 고친다.
--- 단 v_contract_private_reason·v_bid_notice_monthly·v_domestic_plan_yearly 는 2026-09-20 db/alter_2026-09-20_null_vocab.sql §2 판이 현재 정의)
--- 조달 보조 6종(clean_dapa_domestic_plan·bid_notice·bid_result·overseas_contract·overseas_bid_result + raw_dapa_defense_company)과
--- 계약정보 수의계약 사유(clean_dapa_contract.private_contract_reason)를 집계. FSC·HS6 축 아님(연도·계약방법·사유·업체 축). 원칙·그룹 정의는 2026-09-17 alter 파일 머리 참조.
+-- 국내 축 확장 뷰 9개 — v_defense_company_sector 를 뺀 8개는 clean_ 기준.
+-- 조달 보조 6종(clean_dapa_domestic_plan·bid_notice·bid_result·overseas_contract·overseas_bid_result + 방산업체 지정현황)과
+-- 계약정보 수의계약 사유(clean_dapa_contract.private_contract_reason)를 집계. FSC·HS6 축 아님(연도·계약방법·사유·업체 축).
 -- -----------------------------------------------------------------------------
 -- §1 계약정보 수의계약 사유 구성 — 계약번호당 1행(clean 43,111행 → 계약 37,608). 사유·계약방법은 같은 계약번호 안에서 전부 동일(실측 충돌 0).
 --    금액 = 최종 차수(contract_seq 최대)의 총계약금액. 계약번호+차수 충돌 1건(2024UMM1504-01, 같은 차수 2행)은 큰 값을 취한다.
@@ -1486,13 +1473,13 @@ FROM v_b2_localized_kdsis;
 --      사회적 배려        = §26①4(중증장애인생산품·국가유공자 단체·사회복지법인)
 --      방위사업법 특례    = 방위사업법시행령 §61③(성과기반계약·국내업체 정비·시제품 양산)
 --      해당 없음(경쟁계약) = 경쟁계약 전부(사유 열 없음)
---      사유 미기재        = 수의계약 9건(원본 공란, null-profile §3 예외)
+--      사유 미기재        = 수의계약 9건(원본 공란)
 --      기타              = 그 외(긴급 §23①3, 분할 §29, 용역·공사 §26①2 차카·가-마 등)
--- 3-9 v_contract_private_reason — raw_dapa_contract → clean_dapa_contract(§1-1 private_contract_reason).
---     계약번호당 1행(43,111 → 계약 37,608 기대). 연도 = 최초 계약체결 연도(MIN contract_date), 금액 = 최종 차수(is_latest_seq=1)의 total_contract_amount(합 158,338억 기대).
---     의미 변경: 충돌 키 2024UMM1504-01(같은 차수 raw 2행)은 raw 뷰가 "큰 값"을 취했고 clean 은 대표 행 1개(seq_conflict_flag=1)라 그 계약 1건 금액이 다를 수 있다.
---     reason_group 팀 그룹핑·조문 REGEXP 는 종전과 같다(그룹 정의는 위 주석).
---     2026-09-20 amount_missing_count 추가·경쟁계약 라벨 분리(alter_2026-09-20_null_vocab.sql §2-2. reason_text '(해당 없음)', reason_group '해당 없음(경쟁계약)' — 종전 '사유 미기재' 10,743 → 10,734 + 9).
+-- 3-9 v_contract_private_reason — clean_dapa_contract(private_contract_reason) 기준.
+--     계약번호당 1행(43,111 → 계약 37,608). 연도 = 최초 계약체결 연도(MIN contract_date), 금액 = 최종 차수(is_latest_seq=1)의 total_contract_amount(합 158,338억).
+--     충돌 키 2024UMM1504-01(같은 차수 원본 2행)은 clean 대표 행 1개(seq_conflict_flag=1) 기준이다.
+--     reason_group 그룹 정의는 위 주석.
+--     amount_missing_count 열, 경쟁계약은 reason_text '(해당 없음)' · reason_group '해당 없음(경쟁계약)'(사유 미기재 9건과 구분).
 CREATE OR REPLACE VIEW v_contract_private_reason AS
 SELECT c.contract_year, c.contract_method_name, c.biz_type_name, c.reason_group, c.reason_text,
        COUNT(*)                          AS contract_count,
@@ -1523,9 +1510,9 @@ FROM (
 ) c
 GROUP BY c.contract_year, c.contract_method_name, c.biz_type_name, c.reason_group, c.reason_text;
 
--- 3-10 v_bid_result_summary — raw_dapa_bid_result → clean_dapa_bid_result(opening_date DATE·opening_result ENUM·bid_notice_seq_norm·final_award_rate/amount 숫자형).
---     열 밀림 2행은 clean 에 없다(7,403). 키 = 공고번호 + 정규화 차수(raw 뷰는 원문 차수) — 원문 차수 '0'/'00' 이 섞여 있었다면 키 수가 줄 수 있다(의미 변경 후보, 실측으로 확인).
---     낙찰률·낙찰금액은 clean 이 숫자형이라 REGEXP 판별이 필요 없다(rate_numeric_rows = final_award_rate IS NOT NULL).
+-- 3-10 v_bid_result_summary — clean_dapa_bid_result(opening_date DATE·opening_result ENUM·bid_notice_seq_norm·final_award_rate/amount 숫자형).
+--     열 밀림 2행은 clean 에 없다(7,403). 키 = 공고번호 + 정규화 차수.
+--     낙찰률·낙찰금액은 숫자형이라 REGEXP 판별이 필요 없다(rate_numeric_rows = final_award_rate IS NOT NULL).
 CREATE OR REPLACE VIEW v_bid_result_summary AS
 SELECT YEAR(opening_date)                                                AS opening_year,
        biz_type                                                          AS biz_type_name,
@@ -1540,8 +1527,8 @@ SELECT YEAR(opening_date)                                                AS open
 FROM clean_dapa_bid_result
 GROUP BY YEAR(opening_date), biz_type, opening_result;
 
--- 3-11 v_bid_notice_monthly — raw_dapa_bid_notice → clean_dapa_bid_notice(bid_notice_date DATE·budget_amount_krw BIGINT). 열 밀림 2행 제외분 = clean 10,840 유지 기대.
---      2026-09-20 COALESCE(SUM, 0) 제거(규칙 #9: 전 행 NULL 그룹 46개 0→NULL) + budget_missing_count 추가(alter_2026-09-20_null_vocab.sql §2-3, 합 596).
+-- 3-11 v_bid_notice_monthly — clean_dapa_bid_notice(bid_notice_date DATE·budget_amount_krw BIGINT). 열 밀림 2행 제외 = 10,840.
+--      전 행 NULL 그룹은 0 이 아니라 NULL(규칙 #9) + budget_missing_count(합 596).
 CREATE OR REPLACE VIEW v_bid_notice_monthly AS
 SELECT DATE_FORMAT(bid_notice_date, '%Y-%m')                             AS notice_month,
        bid_notice_status                                                 AS bid_notice_status_name,
@@ -1553,8 +1540,8 @@ SELECT DATE_FORMAT(bid_notice_date, '%Y-%m')                             AS noti
 FROM clean_dapa_bid_notice
 GROUP BY DATE_FORMAT(bid_notice_date, '%Y-%m'), bid_notice_status, contract_method_name, biz_type;
 
--- 3-12 v_bid_notice_result_link — 연결 요약. 1행: clean_dapa_bid_result 키 대표 행의 notice_link_status(1:1/다중/미연결) 집계(키 7,199 기대, 종전 7,201 = 열 밀림 2행 제외).
---      result_rows 는 clean 행 수(7,403, 종전 raw 7,405), *_shifted_rows 는 clean_excluded_row COL_SHIFT 건수(2·2). 2행: 낙찰업체 사업자번호 ↔ clean_dapa_contract.vendor_biz_reg_no(3,210→3,209 기대).
+-- 3-12 v_bid_notice_result_link — 연결 요약. 1행: clean_dapa_bid_result 키 대표 행의 notice_link_status(1:1/다중/미연결) 집계(키 7,199, 열 밀림 2행 제외).
+--      result_rows 는 clean 행 수(7,403), *_shifted_rows 는 clean_excluded_row COL_SHIFT 건수(2·2). 2행: 낙찰업체 사업자번호 ↔ clean_dapa_contract.vendor_biz_reg_no(3,209).
 CREATE OR REPLACE VIEW v_bid_notice_result_link AS
 SELECT '입찰결과→입찰공고(공고번호+차수)' AS link_target,
        COUNT(*)                                        AS result_key_count,
@@ -1577,9 +1564,9 @@ LEFT JOIN (SELECT DISTINCT vendor_biz_reg_no FROM clean_dapa_contract) c ON c.ve
 WHERE r.winner_biz_reg_no IS NOT NULL AND r.winner_biz_reg_no <> '';
 
 -- 3-13 v_overseas_bid_chain — clean_dapa_overseas_bid_result(is_awarded·opening_at·budget_amount_usd) + clean_dapa_overseas_plan(PK decision_no).
---      2026-09-21 ordering_agency 열 제거(alter_2026-09-21_drop_low_variance.sql — 원본 속성 저분산 열 정리, 규칙 #13).
---      단위 = 판단번호 × 항목번호(1,362 기대). 공고 횟수는 bid_notice_no(차수 포함) DISTINCT 그대로. 달러 예산은 A7 원화와 합산 금지.
---      의미 변경: 파일판 판단번호 중복 5쌍은 raw 뷰가 MAX 로 접었고 clean 은 대표 행 1개 → plan_year/exec_type/progress_status 가 최대 5건 다를 수 있다.
+--      원본 속성 저분산 열(ordering_agency)은 두지 않는다(규칙 #13).
+--      단위 = 판단번호 × 항목번호(1,362). 공고 횟수는 bid_notice_no(차수 포함) DISTINCT 그대로. 달러 예산은 A7 원화와 합산 금지.
+--      파일판 판단번호 중복 5쌍은 clean 대표 행 1개 기준이다.
 CREATE OR REPLACE VIEW v_overseas_bid_chain AS
 SELECT b.decision_no,
        b.item_seq,
@@ -1599,9 +1586,9 @@ FROM clean_dapa_overseas_bid_result b
 LEFT JOIN clean_dapa_overseas_plan p ON p.decision_no = b.decision_no
 GROUP BY b.decision_no, b.item_seq, p.decision_no, p.plan_year, p.exec_type, p.progress_status;
 
--- 3-14 v_domestic_plan_yearly — clean_dapa_domestic_plan(plan_year·exec_type 표준값·budget_krw·is_contracted·§1-2 is_budget_approx). 35,859 · 지수 표기 11 유지 기대.
---      budget_krw NULL(원본 미기재 4,965행)은 SUM 에서 빠진다(raw 뷰는 ''→0 이라 합계 동일).
---      2026-09-20 budget_missing_count 추가(alter_2026-09-20_null_vocab.sql §2-4, 합 4,965).
+-- 3-14 v_domestic_plan_yearly — clean_dapa_domestic_plan(plan_year·exec_type 표준값·budget_krw·is_contracted·is_budget_approx). 35,859 · 지수 표기 11.
+--      budget_krw NULL(원본 미기재 4,965행)은 SUM 에서 빠진다.
+--      budget_missing_count = 예산 미기재 건수(합 4,965).
 CREATE OR REPLACE VIEW v_domestic_plan_yearly AS
 SELECT plan_year,
        exec_type,
@@ -1614,8 +1601,8 @@ SELECT plan_year,
 FROM clean_dapa_domestic_plan
 GROUP BY plan_year, exec_type, contract_method;
 
--- 3-15 v_overseas_contract_yearly — clean_dapa_overseas_contract(contract_year·contract_method_name·contract_no PK·vendor_name). 6,333 · 업체 1,697 유지 기대.
---      의미 변경: demand_org_count 열 삭제(clean 이 단일값 열 수요기관명='방위사업청' 을 제외 → 항상 1 이라 정보 없음). contract_no_count 는 PK 라 contract_count 와 같다(유지).
+-- 3-15 v_overseas_contract_yearly — clean_dapa_overseas_contract(contract_year·contract_method_name·contract_no PK·vendor_name). 6,333 · 업체 1,697.
+--      contract_no_count 는 PK 라 contract_count 와 같다.
 CREATE OR REPLACE VIEW v_overseas_contract_yearly AS
 SELECT contract_year,
        contract_method_name,
@@ -1635,7 +1622,7 @@ FROM clean_dapa_defense_company
 GROUP BY COALESCE(sector, '미기재');
 
 -- §9 수의계약 사유 그룹 연도 요약(화면 카드용) — §1을 그룹 단위로 접은 것. 비중 분모 = 그 해 전체 계약(경쟁 포함).
---    2026-09-20 reason_group 분리로 결과 행 18 → 20(해당 없음(경쟁계약) 2024·2025 추가, 사유 미기재는 9건만).
+--    결과 20행(해당 없음(경쟁계약) 포함, 사유 미기재는 9건).
 CREATE OR REPLACE VIEW v_contract_reason_group_yearly AS
 SELECT contract_year, reason_group,
        SUM(contract_count)                                                AS contract_count,

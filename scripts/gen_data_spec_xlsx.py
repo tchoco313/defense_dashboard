@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-"""산출물 3 「데이터 수집 목록 및 명세서」 xlsx 생성 (2026-09-22).
+"""산출물 「데이터 수집 목록 및 명세서」 xlsx 생성.
 
 db/meta_dataset.csv(수집 데이터셋 26종) + db/table_dict.csv(역할·한 행·주의)
-+ db/column_dict.csv(열 설명) + 원본 파일 실측(scripts/load_db.py read_raw — 행 수·열·예시값. 2026-09-22 raw_ 표 삭제 후)
++ db/column_dict.csv(열 설명) + 원본 파일 실측(scripts/load_db.py read_raw — 행 수·열·예시값)
 + RDS 실측(정제·기준·뷰 행 수·열) + db/clean_transform_map.csv(원본→정제층 이름이 바뀐 대응 48건)
-  → docs/report/data/3_데이터수집목록및명세서-<날짜>.xlsx
+  → docs/제출/3_데이터수집목록및명세서-<날짜>.xlsx
     (시트 = 목록 1 + 수집 데이터셋 26 + (참고) DB 테이블·뷰 1 + 정제변경 요약·상세 2)
 
-서식은 resource/drive/3_데이터수집목록및명세서_샘플.xlsx 실측값을 그대로 따른다
+서식은 과정 제공 샘플(3_데이터수집목록및명세서_샘플.xlsx)을 그대로 따른다
 (폰트 Malgun Gothic 11 / 제목 20 bold / 머리행 회색 FFD8D8D8 / 전 셀 thin 테두리 / 행 높이 16.5).
 손으로 xlsx를 고치지 말고 세 CSV를 고친 뒤 재생성한다. dbconf etl SELECT 만 한다.
 
@@ -38,7 +38,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 ap = argparse.ArgumentParser()
-ap.add_argument("--out", help="출력 xlsx 경로(기본 docs/report/data/3_데이터수집목록및명세서-<asof>.xlsx)")
+ap.add_argument("--out", help="출력 xlsx 경로(기본 docs/제출/3_데이터수집목록및명세서-<asof>.xlsx)")
 ap.add_argument("--asof", default=datetime.date.today().isoformat(), help="작성일자(YYYY-MM-DD)")
 ARGS = ap.parse_args()
 TODAY = ARGS.asof
@@ -235,13 +235,14 @@ def fetch_db():
 
 DATASET_TABLES = []
 for _r in meta.values():
-    if _r["target_table"] not in DATASET_TABLES:
+    # 참조표 묶음(target_table 이 「ref_semi_*」처럼 패턴인 행)은 표 하나가 아니라 실측 대상에서 뺀다
+    if "*" not in _r["target_table"] and _r["target_table"] not in DATASET_TABLES:
         DATASET_TABLES.append(_r["target_table"])
 FACTS = fetch_files(DATASET_TABLES)
 OBJS = fetch_db()
 print(f"원본 파일 실측: 데이터셋 {len(FACTS)}종 · RDS 테이블·뷰 {len(OBJS)}개")
 
-# meta_dataset 에 비어 있던 다중 파일 데이터셋 크기(실측 합계, 2026-09-22)
+# meta_dataset 에 비어 있는 다중 파일 데이터셋 크기(실측 합계)
 FILE_BYTES_FIX = {
     "customs_all": (34907137, "24파일 합계"),
     "openfiscal_program_budget": (653287, "12파일 합계"),
@@ -546,7 +547,7 @@ for sheet_name, no, cat_name, short, key in sheet_plan:
         else:
             n_extra += 1
             put(d, f"C{r}", LOAD_COLS.get(name, "(파생)"))
-            note = LOAD_NOTE.get(name, "열 사전 미등재 — db/column_dict.csv 보완 필요(2026-09-22 확인)")
+            note = LOAD_NOTE.get(name, "열 사전 미등재 — db/column_dict.csv 보완 필요")
         d.merge_cells(f"E{r}:F{r}")
         border_range(d, f"E{r}:F{r}")
         put(d, f"E{r}", sample_value(name, fact["sample"].get(name, "")), align=A_C, fmt="@")
@@ -628,7 +629,7 @@ for pfx, gname in PREFIX_GROUPS:
         if name in FILE_SETS:
             role = (role + " ※ 원본 파일(DB 밖) — 행 수는 파서 실측").strip()
         elif o is None:
-            role = (role + " ※ 열 사전만 등록, RDS 미생성(2026-09-22)").strip()
+            role = (role + " ※ 열 사전만 등록, RDS 미생성").strip()
         put(g, f"F{row}", role)
         row += 1
     if row - 1 > start:
@@ -677,7 +678,7 @@ def rule_where(clean_t):
     m = re.search(r"(notebooks/[\w.\-]+\.ipynb)", src)
     if m and (ROOT / m.group(1)).exists():
         return m.group(1)
-    return "docs/reference/clean-conversion-spec-2026-09-18.md"
+    return "docs/reference/data-cleaning-rules.md"
 
 
 KIND_NOTE = {
@@ -849,7 +850,7 @@ sd.freeze_panes = "A5"
 kind_tally = collections.Counter(d[3] for d in detail_rows)
 print("정제변경: 요약 {}행 · 상세 {}행 {}".format(len(summary_rows), len(detail_rows), dict(kind_tally)))
 
-OUT = pathlib.Path(ARGS.out) if ARGS.out else ROOT / f"docs/report/data/3_데이터수집목록및명세서-{TODAY}.xlsx"
+OUT = pathlib.Path(ARGS.out) if ARGS.out else ROOT / f"docs/제출/3_데이터수집목록및명세서-{TODAY}.xlsx"
 wb.save(OUT)
 if DTYPE_DRIFT:
     print(f"[경고] 열 사전 dtype 이 RDS 와 다른 열 {len(DTYPE_DRIFT)}개 — 명세서는 RDS 값을 실었다. db/column_dict.csv 를 고칠 것:")

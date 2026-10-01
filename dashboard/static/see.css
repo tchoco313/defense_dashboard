@@ -5,8 +5,8 @@
 .pg-lead .q i{flex:0 0 auto;font-style:normal;font-size:11.5px;font-weight:800;color:#fff;background:#1d4ed8;border-radius:5px;padding:2px 7px}
 [data-testid="stElementContainer"]:has(.see.none){display:none!important}
 .see.q span:not(.src){font-size:15px;color:#5a6b85}
-/* 차트 출처 — 오른쪽 아래 「?」 원, 누르면 아래로 펼친다(dashboard/kdesign.py 와 같은 규칙. KDD_v2 는 kdesign CSS 를 불러오지 않아
-   없으면 브라우저 기본 「▶ ?」로 보인다. --sky-weak 는 KDD_v2 에 없어 SKY_WEAK 값을 직접 적음) */
+/* 차트 출처 — 오른쪽 아래 「?」 원, 누르면 아래로 펼친다(kdesign.py 와 같은 규칙. 이 화면은 kdesign CSS 를 불러오지 않아
+   없으면 브라우저 기본 「▶ ?」로 보인다. --sky-weak 변수가 없어 SKY_WEAK 값을 직접 적음) */
 details.src{margin-top:8px}
 details.src > summary{list-style:none;display:grid;place-items:center;margin-left:auto;width:24px;height:24px;border-radius:50%;
   border:1px solid #c9d6e8;background:#fff;color:var(--muted);font-size:13.5px;font-weight:700;cursor:pointer;user-select:none}

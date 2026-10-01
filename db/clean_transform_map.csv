@@ -40,10 +40,10 @@ raw_dapa_overseas_plan_api,budget_amount,clean_dapa_overseas_plan_api,budget_amo
 raw_dapa_overseas_plan_api,demand_year_req,clean_dapa_overseas_plan_api,demand_year,확인,
 raw_dapa_overseas_plan_api,stock_no,clean_dapa_overseas_plan_api,stock_no_raw + nsn + nsn_format + is_placeholder_nsn + fsc4 + fsg2 + is_elec + kdsis_link_status,확인,
 raw_dapa_overseas_plan_api,unit_price,clean_dapa_overseas_plan_api,unit_price_num + amount_unverified,확인,
-raw_kdsis_nsn,cage_code,clean_kdsis_nsn,cage_count,확인,건수만 남김 — 원 표기는 clean_kdsis_nsn_ref 에 풀 예정이었으나 그 표는 2026-09-19 폐기(alter_2026-09-19_drop_unused.sql)
+raw_kdsis_nsn,cage_code,clean_kdsis_nsn,cage_count,확인,건수만 남김 — 원 표기는 clean_kdsis_nsn_ref 에 풀 예정이었으나 그 표는 만들지 않았다
 raw_kdsis_nsn,iin_serial,clean_kdsis_nsn,niin (ncb_code와 결합),확인,
 raw_kdsis_nsn,origin_file,clean_kdsis_nsn,origin_files,확인,
-raw_kdsis_nsn,ref_no,clean_kdsis_nsn,ref_count,확인,건수만 남김 — 원 표기는 clean_kdsis_nsn_ref 에 풀 예정이었으나 그 표는 2026-09-19 폐기
+raw_kdsis_nsn,ref_no,clean_kdsis_nsn,ref_count,확인,건수만 남김 — 원 표기는 clean_kdsis_nsn_ref 에 풀 예정이었으나 그 표는 만들지 않았다
 raw_kosis_production_index,stat_ym,clean_kosis_production_index,stat_month + is_month_restored,확인,
 raw_krit_task,round_label,clean_krit_task,round_id + round_year + round_seq,확인,
 raw_krit_task,task_seq,clean_krit_task,task_no + task_seq_text,확인,

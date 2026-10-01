@@ -1,16 +1,16 @@
-"""운영 DB 정합성 점검(읽기 전용) — 2026-09-28 DB 수정협의안(docs/report/data/db-qa-response-2026-09-28.md)의 재발 방지.
+"""운영 DB 정합성 점검(읽기 전용) — 시드·참조값 불일치, 건수 검산, 전자 판정 플래그 불일치를 찾는다.
 
 세 가지를 PASS/FAIL 로 본다(etl_rw SELECT 만, 비밀값 출력 없음). data-cleaning-rules.md §1 #14~#16 의 점검 도구다.
-  1. seed    — 시드·참조 CSV ↔ DB 값(D-01 유형). db/seed_ref.sql(ref_fsg·ref_sido_map)과 data/reference/*.csv·db/column_dict.csv
+  1. seed    — 시드·참조 CSV ↔ DB 값. db/seed_ref.sql(ref_fsg·ref_sido_map)과 data/reference/*.csv·db/column_dict.csv
                로 적재한 표. DB에서만 고친 값은 다음 load_db.py --ref(시드 덮어쓰기)나 재적재 때 사라진다.
-  2. balance — 원본 = clean + 제외 검산(D-03 유형). 원본 행 수는 load_db.RAW_TABLES 의 파서 기대 건수, 제외는 clean_excluded_row.
+  2. balance — 원본 = clean + 제외 검산. 원본 행 수는 load_db.RAW_TABLES 의 파서 기대 건수, 제외는 clean_excluded_row.
                검산 설정(BALANCE·BALANCE_SKIP)에 없는 clean_ 표가 생기면 FAIL — 새 표를 만들 때 여기에 등록한다.
-  3. flag    — 전자 판정(FSG 58·59·60, 09-21 M4) 일치: ref_fsg ↔ ref_fsc ↔ clean 3표(KDSIS·B2·국외조달 API).
+  3. flag    — 전자 판정(FSG 58·59·60) 일치: ref_fsg ↔ ref_fsc ↔ clean 3표(KDSIS·B2·국외조달 API).
 
 사용(저장소 루트):
   python scripts/check_integrity.py                  # 전부. FAIL 이 하나라도 있으면 종료 코드 1
   python scripts/check_integrity.py --only seed flag
-돌리는 때: alter 적용 · load_db.py --ref · 정제 노트북 적재 직후, 데이터 제출(10-02) 전.
+돌리는 때: 스키마 변경 · load_db.py --ref · 정제 노트북 적재 직후.
 """
 from __future__ import annotations
 
@@ -301,7 +301,7 @@ def check_balance(cur) -> list[tuple[str, str, str, list[str]]]:
 def check_flag(cur) -> list[tuple[str, str, str, list[str]]]:
     cur.execute("SELECT GROUP_CONCAT(fsg_code ORDER BY fsg_code) FROM ref_fsg WHERE is_electronic_group = 1")
     groups = cur.fetchone()[0]
-    res = [("PASS" if groups == "58,59,60" else "FAIL", "ref_fsg 전자 군급", f"{groups} (기준 58·59·60, 09-21 M4)", [])]
+    res = [("PASS" if groups == "58,59,60" else "FAIL", "ref_fsg 전자 군급", f"{groups} (기준 58·59·60)", [])]
     for name, sql in FLAG_SQL:
         cur.execute(sql)
         n = int(cur.fetchone()[0])

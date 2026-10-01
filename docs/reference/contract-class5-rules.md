@@ -1,19 +1,21 @@
-# 국내조달 계약정보 5분류·속성 규칙 초안 (2026-09-17)
+# 국내조달 계약정보 5분류·속성 규칙 초안
 
-**상태: 초안(Claude 작성, 팀 결정·표본 검수 전).** 적용은 팀원 정제 노트북 몫이며, 이 문서는 규칙의 근거·순서·측정치·알려진 오탐을 기록한다. 기계가 읽는 규칙표는 `data/reference/contract_class5_rules.csv`(Python `re` 문법, 대소문자 무시).
+**상태: 초안(표본 검수 전).** 적용은 정제 노트북 몫이며, 이 문서는 규칙의 근거·순서·측정치·알려진 오탐을 기록한다. 기계가 읽는 규칙표는 `data/reference/contract_class5_rules.csv`(Python `re` 문법, 대소문자 무시). 현재 `clean_dapa_contract.class5`는 규칙 미확정이라 전 행 `판단 보류`다.
 
-기준: `docs/idea-review.md` §5 정제 원칙(5분류·속성 독립·키워드는 후보), `db/schema.sql` `clean_dapa_contract`(`class5`·`is_electronic`·`is_part`·`is_defense_related`·`matched_keywords`·`evidence`·`review_status`), CLAUDE.md 데이터 검증 규칙.
+대안 규칙표 `data/reference/contract_class5_rules_alt.csv`는 순서형 첫 일치 대신 「정규화(부대·시설 명칭 토큰 마스킹) → 텍스트·구조 신호 독립 판정 → 충돌표」 방식으로 설계한 비교용 초안이다(열: `rule_id`·`stage`·`signal`·`field`·`pattern`·`value`·`note`·`measured_rows_2026_09_17`).
+
+기준: `docs/reference/data-cleaning-rules.md` §1 #8(5분류·속성 독립·키워드는 후보), `db/schema.sql` `clean_dapa_contract`(`class5`·`is_electronic`·`is_part`·`is_defense_related`·`matched_keywords`·`evidence`·`review_status`).
 
 ## 0. 전제
 
-- 입력 열: `contract_name`(계약명), `biz_type_name`(물품/용역), `contract_org_name`(계약기관). 계약명은 **계약 제목**이지 품명이 아니다. "OO 등 N종 구매" 형식이 6,238행이라 대표 품목 1개만 보인다.
+- 입력 열: `contract_name`(계약명), `biz_type`(물품/용역), `contract_org_name`(계약기관). 계약명은 **계약 제목**이지 품명이 아니다. "OO 등 N종 구매" 형식이 6,238행이라 대표 품목 1개만 보인다.
 - 키워드 일치는 **후보 선정**이다. `review_status='후보'`로 두고 `matched_keywords`에 일치 키워드를 전부 기록한다. 서로 겹치는 키워드 집계를 합산하지 않는다.
 - `class5`와 속성 3개(`is_electronic`·`is_part`·`is_defense_related`)는 서로 독립이다. 예: 병영 TV 구매는 `일반 행정·운영` + `is_electronic=예` + `is_part=아니오` + `is_defense_related=아니오`.
 - 규칙은 **순서대로 적용해 첫 일치로 확정**한다(R1 → R7). 순서가 곧 우선순위다.
 - 근거 없으면 `판단 보류`·`미확인`으로 남긴다. 보류가 많은 것은 정상이며 숨기지 않는다.
 - 분류는 행(계약번호×차수) 단위로 하되, 같은 계약번호 안에서 차수별 계약명이 달라 `class5`가 갈리는 건수를 보고한다(집계는 `is_latest_seq=1` 행 기준).
 
-## 1. 원본 특성 (확인됨 — 2026-09-17 팀 서버 `raw_dapa_contract` SQL 실측)
+## 1. 원본 특성 (확인됨 — 원본 43,112행 SQL 실측)
 
 | 항목 | 값 |
 |---|---|
@@ -25,7 +27,7 @@
 
 단어별 일치 수(중복 포함, 배타 아님): 통신 556 · 차량 568 · K+숫자 594 · 전투 418(전투비행단·전투실험센터 포함) · 전자 407(전자레인지 73 포함) · 검사 377 · 필터 284(공기청정기 필터 다수) · 전지 223 · 엔진 186 · 레이더 101 · 회로 98 · 광학 14 · 반도체 5 · 수리부속 251 · "정비"가 든 **물품** 계약 1,448.
 
-배제한 근거 열: `private_contract_reason`(수의계약 사유)은 "군용물자 연구개발업체" 81행, "방위사업법 성과기반계약" 20행 정도만 방산 신호라 보조 근거(`evidence`)로만 쓴다. `domestic_vendor_yn`·`vendor_address`는 국산 근거가 아니다(CLAUDE.md).
+배제한 근거 열: `private_contract_reason`(수의계약 사유)은 "군용물자 연구개발업체" 81행, "방위사업법 성과기반계약" 20행 정도만 방산 신호라 보조 근거(`evidence`)로만 쓴다. `domestic_vendor_yn`·`vendor_address`는 국산 근거가 아니다(`data-cleaning-rules.md` §1 #8).
 
 ## 2. `class5` 규칙 (순서 적용)
 
@@ -39,7 +41,7 @@
 | 6 | R6 | 일반 군수물자 | `biz_type='물품'` **and** 피복·식자재·식재료·고기·김치·부식·젓갈·소면·국수·튀김·조림·소스·유류·연료·경유·휘발유·윤활유·가스·의약품·의무·제세동·텐트·침낭·장구·전투화·방탄·헬멧·공구·철조망·축성·안전물자·소모품·자재·군복·장갑·모포·담요·수통·배낭·탄띠·위장·방독면·보호의·화생방·로프·파레트·화장지·세제·유연제·인쇄용지·수첩·더미·마네킨·키트 | — | 조달 구성 **비교 기준선**으로만 쓴다(별도 분석 축 아님). 같은 단어의 용역은 R2에서 이미 행정으로 간다 |
 | 7 | R7 | 판단 보류 | 위 어느 것에도 해당 없음 | — | 기본값. "OO 등 N종 구매"의 대표 품목이 일반명사인 경우 대부분 여기 |
 
-### 측정 결과 (확인됨 — 위 순서를 SQL `CASE`로 원본 43,112행에 적용, 2026-09-17)
+### 측정 결과 (확인됨 — 위 순서를 SQL `CASE`로 원본 43,112행에 적용)
 
 | class5 | 물품 | 용역 | 합계 | 비율 |
 |---|---|---|---|---|
@@ -67,7 +69,7 @@
 
 `matched_keywords`: 일치한 키워드를 계열 접두와 함께 `|`로 이어 저장(예: `W:K9|P:부품|E:회로`). `evidence`: 적용된 rule_id와 보조 근거(`계약기관=방위사업청`, 수의계약 사유 "군용물자 연구개발업체" 등).
 
-## 4. 알려진 오탐·누락 (표본 확인, 2026-09-17)
+## 4. 알려진 오탐·누락 (표본 확인)
 
 | 유형 | 예 | 처리 |
 |---|---|---|
@@ -88,15 +90,17 @@
 3. 보고 형식: `원본 43,112 → 2025년 30,808 / 2024년 12,304 → 중복 처리 후(is_latest_seq) N → 방산 후보 2,804 → 검수 후 확정 N`, 제외 사유 포함. 표본은 범위·한계를 함께 적고 전체를 확정하지 않는다.
 4. 검수 결과로 키워드 목록을 1회 갱신하고 `rule_version`을 올린다. 갱신 전후 분포를 나란히 기록한다.
 
-## 6. 팀 결정 필요 (미확정)
+## 6. 미확정 사항
 
 - 성능개량·개발·PBL을 `정비·기술지원`으로 둘지 `방산 장비·부품 후보`로 둘지(현재 R1이 먼저 잡아 정비).
 - 방위사업청 계약 837행을 계약명 단서 없이 방산 후보로 올리는 R3 (c) 유지 여부.
 - 교육용 장비·정책연구 용역의 귀속(§4).
 - `class5`는 계약번호 단위로 하나여야 하는지(차수 간 계약명 불일치 건수 확인 후).
-- 표준품명 R4의 정규식 보강 담당(팀원 노트북).
+- 표준품명 R4의 정규식 보강.
 
-## 부록. 측정 재현 SQL (팀 서버 `raw_dapa_contract`, DBHub 읽기 전용)
+## 부록. 측정 재현 SQL
+
+측정값은 원본 43,112행 기준이다. 같은 식을 `clean_dapa_contract`(43,105행 — 충돌 1·테스트 업체 6 제외)에 걸면 그만큼 차이가 난다.
 
 ```sql
 SELECT CASE
@@ -106,9 +110,9 @@ SELECT CASE
  WHEN contract_name REGEXP '<R3 (a)+(b) 패턴>' OR contract_org_name='방위사업청' THEN '방산 장비·부품 후보'
  WHEN contract_name REGEXP '<PART>' AND contract_name REGEXP '^[^ ]+(  +|,)[^ ]+' AND contract_name NOT REGEXP '구매|제조|납품|설치|용역|계약|구입|의뢰' THEN '방산 장비·부품 후보(표준품명)'
  WHEN contract_name REGEXP '<PART>' THEN '판단 보류(부품어만)'
- WHEN biz_type_name='물품' AND contract_name REGEXP '<R6 패턴>' THEN '일반 군수물자'
- ELSE '판단 보류' END AS class5, biz_type_name, COUNT(*) n
-FROM raw_dapa_contract GROUP BY 1,2;
+ WHEN biz_type='물품' AND contract_name REGEXP '<R6 패턴>' THEN '일반 군수물자'
+ ELSE '판단 보류' END AS class5, biz_type, COUNT(*) n
+FROM clean_dapa_contract GROUP BY 1,2;
 ```
 
 패턴 원문은 `data/reference/contract_class5_rules.csv`의 `pattern`·`negative_pattern` 열이 정본이다.

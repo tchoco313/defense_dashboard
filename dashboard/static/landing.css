@@ -20,7 +20,7 @@
   transform:scaleX(0)}
 .mv-bar .tr.run::after{animation:mvProg 6s linear forwards}   /* 장이 바뀔 때마다 처음부터 다시 찬다 */
 @keyframes mvProg{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-/* 이전 · 다음 단추(예전 01 · 03 자리) */
+/* 이전 · 다음 단추 */
 .mv-arr{width:28px;height:28px;padding:0;border-radius:50%;border:1.5px solid rgba(255,255,255,.75);background:rgba(0,20,60,.15);
   color:#fff;display:grid;place-items:center;cursor:pointer;transition:background .15s,border-color .15s}
 .mv-arr:hover{background:rgba(255,255,255,.22);border-color:#fff}

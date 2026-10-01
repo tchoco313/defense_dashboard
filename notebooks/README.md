@@ -17,16 +17,7 @@
 
 정제 노트북은 `scripts/load_db.py` 의 `connect` · `read_raw` · `log_stage` 를 쓴다. 원본은 `data/raw/`(깃에 없음), 접속 정보는 루트 `.env`.
 
-## 옛 이름 (2026-09-28 정리 전)
+## 실행 순서와 입력
 
-날짜가 붙은 보고 문서(`docs/report/`), `db/alter_*.sql` · `db/query_*.sql` 주석, **RDS `meta_load_log` 의 기록**에는 옛 이름이 남아 있다. 당시 기록이라 고치지 않았다.
-
-| 지금 | 옛 이름 | 옛 이름의 뜻 |
-|---|---|---|
-| `01_clean_customs` | `clean_p1_customs_hs` | 담당 분배 P1 |
-| `02_clean_localized_overseas_plan` | `clean_b2_a7` | 데이터셋 키 B2 · A7 |
-| `03_clean_overseas` | `clean_p3_overseas` | P3 |
-| `04_clean_domestic` | `clean_p4_domestic` | P4 |
-| `05_clean_krit_budget` | `clean_p5_krit_p2_budget` | P5-4 · P2-6 |
-| `06_clean_kosis` | `clean_p5_kosis` | P5-5 |
-| `11_eda_customs` ~ `14_eda_overseas_plan` | `eda_customs` · `eda_contract` · `eda_localized_item` · `eda_overseas_plan` | 번호만 붙였다 |
+1. `01`~`06` 정제 — 원본 파일(`data/raw/`)을 읽어 RDS `clean_*` 표에 적재한다(`01`은 `fact_customs_monthly` 검증 · `dim_hs10` 보강, `03`은 표기 통일 사전 `ref_equipment_alias`도 적재). 대상 표가 **비어 있을 때만** 적재하고, 단계별 건수는 `meta_load_log`에 남긴다. 제외한 원본 행은 `clean_excluded_row`에 사유와 함께 남겨 `원본 = clean + 제외`를 검산한다.
+2. `11`~`14` EDA — `11`은 §1~§10을 원본 파일로, §11을 RDS 정제본(`db/query_eda2_2026-09-23.sql`)으로 계산한다. `12`는 원본 파일, `13`은 원본 파일 + RDS(§8 업체 소재지), `14`는 RDS 정제본을 읽는다.

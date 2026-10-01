@@ -1,41 +1,47 @@
-"""DATA CENTER 「데이터 시각화」 구역 — 선택형 시각화(팀원 디자인 데모 「DATA CENTER · 데이터 시각화」 화면을 옮기고 값만 RDS 로 바꿨다).
+"""「데이터 시각화」 상세 조회 도구 — 조건을 골라 차트 · 지도 · 표로 보는 선택형 시각화(값은 RDS).
 
-main.py 의 「상세 조회」 3곳(screens/parts.py detail)이 runpy.run_path 로 매 실행 새로 돌린다(페이지 파일처럼 —
+「상세 조회」 3곳(screens/parts.py 의 detail)이 runpy.run_path 로 매 실행 새로 돌린다(페이지 파일처럼 —
 import 하면 모듈이 프로세스에 한 번만 실행돼 화면이 그려지지 않는다). init_globals={"FIXED_TYPE": 유형}으로 유형을 하나로 고정한다(query_panel).
-2026-10-01 전까지는 예전 운영 앱의 DATA CENTER 페이지(pages/5_데이터_센터.py)가 불렀다.
 
 맨 위 「데이터 유형」 — 수출입 HS · 군수품 FSG/FSC · 국산화개발. 유형마다 조건 · 지표 · 차트 · 결과 탭이 바뀐다
-(session_state 키 앞머리 qs_ · qf_ · ql_, 데모 2026-09-29 확장판과 같은 키).
+(session_state 키 앞머리 qs_ · qf_ · ql_).
 - 수출입 HS: 분석영역 · HS6/HS10 · 품목코드 · 국가 · 기간 · 지표 · 차트 15종 · 빠른 설정 → 지표 카드 · 차트 / 국가별 분포 지도 / 결과 표.
   읽는 표: fact_customs_monthly(월별 HS10 × 국가) · ref_hs_whitelist(분석 대상 13개) · ref_country · ref_hs_code_master(HS10 품명).
 - 군수품 FSG/FSC: 국외 조달계획 OpenAPI 품목(clean_dapa_overseas_plan_api, 전자 계열 FSG 58·59·60) — 건수만 센다(금액은 통화 미검증).
 - 국산화개발: 국산화개발품목(clean_dapa_localized_item, 전자 계열) — 스냅샷이라 건수 · 개수만(국산화율 · 추세 없음).
   「관련 업체」는 원자료의 계약업체(개발 주체 아님).
 관세청 HS 와 FSC 는 어떤 수준에서도 엮지 않는다 — 유형끼리 값을 합치거나 잇지 않는다.
-차트 유형 설명 칸은 KOSIS 「데이터 시각화 체험하기」 차트 목록(디자인 입력 B2)을 따른다.
+차트 유형 설명 칸은 KOSIS 「데이터 시각화 체험하기」 차트 목록을 따른다.
 자유 입력은 품목명 · 기능명 · NSN · 부품관리번호 부분검색뿐이고 DB 에서 이미 읽은 표 안에서 거른다(SQL 에 넣지 않는다).
 SQL 은 바인딩 파라미터만 쓴다.
 단위: 금액 백만 USD(USD ÷ 10⁶), 중량 톤(kg ÷ 10³, 참고값). 무역수지 = 수출액 − 수입액. 국가는 선적국(원산지 아님).
 """
 from __future__ import annotations
 
+import json
 import math
 from html import escape
+from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 
 from db import data_stamp, query, safe_query
-from kdesign import ACCENT, ETC, SERIES, TEXT, _svg_img
+from kdesign import _FONT_LINK, ACCENT, ETC, SERIES, TEXT, _svg_img
 from ui import (EXP, EXP_DIM, IMP, IMP_DIM, SHORT, source_pop, chart_source, chart_title, country_colors, country_map, csv_header, globe_loading, hover_donut, kpi, png_button,
                 style_fig)
 
 ALL = "__all__"
-# 화면 · CSV 출처는 「기관 · 데이터명(포털 ID) · 자료 기간」만 — DB 표 · 뷰 이름과 적재일은 쓰지 않는다(보안, 2026-09-24 사용자)
+STATIC_DIR = Path(__file__).resolve().parent / "static"     # 결과 카드의 HTML · JS 조각(넓은 차트 · 지도 PNG)
+# 분포 차트(막대) — 막대가 WIDE_MIN 개를 넘으면 실제 폭을 막대 수에 비례해 넓히고 가로 스크롤(wide_chart).
+# 폭 = 막대 수 / WIDE_MIN × WIDE_BASE px(10개 = 결과 카드 폭 정도). WIDE_MIN 이하는 예전처럼 카드 폭에 맞춘다
+WIDE_MIN, WIDE_BASE = 10, 700
+# 화면 · CSV 출처는 「기관 · 데이터명(포털 ID) · 자료 기간」만 — DB 표 · 뷰 이름과 적재일은 쓰지 않는다(보안)
 SOURCE = "관세청 품목별 국가별 수출입실적(15100475) · 국가 전체 교역(민수 포함) · 국가는 선적국"
 PLOT_CFG = {"displaylogo": False, "modeBarButtonsToRemove": ["zoom2d", "pan2d", "select2d", "lasso2d", "autoScale2d"]}
-TARGET = "SELECT hs6 FROM ref_hs_whitelist WHERE priority IN (1, 2)"   # 분석 대상 13개(2026-09-21 M5)
+TARGET = "SELECT hs6 FROM ref_hs_whitelist WHERE priority IN (1, 2)"   # 분석 대상 13개
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -109,7 +115,7 @@ def load_localized() -> pd.DataFrame:
 
 
 def trade_frame(names: list[str], y0: int, y1: int, unit: str, items: list[str] | None) -> pd.DataFrame:
-    """데모 trade_frame 과 같은 모양(국가 × 연도 · 수출액 · 수입액 · 무역수지 · 수출중량 · 수입중량) — 값은 RDS.
+    """국가 × 연도 표(수출액 · 수입액 · 무역수지 · 수출중량 · 수입중량) — 값은 RDS.
     고른 국가에서 실적이 없는 연도는 0 으로 채운다(실제 0). 전부 0 이면 빈 표."""
     raw = load_trade(unit, None if items is None else tuple(items), y0, y1)
     codes = [CODE[n] for n in names]
@@ -128,7 +134,7 @@ def trade_frame(names: list[str], y0: int, y1: int, unit: str, items: list[str] 
 STAMP = data_stamp("customs_all", "fact_customs_monthly")
 S_PLAN = data_stamp("dapa_overseas_plan_api", "clean_dapa_overseas_plan_api")
 S_B2 = data_stamp("dapa_localized_item", "clean_dapa_localized_item")
-# DB 접속 확인은 부르는 쪽(main.py)이 먼저 한다
+# DB 접속 확인은 부르는 쪽이 먼저 한다
 
 with globe_loading("기준표를 읽는 중"):
     WL, CTRY, YRS = load_ref()
@@ -185,7 +191,7 @@ Q_AREAS = ["수출입", "수출", "수입"]
 Q_METRICS = [("수출액", "백만 USD", "", {"수출입", "수출"}), ("수입액", "백만 USD", "", {"수출입", "수입"}),
              ("무역수지", "백만 USD", "", {"수출입"}), ("수출중량", "톤", "", {"수출입", "수출"}),
              ("수입중량", "톤", "", {"수출입", "수입"})]
-# 거래건수(데모)는 DB 에 없는 지표라 뺐다 — fact_customs_monthly 는 HS10 × 국가 × 월 합계 행이다
+# 거래건수는 DB 에 없는 지표라 두지 않는다 — fact_customs_monthly 는 HS10 × 국가 × 월 합계 행이다
 Q_UNIT = {m: u for m, u, _, _ in Q_METRICS}
 Q_MONEY = ("수출액", "수입액", "무역수지")
 # 차트 유형 — KOSIS 「데이터 시각화 체험하기」 차트 목록 15종. 고른 차트로 결과를 그리고, 같은 모양으로 CSV 를 내려준다
@@ -204,7 +210,7 @@ Q_PALETTE = SERIES   # 팔레트 8색 고정 순서 — 9번째부터는 기타(
 
 def ctry_colors(names) -> dict[str, str]:
     """국가 이름 → 색. 다른 페이지와 같은 나라 = 같은 색(ui.country_colors — 미국 파랑 · 중국 주황 · 대만 청록).
-    순서대로 팔레트를 돌려 쓰면 중국이 파랑이 되는 등 페이지마다 색이 달라졌다(2026-09-28 점검). 「기타 …」는 회색."""
+    순서대로 팔레트를 돌려 쓰면 중국이 파랑이 되는 등 페이지마다 색이 달라진다. 「기타 …」는 회색."""
     cc = country_colors([CODE.get(str(n), str(n)) for n in names if not str(n).startswith("기타")])
     return {n: (ETC if str(n).startswith("기타") else cc[CODE.get(str(n), str(n))]) for n in names}
 Q_CHART_TOP = len(SERIES)   # 그림에 따로 그리는 국가 수 — 넘으면 기간 합계 상위만 두고 나머지는 「기타 N개국」 한 줄(카드 · 표 · CSV 는 전체)
@@ -288,7 +294,7 @@ def _q_apply(defaults: dict, force: bool = False) -> None:
 def _q_type_change() -> None:
     """데이터 유형 전환 — 새 유형의 키(qs_ · qf_ · ql_ 중 하나)를 기본값으로 덮어써 새로 시작한다.
     다른 유형 키는 지우지 않는다 — 같은 rerun 에서 뒤이어 도는 그 유형 위젯의 on_change(예: _q_hs_unit)가
-    지워진 키를 읽다 KeyError 가 났다(데모 09-29). 그리지 않은 위젯 키는 Streamlit 이 치운다."""
+    지워진 키를 읽다 KeyError 가 난다. 그리지 않은 위젯 키는 Streamlit 이 치운다."""
     _q_apply(Q_TYPE_DEFAULT[st.session_state["qd_type"]], force=True)
 
 
@@ -325,7 +331,7 @@ Q_ROW_H = {"dtype": 32, "area": 32, "hs": 32, "item": 40, "ctry": 40, "period": 
 Q_CHIP_COLS = 3                                               # 고른 값을 입력칸 밑에 한 줄 3개씩
 Q_CHIP_SCROLL = 10                                            # 이만큼 이상 고르면 칩 칸을 스크롤로
 Q_CHIP_ROWS = 3                                               # 스크롤 칸에 한 번에 보이는 칩 줄 수(칩 30px · 줄 간격 6px)
-# 칩 다중선택 — 선택창 key → 칩 묶음 key. 국가는 예전 key(qs_chips) 그대로
+# 칩 다중선택 — 선택창 key → 칩 묶음 key. 국가 칩 묶음은 qs_chips
 Q_CHIP_KEY = {"qs_ctry": "qs_chips", "qs_item": "qs_item_chips", "qf_fsg": "qf_fsg_chips", "qf_fsc": "qf_fsc_chips",
               "ql_proj": "ql_proj_chips", "ql_fsg": "ql_fsg_chips", "ql_fsc": "ql_fsc_chips", "ql_comp": "ql_comp_chips"}
 # 파란 선택창 — 데이터 유형 드롭다운 · 기간 · 요구연도
@@ -629,7 +635,7 @@ def _q_chart_grid(charts: list[str], state_key: str, subject: str = "국가", sh
 def query_panel() -> dict:
     """분석 조건 설정 카드. 맨 위 데이터 유형에 따라 HS · FSG/FSC · 국산화개발 조건을 그리고,
     고른 조건을 dict 로 돌려준다(q["type"] = 데이터 유형).
-    FIXED_TYPE — 부르는 쪽이 runpy init_globals 로 넘기면 그 유형으로 고정하고 「데이터 유형」 칸을 숨긴다(main.py 상세 조회 3곳).
+    FIXED_TYPE — 부르는 쪽이 runpy init_globals 로 넘기면 그 유형으로 고정하고 「데이터 유형」 칸을 숨긴다(상세 조회 3곳).
     다른 유형 키는 그리지 않으면 Streamlit 이 치우므로, 돌아오면 아래 _q_apply 가 기본값을 다시 채운다."""
     fixed = globals().get("FIXED_TYPE")
     if fixed in Q_TYPES:
@@ -751,7 +757,7 @@ def query_panel_fsg() -> dict:
     ss = st.session_state
     st.html(_q_form_css({"qf_fsg": _q_hint("qf_fsg", "qf_fsg_all", "FSG", "전체 FSG 선택 중")}))
     # 집계 단위는 따로 고르지 않는다 — FSC 를 비우면(= 고른 FSG 아래 전체) FSG 단위, 하나라도 고르면 FSC 단위.
-    # FSG 가 FSC 의 상위 분류라 「분류 단위 FSG/FSC」 토글은 두 분류체계 중 하나를 고르는 것처럼 보여 없앴다(데모 09-29)
+    # FSG 가 FSC 의 상위 분류라 「분류 단위 FSG/FSC」 토글은 두 분류체계 중 하나를 고르는 것처럼 보여 두지 않는다
     fsg, picked_fsc, fsc = _q_fsg_fsc("qf_", "FSC 를 고르세요 · 비우면 FSG 단위로 집계", QF_FSG, QF_FSC)
     unit = "FSC" if picked_fsc else "FSG"
     with _q_row(":material/military_tech:", "군종", "branch"), st.container(key="qf_branch_box", gap=None):
@@ -1358,10 +1364,58 @@ def stat_table(df: pd.DataFrame, q: dict) -> None:
 
 
 
+def _dl_area(slots: list, map_file: str = "") -> None:
+    """결과 카드 맨 아래 내려받기 줄 — 탭 하나당 칸 하나(dl_t0 · dl_t1 · dl_t2). slots[i] = i 번째 탭의
+    (출처 문구 또는 None, 단추를 그리는 함수). 출처가 있으면 「? 출처」 원은 왼쪽 · 단추는 오른쪽(「?  ···  내려받기」).
+    단추 이름 = 「탭 이름 + 형식」(차트 · 지도 = PNG 이미지, 표 = CSV) — 고른 차트 유형은 파일 이름에만 넣는다.
+    지금 고른 탭(aria-selected)의 칸만 보인다(static/components.css). 탭 칸 바깥 · 카드 안의 평범한 줄이라 내용을 덮지 않는다."""
+    with st.container(key="res_dl"):
+        for i, (src, draw) in enumerate(slots):
+            with st.container(key=f"dl_t{i}", horizontal=True, vertical_alignment="center",
+                              horizontal_alignment="distribute" if src else "right"):
+                if src:
+                    chart_source(src)
+                draw()
+    with st.container(key="imgdl_js"):                     # PNG 단추(dlbtn_png · dlbtn_map) 클릭 처리(static/img_dl.js)
+        components.html(f"<script>window.parent.__kdMapFile = {json.dumps(map_file + '.png')};</script>"
+                        "<script>" + (STATIC_DIR / "img_dl.js").read_text(encoding="utf-8") + "</script>", height=0)
+
+
+def _png_dl(label: str, **png) -> None:
+    """차트 PNG — CSV 단추와 똑같은 Streamlit primary 단추(다운로드 아이콘). 누르면 페이지를 다시 돌리지 않고
+    숨겨 둔 그림 칸(png_button trigger)이 넓힌 폭 그대로 PNG 를 만든다(static/img_dl.js 가 클릭을 가로챈다)."""
+    st.button(label, icon=":material/download:", type="primary", key="dlbtn_png")
+    with st.container(key="png_js"):
+        png_button(**png, trigger="dlbtn_png")
+
+
+def _map_png_button() -> None:
+    """지도 탭 PNG — CSV 단추와 같은 Streamlit primary 단추. 지도는 iframe 그림이라 지금 보이는 지도 칸을 그대로 찍는다
+    (파일 이름은 _dl_area(map_file=…), 클릭 처리는 static/img_dl.js)."""
+    st.button("지도 PNG 이미지 내려받기", icon=":material/download:", type="primary", key="dlbtn_map")
+
+
+def _png_width(fig) -> int:
+    """PNG 그림 폭 — 넓힌 막대 차트(wide_chart)면 그 폭 그대로(막대 · x축 라벨이 잘리지 않게), 아니면 1100."""
+    return max(1100, int(fig.layout.width or 0))
+
+
+def wide_chart(fig, n_bars: int, height: int = 400) -> int:
+    """막대가 WIDE_MIN 개를 넘는 분포 차트 — 그림 폭을 막대 수에 비례해 넓혀 iframe 안에 그리고 가로로 스크롤한다
+    (static/wide_chart.html). st.plotly_chart 는 칸 폭을 넘지 못해 막대가 다시 찌그러지기 때문. 넓힌 폭을 돌려준다."""
+    width = int(max(WIDE_BASE, n_bars / WIDE_MIN * WIDE_BASE))
+    fig.update_layout(width=width, height=height)
+    html = ((STATIC_DIR / "wide_chart.html").read_text(encoding="utf-8")
+            .replace("__FONTLINK__", _FONT_LINK).replace("__FIG__", fig.to_json())
+            .replace("__W__", str(width)).replace("__H__", str(height)))
+    components.html(html, height=height + 18, scrolling=False)   # + 가로 스크롤바 자리
+    return width
+
+
 def query_result(q: dict, y0: int, y1: int) -> None:
-    """조회 결과 카드 안 — 지표 카드 · 차트/지도/표 탭."""
+    """조회 결과 카드 안 — 지표 카드 · 차트/지도/표 탭 · 탭별 내려받기 단추(차트 · 지도 = PNG, 결과 표 = CSV)."""
     # 조건을 바꾸면 여기가 다시 계산된다 — 그동안 작은 지구본이 돈다.
-    # 로딩 지구본은 실제 DB 조회 시간 동안만 보인다(데모의 인위적 대기 없음).
+    # 로딩 지구본은 실제 DB 조회 시간 동안만 보인다.
     with globe_loading("조회 결과를 계산하는 중"):
         df = trade_frame(q["names"], y0, y1, q["unit"], q["items"])
     if df.empty:
@@ -1381,9 +1435,9 @@ def query_result(q: dict, y0: int, y1: int) -> None:
         title, sub = query_title(df, q)
         chart_title(title, sub)
         fig, basis = query_chart(df, q)
-        chart_source(f"{src_q} · {basis}")
-        png_button(fig, f"조회_{q['chart'].replace(' ', '')}_{q['area']}_{y0}_{y1}", label=f"「{q['chart']}」 PNG 이미지 내려받기",
-                   align="flex-start", title=title, source=f"출처: {src_q} · {basis}")
+        src_chart = f"{src_q} · {basis}"
+        png_args = dict(fig=fig, filename=f"조회_{q['chart'].replace(' ', '')}_{q['area']}_{y0}_{y1}",
+                        label="차트 PNG 이미지 내려받기", title=title, source=f"출처: {src_q} · {basis}")
     with t_map:
         by_c = df.groupby("국가")[["수입액", "수출액"]].sum()
         modes = {"수출입": ("imp", "exp"), "수출": ("exp",), "수입": ("imp",)}[q["area"]]
@@ -1398,7 +1452,7 @@ def query_result(q: dict, y0: int, y1: int) -> None:
         country_map({n: float(v) for n, v in by_c["수입액"].items() if v > 0},
                     {n: float(v) for n, v in by_c["수출액"].items() if v > 0},
                     modes=modes, height=400, note="선택 국가 기준", where=WHERE)
-        chart_source(f"{src_q} · 국가 좌표는 나라 대표 위치 · 수입 = 선적국, 수출 = 도착국")
+        src_map = f"{src_q} · 국가 좌표는 나라 대표 위치 · 수입 = 선적국, 수출 = 도착국"
     with t_tbl:
         tm = ([m for m in q["metrics"] if m in Q_MONEY] or q["metrics"][:1])[0]
         tsum = df.groupby("국가")[tm].sum()
@@ -1410,16 +1464,19 @@ def query_result(q: dict, y0: int, y1: int) -> None:
         else:
             chart_title(f"{escape(q['names'][0]) if q['names'] else '선택 국가'} 연도별 통계표", f"행 = 국가 · 열 = 연도 × 지표 · {y0}~{y1}")
         stat_table(df, q)
-        chart_source(f"{src_q} · CSV 는 오른쪽 아래 버튼으로, 고른 차트 유형 모양대로 내려받습니다")
+        src_tbl = f"{src_q} · CSV 는 오른쪽 버튼으로, 고른 차트 유형 모양대로 내려받습니다"
     # CSV — 고른 차트 모양대로(조회 결과와 같은 표를 다시 짠다). 탭 칸 아래 오른쪽(어느 탭이든 같은 자리).
     out, note = csv_shape(q["chart"], df, q)
     head = csv_header(f"분석영역 {q['area']} · 품목군 {q['hs']} · 국가 {len(q['names'])}개({', '.join(q['names'][:10])}"
                       f"{' 외' if len(q['names']) > 10 else ''}) · 기간 {y0}~{y1} · 차트 {q['chart']} · 단위 백만 USD(중량 톤)",
                       SOURCE, [("관세청 수출입", STAMP, None)], extra=note)
-    with st.container(key="res_dl", horizontal=True, horizontal_alignment="right"):
-        st.download_button(f"「{q['chart']}」 모양으로 CSV 내려받기", (head + out.to_csv(index=False)).encode("utf-8-sig"),
-                           f"조회결과_{q['chart'].replace(' ', '')}_{q['area']}_{y0}_{y1}.csv",
-                           "text/csv", icon=":material/download:", type="primary")
+    _dl_area([
+        (src_chart, lambda: _png_dl(png_args.pop("label"), **png_args, width=_png_width(png_args["fig"]))),   # 차트 탭
+        (src_map, _map_png_button),                                                                   # 국가별 분포 지도 탭
+        (src_tbl, lambda: st.download_button("결과 표 CSV 내려받기", (head + out.to_csv(index=False)).encode("utf-8-sig"),
+                                   f"조회결과_{q['chart'].replace(' ', '')}_{q['area']}_{y0}_{y1}.csv",
+                                   "text/csv", icon=":material/download:", type="primary")),      # 결과 표 탭
+    ], map_file=f"조회_국가별분포지도_{q['area']}_{y0}_{y1}")
 
 
 
@@ -1476,12 +1533,21 @@ def cat_table(df: pd.DataFrame, note: str) -> None:
             f'<tbody>{body}</tbody></table></div><div class="st-note">{escape(note)}{more}</div>')
 
 
-def cat_chart(by: pd.DataFrame, q: dict, units: dict, yearly: pd.DataFrame | None = None) -> tuple[go.Figure, str]:
+def _muted(hex_color: str, k: float = .55, base: str = "#eef2f8") -> str:
+    """채도를 낮춘 색 — 팔레트 색을 옅은 바탕색(base) 쪽으로 k 만큼 섞는다(색 계열은 그대로, 진하기만 낮춤)."""
+    a = [int(hex_color[i:i + 2], 16) for i in (1, 3, 5)]
+    b = [int(base[i:i + 2], 16) for i in (1, 3, 5)]
+    return "#" + "".join(f"{round(x + (y - x) * k):02x}" for x, y in zip(a, b))
+
+
+def cat_chart(by: pd.DataFrame, q: dict, units: dict, yearly: pd.DataFrame | None = None,
+              muted_rest: bool = False) -> tuple[go.Figure, str]:
     """분류(FSG · FSC)별 차트 — by: 행 = 분류 이름, 열 = 지표. 막대 · 트리맵 · 누적 막대 · 꺾은선은 csv_preview 를,
     도넛은 hover_donut 을 쓴다. yearly = 요구연도 × 분류 표(누적 막대 · 꺾은선용). (PNG 용 그림, 그래프 기준 문구)."""
     chart, ms = q["chart"], q["metrics"]
     pm = ms[0]
-    color = {n: (Q_PALETTE[i] if i < len(Q_PALETTE) else ETC) for i, n in enumerate(by.index)}
+    # 색은 값이 큰 순서(1위~8위)대로 8색, 9위부터 기타(ETC) — 표 줄 순서(FSC 코드 순)로 주면 도넛 상위 7개 · 트리맵 큰 칸이 회색이 됐다
+    color = {n: (Q_PALETTE[i] if i < len(Q_PALETTE) else ETC) for i, n in enumerate(by[pm].sort_values(ascending=False).index)}
     note = f"값 = {pm}({units[pm]})"
     if chart == "도넛 그래프":
         rows = sorted(((n, float(v), color[n]) for n, v in by[pm].items() if v > 0), key=lambda r: -r[1])
@@ -1497,7 +1563,7 @@ def cat_chart(by: pd.DataFrame, q: dict, units: dict, yearly: pd.DataFrame | Non
         out = by[ms].rename(columns=lambda m: f"{m}({units[m]})").rename_axis("분류").reset_index()
         note = "값 = 조건에 맞는 건수 · 개수" + (" · 지표마다 단위가 달라 크기만 비교" if len(ms) > 1 else "")
     elif chart == "트리맵 차트":
-        s = by[pm][by[pm] > 0]
+        s = by[pm][by[pm] > 0].sort_values(ascending=False)   # 큰 칸부터 — csv_preview 가 앞에서부터 8색을 준다
         out = pd.DataFrame({"분류": s.index, f"{pm}({units[pm]})": s.values, "비중(%)": (s / s.sum() * 100).round(1).values})
     else:                                   # 누적 막대 · 꺾은선 — 요구연도 흐름(원자료 공백 연도 제외)
         out = (yearly.assign(합계=yearly.sum(axis=1)) if chart == "누적 막대 그래프" else yearly).reset_index()
@@ -1505,9 +1571,16 @@ def cat_chart(by: pd.DataFrame, q: dict, units: dict, yearly: pd.DataFrame | Non
         note += " · 요구연도별" + (f" · {gap[0]}~{gap[-1]}년은 원자료 공백 구간이라 뺐습니다" if gap else "")
     fig = csv_preview(chart, out)
     fig.update_layout(height=400)
+    if chart == "트리맵 차트" and muted_rest:
+        # 9위부터 회색(ETC) 대신 팔레트 8색을 차례로 돌려 채도만 낮춘 색 — 상위 8칸(진한 색)이 먼저 보이고 나머지도 구분된다
+        n = len(Q_PALETTE)
+        fig.data[0].marker.colors = [Q_PALETTE[i] if i < n else _muted(Q_PALETTE[i % n]) for i in range(len(out))]
     if chart == "막대 그래프" and len(out) > 8:
         fig.update_xaxes(tickangle=-35)
-    st.plotly_chart(fig, width="stretch", theme=None, config=PLOT_CFG)
+    if chart == "막대 그래프" and len(out) > WIDE_MIN:   # 막대가 많으면 실제 폭을 넓혀 가로 스크롤(PNG 도 같은 폭 — _png_width)
+        wide_chart(fig, len(out))
+    else:
+        st.plotly_chart(fig, width="stretch", theme=None, config=PLOT_CFG)
     return fig, note
 
 
@@ -1516,18 +1589,16 @@ def _cat_kpis(tot: dict, ms: list[str], units: dict, icons: dict, sub: str) -> N
     st.html(f'<div class="kpis q" style="grid-template-columns:repeat({min(len(ms), 4)},minmax(0,1fr))">{cards}</div>')
 
 
-def _cat_downloads(base: str, cond: str, src: str, stamp_name: str, stamp: dict, files: list[tuple[str, pd.DataFrame]]) -> None:
-    """탭 칸 아래 오른쪽 — 표마다 CSV(머리에 조회 조건 · 출처 · 자료 기간)."""
-    with st.container(key="res_dl", horizontal=True, horizontal_alignment="right"):
-        for label, df in files:
-            head = csv_header(f"{cond} · 표 {label}", src, [(stamp_name, stamp, None)])
-            st.download_button(f"{label} CSV 내려받기", (head + df.to_csv(index=False)).encode("utf-8-sig"),
-                               f"{base}_{label.replace('·', '').replace(' ', '')}.csv", "text/csv",
-                               icon=":material/download:", type="primary", key=f"dl_{label}")
+def _cat_csv(base: str, cond: str, src: str, stamp_name: str, stamp: dict, label: str, df: pd.DataFrame) -> None:
+    """표 하나의 CSV 단추(머리에 조회 조건 · 출처 · 자료 기간) — 그 표 탭의 내려받기 칸(_dl_area)에 놓인다."""
+    head = csv_header(f"{cond} · 표 {label}", src, [(stamp_name, stamp, None)])
+    st.download_button(f"{label} CSV 내려받기", (head + df.to_csv(index=False)).encode("utf-8-sig"),
+                       f"{base}_{label.replace('·', '').replace(' ', '')}.csv", "text/csv",
+                       icon=":material/download:", type="primary", key=f"dl_{label}")
 
 
 def query_result_fsg(q: dict) -> None:
-    """군수품 FSG/FSC 조회 결과 — 지표 카드 · [분포 차트] [분류 상세] [결과 표]. 국가 지도는 없다(HS 와 엮지 않는다)."""
+    """군수품 FSG/FSC 조회 결과 — 지표 카드 · [차트] [분류 상세] [결과 표]. 국가 지도는 없다(HS 와 엮지 않는다)."""
     unit, ms = q["unit"], q["metrics"]
     y0, y1 = q["years"]
     # 집계 기준 — unit 은 사용자가 고른 값이 아니라 FSC 를 골랐는지로 정해진다(query_panel_fsg)
@@ -1563,16 +1634,14 @@ def query_result_fsg(q: dict) -> None:
         ["NSN", "품목명", "FSC", "기능명", "품목종류", "군종", "요구연도", "적용장비", "KDSIS 연결"]].sort_values(["FSC", "NSN"])
 
     src = f"{SRC_PLAN} · 전자 계열(FSG 58·59·60) 품목 · 건수만(금액은 통화 미검증이라 쓰지 않음)"
-    t_chart, t_det, t_tbl = st.tabs(["분포 차트", "분류 상세", "결과 표"])
+    t_chart, t_det, t_tbl = st.tabs(["차트", "분류 상세", "결과 표"])
     with t_chart:
         top = by[ms[0]].idxmax()
         chart_title(f'{ms[0]}가 가장 많은 {"FSG" if unit == "FSG" else "FSC"}는 <span class="key">{escape(str(top))}</span>'
                     f'({by.loc[top, ms[0]]:,.0f}{units[ms[0]]})',
                     f"군수품 · {unit} 단위 · 요구연도 {y0}~{y1} · {len(d):,}건")
         fig, note = cat_chart(by, q, units, yearly)
-        chart_source(f"{src} · 그래프 기준: {note}")
-        png_button(fig, f"조회_군수품_{unit}_{q['chart'].replace(' ', '')}_{y0}_{y1}", label=f"「{q['chart']}」 PNG 이미지 내려받기",
-                   align="flex-start", source=f"출처: {src}")
+        src_chart = f"{src} · 그래프 기준: {note}"
     with t_det:
         cat_table(detail, f"분류 상세 · FSG {detail['FSG'].nunique()}개 → FSC {len(detail)}개")
     with t_tbl:
@@ -1581,12 +1650,18 @@ def query_result_fsg(q: dict) -> None:
             f" · 요구연도 {y0}~{y1}" + "".join(f" · {k} '{v}'" for k, v in (("품목명", q["name"]), ("기능명", q["func"]),
                                                                            ("NSN", q["nsn"])) if v)
             + ("" if q["kind"] == "전체" else f" · 품목종류 {q['kind']}"))
-    _cat_downloads(f"조회결과_군수품_{unit}_{y0}_{y1}", cond, src, "국외 조달계획", S_PLAN,
-                   [("분류 상세", detail), ("결과 표", items)])
+    base = f"조회결과_군수품_{unit}_{y0}_{y1}"
+    _dl_area([
+        (src_chart, lambda: _png_dl("차트 PNG 이미지 내려받기", fig=fig,
+                                    filename=f"조회_군수품_{unit}_{q['chart'].replace(' ', '')}_{y0}_{y1}",
+                                    width=_png_width(fig), source=f"출처: {src}")),                     # 차트 탭
+        (None, lambda: _cat_csv(base, cond, src, "국외 조달계획", S_PLAN, "분류 상세", detail)),       # 분류 상세 탭
+        (None, lambda: _cat_csv(base, cond, src, "국외 조달계획", S_PLAN, "결과 표", items)),         # 결과 표 탭
+    ])
 
 
 def query_result_localized(q: dict) -> None:
-    """국산화개발 조회 결과 — 지표 카드 · [분포 차트] [사업·업체] [품목 상세]. 비율 · 추세 지표는 두지 않는다(스냅샷)."""
+    """국산화개발 조회 결과 — 지표 카드 · [차트] [사업·업체] [품목 상세]. 비율 · 추세 지표는 두지 않는다(스냅샷)."""
     ms = q["metrics"]
     st.html(f'<div class="h">조회 결과 <span class="sub">국산화개발 · 사업 {len(q["proj"])}개 · FSG {len(q["fsg"])}개 · '
             f'FSC {len(q["fsc"])}개 · 관련 업체 {len(q["comp"])}개 · {q["chart"]}</span></div>')
@@ -1611,26 +1686,31 @@ def query_result_localized(q: dict) -> None:
         ["부품관리번호", "NSN", "품목명", "FSC", "사업명", "관련 업체"]].sort_values(["부품관리번호", "사업명"])
 
     src = f"{SRC_B2} · 전자 계열(FSC 58·59xx) · 건수 · 개수만(국산화율 · 추세 아님) · 관련 업체 = 원자료 계약업체(개발 주체 아님)"
-    t_chart, t_pc, t_tbl = st.tabs(["분포 차트", "사업·업체", "품목 상세"])
+    t_chart, t_pc, t_tbl = st.tabs(["차트", "사업·업체", "품목 상세"])
     with t_chart:
         top = by[ms[0]].idxmax()
         chart_title(f'{ms[0]}가 가장 많은 FSC는 <span class="key">{escape(str(top))}</span>({by.loc[top, ms[0]]:,.0f}{units[ms[0]]})',
                     f"국산화개발 · 사업 {d['사업명'].nunique()}개 · 기록 {len(d):,}건 · 스냅샷")
-        fig, note = cat_chart(by, q, units)
-        chart_source(f"{src} · 그래프 기준: {note}")
-        png_button(fig, f"조회_국산화개발_{q['chart'].replace(' ', '')}", label=f"「{q['chart']}」 PNG 이미지 내려받기",
-                   align="flex-start", source=f"출처: {src}")
+        fig, note = cat_chart(by, q, units, muted_rest=True)     # 트리맵 9위부터 낮은 채도 색(국산화개발만)
+        src_chart = f"{src} · 그래프 기준: {note}"
     with t_pc:
         cat_table(pc, "사업 × 관련 업체 · 칸 = 국산화개발 기록 수(건) · 관련 업체 = 계약업체")
     with t_tbl:
         cat_table(items, f"품목 상세 · 기록 {len(items):,}건")
     cond = (f"국산화개발 · 사업 {len(q['proj'])}개 · FSG {','.join(q['fsg'])} · FSC {len(q['fsc'])}개 · 관련 업체 {len(q['comp'])}개"
             + "".join(f" · {k} '{v}'" for k, v in (("품목명", q["name"]), ("부품관리번호", q["part"]), ("NSN", q["nsn"])) if v))
-    _cat_downloads("조회결과_국산화개발", cond, src, "국산화개발품목", S_B2, [("사업·업체", pc), ("품목 상세", items)])
+    base = "조회결과_국산화개발"
+    _dl_area([
+        (src_chart, lambda: _png_dl("차트 PNG 이미지 내려받기", fig=fig,
+                                    filename=f"조회_국산화개발_{q['chart'].replace(' ', '')}",
+                                    width=_png_width(fig), source=f"출처: {src}")),                     # 차트 탭
+        (None, lambda: _cat_csv(base, cond, src, "국산화개발품목", S_B2, "사업·업체", pc)),            # 사업·업체 탭
+        (None, lambda: _cat_csv(base, cond, src, "국산화개발품목", S_B2, "품목 상세", items)),         # 품목 상세 탭
+    ])
 
 
 def render() -> None:
-    """조건 카드 | 결과 카드 + 캡션 · 출처. 구역(소분류 제목)은 main.py 가 연다."""
+    """조건 카드 | 결과 카드 + 캡션 · 출처. 구역(소분류 제목)은 부르는 쪽이 연다."""
     c_form, c_res = st.columns([1.15, 1.45], gap="medium")   # 1280 폭에서 차트 유형 · 지표 이름이 잘리지 않게 조건 칸을 넓게
     with c_form:
         q = query_panel()

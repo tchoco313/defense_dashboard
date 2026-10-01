@@ -1,4 +1,4 @@
-"""② 2-4 상세 조회 — DATA CENTER 도구를 「군수품 FSG/FSC」 유형으로 고정(명세 12_cat_fsc.md §3, 91_search.md)."""
+"""② 2-4 상세 조회 — 「데이터 시각화」 도구를 「군수품 FSG/FSC」 유형으로 고정."""
 from __future__ import annotations
 
 import parts as P

@@ -1,0 +1,23 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">__FONTLINK__
+<!-- 상세 조회 분포 차트(막대) — 막대가 많을 때만 쓴다(datacenter_viz.wide_chart).
+     st.plotly_chart 는 부모 칸 폭을 넘지 못해 막대가 찌그러지므로, 같은 그림(fig)을 실제 폭(__W__px)으로 그리고
+     바깥 칸만 가로로 스크롤한다. 그림 데이터 · 레이아웃은 화면 차트와 같다(내려받는 PNG 도 같은 폭으로 그린다). -->
+<style>
+  body{margin:0;background:transparent;font-family:Pretendard,'Malgun Gothic',system-ui,sans-serif}
+  #wrap{width:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#b7c4da transparent}
+  #c{width:__W__px;height:__H__px}
+  #msg{font-size:13px;color:#6b7a99;padding:12px}
+</style></head><body>
+<div id="wrap"><div id="c"></div></div>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"
+        integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7" crossorigin="anonymous"></script>
+<script>
+  const FIG = __FIG__;
+  if (window.Plotly) {
+    Plotly.newPlot('c', FIG.data, Object.assign({}, FIG.layout || {}, {width: __W__, height: __H__, autosize: false}),
+                   {displayModeBar: false, responsive: false});
+  } else {
+    document.getElementById('c').outerHTML = '<div id="msg">그래프 도구를 불러오지 못했습니다(인터넷 연결 확인)</div>';
+  }
+</script>
+</body></html>

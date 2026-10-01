@@ -1,4 +1,4 @@
-"""① 1-1 종합 현황표 — 13개 품목군을 한 표로(명세 11_cat_parts.md §3 · §4, 차트 세부 22_category_table.md).
+"""① 1-1 종합 현황표 — 13개 품목군을 한 표로.
 
 값: 관세청 연도 × 국가 수입(rds.trade)을 고른 기간만큼 합산한 뒤 점유율 · HHI(metrics.concentration — 한 해면 DB 뷰와 같은 값),
 추이 = 최근 12개월 월별 수입액(rds.monthly12), 선정 근거 = 관세청 HS부호 규칙 판정(rds.items r1 · r2).

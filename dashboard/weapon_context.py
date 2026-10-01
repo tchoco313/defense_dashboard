@@ -106,4 +106,4 @@ def render_notice_context() -> None:
     st.html('<div class="ws-flow"><div><b>공고·RFP</b>무엇을 개발하려 했는가</div>'
             '<div><b>후속 평가</b>개발·시험이 어디까지 진행됐는가</div>'
             '<div><b>기업·기관 발표</b>양산·계약·납품이 확인됐는가</div></div>')
-    st.caption("자료: hscode 공고문 · 상세 RFP 22건(2026-09-29 검토) · 방위사업청 부품국산화 사업 자료")
+    st.caption("자료: hscode 공고문 · 상세 RFP 22건(2026-09 기준) · 방위사업청 부품국산화 사업 자료")

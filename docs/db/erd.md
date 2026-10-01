@@ -1,10 +1,10 @@
 # ERD — 테이블 관계도 (도메인별)
 
-`db/schema.sql`(테이블 37·뷰 31)의 PK·FK와, 뷰가 실제로 JOIN하는 논리 키를 도메인별로 나눠 그린다. 원본은 DB 밖 파일(`data/raw/`, 2026-09-22 raw_ 표 삭제)이며 `clean_*.raw_row_id`는 파일 파서 순번(`load_db.read_raw`)으로 원본 행을 가리킨다 — §5에 한 번만 표시한다. 연결률은 RDS 실측(2026-09-22, `app_ro`).
+`db/schema.sql`(테이블 44 · 뷰 31) 중 주요 표의 PK·FK와, 뷰가 실제로 JOIN하는 논리 키를 도메인별로 나눠 그린다. 원본은 DB 밖 파일(`data/raw/`)이며 `clean_*.raw_row_id`는 파일 파서 순번(`load_db.read_raw`)으로 원본 행을 가리킨다 — §5에 한 번만 표시한다. 연결률은 RDS 실측값이다(`db/query_erd_link_rates.sql`).
 
 **범례** — 실선 `||--o{` = DB에 선언된 FK · 점선 `||..o{` = FK는 아니지만 뷰·문서가 쓰는 논리 키(라벨의 `일치/전체`는 실측 행 수) · 선 없는 표 = 단독 집계표.
 
-## 1. ① 관세청 수출입 (P1) — 화면 ①·③
+## 1. 관세청 수출입 — 화면 「전자부품 현황」
 
 ```mermaid
 erDiagram
@@ -53,9 +53,9 @@ erDiagram
   ref_hs_whitelist ||..o{ clean_hsk_control : "hs6 923/10,104"
 ```
 
-뷰 계보: `fact_customs_monthly` → `v_import_hs6_year` → `v_import_share_hs6_year` → `v_hhi_hs6_year` → `v_review_list`(③ 검토 목록, `ref_hs_whitelist` JOIN). `ref_hs_rule_flag`·`clean_hsk_control`은 HS6 후보 전체를 담으므로 화이트리스트 24개와만 겹친다.
+뷰 계보: `fact_customs_monthly` → `v_import_hs6_year` → `v_import_share_hs6_year` → `v_hhi_hs6_year` → `v_review_list`(검토 목록, `ref_hs_whitelist` JOIN). `ref_hs_rule_flag`·`clean_hsk_control`은 HS6 후보 전체를 담으므로 화이트리스트 24개와만 겹친다.
 
-## 2. ② 국내조달·업체 (P4)
+## 2. 국내조달·업체 — 화면 「군급 분류와 조달 › 국내 계약 · 입찰」
 
 ```mermaid
 erDiagram
@@ -110,7 +110,7 @@ erDiagram
 
 `clean_dapa_bid_result`(7,403행) ↔ `clean_dapa_bid_notice`는 같은 `bid_notice_no+seq`에 공고 행이 여럿이라 일치가 7,543건으로 결과 행보다 많다(다중 일치 — 뷰 `v_bid_notice_result_link`는 이 키 대신 낙찰 업체 `biz_reg_no`로 계약과 잇는다).
 
-## 3. ② 국외조달·NSN (P3·B2)
+## 3. 국외조달·군급·NSN — 화면 「군급 분류와 조달」 · 「국산화 현황」
 
 ```mermaid
 erDiagram
@@ -170,9 +170,9 @@ erDiagram
   ref_equipment_alias ||..o{ clean_dapa_overseas_plan_api : "name_norm 843/843"
 ```
 
-NSN 연결은 낮다(국외조달계획 4.7%, 국산화개발품목 1.2%) — `clean_kdsis_nsn`이 전자 FSG 58·59·60 범위만 담기 때문이며, 연결 실패가 아니라 범위 밖이다. 관세청 HS 표와 FSC·NSN은 어떤 선으로도 잇지 않는다(09-21 결정).
+NSN 연결은 낮다(국외조달계획 4.7%, 국산화개발품목 1.2%) — `clean_kdsis_nsn`이 전자 FSG 58·59·60 범위만 담기 때문이며, 연결 실패가 아니라 범위 밖이다. 관세청 HS 표와 FSC·NSN은 공식 대응표가 없어 어떤 선으로도 잇지 않는다.
 
-## 4. ⓪ 배경 — KRIT·예산·KOSIS (P5·P2)
+## 4. 배경 — KRIT·예산·KOSIS — 화면 「배경과 자료」
 
 ```mermaid
 erDiagram
@@ -207,9 +207,9 @@ erDiagram
   clean_openfiscal_program_budget }o..o{ clean_openfiscal_program_link : "sub_program_name from/to 14/22"
 ```
 
-네 표는 서로 잇지 않고 연도 축으로만 화면 ⓪에 나란히 놓는다. `clean_krit_task`에 HS6 열은 없다(품목군 대응표 폐기).
+네 표는 서로 잇지 않고 연도 축으로만 배경 화면 · 분석에 나란히 놓는다. `clean_krit_task`에 HS6 열은 없다(HS 품목군과 잇지 않는다).
 
-## 5. 메타·계보 (raw → clean)
+## 5. 메타·계보 (원본 파일 → clean)
 
 ```mermaid
 erDiagram

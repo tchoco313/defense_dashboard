@@ -1,7 +1,7 @@
-"""② 2-2 군급별 국외 조달계획 — 전자 군급별로 몇 건을 해외에서 조달하려 하나(명세 12_cat_fsc.md §3, 차트 세부 21_parts_fsc.md kpi3 · fsg).
+"""② 2-2 군급별 국외 조달계획 — 전자 군급별로 몇 건을 해외에서 조달하려 하나.
 
 값: 방위사업청 국외 조달계획 OpenAPI 품목 중 전자 군급(군 58 · 59 · 60) 행(rds.plan) — 건수만 센다(금액은 통화 미검증).
-적용장비는 이름 없이 종류 수만 보인다(idea-review §3-10).
+적용장비는 이름 없이 종류 수만 보인다.
 """
 from __future__ import annotations
 
@@ -53,7 +53,8 @@ else:
         P.chart(P.hbar([(f"{c} {fsc_name.get(c, '')}"[:26], int(v), R.FSG_COLOR[c[:2]]) for c, v in top8.items()], "건", 300), "p22_fsc")
     P.see(SEE, SOURCE)
 
-    with P.more(f"군급 표 전체({len(by_fsc)}개)"):
+    # 45행 전부 그리되 10행 높이 칸 안에서 세로 스크롤(칸 높이 · 행 수 = static/components.css 의 .st-key-p22_fsc_all --rows)
+    with P.more(f"군급 표 전체({len(by_fsc)}개)"), st.container(key="p22_fsc_all"):
         rows = "".join(f"<tr><td>{c}</td><td class='l'>{escape(fsc_name.get(c, '—'))}</td><td>군 {c[:2]}</td><td>{int(v):,}</td></tr>"
                        for c, v in by_fsc.items())
         st.html(f'<table class="pt"><thead><tr><th>군급</th><th>이름</th><th>군</th><th>국외 조달계획(건)</th></tr></thead><tbody>{rows}</tbody></table>')

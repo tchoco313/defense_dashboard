@@ -4,7 +4,7 @@ headless = true
 [browser]
 gatherUsageStats = false
 
-# 라이트 테마 — 값은 dashboard/mockup/common.css(디자인 값의 정본)와 같다. 글꼴(IBM Plex Sans KR)은 dashboard/ui.py CSS 의 @import 로 불러온다.
+# 라이트 테마 — Streamlit 기본 위젯 색. 본문 글꼴(Pretendard)과 화면 디자인은 dashboard/static/ CSS · dashboard/kdesign.py 가 정한다.
 [theme]
 base = "light"
 primaryColor = "#173f82"

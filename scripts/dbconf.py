@@ -1,4 +1,4 @@
-"""DB 접속 설정의 단일 지점 — 운영 DB는 AWS RDS(MySQL 8.4, defense_dashboard). 2026-09-18 전환.
+"""DB 접속 설정의 단일 지점 — 운영 DB는 AWS RDS(MySQL 8.4, defense_dashboard).
 
 접속 정보는 코드에 두지 않는다. 읽는 순서:
   1. 프로젝트 루트 `.env` 의 MARIADB_* (로컬·적재 스크립트·노트북)

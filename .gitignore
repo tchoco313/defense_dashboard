@@ -47,5 +47,5 @@ config.py.*
 
 # ── 기타 ─────────────────────────────────────────────────────
 agent.md
-# 팀원 개발 계정 비밀번호 (scripts/rds_accounts.py --add-dev 가 만든다)
+# 개발 계정 비밀번호 파일
 .credentials/

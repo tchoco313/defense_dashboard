@@ -1,8 +1,7 @@
-"""화면 디자인 — 본문 부품(블록 · 카드 · KPI · 차트 · 지구본 · 도넛 · 지도 · 표). 화면 틀(머리글 · 메뉴 · 배너 · 바닥글)은 frame.py.
+"""화면 디자인 — 본문 부품(블록 · 카드 · KPI · 차트 · 지구본 · 도넛 · 지도 · 표). 화면 틀(머리글 · 메뉴 · 배너 · 바닥글)은 진입점 파일이 그린다.
 
-디자인은 동현님 새 디자인(dashboard/demo/K-Defense_brandnew.py, 2026-09-28 팀 결정 「디자인 그대로」)을 따른다 — 블록은 테두리 없이 제목 줄(.sec-h),
+디자인: 블록은 테두리 없이 제목 줄(.sec-h),
 카드는 둥근 모서리 · 그림자 · hover, KPI 는 아이콘 배지 · 가운데 큰 숫자, 카드 제목은 왼쪽 파란 막대, 탭은 폴더형, 차트는 등장 연출.
-규칙 문서는 dashboard/specs/01_design_system.md.
 화면 숫자는 각 페이지가 RDS 에서 읽어 인자로 넘긴다. 이 모듈은 import 만으로 그리지 않는다 — CSS 는 inject() 로 넣는다.
 """
 from __future__ import annotations
@@ -19,27 +18,26 @@ import plotly.graph_objects as go
 import streamlit as st
 import streamlit.components.v1 as components
 
-LABEL_KEY = "_kd_label"        # 경로 표시(⌂ › 페이지)에 쓰는 현재 페이지 이름 — hero 가 읽는다(예전 frame.py 에서 옮김, 2026-10-01)
+LABEL_KEY = "_kd_label"        # 경로 표시(⌂ › 페이지)에 쓰는 현재 페이지 이름 — hero 가 읽는다
 
 # ════════════════════════════════════════════════════════════════════════════
 # 1. 색 토큰 · CSS
-#    동현님 새 디자인(dashboard/demo/K-Defense_brandnew.py, 2026-09-28 팀 결정 「디자인 그대로」)의 토큰 · 카드 · KPI · 표 · 탭 · 차트 연출을 따른다.
-#    데모와 다르게 둔 것: 글씨 하한 13px 안팎(데모는 화면 1.1배 확대로 크게 보였다 — 운영 앱은 확대를 끄고 글씨를 키웠다),
-#    카드 제목 아래 단위 · 기간 줄은 ⓘ 말풍선에 숨기지 않고 보인다(해석 경계), 증감은 오르면 빨강 · 내리면 파랑(2026-09-24 사용자).
+#    글씨 하한 13px 안팎(화면 확대 대신 글씨를 키운다), 카드 제목 아래 단위 · 기간 줄은 ⓘ 말풍선에 숨기지 않고 보인다(해석 경계),
+#    증감은 오르면 빨강 · 내리면 파랑.
 # ════════════════════════════════════════════════════════════════════════════
-BG, PANEL, PANEL2, LINE = "#eef3fb", "#ffffff", "#eef2f9", "#dde5f2"   # BG = 옅은 파랑(탭 · 선택 배경 등 보조), 페이지 바탕은 흰색(frame.py), 카드 = 흰색
-TEXT, MUTED, ACCENT = "#16233f", "#6b7a99", "#2b6ef6"                  # ACCENT = 대표 파랑(데모)
+BG, PANEL, PANEL2, LINE = "#eef3fb", "#ffffff", "#eef2f9", "#dde5f2"   # BG = 옅은 파랑(탭 · 선택 배경 등 보조), 페이지 바탕은 흰색, 카드 = 흰색
+TEXT, MUTED, ACCENT = "#16233f", "#6b7a99", "#2b6ef6"                  # ACCENT = 대표 파랑
 SKY, SKY_WEAK = "#38bdf8", "#eaf1ff"                                  # 하늘(보조 강조) · 옅은 파랑(선택 배경)
 NAVY, NAVY2 = "#003899", "#003899"                                    # 짙은 파랑(머리글 · 펼침 메뉴와 같은 색)
-UP, DOWN = "#d92d20", "#1f5fe0"                                       # 증감 — 오르면 빨강 · 내리면 파랑(2026-09-24 사용자). 흰 바탕 글자 대비 4.5:1 이상
-# 데이터 범주색 — 데모 팔레트(파랑 · 청록 · 주황 · 보라 · 분홍 · 하늘)에 데모 조회 화면의 추가색(연두)과 남색을 더해 8색.
-# 순서는 파랑 · 주황 · 청록 먼저(페이지가 번호로 고른 색 — 군급 · 소요군 · 계열 — 의 이름이 명세와 그대로 맞게).
+UP, DOWN = "#d92d20", "#1f5fe0"                                       # 증감 — 오르면 빨강 · 내리면 파랑. 흰 바탕 글자 대비 4.5:1 이상
+# 데이터 범주색 — 파랑 · 청록 · 주황 · 보라 · 분홍 · 하늘에 연두 · 남색을 더해 8색.
+# 순서는 파랑 · 주황 · 청록 먼저(페이지가 번호로 고른 색 — 군급 · 소요군 · 계열 — 의 이름이 바뀌지 않게).
 # 9번째부터는 새 색을 만들지 않고 기타(ETC)로 묶는다. 청록 · 연두 · 하늘은 흰 바탕 대비가 낮아 범례 · 값 라벨 · 표와 함께 쓴다.
 SERIES = ["#2b6ef6", "#ff9f43", "#17c8b5", "#7c6cf0", "#ff6b9a", "#38bdf8", "#84cc16", "#1e3a8a"]
 ETC = "#c3cede"
 
 # 외부 CDN 스크립트(d3 · topojson · world-atlas · plotly.js)는 정확한 버전 + 무결성 해시(SRI)로 고정한다 — CDN 변조 시 실행되지 않게.
-# 버전을 올릴 때는 새 파일의 sha384 를 다시 계산해 integrity 를 함께 바꾼다(2026-09-24 보안 감사).
+# 버전을 올릴 때는 새 파일의 sha384 를 다시 계산해 integrity 를 함께 바꾼다.
 # ── 글꼴 ────────────────────────────────────────────────────────────────────
 SIDE_STACK = "Pretendard,'Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif"
 # @import 는 다른 규칙보다 반드시 앞에 와야 브라우저가 읽는다(뒤에 두면 통째로 무시된다).
@@ -53,7 +51,7 @@ def _js(obj) -> str:
     return (json.dumps(obj, ensure_ascii=False)
             .replace("<", r"\u003c").replace(">", r"\u003e").replace("&", r"\u0026"))
 
-# 화면 배율 — 데모는 1.1 로 전체를 키웠으나, 배율이 오른쪽 · 아래 빈 띠와 차트 마우스 위치 어긋남을 만들어 1(끔)로 둔다.
+# 화면 배율 — 배율(예: 1.1)은 오른쪽 · 아래 빈 띠와 차트 마우스 위치 어긋남을 만들어 1(끔)로 둔다.
 # 1 이 아니면 아래 ZOOM_CSS 가 차트 · 표 · 선택창의 배율을 되돌리는 보정을 함께 넣는다.
 APP_ZOOM = 1.0
 ZOOM_CSS = "" if APP_ZOOM == 1 else (
@@ -76,7 +74,7 @@ html, body, [class*="st-"]{{font-family:{SIDE_STACK}}}
 [data-testid="stIconMaterial"]{{font-family:'Material Symbols Rounded'!important}}
 .material-symbols-rounded{{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;font-size:21.5px;line-height:1;
   letter-spacing:normal;text-transform:none;white-space:nowrap;direction:ltr;-webkit-font-smoothing:antialiased}}
-/* 바탕 · Streamlit 기본 머리 띠 · 사이드바 숨김 · 본문 폭은 화면 틀(frame.py) CSS 에 있다 */
+/* 바탕 · Streamlit 기본 머리 띠 · 사이드바 숨김 · 본문 폭은 화면 틀 CSS 에 있다 */
 
 /* ── 한글 줄바꿈 — 단어 중간에서 끊지 않는다(「수출입 현 / 황」 「대 / 만」). 넘치는 긴 낱말만 끊는다 ── */
 [data-testid="stMain"]{{word-break:keep-all;overflow-wrap:break-word}}
@@ -110,12 +108,12 @@ details.basis .basis-pop{{position:absolute;left:0;top:calc(100% + 8px);z-index:
 .demo-bar b{{font-size:14px;font-weight:700;color:#0f2a5c}}
 .demo-bar span{{font-size:13px;color:var(--muted);line-height:1.5}}
 
-/* ── 블록 — 한 페이지에 차례로 이어진다. 테두리 · 이름표 대신 블록마다 제목 줄(.sec-h, 새 디자인) ─────────── */
+/* ── 블록 — 한 페이지에 차례로 이어진다. 테두리 · 이름표 대신 블록마다 제목 줄(.sec-h) ─────────── */
 div[class*="st-key-zone_"]{{border:none;border-radius:0;background:transparent;padding:0;margin:4px 0 52px;scroll-margin-top:22px}}
 .sec-h{{display:flex;align-items:baseline;gap:12px;margin:0 0 4px;padding-bottom:14px;border-bottom:2px solid #1b2540}}
 .sec-h h2{{margin:0;padding:0;font-size:25px;font-weight:800;letter-spacing:-.7px;color:#101a33;line-height:1.3}}
 
-/* ── 카드(새 디자인) — 둥근 14px · 옅은 그림자 · 커서를 올리면 살짝 떠오른다 ─────────────────── */
+/* ── 카드 — 둥근 14px · 옅은 그림자 · 커서를 올리면 살짝 떠오른다 ─────────────────── */
 .card{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;height:100%;
   box-shadow:var(--shadow);transition:box-shadow .2s ease,transform .2s ease}}
 .card:hover{{box-shadow:var(--shadow-h);transform:translateY(-2px)}}
@@ -129,7 +127,7 @@ div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)
 @keyframes rise{{from{{opacity:0;transform:translateY(10px)}}to{{opacity:1;transform:none}}}}
 @keyframes grow{{from{{transform:scaleX(0);transform-origin:left}}to{{transform:none}}}}
 
-/* ── KPI(새 디자인) — 위 파란 선 · 아이콘 배지 + 굵은 제목 · 가운데 큰 숫자 · 아래 설명 ───────────── */
+/* ── KPI — 위 파란 선 · 아이콘 배지 + 굵은 제목 · 가운데 큰 숫자 · 아래 설명 ───────────── */
 /* 한 줄 칸 수: 5장 = 3 + 2(아래 두 장은 넓게) · 6장 = 3 × 2 · 4장 = 2 × 2(본문이 왼쪽 메뉴만큼 좁아서). 좁으면 칸 폭 기준으로 접는다 */
 .kpis{{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:20px}}
 .kpis > .kpi{{grid-column:span 2}}
@@ -163,7 +161,7 @@ div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)
 .kpi .v small{{display:inline-block;font-size:14.5px;color:var(--muted);font-weight:600;margin-left:4px;letter-spacing:0;white-space:nowrap}}
 .kpi .s{{margin:12px 0 auto;font-size:13px;color:var(--muted);line-height:1.55}}
 .kpi .s .up,.kpi .s .dn{{color:var(--up);font-weight:700;font-variant-numeric:tabular-nums;margin-right:3px}}
-.kpi .s .dn{{color:var(--down)}}   /* 증감 — 오르면 빨강 · 내리면 파랑(2026-09-24 사용자) */
+.kpi .s .dn{{color:var(--down)}}   /* 증감 — 오르면 빨강 · 내리면 파랑 */
 .ex{{display:inline-block;font-size:11.5px;font-weight:700;color:#b45309;background:#fef3c7;border:1px solid #fde68a;
   border-radius:5px;padding:0 5px;margin-left:6px;vertical-align:middle;letter-spacing:0}}
 /* 조회 결과 작은 카드 — 높이 · 가운데 숫자 없이 */
@@ -171,7 +169,7 @@ div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)
 .kpis.q .kpi .l{{font-size:15px}} .kpis.q .kpi .v{{text-align:left;padding:8px 0 0;margin:0;font-size:min(26px,20cqi)}}
 .kpis.q .kpi .s{{margin:8px 0 0}}
 
-/* ── 카드 제목(새 디자인: 왼쪽 파란 막대) — 결론 문장 · 아래 줄에 단위 · 기간(말풍선에 숨기지 않는다) ──────── */
+/* ── 카드 제목(왼쪽 파란 막대) — 결론 문장 · 아래 줄에 단위 · 기간(말풍선에 숨기지 않는다) ──────── */
 .h{{position:relative;display:block;padding-left:14px;font-size:16px;font-weight:700;margin-bottom:12px;
   color:var(--text);letter-spacing:-.3px;line-height:1.45}}
 .h::before{{content:"";position:absolute;left:0;top:4px;width:4px;height:16px;border-radius:3px;background:#2b6ef6}}
@@ -226,7 +224,7 @@ div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)
 .proc .n{{margin-top:8px;font-size:24px;font-weight:800;color:#1c4ea3;letter-spacing:-.5px;font-variant-numeric:tabular-nums;white-space:nowrap}}
 .proc .n small{{font-size:13.5px;color:var(--muted);font-weight:600;margin-left:3px}}
 
-/* 깔때기(DATA INFO) */
+/* 깔때기 */
 .funnel .fr{{display:grid;grid-template-columns:1.3fr 1fr;align-items:center;gap:10px;height:52px;margin-bottom:6px}}
 .funnel .tz{{height:100%;display:grid;place-items:center;color:#fff;font-size:20px;font-weight:800;letter-spacing:-.3px;
   animation:rise .42s cubic-bezier(.18,.89,.32,1.15) both}}
@@ -243,7 +241,7 @@ div[class*="st-key-card_"]{{background:var(--panel);border:1px solid var(--line)
 .stButton button,.stDownloadButton button{{border-radius:10px;font-weight:600}}
 </style>"""
 
-# 위젯 라이트 고정 — 테마 설정 없이 OS 다크모드에서 열어도 버튼 · 선택창 · 체크박스가 같은 색으로 보이게(데모와 같은 목적)
+# 위젯 라이트 고정 — 테마 설정 없이 OS 다크모드에서 열어도 버튼 · 선택창 · 체크박스가 같은 색으로 보이게
 WIDGET_CSS = """<style>
 :root{color-scheme:light}
 [data-testid="stMain"],div[role="dialog"]{color:var(--text)}
@@ -270,7 +268,7 @@ button[data-variant="segmented_control"]:hover{color:var(--accent)}
 [data-testid="stAlertContainer"]{background:#eaf1ff;color:#1c4ea3}
 </style>"""
 
-# 막대 · 선 그래프 등장 연출(데모) — 막대는 왼쪽 것부터 차례로 바닥에서 자라고(가로 막대는 왼쪽에서 뻗고), 선은 왼쪽에서 오른쪽으로 그려진다.
+# 막대 · 선 그래프 등장 연출 — 막대는 왼쪽 것부터 차례로 바닥에서 자라고(가로 막대는 왼쪽에서 뻗고), 선은 왼쪽에서 오른쪽으로 그려진다.
 # 차트가 새로 그려질 때(페이지 이동 · 창 크기 변경)마다 다시 재생된다
 _STAGGER = "\n".join(
     f".js-plotly-plot .barlayer .point:nth-child({i}) path{{animation-delay:{0.05 + i * 0.07:.2f}s}}\n"
@@ -326,7 +324,7 @@ TABLE_CSS = r"""<style>
 .sc tbody tr:nth-child(4) .spark{animation-delay:.5s} .sc tbody tr:nth-child(5) .spark{animation-delay:.6s}
 @keyframes revealX{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
 .sc .spark{width:clamp(84px,8vw,118px);height:auto}   /* 좁은 화면에서 추이선을 줄여 표 끝 칸이 잘리지 않게 */
-/* 좁은 칸에서는 보조 열(No. · 수입국 수)을 숨기고 추이선을 줄여 가로 스크롤을 없앤다(2026-09-28 점검 — 1150폭에서 표 627 > 칸 561) */
+/* 좁은 칸에서는 보조 열(No. · 수입국 수)을 숨기고 추이선을 줄여 가로 스크롤을 없앤다 */
 .card:has(> table.sc){container-type:inline-size}
 @container (max-width:700px){.sc th:nth-child(1),.sc td:nth-child(1),.sc th:nth-child(6),.sc td:nth-child(6){display:none} .sc .spark{width:72px}}
 @container (max-width:560px){.sc th:nth-child(9),.sc td:nth-child(9){display:none} .sc th,.sc td{padding-left:3px;padding-right:3px}}
@@ -349,7 +347,7 @@ TABLE_CSS = r"""<style>
 .bars.big .track{height:16px;border-radius:5px}
 .bars.big .fill{border-radius:5px}
 
-/* 탭 — 북마크(폴더) 탭(새 디자인): 고른 탭이 아래 패널과 한 장으로 이어진다. 탭이 많으면 두 줄로 */
+/* 탭 — 북마크(폴더) 탭: 고른 탭이 아래 패널과 한 장으로 이어진다. 탭이 많으면 두 줄로 */
 [data-testid="stTabs"] [role="tablist"]{gap:4px;flex-wrap:wrap;align-items:flex-end;border-bottom:none;box-shadow:none;
   padding:6px 0 0 14px;margin:0;overflow:visible;position:relative;z-index:1}
 [data-testid="stTabs"] [data-baseweb="tab-highlight"],[data-testid="stTabs"] [data-baseweb="tab-border"]{display:none}
@@ -365,7 +363,7 @@ TABLE_CSS = r"""<style>
 [data-testid="stTabs"] [role="tabpanel"]{background:#f8fafe;border:1px solid var(--line);border-radius:0 14px 14px 14px;
   padding:18px 16px 16px;box-shadow:var(--shadow)}
 
-/* 조회 — 분석 조건 설정 카드(데모 배치) */
+/* 조회 — 분석 조건 설정 카드 */
 .st-key-card_form{padding:18px 18px 14px}
 .st-key-card_form h3{font-size:21px;font-weight:800;color:#12234a;letter-spacing:-.5px;padding:0;margin:0}
 .st-key-card_form [data-testid="stIconMaterial"]{color:var(--accent)}
@@ -408,7 +406,7 @@ KPI_ICON = (("무역수지", "balance"), ("중량", "scale"), ("수의계약", "
 
 
 def kpi(label: str, value: str, unit: str, sub: str, tag: str = "", icon: str = "") -> str:
-    """KPI 카드(새 디자인) — 아이콘 배지 + 제목 · 가운데 큰 숫자 · 단위 · 설명. icon 을 비우면 제목 낱말로 KPI_ICON 에서 고른다.
+    """KPI 카드 — 아이콘 배지 + 제목 · 가운데 큰 숫자 · 단위 · 설명. icon 을 비우면 제목 낱말로 KPI_ICON 에서 고른다.
     긴 제목(공백 빼고 10자 이상) · 긴 숫자(태그 빼고 8자 이상, 예 2016–2026)는 한 단계 작게 해 한 줄에 맞춘다."""
     t = f'<span class="ex">{tag}</span>' if tag else ""
     plain = lambda x: re.sub(r"<[^>]+>", "", x)
@@ -421,8 +419,7 @@ def kpi(label: str, value: str, unit: str, sub: str, tag: str = "", icon: str = 
 
 
 def zone(key: str, tag: str):
-    """페이지 안 블록 하나 — 제목 줄 + 내용(`with zone("키", "이름"):`). 키는 왼쪽 메뉴 · 주소 ?sec= 와 같고,
-    nav.sections 가 이 호출의 글자를 읽어 메뉴를 만든다 — 키 · 이름은 문자열 그대로 적는다."""
+    """페이지 안 블록 하나 — 제목 줄 + 내용(`with zone("키", "이름"):`). 키는 왼쪽 메뉴 · 주소 ?sec= 와 같다."""
     c = st.container(key=f"zone_{key}")
     c.html(f'<div class="sec-h"><h2>{escape(tag)}</h2></div>')
     return c
@@ -438,7 +435,7 @@ def stamp_period(st_: dict) -> str:
 
 
 def hero(stamps: list | None = None) -> None:
-    """본문 맨 위 경로 줄 — 왼쪽 「자료 기준」 버튼 · 오른쪽 ⌂ › 페이지. 페이지 제목 · 부제는 서브 배너(frame.body, 문구는 nav.py).
+    """본문 맨 위 경로 줄 — 왼쪽 「자료 기준」 버튼 · 오른쪽 ⌂ › 페이지. 페이지 제목 · 부제는 서브 배너에 있다.
     stamps = [(데이터 이름, db.data_stamp(...)), …] 를 주면 버튼을 누를 때 「이름 · 기간」 줄이 펼쳐진다(DB 반영일은 출처 「?」 · CSV 에)."""
     left = ""
     if stamps:
@@ -453,12 +450,12 @@ def hero(stamps: list | None = None) -> None:
 
 
 def real_bar(src: str) -> None:
-    """실측 집계를 쓰는 구역 표시(데모 경고 띠 자리)."""
+    """실측 집계를 쓰는 구역 표시."""
     st.html(f'<div class="demo-bar real"><b>실측 집계</b><span>{src}</span></div>')
 
 
 def style_fig(fig, height: int | None = None):
-    """새 디자인(데모) — 배경 투명 · 옅은 가로 · 세로 격자 · 범례는 위 가로. 글씨는 하한 13px(_floor_fonts)."""
+    """차트 공통 모양 — 배경 투명 · 옅은 가로 · 세로 격자 · 범례는 위 가로. 글씨는 하한 13px(_floor_fonts)."""
     grid = "#e7eefa"
     m = fig.layout.margin                   # 차트가 미리 정한 여백(예: 가로 막대의 라벨 자리)은 그대로 둔다
     fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
@@ -525,7 +522,7 @@ def _yearish(vals) -> bool:
 
 
 def _floor_fonts(fig, lo: float = 13) -> None:
-    """차트 글씨 하한(2026-09-23 사용자 — 작게 만들지 않는다): 눈금 · 범례 · 주석 · 값 라벨에 lo 보다 작게 정한 크기를 lo 로 올린다."""
+    """차트 글씨 하한(작게 만들지 않는다): 눈금 · 범례 · 주석 · 값 라벨에 lo 보다 작게 정한 크기를 lo 로 올린다."""
     small = lambda f: f is not None and isinstance(f.size, (int, float)) and f.size < lo
     for ax in [*fig.select_xaxes(), *fig.select_yaxes()]:
         if small(ax.tickfont):
@@ -551,7 +548,7 @@ _DB_BITS = re.compile(r"\b(?:clean|fact|dim|ref|meta|raw)_[a-z0-9_]+|\bv_[a-z0-9
 
 
 def public_source(text: str) -> str:
-    """사용자에게 보이는 출처에서 DB 내부 정보(표 · 뷰 · 열 이름, 「팀 DB」, DB 적재 · 반영일)를 걸러 낸다 — 보안(2026-09-24 사용자).
+    """사용자에게 보이는 출처에서 DB 내부 정보(표 · 뷰 · 열 이름, 「팀 DB」, DB 적재 · 반영일)를 걸러 낸다 — 보안.
     「기관 · 데이터명 → DB 표 · 기간 · DB 적재 날짜」 → 「기관 · 데이터명 · 기간」. 화면 출처 「?」 · PNG 출처 줄 · CSV 머리줄이 모두 이 함수를 지난다."""
     parts = [p.strip(" ·,.;") for p in re.split(r"\s*(?:→|->|·)\s*", str(text))]
     keep = [p for p in parts if p and not _DB_BITS.search(p)]
@@ -647,7 +644,7 @@ def supply_table(rows: list[dict]) -> str:
 
 
 def core_kpis(cards: list[tuple[str, str, str, str, str, str, str]], basis: str) -> str:
-    """핵심 지표 카드 묶음(새 디자인 — 둥근 아이콘). cards = [(아이콘, "배경색,글자색", 라벨, 값, 단위, 설명, 값 style)]."""
+    """핵심 지표 카드 묶음(둥근 아이콘). cards = [(아이콘, "배경색,글자색", 라벨, 값, 단위, 설명, 값 style)]."""
     def icon(ic: str, col: str) -> str:
         if not ic:
             return ""
@@ -675,8 +672,7 @@ def share_card(f: dict) -> str:
 
 # ════════════════════════════════════════════════════════════════════════════
 # 3. 공급국 지구본 · 로딩 표시
-#    지구본은 데모 HOME 그대로(회전 · 끌어 돌리기 · 지구본↔지도 · 흐름 화살표) — 버튼 이모지만 뺐다(2026-09-24 사용자).
-#    로딩 지구본(globe_loading)은 static/loading_globe.html — 데모와 같은 작은 회전 지구본(2026-10-01 사용자).
+#    지구본: 회전 · 끌어 돌리기 · 지구본↔지도 · 흐름 화살표. 로딩(globe_loading)은 static/loading_globe.html 의 작은 회전 지구본.
 # ════════════════════════════════════════════════════════════════════════════
 KOREA = [127.8, 36.5]
 _GLOBE = r"""
@@ -875,7 +871,7 @@ function idleStatus(){
   return mode==='map'?'세계지도 — 공급국을 짚어 보세요':(spinning?'지구본 회전 중…':'멈춤 — 끌어서 돌릴 수 있습니다');
 }
 
-/* 화면 밖이거나 탭이 숨겨지면 그리기를 멈춘다 — 매 프레임 다시 그려 CPU 를 계속 쓰던 문제(2026-09-28 점검) */
+/* 화면 밖이거나 탭이 숨겨지면 그리기를 멈춘다 — 매 프레임 다시 그려 CPU 를 계속 쓰지 않게 */
 let onScreen=true, running=false, lastT=0;
 const SPIN=6, FLOW_MS=5200;     // 회전 초당 6도 · 흐름 화살표 한 바퀴 5.2초 — 프레임 수가 아니라 시간 기준이라 화면 주사율과 상관없이 같은 속도
 function wake(){ if(onScreen&&!document.hidden&&!running){running=true;requestAnimationFrame(loop);} }
@@ -933,7 +929,7 @@ fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json", {int
 
 
 def supply_globe(points: list[dict], height: int = 430, unit: str = "백만 USD", outbound: bool = False):
-    """공급국 지구본(데모 HOME 그대로) — 회전 · 끌어서 돌리기 · 지구본↔지도 전환 · 공급국 → 한국 흐름 화살표.
+    """공급국 지구본 — 회전 · 끌어서 돌리기 · 지구본↔지도 전환 · 공급국 → 한국 흐름 화살표.
     outbound=True(수출)면 선 · 화살표가 한국 → 그 나라 방향이다.
     points = [{name, lat, lon, value, color, note}] — 원 색 = 국가 색(표 · 막대와 같은 색), 원 크기 = 수입액.
     지구본은 HTML 이라 PNG 로 바로 저장할 수 없어, 같은 값의 평면 지도(plotly)를 만들어 돌려준다(화면에는 그리지 않음 — PNG 단추용)."""
@@ -964,7 +960,7 @@ _GLOAD_N = itertools.count()
 
 @contextlib.contextmanager
 def globe_loading(text: str = "조회 중", height: int = 0):
-    """조회 · 집계가 끝날 때까지 작은 회전 지구본을 보인다(demo/KDD_v2 와 같은 모양). 블록을 벗어나면(오류가 나도) 자리를 비운다.
+    """조회 · 집계가 끝날 때까지 작은 회전 지구본을 보인다. 블록을 벗어나면(오류가 나도) 자리를 비운다.
     height = 지구본 칸 높이(0 이면 340). 0.35초 안에 끝나는 조회(캐시)는 지구본이 보이지 않는다 — components.css 의
     .st-key-gload_* 규칙이 그동안 칸을 접어 두어, 화면을 다시 그릴 때마다 깜빡이지 않는다."""
     height = height or 340
@@ -1333,7 +1329,7 @@ def country_map(imp: dict, exp: dict, modes: tuple[str, ...] = ("imp", "exp"), h
 
 
 INFO_CSS = """<style>
-/* ⓘ 데이터 정보 단추(머리글 오른쪽) · 대화상자 */
+/* ⓘ 단추(info_btn) · 대화상자 */
 .st-key-info_btn{width:auto!important;padding:0!important}
 .st-key-info_btn [data-testid="stTooltipHoverTarget"]{justify-content:flex-start!important}
 .st-key-info_btn button{width:25px;height:25px;min-width:25px;flex-shrink:0;min-height:0;padding:0;border-radius:50%;border:none;
@@ -1388,7 +1384,7 @@ function loadPlotly() {
     sc.onload = ok; sc.onerror = fail; document.head.appendChild(sc);
   });
 }
-document.getElementById('b').onclick = async () => {
+const go = async () => {
   const b = document.getElementById('b'); b.disabled = true;
   try {
     try { await loadPlotly(); } catch (e) { b.textContent = '그래프 도구를 불러오지 못했습니다(인터넷 연결 확인)'; return; }
@@ -1397,6 +1393,10 @@ document.getElementById('b').onclick = async () => {
     await Plotly.downloadImage('hid', {format: 'png', filename: "__FILE__", width: __W__, height: __HGT__, scale: 2});
   } finally { b.disabled = false; }
 };
+document.getElementById('b').onclick = go;
+// trigger — 이 칸의 단추는 숨기고, 바깥 화면의 Streamlit 단추(키 __TRIGGER__)가 window.parent.__kdPng[키]() 로 부른다
+const TRIGGER = "__TRIGGER__";
+if (TRIGGER) { (window.parent.__kdPng = window.parent.__kdPng || {})[TRIGGER] = go; document.getElementById('b').style.display = 'none'; }
 </script></body></html>"""
 
 
@@ -1408,9 +1408,11 @@ def _plotly_rich(text: str) -> str:
 
 
 def png_button(fig, filename: str, label: str = "PNG 이미지 내려받기", width: int = 1100, align: str = "flex-end",
-               title: str | None = None, source: str | None = None) -> None:
+               title: str | None = None, source: str | None = None, trigger: str | None = None) -> None:
     """지금 화면의 plotly 그림(fig)을 PNG 로 내려받는 단추(Datawrapper 내보내기 모양).
-    title = 화면의 결론형 제목(HTML 가능, 강조 구절은 파랑), source = 아래 출처 한 줄 — 둘 다 이미지에만 들어가고 화면 그림은 그대로다."""
+    title = 화면의 결론형 제목(HTML 가능, 강조 구절은 파랑), source = 아래 출처 한 줄 — 둘 다 이미지에만 들어가고 화면 그림은 그대로다.
+    trigger = 바깥 Streamlit 단추의 key — 주면 이 칸의 단추는 숨기고(높이 0) 그 단추가 이 그림을 내려받게 한다
+    (단추 모양을 CSV 단추와 똑같이 하려고. 클릭 연결은 static/img_dl.js)."""
     out = go.Figure(fig)
     h = int(out.layout.height or 420)
     m = out.layout.margin
@@ -1428,12 +1430,12 @@ def png_button(fig, filename: str, label: str = "PNG 이미지 내려받기", wi
     h = int(out.layout.height)
     html = (_PNG_BTN.replace("__FIG__", out.to_json()).replace("__FILE__", escape(filename).replace('"', ""))
             .replace("__LABEL__", escape(label)).replace("__W__", str(width)).replace("__HGT__", str(h))
-            .replace("__ALIGN__", align).replace("__FONTLINK__", _FONT_LINK))
-    components.html(html, height=42, scrolling=False)
+            .replace("__ALIGN__", align).replace("__FONTLINK__", _FONT_LINK).replace("__TRIGGER__", trigger or ""))
+    components.html(html, height=0 if trigger else 42, scrolling=False)
 
 
 def inject() -> None:
-    """데모의 CSS 층을 순서대로 넣는다(데모 파일 맨 위에서 st.html 로 넣던 것들)."""
+    """디자인 CSS 층을 순서대로 넣는다."""
     st.html(CSS)
     st.html(WIDGET_CSS)
     if CHART_ANIM:

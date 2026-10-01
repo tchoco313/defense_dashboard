@@ -2,7 +2,7 @@
 
 접속은 scripts/dbconf.py role="etl"(SELECT 만). RDS 에서 가져오는 것: 객체 목록·PK·행 수(COUNT(*))·뷰 열 목록.
 사전에 없는 객체 / RDS 에 없는 사전 행은 머리에 경고로 적는다(둘 다 0 이어야 정상).
-table_dict.csv 의 kind=file 행(원본 파일 데이터셋 raw_…, 2026-09-22 raw_ 표 삭제 후)은 RDS 밖이라 대조하지 않고
+table_dict.csv 의 kind=file 행(원본 파일 데이터셋 raw_…)은 RDS 밖이라 대조하지 않고
 「원본 파일」 절에 파서 기대 건수(scripts/load_db.py RAW_TABLES.expected)로 싣는다.
 
 사용:
@@ -28,7 +28,7 @@ from load_db import RAW_TABLES  # noqa: E402  원본 파일 데이터셋 키·�
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-GROUPS = [("ref", "참조표 — 기준·라벨"), ("raw", "원본 파일 — DB 밖(data/raw/, read_raw 로 읽음. RDS raw_ 표는 2026-09-22 삭제)"), ("meta", "기록 — 출처·적재 단계·열 사전"),
+GROUPS = [("ref", "참조표 — 기준·라벨"), ("raw", "원본 파일 — DB 밖(data/raw/, read_raw 로 읽음)"), ("meta", "기록 — 출처·적재 단계·열 사전"),
           ("dim", "차원 — 관세청 HS10"), ("fact", "사실 — 관세청 월별 수출입"), ("clean", "정제 — 노트북이 채움, 화면·뷰의 원천"),
           ("v", "뷰 — 화면이 읽는 집계")]
 RAW_COMMON = {"row_id", "source_file", "source_row_no", "loaded_at"}
@@ -81,9 +81,9 @@ def main() -> None:
     n_tab = sum(1 for t in objs.values() if t == "BASE TABLE")
     n_view = len(objs) - n_tab
 
-    L = [f"# 테이블 카탈로그 — 역할·키·주요 열 (RDS `defense_dashboard` 실측 {today})", "",
+    L = [f"# 테이블 카탈로그 — 역할·키·주요 열 (RDS `defense_dashboard` 실측)", "",
          f"`scripts/gen_table_catalog.py`가 `db/table_dict.csv`(역할·원천·한 행·쓰는 곳·주의) + `db/column_dict.csv`(열 설명) + RDS(행 수·PK·뷰 열)로 만든다. **손으로 고치지 말고 두 CSV를 고친 뒤 재생성.** "
-         f"테이블 {n_tab} · 뷰 {n_view} · 원본 파일 데이터셋 {len(files)}(DB 밖). 화면↔테이블 대응·SQL 예시는 `docs/db/table-guide.md`, DDL은 `db/schema.sql`.", ""]
+         f"테이블 {n_tab} · 뷰 {n_view} · 원본 파일 데이터셋 {len(files)}(DB 밖). 설계는 `docs/db/schema-design.md`, 관계도는 `docs/db/erd.md`, DDL은 `db/schema.sql`.", ""]
     if missing_dict or missing_db:
         L += ["> **경고** " + (f"사전에 없는 RDS 객체: {', '.join(missing_dict)}. " if missing_dict else "")
               + (f"RDS에 없는 사전 행: {', '.join(missing_db)}." if missing_db else ""), ""]

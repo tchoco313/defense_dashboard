@@ -1,13 +1,13 @@
 -- =============================================================================
--- defense_dashboard 데이터 계층 초기화 (기준 db/schema.sql 2026-09-22 — BASE TABLE 37 중 25를 비움, 12 보존)
+-- defense_dashboard 데이터 계층 초기화 (기준 db/schema.sql — BASE TABLE 37 중 25를 비움, 12 보존)
 --
 -- 용도: 스키마는 그대로 두고 "적재한 데이터"만 비운 뒤 다시 적재할 때.
 --       db/schema.sql(전체 DROP)과 달리 아래 12개는 보존한다.
 --         ref_hs_whitelist · ref_country · ref_sido_map · ref_fsc · ref_fsg · ref_hs_code_master · ref_hs6_name
 --         · ref_hs_indicator · ref_hs_rule_flag · ref_equipment_alias                (참조표·기준표·규칙표)
 --         meta_dataset · meta_column_dict                                            (출처 기록·열 사전)
--- 비우는 것: clean_ 22 → fact_/dim_ 2 → meta_load_log. raw_ 표는 없다(2026-09-22 삭제 — 원본은 data/raw/ 파일, read_raw 로 읽음)
--- 실행: RDS admin 계정으로(etl_rw는 TRUNCATE 권한 없음). 명령은 docs/runbook/commands.md §5.
+-- 비우는 것: clean_ 22 → fact_/dim_ 2 → meta_load_log. raw_ 표는 없다(원본은 data/raw/ 파일, read_raw 로 읽음)
+-- 실행: RDS admin 계정으로(etl_rw는 TRUNCATE 권한 없음).
 --
 -- 계층별 부분 재적재는 이 파일을 통째로 돌리지 말고 필요한 블록만 실행한다.
 --   · clean_ 만 다시 채울 때: clean_ 블록만 → 노트북 재실행(입력은 원본 파일이라 순서 제약 없음).

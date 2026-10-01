@@ -1,7 +1,7 @@
 """회귀 검증 — scripts/check_integrity.py 의 시드 해석·값 비교(DB 접속 없음).
 
 실행(저장소 루트): .venv\\Scripts\\python.exe -m unittest discover -s tests -v
-2026-09-28 QA D-01(시드의 FSG 60 이 0으로 남아 --ref 때 DB 값을 되돌림)의 재발 방지 장치가 깨지지 않았는지 본다.
+시드와 DB 값이 다를 때 --ref 가 DB 값을 되돌리지 않게 하는 장치(시드 대조)가 깨지지 않았는지 본다.
 """
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ class ParseSeedTest(unittest.TestCase):
         self.assertEqual(out["t_grp"][1], [("60", "Fiber, Optics (A)", "1", None), ("61", "Wire", "0", "비고; 세미콜론")])
 
     def test_real_seed_matches_fsg_master_and_m4(self):
-        # 실제 시드: ref_fsg 행 수 = fsg_master.csv 행 수, 전자 군급 = 58·59·60(09-21 M4 확정)
+        # 실제 시드: ref_fsg 행 수 = fsg_master.csv 행 수, 전자 군급 = 58·59·60
         cols, rows = ci.parse_seed_sql((ROOT / "db" / "seed_ref.sql").read_text(encoding="utf-8"))["ref_fsg"]
         with open(ROOT / "data" / "reference" / "fsg_master.csv", encoding="utf-8-sig", newline="") as f:
             n_csv = sum(1 for _ in csv.DictReader(f))
