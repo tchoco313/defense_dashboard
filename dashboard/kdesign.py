@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import itertools
 import re
 import json
 from html import escape
+from pathlib import Path
 
 import plotly.graph_objects as go
 import streamlit as st
@@ -674,7 +676,7 @@ def share_card(f: dict) -> str:
 # ════════════════════════════════════════════════════════════════════════════
 # 3. 공급국 지구본 · 로딩 표시
 #    지구본은 데모 HOME 그대로(회전 · 끌어 돌리기 · 지구본↔지도 · 흐름 화살표) — 버튼 이모지만 뺐다(2026-09-24 사용자).
-#    데모의 인트로 화면 · 로딩 지구본은 쓰지 않는다(globe_loading 은 로딩 문구).
+#    로딩 지구본(globe_loading)은 static/loading_globe.html — 데모와 같은 작은 회전 지구본(2026-10-01 사용자).
 # ════════════════════════════════════════════════════════════════════════════
 KOREA = [127.8, 36.5]
 _GLOBE = r"""
@@ -930,11 +932,24 @@ def supply_globe(points: list[dict], height: int = 430, unit: str = "백만 USD"
     return fig
 
 
+_MINI_GLOBE = (Path(__file__).resolve().parent / "static" / "loading_globe.html").read_text(encoding="utf-8")
+_GLOAD_N = itertools.count()
+
+
 @contextlib.contextmanager
 def globe_loading(text: str = "조회 중", height: int = 0):
-    """조회 · 집계가 끝날 때까지 로딩 문구를 보인다(데모의 회전 지구본 대신). height 는 호환용."""
-    with st.spinner(text):
+    """조회 · 집계가 끝날 때까지 작은 회전 지구본을 보인다(demo/KDD_v2 와 같은 모양). 블록을 벗어나면(오류가 나도) 자리를 비운다.
+    height = 지구본 칸 높이(0 이면 340). 0.35초 안에 끝나는 조회(캐시)는 지구본이 보이지 않는다 — components.css 의
+    .st-key-gload_* 규칙이 그동안 칸을 접어 두어, 화면을 다시 그릴 때마다 깜빡이지 않는다."""
+    height = height or 340
+    slot = st.empty()
+    with slot.container(key=f"gload_{next(_GLOAD_N)}"):
+        components.html(_MINI_GLOBE.replace("__H__", str(height - 10)).replace("__LABEL__", escape(text)),
+                        height=height, scrolling=False)
+    try:
         yield
+    finally:
+        slot.empty()
 
 # ════════════════════════════════════════════════════════════════════════════
 # 3-3. 도넛 공통 — 반지름·둘레·굵기와 커서 반응(조각 확대 · 가운데 라벨)

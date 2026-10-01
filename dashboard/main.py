@@ -352,7 +352,7 @@ def page_home() -> None:
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# 소개 — 소분류마다 「질문 → 이 화면이 말하려는 것 → 설명 재료 → 읽을 때 주의」(선정 규칙 · 품목 설명 · 무기체계 분류 · 공개 사례).
+# 소개 — 소분류마다 「질문 · 답 한 상자 → 설명 재료 → 읽을 때 주의」(선정 규칙 · 품목 설명 · 무기체계 분류 · 공개 사례).
 # ════════════════════════════════════════════════════════════════════════════
 STORY_CSS = css("story.css")
 
@@ -363,10 +363,9 @@ def _mk_css() -> None:
 
 
 def story_screen(key: str, title: str, question: str, message: str, notes: tuple = (), extra: str = "") -> None:
-    """소분류 한 화면 — 질문 · 이 화면이 말하려는 것 · (설명 재료 extra) · 읽을 때 주의."""
+    """소분류 한 화면 — 질문 · 답 한 상자 · (설명 재료 extra) · 읽을 때 주의."""
     for _ in zone(key, title):
-        st.html(f'<div class="mk-q"><b>Q.</b>{question}</div>'
-                f'<div class="mk-msg"><small>이 화면이 말하려는 것</small><b>{message}</b></div>')
+        st.html(f'<div class="mk-msg"><div class="q"><i>Q.</i>{question}</div><div class="a">{message}</div></div>')
         if extra:
             st.html(extra)
         if notes:
@@ -522,13 +521,23 @@ V2_Q = {
 # 파란 상자 글씨 — 설계도판 .mk-q 와 같은 15px(Q. = 굵은 파랑 · 질문 = 회청색). 상자 · 출처 모양은 screens/parts.py 의 .see 그대로
 V2_SEE_CSS = css("see.css")
 # 화면 파일은 끝에서 P.see(설명, 출처)를 부른다 — 소분류 제목 바로 아래에 자리(st.empty)를 먼저 만들어 두고 거기에 채운다
-_SEE = {"slot": None, "q": None}
+_SEE = {"slot": None, "q": None, "used": False}
+
+
+def _lead_v2(text: str, sub: str = "") -> None:
+    """결론 상자(P.lead) — 소분류의 첫 결론 상자 윗줄에 질문을 넣는다(질문 · 답 한 상자). 둘째부터는 결론만."""
+    q = "" if _SEE["used"] or not _SEE["q"] else f'<div class="q"><i>Q.</i>{escape(_SEE["q"])}</div>'
+    _SEE["used"] = _SEE["used"] or bool(q)
+    st.html(f'<div class="pg-lead">{q}<p>{text}</p>' + (f"<span>{sub}</span>" if sub else "") + "</div>")
 
 
 def _see_v2(what: str, source: str) -> None:
+    # 출처 줄은 보이지 않는다(10-01 사용자) — 소개 페이지처럼 제목 줄 바로 아래에서 본문이 시작한다
     q = _SEE["q"]
-    body = (f'<div class="see q"><b>Q.</b><span>{escape(q)}</span><span class="src">출처: {source}</span></div>' if q
-            else f'<div class="see"><span class="src">출처: {source}</span></div>')
+    if q and not _SEE["used"]:            # 결론 상자가 없는 화면 — 맨 위 「Q. 질문」 줄만
+        body = f'<div class="see q"><b>Q.</b><span>{escape(q)}</span></div>'
+    else:                                 # 질문은 결론 상자 안에 들어갔다 — 자리를 접는다(.see.none, 빈 칸 · 간격도 없앰)
+        body = '<div class="see none"></div>'
     (_SEE["slot"] or st).html(body)
 
 
@@ -542,20 +551,25 @@ def _live_page(u: str) -> None:
     """대분류 한 페이지 — DB 접속을 확인하고, 소분류마다 제목 줄 + 실데이터 화면을 이어 그린다."""
     import parts as screen_parts           # dashboard/screens/parts.py — 화면 파일이 쓰는 카드 · KPI · 차트 조각
     from db import db_ready
+    from kdesign import globe_loading
     screen_parts.next_link = _next_link_v2  # 소분류 화면의 옛 페이지 링크 대신 이 메뉴로 잇는다
-    screen_parts.see = _see_v2              # 「이 화면에서 보는 것」 → 맨 위 「Q. 질문」
+    screen_parts.see = _see_v2              # 「이 화면에서 보는 것」 · 출처 줄을 뺀다(질문은 결론 상자 안)
+    screen_parts.lead = _lead_v2            # 결론 상자 윗줄에 「Q. 질문」
     screen_parts.detail = _detail_v2        # 상세 조회 설명 줄 빼기
     screen_parts.inject()
     st.html(V2_SEE_CSS)
-    if not db_ready():                     # 접속 실패 — 안내 + 「다시 연결」만(UI/UX 9원칙)
+    with globe_loading("데이터베이스에 연결하는 중"):
+        ok = db_ready()
+    if not ok:                             # 접속 실패 — 안내 + 「다시 연결」만(UI/UX 9원칙)
         return
     titles = dict(SECTIONS[u])
 
     def run(k: str, screen: str):
         def _f():
             for _ in zone(k, titles[k]):
-                _SEE["slot"], _SEE["q"] = st.empty(), V2_Q.get((u, k))
-                runpy.run_path(str(SCREENS_DIR / f"{screen}.py"), run_name="__main__")
+                _SEE["slot"], _SEE["q"], _SEE["used"] = st.empty(), V2_Q.get((u, k)), False
+                with globe_loading("데이터를 불러오는 중"):          # DB 조회가 끝날 때까지 — 캐시로 바로 끝나면 보이지 않는다
+                    runpy.run_path(str(SCREENS_DIR / f"{screen}.py"), run_name="__main__")
         return _f
     _run_sub({k: run(k, sc) for k, sc in SCREENS[u].items()})
 

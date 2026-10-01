@@ -1,0 +1,60 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:transparent;overflow:hidden;user-select:none;
+       font-family:Pretendard,'Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif}
+  #box{width:100%;height:__H__px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;
+       animation:in .3s ease both}
+  canvas{display:block}
+  .lbl{font-size:12px;font-weight:700;color:#4a6da8;letter-spacing:-.2px}
+  .lbl i{font-style:normal;animation:blink 1.2s ease-in-out infinite}
+  .lbl i:nth-child(2){animation-delay:.15s} .lbl i:nth-child(3){animation-delay:.3s}
+  @keyframes in{from{opacity:0}to{opacity:1}}
+  @keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+</style></head><body>
+<div id="box">
+  <canvas id="c" width="300" height="300"></canvas>
+  <div class="lbl">__LABEL__<i>.</i><i>.</i><i>.</i></div>
+</div>
+<script>
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const DPR = Math.min(window.devicePixelRatio || 1, 2), S = 300;
+cv.width = S * DPR; cv.height = S * DPR; cv.style.width = S + 'px'; cv.style.height = S + 'px';
+ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+const proj = d3.geoOrthographic().clipAngle(90).precision(0.4).scale(S * 0.40).translate([S / 2, S / 2]);
+const path = d3.geoPath(proj, ctx), grat = d3.geoGraticule10();
+let world = null;
+
+function draw() {
+  ctx.clearRect(0, 0, S, S);
+  ctx.beginPath(); path({type: 'Sphere'});
+  const g = ctx.createRadialGradient(S * .35, S * .32, S * .05, S / 2, S / 2, S * .42);
+  g.addColorStop(0, '#f2f9ff'); g.addColorStop(.5, '#d8eafd'); g.addColorStop(1, '#a9caee');
+  ctx.fillStyle = g; ctx.fill();
+  ctx.save(); ctx.shadowColor = 'rgba(43,110,246,.28)'; ctx.shadowBlur = 22; ctx.fill(); ctx.restore();
+  ctx.beginPath(); path(grat);
+  ctx.strokeStyle = 'rgba(88,128,190,.26)'; ctx.lineWidth = .6; ctx.stroke();
+  if (world) {
+    ctx.beginPath(); path(world);
+    ctx.fillStyle = '#ffffff'; ctx.fill();
+    ctx.strokeStyle = '#bcd0ea'; ctx.lineWidth = .7; ctx.stroke();
+  }
+  ctx.beginPath(); path({type: 'Sphere'});
+  ctx.strokeStyle = 'rgba(43,110,246,.40)'; ctx.lineWidth = 1.2; ctx.stroke();
+}
+function spin() {
+  const r = proj.rotate();
+  proj.rotate([r[0] + 0.85, r[1], r[2]]);     // 로딩용이라 인트로보다 빠르게 돈다
+  draw();
+  requestAnimationFrame(spin);
+}
+proj.rotate([-30, -18, 0]);
+draw(); spin();
+fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
+  .then(r => r.json())
+  .then(t => { world = topojson.feature(t, t.objects.countries); draw(); })
+  .catch(() => {});
+</script></body></html>

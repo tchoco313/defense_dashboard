@@ -85,3 +85,7 @@ html[data-chipfit] [role="tooltip"]:has([data-testid="stTooltipContent"]),
 html[data-chipfit] [data-testid="stTooltipContent"]{display:none!important}
 .kpis.q{gap:10px;margin-bottom:6px}
 .kpis.q .kpi .v{font-size:23px}
+
+/* 로딩 지구본(kdesign.globe_loading) — 0.35초 동안은 칸을 접어 둔다. 그 안에 조회가 끝나면(캐시) 지구본이 보이지 않고 자리도 흔들리지 않는다 */
+div[class*="st-key-gload_"]{overflow:hidden;animation:gload-in .25s ease .35s both}
+@keyframes gload-in{from{max-height:0;opacity:0}to{max-height:420px;opacity:1}}

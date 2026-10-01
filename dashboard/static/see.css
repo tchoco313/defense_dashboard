@@ -1,5 +1,9 @@
 
 .see.q b{font-size:15px;font-weight:800;color:#1d4ed8;letter-spacing:0}
+/* 질문을 결론 상자(.pg-lead) 안 윗줄에 — 소개의 .mk-msg .q 와 같은 모양. 그때 맨 위 줄(.see.none)은 칸째 접어 간격도 남기지 않는다 */
+.pg-lead .q{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:14px;font-weight:700;color:#1d4ed8;letter-spacing:-.2px}
+.pg-lead .q i{flex:0 0 auto;font-style:normal;font-size:11.5px;font-weight:800;color:#fff;background:#1d4ed8;border-radius:5px;padding:2px 7px}
+[data-testid="stElementContainer"]:has(.see.none){display:none!important}
 .see.q span:not(.src){font-size:15px;color:#5a6b85}
 /* 차트 출처 — 오른쪽 아래 「?」 원, 누르면 아래로 펼친다(dashboard/kdesign.py 와 같은 규칙. KDD_v2 는 kdesign CSS 를 불러오지 않아
    없으면 브라우저 기본 「▶ ?」로 보인다. --sky-weak 는 KDD_v2 에 없어 SKY_WEAK 값을 직접 적음) */
