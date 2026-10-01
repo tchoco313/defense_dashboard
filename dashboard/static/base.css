@@ -1,0 +1,186 @@
+
+${FONTS}html{zoom:${APP_ZOOM}}
+[data-testid="stPlotlyChart"],[data-testid="stDataFrame"]{zoom:calc(1 / ${APP_ZOOM})}
+/* 선택창 목록(selectbox · multiselect)은 버튼 위치를 재서 그 좌표에 뜨는데, 배율이 좌표까지 키워 버튼 밑이 아닌
+   오른쪽 아래 엉뚱한 곳에 떴다 — 목록 틀은 배율을 되돌려 제자리에, 안의 글씨·칸은 다시 배율만큼 키운다. 도움말 말풍선(help=)도 같다 */
+[data-rac][data-trigger],[data-rac][role="tooltip"]{zoom:calc(1 / ${APP_ZOOM})}
+[data-rac][data-trigger] > *,[data-rac][role="tooltip"] > *{zoom:${APP_ZOOM}}
+/* 배율이 스크롤 영역 높이(100vh)까지 키워 페이지 맨 아래가 창 밖으로 잘린다 — 높이만 창 크기로 되돌린다 */
+[data-testid="stMain"]{height:calc(100dvh / ${APP_ZOOM})!important;max-height:calc(100dvh / ${APP_ZOOM})!important}
+:root{
+  --bg:${BG}; --panel:${PANEL}; --panel2:${PANEL2}; --line:${LINE};
+  --text:${TEXT}; --muted:${MUTED}; --accent:${ACCENT}; --navy:${NAVY}; --navy2:${NAVY2};
+  --up:${UP}; --down:${DOWN};
+  --shadow:0 1px 2px rgba(19,42,84,.06), 0 6px 18px rgba(19,42,84,.06);
+  --shadow-h:0 2px 4px rgba(19,42,84,.08), 0 14px 32px rgba(19,42,84,.12);
+}
+
+html, body, [class*="st-"]{font-family:Pretendard,'Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif}
+/* 위 규칙이 아이콘 span 까지 덮으면 아이콘 이름(keyboard_double_arrow_left 등)이 글씨로 찍힌다 — 아이콘 글꼴 복원 */
+[data-testid="stIconMaterial"],[data-testid="stExpanderIcon"]{font-family:'Material Symbols Rounded'!important}
+/* 헤더를 통째로 숨기면 그 안의 '사이드바 열기' 버튼까지 사라진다 — 헤더는 투명하게 두고 메뉴·툴바만 숨긴다 */
+[data-testid="stHeader"]{background:transparent;height:0;pointer-events:none}
+[data-testid="stToolbar"] > *:not(:has([data-testid="stExpandSidebarButton"])),
+[data-testid="stDecoration"],[data-testid="stStatusWidget"],[data-testid="stMainMenu"],
+[data-testid="stToolbarActions"],[data-testid="stAppDeployButton"]{display:none!important}
+/* 차트·표에 마우스를 올리면 뜨는 요소 툴바(전체화면 확대 버튼 등)를 숨긴다 */
+[data-testid="stElementToolbar"],[data-testid="StyledFullScreenButton"]{display:none!important}
+[data-testid="stAppViewContainer"]{background:var(--bg)}
+.block-container{padding:0 34px 40px;max-width:1500px}
+
+/* ── 구역 ─────────────────────────────────────────────────────────────── */
+div[class*="st-key-zone_"]{position:relative;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.55);
+  padding:32px 16px 18px;margin:14px 0 18px}
+div[class*="st-key-zone_"]::before{position:absolute;top:-12px;left:18px;z-index:1;
+  background:#2b6ef6;color:#fff;font-size:12px;font-weight:700;letter-spacing:-.2px;
+  padding:4px 13px;border-radius:20px;box-shadow:0 4px 12px rgba(43,110,246,.3)}
+
+/* ── 카드 ─────────────────────────────────────────────────────────────── */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 17px;height:100%;
+  box-shadow:var(--shadow);transition:box-shadow .2s ease,transform .2s ease}
+.card:hover{box-shadow:var(--shadow-h);transform:translateY(-2px)}
+[data-testid="stVerticalBlockBorderWrapper"]:has(> div > [class*="st-key-card_"]),
+div[class*="st-key-card_"]{background:var(--panel);border:1px solid var(--line)!important;border-radius:14px;box-shadow:var(--shadow)}
+
+/* ── KPI ──────────────────────────────────────────────────────────────── */
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:13px}
+.kpis.k4{grid-template-columns:repeat(4,1fr)}
+.kpis.k6{grid-template-columns:repeat(6,1fr)}
+.kpi{animation:rise .42s cubic-bezier(.18,.89,.32,1.15) both}
+.kpis .kpi:nth-child(1){animation-delay:.02s} .kpis .kpi:nth-child(2){animation-delay:.07s}
+.kpis .kpi:nth-child(3){animation-delay:.12s} .kpis .kpi:nth-child(4){animation-delay:.17s}
+.kpis .kpi:nth-child(5){animation-delay:.22s} .kpis .kpi:nth-child(6){animation-delay:.27s}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.kpi .kt{display:flex;align-items:center;gap:9px;min-height:30px}
+.kpi .ico{width:30px;height:30px;flex:0 0 30px;border-radius:9px;display:grid;place-items:center;font-size:15px;
+  background:#e8f0ff;transition:transform .2s ease}
+.kpi:hover .ico{transform:scale(1.08) rotate(-4deg)}
+.kpis .kpi:nth-child(2) .ico{background:#e4fbf6} .kpis .kpi:nth-child(3) .ico{background:#f0ecff}
+.kpis .kpi:nth-child(4) .ico{background:#fff2e3} .kpis .kpi:nth-child(5) .ico{background:#ffe9f1}
+.kpis .kpi:nth-child(6) .ico{background:#eaf4ff}
+/* KPI 아이콘 — 이모티콘 대신 메뉴와 같은 Material Symbols(Rounded). 배경 칸 색은 그대로 두고 아이콘은 같은 계열의 진한 색 */
+.kpi .ico .ms{font-family:'Material Symbols Rounded'!important;font-weight:400;font-style:normal;font-size:19px;line-height:1;
+  letter-spacing:0;font-feature-settings:'liga';-webkit-font-smoothing:antialiased}
+.kpis .kpi .ico{color:#2b6ef6}
+.kpis .kpi:nth-child(2) .ico{color:#0f9f85} .kpis .kpi:nth-child(3) .ico{color:#7a5af8}
+.kpis .kpi:nth-child(4) .ico{color:#e0851a} .kpis .kpi:nth-child(5) .ico{color:#e0457b}
+.kpis .kpi:nth-child(6) .ico{color:#2f8fdc}
+.kpi .l{font-size:12px;font-weight:600;color:#5a6b8c;line-height:1.35}
+.kpi .v{font-size:29px;font-weight:800;margin-top:9px;letter-spacing:-1px;color:#12234a;line-height:1.1}
+.kpi .v small{font-size:13px;color:var(--muted);font-weight:600;margin-left:4px;letter-spacing:0}
+.kpi .s{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5}
+/* 다른 페이지 — 카드 제목 옆 설명(.h .sub)도 같은 ⓘ 말풍선으로 보인다.
+   설명 글자는 평소 숨긴 말풍선 안에 있고, ⓘ 은 그 말풍선의 ::before(혼자 보이게 둠)라 ⓘ 에 커서를 올리면 말풍선이 켜진다 */
+.h{position:relative}
+.h .sub{position:absolute;right:-6px;top:calc(100% + 6px);width:max-content;max-width:290px;margin:0;padding:10px 12px;
+  background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 28px rgba(19,42,84,.16);
+  font-size:11.5px;font-weight:500;line-height:1.65;color:#44567a;letter-spacing:-.1px;text-align:left;white-space:normal;
+  visibility:hidden;z-index:80}
+.h .sub::before{content:"info";position:absolute;top:-29px;right:6px;width:20px;height:20px;display:grid;place-items:center;
+  visibility:visible;cursor:help;color:#9aabc8;transition:color .15s;font-family:'Material Symbols Rounded';font-size:18px;
+  line-height:1;font-weight:400;font-style:normal;letter-spacing:0;font-feature-settings:'liga'}
+.h .sub:hover{visibility:visible}
+.h .sub:hover::before{color:var(--accent)}
+/* KPI(조회 결과 작은 카드 제외) — 숫자를 키워(29 → 35px) 가운데에 두고, 설명 줄(.s)은 숫자 아래에 왼쪽 정렬 · 회색 글씨로 붙인다.
+   가로로 너무 길어 보이지 않게 세로를 늘리고(142 → 180px), 숫자 + 설명 묶음을 제목 줄 아래 남은 칸의 세로 가운데에 둔다 */
+.kpis:not(.q) .kpi{min-height:180px;display:flex;flex-direction:column;min-width:0}
+/* 블록 위쪽 파란 선 — defense-trade.streamlit.app KPI 카드와 같은 #1d4ed8 · 두께 4px */
+.kpis:not(.q) .kpi{border-top:4px solid #1d4ed8}
+/* 블록 가로 — 칸 사이를 넓혀(13 → 26px) 블록 폭을 줄이고, minmax(0,1fr)로 글 길이와 상관없이 모든 칸 폭을 같게 */
+.kpis:not(.q){gap:26px;grid-template-columns:repeat(5,minmax(0,1fr))}
+.kpis.k4:not(.q){grid-template-columns:repeat(4,minmax(0,1fr))}
+.kpis.k6:not(.q){grid-template-columns:repeat(6,minmax(0,1fr))}
+.kpis:not(.q) .kpi .v{margin:auto 0 0;padding:0 0 2px;text-align:center;font-size:35px;letter-spacing:-1.2px}
+.kpis:not(.q) .kpi .v small{font-size:14px}
+.kpis:not(.q) .kpi .s{margin:12px 0 auto;color:var(--muted);font-size:11.5px}
+/* 제목(분석 대상 품목군 등)은 크게 · 진하게 */
+.kpis:not(.q) .kpi .l{font-size:17px;font-weight:700;color:#12234a;letter-spacing:-.3px}
+.kpis:not(.q) .kpi .kt{min-height:34px}
+.kpis:not(.q) .kpi .ico{width:34px;height:34px;flex:0 0 34px;font-size:17px}
+/* 글씨 비율 — 칸이 좁은 6칸 줄은 제목 · 숫자를 한 단계 줄이고, 긴 제목 · 긴 숫자는 한 줄에 들어가게 더 줄인다(4칸 줄은 칸이 넓어 그대로) */
+.kpis.k6:not(.q) .kpi .l{font-size:15.5px}
+.kpis.k6:not(.q) .kpi .v{font-size:31px}
+.kpis:not(.q):not(.k4) .kpi .l.long{font-size:15.5px;letter-spacing:-.5px}
+.kpis:not(.q) .kpi .v.long{font-size:26px;letter-spacing:-.8px;white-space:nowrap}
+/* 차트(plotly)에 커서를 올리면 오른쪽 위에 뜨는 도구 막대(내려받기 · 확대 · 이동 · 되돌리기 등) — 모든 차트에서 숨긴다 */
+.modebar-container{display:none!important}
+/* 조회 결과 카드(차트 · 결과 표 탭) — ⓘ 은 탭 칸 오른쪽 위에 띄우고 말풍선은 아래로 연다(오른쪽 아래는 내려받기 단추 자리) */
+.st-key-card_res [role="tabpanel"]{position:relative}
+.st-key-card_res .st-scroll{margin-top:22px}   /* 결과 표는 ⓘ 아래에서 시작(표 모서리와 겹치지 않게) */
+/* 말풍선은 ⓘ 위로 연다 — 아래로 열면 차트를 가렸다. 탭 칸(높이 고정 · overflow-y:auto)이 위로 나간 말풍선을 자르므로
+   ⓘ 에 커서가 있는 동안만 탭 칸 · 결과 카드의 넘침을 보이게 한다(탭 칸 내용은 500px 안이라 평소 스크롤바가 없어 폭이 안 바뀐다) */
+.card:has(.ib:hover,.sub:hover),[data-testid="stElementContainer"]:has(.ib:hover,.sub:hover),
+[data-testid="stVerticalBlock"]:has(.ib:hover,.sub:hover),[data-testid="stLayoutWrapper"]:has(.ib:hover,.sub:hover),
+[data-testid="stColumn"]:has(.ib:hover,.sub:hover){position:relative;z-index:90}
+/* 단, 조회 결과 탭 칸 안의 감싸개는 제외 — ⓘ 은 탭 칸 기준 absolute 인데, 커서를 올리는 순간 위 규칙이 안쪽 감싸개
+   (차트 자리 container 등)를 relative 로 바꿔 기준이 바뀌면 ⓘ 이 왼쪽 아래로 밀려 커서를 벗어나고, 다시 제자리로
+   돌아오며 깜빡였다. 앞으로 올리기는 ⓘ 칸 자신(z-index:90)과 탭 칸(relative)으로 충분하다 */
+.kpi .s .up{color:var(--up);font-weight:700} .kpi .s .dn{color:var(--down);font-weight:700}
+.ex{display:inline-block;font-size:10px;font-weight:700;color:#b45309;background:#fef3c7;border:1px solid #fde68a;
+  border-radius:5px;padding:0 5px;margin-left:5px;vertical-align:middle}
+
+/* ── 글 ───────────────────────────────────────────────────────────────── */
+.h{font-size:14.5px;font-weight:700;margin-bottom:11px;display:flex;align-items:center;gap:8px;color:var(--text);letter-spacing:-.3px}
+.h::before{content:"";width:4px;height:15px;border-radius:3px;background:#2b6ef6;flex:0 0 4px}
+.h .sub{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:0}
+.note{font-size:11.5px;color:#5d6d8c;line-height:1.7}
+.note b{color:var(--text);font-weight:700}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px;vertical-align:middle}
+.caption{font-size:11px;color:#8494ae;line-height:1.7;margin-top:6px}
+.lede{background:#fff;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;
+  padding:11px 15px;box-shadow:var(--shadow);margin-bottom:4px}
+
+/* 원칙 목록(「분석 원칙」 카드) */
+.rule{display:flex;gap:10px;margin-bottom:12px}
+.rule .ck{width:20px;height:20px;flex:0 0 20px;border-radius:50%;display:grid;place-items:center;font-size:11px;
+  background:#dcfce7;color:#15803d;font-weight:800}
+.rule b{display:block;font-size:12.5px;font-weight:700;color:var(--text);letter-spacing:-.2px}
+.rule span{display:block;font-size:11px;color:var(--muted);margin-top:2px;line-height:1.5}
+
+/* 순위 목록(「주요 수입국」 카드) */
+.rank{display:grid;grid-template-columns:22px 92px 1fr 66px;align-items:center;gap:9px;height:29px;font-size:12px}
+.rank .no{width:20px;height:20px;border-radius:50%;background:#eef2f9;color:#5a6b8c;font-size:10.5px;font-weight:800;
+  display:grid;place-items:center}
+.rank .nm{font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank .tr{position:relative;height:11px;border-radius:4px;background:#eef2f9}
+.rank .fl{position:absolute;left:0;top:0;bottom:0;border-radius:4px;animation:grow .7s cubic-bezier(.18,.89,.32,1.1) both}
+@keyframes grow{from{transform:scaleX(0);transform-origin:left}to{transform:none}}
+.rank .vl{text-align:right;font-weight:700;color:var(--text);font-size:11.5px}
+
+/* 점유율 막대(홈 오른쪽) */
+.bars .row{display:grid;grid-template-columns:128px 1fr 52px;align-items:center;gap:8px;height:21px;font-size:11.5px}
+.bars .nm{color:${TEXT};white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bars .nm em{color:${MUTED};font-style:normal;font-size:10px;margin-left:3px}
+.bars .track{position:relative;height:12px;border-radius:4px;background:${PANEL2}}
+.bars .fill{position:absolute;left:0;top:0;bottom:0;border-radius:4px;animation:grow .7s cubic-bezier(.18,.89,.32,1.1) both}
+.bars .ref{position:absolute;top:-4px;bottom:-4px;left:50%;border-left:1px dashed #94a7c8}
+.bars .pct{text-align:right;color:${MUTED}}
+
+/* 국외조달 절차(정책·산업 배경) — 원 → 화살표 → 원 */
+.proc{display:grid;grid-template-columns:1fr 30px 1fr 30px 1fr;align-items:start;padding:6px 0 2px}
+.proc .st{text-align:center;animation:rise .42s cubic-bezier(.18,.89,.32,1.15) both}
+.proc .st:nth-child(3){animation-delay:.12s} .proc .st:nth-child(5){animation-delay:.24s}
+.proc .ci{width:88px;height:88px;margin:0 auto;border-radius:50%;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;color:#fff;box-shadow:0 6px 18px rgba(43,110,246,.26)}
+.proc .ci span{font-size:23px;line-height:1}
+.proc .ci b{font-size:15.5px;font-weight:800;letter-spacing:-.3px}
+.proc .ar{margin-top:30px;text-align:center;font-size:21px;color:#8fb3f4}
+.proc .ds{margin-top:12px;font-size:12px;color:#44567a;line-height:1.55}
+.proc .n{margin-top:8px;font-size:22px;font-weight:800;color:#1c4ea3;letter-spacing:-.5px}
+.proc .n small{font-size:12px;color:var(--muted);font-weight:600;margin-left:3px}
+
+/* 입찰 공고 ↔ 결과 매칭 깔때기(DATA CENTER) — 층마다 사다리꼴 하나 */
+.funnel .fr{display:grid;grid-template-columns:1.3fr 1fr;align-items:center;gap:10px;height:52px;margin-bottom:6px}
+.funnel .tz{height:100%;display:grid;place-items:center;color:#fff;font-size:19px;font-weight:800;letter-spacing:-.3px;
+  animation:rise .42s cubic-bezier(.18,.89,.32,1.15) both}
+.funnel .lb{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--text)}
+.funnel .lb::before{content:"";flex:0 0 34px;border-top:2px dotted #b7c7e2}
+.funnel .lb small{display:block;font-size:11px;color:var(--muted);font-weight:500;margin-top:2px}
+
+/* ── 위젯 ─────────────────────────────────────────────────────────────── */
+[data-baseweb="select"] > div{background:#fff;border-color:var(--line);border-radius:10px}
+[data-testid="stSegmentedControl"] button{border-radius:9px}
+[data-testid="stDataFrame"]{border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+[data-testid="stExpander"]{background:#fff;border:1px solid var(--line)!important;border-radius:12px;box-shadow:var(--shadow)}
+.stButton button,.stDownloadButton button{border-radius:10px;font-weight:600}

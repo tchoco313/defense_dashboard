@@ -1,0 +1,108 @@
+
+/* ── 큰 사진 — 6초마다 다음 장으로, 보이는 동안 천천히 커진다. 아래 ‹ › 단추로 바로 이전 · 다음 장(MV_JS) ─────── */
+.mv{position:relative;height:620px;overflow:hidden;background:#002a73}
+.mv-sl{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transform:scale(1.02);
+  transition:opacity .9s ease,transform 7s linear;will-change:opacity,transform}
+.mv-sl.on{opacity:1;transform:scale(1.12)}
+.mv::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(0,22,70,.62) 0%,rgba(0,40,120,.30) 45%,rgba(0,18,60,.78) 100%)}
+.mv-txt{position:absolute;left:0;right:0;top:128px;z-index:2;text-align:center;color:#fff;padding:0 24px}
+.mv-txt small{display:inline-block;font-size:13px;font-weight:800;letter-spacing:4px;color:#bcd6ff;
+  padding:6px 16px;border:1px solid rgba(188,214,255,.5);border-radius:30px;margin-bottom:22px}
+.mv-txt h1{margin:0;font-size:58px;font-weight:900;letter-spacing:-2px;line-height:1.15;color:#fff;
+  text-shadow:0 4px 24px rgba(0,10,40,.45)}
+.mv-txt .en{margin:16px 0 0;font-size:30px;font-weight:800;letter-spacing:-.5px;color:#7cc4ff}
+.mv-txt p{margin:16px 0 0;font-size:16px;line-height:1.7;color:#e3ecfb}
+.mv-bar{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);z-index:2;display:flex;align-items:center;gap:14px;
+  color:#fff;font-size:13px;font-weight:700;letter-spacing:1px}
+.mv-bar .tr{width:180px;height:2px;background:rgba(255,255,255,.3);position:relative;overflow:hidden}
+.mv-bar .tr::after{content:"";position:absolute;left:0;top:0;height:100%;width:100%;background:#fff;transform-origin:left;
+  transform:scaleX(0)}
+.mv-bar .tr.run::after{animation:mvProg 6s linear forwards}   /* 장이 바뀔 때마다 처음부터 다시 찬다 */
+@keyframes mvProg{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+/* 이전 · 다음 단추(예전 01 · 03 자리) */
+.mv-arr{width:28px;height:28px;padding:0;border-radius:50%;border:1.5px solid rgba(255,255,255,.75);background:rgba(0,20,60,.15);
+  color:#fff;display:grid;place-items:center;cursor:pointer;transition:background .15s,border-color .15s}
+.mv-arr:hover{background:rgba(255,255,255,.22);border-color:#fff}
+.mv-arr::before{content:"";width:7px;height:7px;border-top:1.8px solid currentColor;border-left:1.8px solid currentColor}
+.mv-arr.prev::before{transform:translateX(1.5px) rotate(-45deg)}   /* ‹ */
+.mv-arr.next::before{transform:translateX(-1.5px) rotate(135deg)}  /* › */
+.st-key-mvjs,[data-testid="stLayoutWrapper"]:has(> .st-key-mvjs){display:none!important}
+/* 사진 위 단추 두 개 — 글씨 아래에 올린다 */
+.st-key-mv_cta{margin:-236px 0 0!important;height:236px;position:relative;z-index:3;justify-content:center;gap:14px!important;
+  pointer-events:none}
+.st-key-mv_cta [data-testid="stPageLink"]{pointer-events:auto}
+.st-key-mv_cta [data-testid="stPageLink"] a{height:52px;padding:0 30px;border:1.5px solid #fff;border-radius:0;background:transparent;
+  transition:background .2s,color .2s}
+.st-key-mv_cta [data-testid="stPageLink"] a p{font-size:16px!important;font-weight:700;color:#fff!important;letter-spacing:-.2px}
+.st-key-mv_cta [data-testid="stPageLink"] a [data-testid="stIconMaterial"]{color:#fff}
+.st-key-mv_cta [data-testid="stPageLink"] a:hover{background:#fff}
+.st-key-mv_cta [data-testid="stPageLink"] a:hover p,.st-key-mv_cta [data-testid="stPageLink"] a:hover [data-testid="stIconMaterial"]{color:#003899!important}
+.st-key-mv_cta > div:first-child [data-testid="stPageLink"] a{background:#1d4ed8;border-color:#1d4ed8}
+
+/* ── 소개 줄 — 왼쪽 글 · 오른쪽 둥근 아이콘 바로가기(국방과학연구소 첫 화면 아래 줄) ─────────── */
+.st-key-mi{padding:70px __PAD__ 64px;gap:50px!important;align-items:center!important;flex-wrap:nowrap!important;background:#fff}
+.mi-txt{max-width:460px}
+.mi-txt .k{display:flex;align-items:center;gap:12px;font-size:14px;font-weight:800;color:#0b1f4d;letter-spacing:-.2px}
+.mi-txt .k::before{content:"";width:34px;height:3px;background:#0b1f4d}
+.mi-txt h2{margin:18px 0 0;font-size:34px;font-weight:900;letter-spacing:-1.2px;line-height:1.3;color:#0b1f4d}
+.mi-txt h2 em{font-style:normal;color:#1d4ed8}
+.mi-txt p{margin:16px 0 0;font-size:14.5px;line-height:1.8;color:#55637d;word-break:keep-all}
+.mi-txt p b{color:#0b1f4d;font-weight:800}
+.mi-ref{margin-right:1px;font-size:11px;font-weight:800;color:#1d4ed8}
+.mi-hit{cursor:help}
+.mi-src{transition:color .15s,font-size .15s}
+.mi-txt:has(.mi-hit:hover) .mi-src{color:#1d4ed8;font-size:13.5px}
+.mi-txt p + p{margin-top:10px}
+.mi-src{display:block;margin-top:12px;font-size:12px;color:#8a97ad;line-height:1.6}
+.st-key-mi_links [data-testid="stPageLink"] a p{white-space:normal!important;word-break:keep-all;line-height:1.35!important}
+.st-key-mi_links{gap:0!important;flex-wrap:nowrap!important}
+.st-key-mi_links > div{flex:1 1 0!important;min-width:0;border-left:1px solid #e3e8f0}
+.st-key-mi_links [data-testid="stPageLink"] a{flex-direction:column;gap:18px!important;padding:14px 8px;background:transparent!important;width:100%}
+.st-key-mi_links [data-testid="stPageLink"] a > span:first-child{width:auto!important;height:auto!important;justify-content:center!important}
+.st-key-mi_links [data-testid="stPageLink"] a{height:auto!important}
+.st-key-mi > div:last-child{flex:1 1 0!important;min-width:0}
+.st-key-mi > div:first-child{flex:0 0 480px!important;width:480px!important;max-width:480px}
+.st-key-mi_links [data-testid="stPageLink"] a [data-testid="stIconMaterial"]{font-size:44px!important;width:96px;height:96px;margin:0!important;
+  border:2px solid #1b2540;border-radius:50%;display:grid;place-items:center;color:#1b2540;transition:all .25s}
+.st-key-mi_links [data-testid="stPageLink"] a p{font-size:16px!important;font-weight:800;color:#1b2540!important;letter-spacing:-.4px;text-align:center}
+.st-key-mi_links [data-testid="stPageLink"] a:hover [data-testid="stIconMaterial"]{background:#1d4ed8;border-color:#1d4ed8;color:#fff;
+  transform:translateY(-6px);box-shadow:0 14px 26px rgba(29,78,216,.3)}
+.st-key-mi_links [data-testid="stPageLink"] a:hover p{color:#1d4ed8!important}
+
+/* ── 주요 분석 카드 — 사진 + 분류 · 제목 · 설명 · 자세히 보기 ───────────────── */
+.mc-head{padding:64px __PAD__ 26px;background:#f3f6fb;display:flex;align-items:flex-end;justify-content:space-between}
+.mc-head h2{margin:0;font-size:32px;font-weight:900;letter-spacing:-1px;color:#0b1f4d}
+.mc-head h2 small{display:block;font-size:13px;font-weight:800;letter-spacing:3px;color:#1d4ed8;margin-bottom:8px}
+.mc-head span{font-size:13.5px;color:#6b7a99}
+.st-key-mcards{padding:0 __PAD__ 72px;background:#f3f6fb;gap:22px!important;flex-wrap:nowrap!important;align-items:stretch!important}
+.st-key-mcards > div{flex:1 1 0!important;min-width:0}
+div[class*="st-key-mc_"]{height:100%;background:#fff;border:1px solid #e1e8f3;gap:0!important;overflow:hidden;
+  transition:transform .25s,box-shadow .25s}
+div[class*="st-key-mc_"]:hover{transform:translateY(-6px);box-shadow:0 18px 36px rgba(0,40,120,.14)}
+.mc-img{height:210px;overflow:hidden;position:relative}
+.mc-img div{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .5s}
+div[class*="st-key-mc_"]:hover .mc-img div{transform:scale(1.08)}
+.mc-img b{position:absolute;left:16px;top:16px;z-index:1;font-size:11px;font-weight:800;letter-spacing:2px;color:#fff;
+  background:#1d4ed8;padding:5px 10px}
+.mc-body{padding:22px 22px 8px}
+.mc-body h3{margin:0;font-size:20px;font-weight:800;letter-spacing:-.6px;color:#0b1f4d}
+.mc-body p{margin:10px 0 0;font-size:13.5px;line-height:1.7;color:#5b6b88;min-height:69px}
+div[class*="st-key-mc_"] [data-testid="stPageLink"]{padding:0 22px 22px}
+div[class*="st-key-mc_"] [data-testid="stPageLink"] a{padding:0;background:transparent!important;flex-direction:row-reverse;justify-content:flex-end;gap:6px!important}
+div[class*="st-key-mc_"] [data-testid="stPageLink"] a p{font-size:14px!important;font-weight:800;color:#1d4ed8!important}
+div[class*="st-key-mc_"] [data-testid="stPageLink"] a [data-testid="stIconMaterial"]{color:#1d4ed8;font-size:18px!important;margin:0!important;
+  transition:transform .2s}
+div[class*="st-key-mc_"] [data-testid="stPageLink"] a:hover [data-testid="stIconMaterial"]{transform:translateX(4px)}
+/* 카드 어디를 눌러도(사진 · 제목 · 설명) 「자세히 보기」 링크로 간다 — 링크의 투명 ::before 를 카드 전체에 덮는다.
+   카드와 링크 사이 칸들은 position 을 풀어 ::before 가 카드(position:relative) 기준으로 펼쳐지게 한다 */
+div[class*="st-key-mc_"]{position:relative;cursor:pointer}
+div[class*="st-key-mc_"] div:has([data-testid="stPageLink"] a),
+div[class*="st-key-mc_"] [data-testid="stPageLink"] div:has(a){position:static!important}
+div[class*="st-key-mc_"] [data-testid="stPageLink"] a{position:static!important}
+div[class*="st-key-mc_"] [data-testid="stPageLink"] a::before{content:"";position:absolute;inset:0;z-index:2}
+div[class*="st-key-mc_"]:hover [data-testid="stPageLink"] a [data-testid="stIconMaterial"]{transform:translateX(4px)}
+
+
+.st-key-landing,.st-key-zone_main{gap:0!important;margin:0!important}
+.st-key-main_css,[data-testid="stLayoutWrapper"]:has(> .st-key-main_css){display:none!important}   /* CSS 담는 칸 — 자리 차지 없음 */

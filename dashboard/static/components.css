@@ -1,0 +1,87 @@
+
+.sc{width:100%;border-collapse:collapse;font-size:12.5px}
+.sc th{font-size:11px;font-weight:700;color:#5a6b8c;background:#f3f6fc;padding:9px 6px;text-align:center;
+  border-bottom:1px solid #dde5f2;line-height:1.35;white-space:nowrap}
+.sc th small{display:block;font-weight:500;color:#6b7a99;font-size:10px}
+.sc td{padding:9px 6px;text-align:center;border-bottom:1px solid #eef2f9;color:#16233f;white-space:nowrap}
+.sc td.no{color:#6b7a99;font-weight:700}
+.sc td.nm{text-align:left;font-weight:700}
+.sc td.nm em{display:block;font-style:normal;font-weight:500;font-size:10.5px;color:#6b7a99}
+.sc tbody tr{animation:rise .42s cubic-bezier(.18,.89,.32,1.15) both;transition:background .15s}
+.sc tbody tr:nth-child(2){animation-delay:.06s} .sc tbody tr:nth-child(3){animation-delay:.12s}
+.sc tbody tr:nth-child(4){animation-delay:.18s} .sc tbody tr:nth-child(5){animation-delay:.24s}
+.sc tbody tr:hover{background:#f5f9ff}
+.sc td.up{color:#e5484d;font-weight:700} .sc td.dn{color:#2b6ef6;font-weight:700}
+.sc td.lv{font-weight:700} .sc td.lv i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.demo-bar.real{background:#ecfdf3;border-color:#abefc6;border-left-color:#12b76a}
+.demo-bar.real b{color:#067647} .demo-bar.real span{color:#085d3a}
+.basis{width:100%;border-collapse:collapse;font-size:12px}
+.basis th{font-size:10.5px;font-weight:700;color:#5a6b8c;background:#f3f6fc;padding:7px 4px;border-bottom:1px solid #dde5f2;line-height:1.3}
+.basis td{padding:5px 4px;border-bottom:1px solid #eef2f9;text-align:center;white-space:nowrap}
+.basis td.nm{text-align:left;font-weight:600;color:#16233f}
+.basis td.nm em{font-style:normal;color:#6b7a99;font-size:10.5px;margin-right:6px}
+.basis td.cat{color:#6b7a99;font-size:11px}
+.basis i{display:inline-block;width:12px;height:12px;border-radius:50%;animation:rise .4s ease both}
+.basis tbody tr:hover{background:#f5f9ff}
+.spark{display:block;margin:0 auto;animation:revealX 1.3s cubic-bezier(.65,0,.35,1) .2s both}   /* 왼쪽부터 그려지듯 드러난다 */
+.sc tbody tr:nth-child(2) .spark{animation-delay:.3s} .sc tbody tr:nth-child(3) .spark{animation-delay:.4s}
+.sc tbody tr:nth-child(4) .spark{animation-delay:.5s} .sc tbody tr:nth-child(5) .spark{animation-delay:.6s}
+@keyframes revealX{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}   /* 좁으면 1열, 넓으면 2열 */
+.kc{display:flex;gap:12px;align-items:center;padding:14px 12px;border:1px solid #dde5f2;border-radius:12px;background:#fff;
+  animation:rise .42s cubic-bezier(.18,.89,.32,1.15) both}
+.kc:nth-child(2){animation-delay:.07s} .kc:nth-child(3){animation-delay:.14s} .kc:nth-child(4){animation-delay:.21s}
+.kc .ic{width:44px;height:44px;flex:0 0 44px;border-radius:50%;display:grid;place-items:center;font-size:20px}
+.kc .ic .ms{font-family:'Material Symbols Rounded'!important;font-weight:400;font-style:normal;font-size:22px;line-height:1;
+  letter-spacing:0;font-feature-settings:'liga';-webkit-font-smoothing:antialiased}
+.kc .l{font-size:12px;font-weight:700;color:#44567a}
+.kc .v{font-size:26px;font-weight:800;color:#12234a;letter-spacing:-.8px;line-height:1.2;margin-top:3px}
+.kc .v small{font-size:12px;color:#6b7a99;font-weight:600;margin-left:3px;letter-spacing:0}
+.kc .s{font-size:10.5px;color:#6b7a99;margin-top:3px;line-height:1.4}
+
+.bars.big{display:flex;flex-direction:column;gap:5px;margin-top:4px}
+.bars.big .row{height:30px;font-size:12.5px}
+.bars.big .track{height:16px;border-radius:5px}
+.bars.big .fill{border-radius:5px}
+
+/* 탭 메뉴 — 북마크(폴더) 탭: 고른 탭이 아래 패널과 한 장으로 이어진다 */
+[data-testid="stTabs"] [role="tablist"]{gap:4px;flex-wrap:wrap;align-items:flex-end;border-bottom:none;box-shadow:none;
+  padding:6px 0 0 14px;margin:0;overflow:visible;position:relative;z-index:1}
+[data-testid="stTabs"] [role="tablist"]::after,[data-testid="stTabs"] [role="tablist"]::before{display:none}
+[data-testid="stTabs"] [data-testid="stTab"]{height:auto;padding:8px 18px 9px;margin:0 0 -1px;border:1px solid var(--line);
+  border-bottom:none;border-radius:12px 12px 0 0;background:#e4ebf6;box-shadow:none;
+  transition:background .15s,padding .15s}
+[data-testid="stTabs"] [data-testid="stTab"]:hover{background:#edf2fa;padding-top:10px}
+[data-testid="stTabs"] [data-testid="stTab"] p{font-size:12.5px;font-weight:700;color:#5b6f94;line-height:20px!important}   /* 이모지(📈 · 🗺️ · 📋)마다 줄 높이가 달라 탭 높이가 들쭉날쭉하지 않게 */
+[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"]{background:#f8fafe;padding-top:12px;
+  border-top:3px solid var(--accent);box-shadow:0 -4px 10px rgba(19,42,84,.06)}
+[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"] p{color:var(--accent);font-weight:800}
+[data-testid="stTabs"] [data-testid="stTab"] > div:not([data-testid]){display:none}   /* 기본 밑줄 */
+[data-testid="stTabs"] [role="tabpanel"]{background:#f8fafe;border:1px solid var(--line);border-radius:0 14px 14px 14px;
+  padding:18px 16px 16px;box-shadow:var(--shadow)}
+/* 상세 조회 — 분석 조건 설정 카드 */
+.st-key-card_form{padding:18px 18px 14px}
+.st-key-card_form h3{font-size:21px;font-weight:800;color:#12234a;letter-spacing:-.5px;padding:0;margin:0}
+.st-key-card_form [data-testid="stIconMaterial"]{color:var(--accent)}
+.st-key-card_form [data-testid="stMarkdownContainer"] p{margin:0}
+.st-key-card_form [data-testid="stMarkdownContainer"] strong{font-size:14.5px;font-weight:800;color:#16233f;letter-spacing:-.3px}
+.st-key-card_form [data-testid="stMarkdownContainer"] p [data-testid="stIconMaterial"]{font-size:21px;vertical-align:-5px}
+.st-key-card_form [data-testid="stCheckbox"] label p{font-size:13px}
+.st-key-card_form [data-testid="stHorizontalBlock"]{margin-bottom:4px}
+/* 조회 결과 — 탭(차트 · 지도 · 표)을 바꿔도 창 크기가 그대로이게 탭 칸 높이를 고정(차트 탭 기준) */
+.st-key-card_res [data-testid="stTabs"] [role="tabpanel"]{height:500px;box-sizing:border-box;overflow-y:auto}
+/* 내려받기(차트 · 지도 = 그림, 결과 표 = CSV) — 탭 칸 오른쪽 아래, 차트 캡션(그래프 기준 …)과 같은 줄로 끌어올린다 */
+.st-key-res_dl{margin-top:-78px;padding-right:22px;position:relative;z-index:2;pointer-events:none}
+/* 분석 조건 설정 · 조회 결과 — 두 카드 세로 길이를 긴 쪽에 맞춘다(국가 칩이 늘어도 같이) */
+[data-testid="stLayoutWrapper"]:has(> .st-key-card_form),[data-testid="stLayoutWrapper"]:has(> .st-key-card_res),
+.st-key-card_form,.st-key-card_res{flex:1 1 auto}
+.st-key-res_dl button{pointer-events:auto}
+/* 탭마다 내려받기 단추가 다르다 — 지금 고른 탭(aria-selected)의 단추만 보인다.
+   단추 칸을 감싼 바깥 칸(stLayoutWrapper)까지 숨겨야 숨은 칸이 자리 · 간격을 차지하지 않아, 어느 탭이든 같은 자리(오른쪽 끝)에 온다 */
+.st-key-chipfit_js,[data-testid="stLayoutWrapper"]:has(> .st-key-chipfit_js){display:none!important}
+/* 안 잘린 칩에 커서가 있을 때(_CHIP_FIT_JS) — 말풍선 층을 숨긴다 */
+html[data-chipfit] [role="tooltip"]:has([data-testid="stTooltipContent"]),
+html[data-chipfit] [data-testid="stTooltipContent"]{display:none!important}
+.kpis.q{gap:10px;margin-bottom:6px}
+.kpis.q .kpi .v{font-size:23px}

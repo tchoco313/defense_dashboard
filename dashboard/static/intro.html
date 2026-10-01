@@ -1,0 +1,77 @@
+
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:transparent;overflow:hidden;user-select:none;
+       font-family:Pretendard,'Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif}
+  #stage{width:100%;height:__H__px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+  /* 제목 · 부제 → 지구본 → 진행 막대 · 안내. 아이콘 칸 없이 글씨와 지구본(460px)만으로 균형을 맞춘다 */
+  .ttl{font-size:32px;font-weight:800;letter-spacing:-.9px;color:#0f2c5e;line-height:1.15;
+    animation:up .45s ease .04s both}
+  .sub{margin-top:8px;font-size:14px;font-weight:600;color:#4a6da8;letter-spacing:-.2px;
+    animation:up .45s ease .08s both}
+  canvas{display:block;margin-top:14px;animation:fadein .55s ease .12s both}
+  .bar{width:240px;height:3px;border-radius:3px;background:#cfe0f7;overflow:hidden;margin-top:16px;
+    animation:up .45s ease .17s both}
+  .bar i{display:block;height:100%;border-radius:3px;background:#2b6ef6;
+    width:0;animation:fill __SEC__s linear .1s forwards}
+  .msg{margin-top:10px;font-size:11.5px;font-weight:600;color:#6d89b8;letter-spacing:.3px;
+    animation:up .45s ease .20s both}
+  @keyframes up{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+  @keyframes fadein{from{opacity:0}to{opacity:1}}
+  @keyframes fill{to{width:100%}}
+</style></head><body>
+<div id="stage">
+  <div class="ttl">K-Defense</div>
+  <div class="sub">방산 전자부품 수입 집중도 · 국산화 현황 대시보드</div>
+  <canvas id="c" width="460" height="460"></canvas>
+  <div class="bar"><i></i></div>
+  <div class="msg">대시보드를 준비하는 중…</div>
+</div>
+<script>
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const DPR = Math.min(window.devicePixelRatio || 1, 2), S = 460;
+cv.width = S * DPR; cv.height = S * DPR; cv.style.width = S + 'px'; cv.style.height = S + 'px';
+ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+// 반지름을 캔버스의 42% 로 — 둘레 빛 번짐(shadowBlur)이 캔버스 끝에서 잘려 네모 테두리가 보이지 않게 여백을 둔다
+const proj = d3.geoOrthographic().clipAngle(90).precision(0.4).scale(S * 0.42).translate([S / 2, S / 2]);
+const path = d3.geoPath(proj, ctx), grat = d3.geoGraticule10();
+let world = null;
+
+function draw() {
+  ctx.clearRect(0, 0, S, S);
+  // 바다 — 왼쪽 위에서 빛이 드는 구
+  ctx.beginPath(); path({type: 'Sphere'});
+  const g = ctx.createRadialGradient(S * .36, S * .33, S * .05, S / 2, S / 2, S * .42);
+  g.addColorStop(0, '#f2f9ff'); g.addColorStop(.5, '#d8eafd'); g.addColorStop(1, '#a9caee');
+  ctx.fillStyle = g; ctx.fill();
+  ctx.save(); ctx.shadowColor = 'rgba(43,110,246,.30)'; ctx.shadowBlur = 26; ctx.fill(); ctx.restore();
+  // 경위선
+  ctx.beginPath(); path(grat);
+  ctx.strokeStyle = 'rgba(88,128,190,.26)'; ctx.lineWidth = .75; ctx.stroke();
+  // 육지
+  if (world) {
+    ctx.beginPath(); path(world);
+    ctx.fillStyle = '#ffffff'; ctx.fill();
+    ctx.strokeStyle = '#bcd0ea'; ctx.lineWidth = .85; ctx.stroke();
+  }
+  // 테두리
+  ctx.beginPath(); path({type: 'Sphere'});
+  ctx.strokeStyle = 'rgba(43,110,246,.40)'; ctx.lineWidth = 1.5; ctx.stroke();
+}
+function spin() {
+  const r = proj.rotate();
+  proj.rotate([r[0] + 0.30, r[1], r[2]]);
+  draw();
+  requestAnimationFrame(spin);
+}
+proj.rotate([-30, -18, 0]);
+draw(); spin();
+fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
+  .then(r => r.json())
+  .then(t => { world = topojson.feature(t, t.objects.countries); draw(); })
+  .catch(() => {});   // 못 받으면 경위선만 — 인트로는 어차피 곧 사라진다
+</script></body></html>

@@ -1,0 +1,236 @@
+
+/* ── 새 틀: 사이드바 없음 · 흰 바탕 · 본문 폭 제한 없음(줄마다 안쪽 여백으로 가운데 맞춤) ───────────── */
+[data-testid="stSidebar"],[data-testid="stExpandSidebarButton"],[data-testid="stSidebarCollapseButton"]{display:none!important}
+/* Streamlit 기본 머리 띠(보이지 않는 도구 막대)가 로고 · ⓘ 위를 덮어 클릭을 가로챈다 — 사이드바가 없으니 통째로 숨긴다 */
+[data-testid="stHeader"],[data-testid="stToolbar"]{display:none!important}
+[data-testid="stAppViewContainer"]{background:#fff}
+.block-container{padding:0 0 0!important;max-width:none!important}
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"]{gap:0}
+
+/* ── 머리글 1줄: 로고 · 안내 · 데이터 정보 ─────────────────────────────────── */
+.st-key-hdr_top{padding:0 ${PAD};height:78px!important;min-height:78px;align-items:center!important;border-bottom:1px solid #e3e8f0;background:#fff;
+  position:relative}
+/* 로고 위 투명 링크 — 로고 자리(왼쪽 끝 · 폭 370px)만 덮는다 */
+[data-testid="stLayoutWrapper"]:has(> .st-key-brand_link){position:absolute!important;left:${PAD};top:0;width:370px;height:78px;z-index:3;margin:0}
+.st-key-brand_link,.st-key-brand_link [data-testid="stElementContainer"],.st-key-brand_link [data-testid="stPageLink"]{width:100%!important;height:78px}
+.st-key-brand_link [data-testid="stPageLink"] a{display:block;width:100%;height:78px;padding:0;margin:0;opacity:0;cursor:pointer}
+.brand{display:flex;align-items:center;gap:12px}
+/* 머리글 로고 — 방패 아이콘 가운데에 작은 태극(TAEGEUK, 15px · 시계방향 40도). 방패 모양의 눈대중 가운데가 살짝 위라 46% 에 둔다 */
+.brand .mark{position:relative;display:inline-grid;place-items:center;line-height:0}
+.brand .mark .tg{position:absolute;left:50%;top:46%;width:15px;height:15px;transform:translate(calc(-50% + 0.3px),-50%) rotate(40deg);pointer-events:none}
+.brand .ms{font-family:'Material Symbols Rounded'!important;font-size:38px;line-height:1;color:${BLUE_D};
+  font-variation-settings:'FILL' 1;font-feature-settings:'liga'}
+.brand b{display:block;font-size:23px;font-weight:800;letter-spacing:-.6px;color:#0b1f4d;line-height:1.1}
+.brand small{display:block;font-size:11.5px;font-weight:600;color:#5b6b88;letter-spacing:-.1px;margin-top:3px}
+.util{font-size:12.5px;color:#6b7a99;display:flex;align-items:center;gap:10px;white-space:nowrap}
+.util i{font-style:normal;color:#cbd3e1}
+.util .badge{text-decoration:none;padding:3px 9px;border-radius:4px;background:#fff7e6;border:1px solid #fcd9a0;color:#a16207;font-weight:700;font-size:11.5px}
+
+/* ── 머리글 2줄: 상단 메뉴(GNB) ─────────────────────────────────────── */
+.st-key-gnb{padding:0 ${PAD};height:66px!important;background:#fff;border-bottom:1px solid #e3e8f0;position:relative;z-index:50;
+  flex-wrap:nowrap!important;align-items:stretch!important;justify-content:center!important;gap:0!important}
+.st-key-gnb > div{height:100%}
+div[class*="st-key-gi_"]{position:relative;height:66px;justify-content:center;flex:1 1 0!important;min-width:0}
+/* 칸 폭은 가로 줄의 칸(바깥 감싸개)에만 준다 — 안쪽 칸은 세로로 쌓이는 틀이라 여기에 flex 크기를 주면 높이가 바뀐다 */
+[data-testid="stLayoutWrapper"]:has(> div[class*="st-key-gi_"]){flex:0 0 ${GNB_W}px!important;width:${GNB_W}px!important;max-width:${GNB_W}px!important}
+div[class*="st-key-gi_"] > div:first-child,div[class*="st-key-gi_"] > div:first-child [data-testid="stPageLink"],
+div[class*="st-key-gi_"] > div:first-child [data-testid="stPageLink"] > div{width:100%!important;max-width:none!important}
+div[class*="st-key-gi_"] > div:first-child [data-testid="stPageLink"] a{width:100%}
+div[class*="st-key-gi_"] > div:first-child [data-testid="stPageLink"] a,.gnb-on{display:flex;justify-content:center;align-items:center;
+  height:66px;padding:0 6px;margin:0;border-radius:0;background:transparent!important;position:relative}
+div[class*="st-key-gi_"] > div:first-child [data-testid="stPageLink"] a p,.gnb-on{font-size:17px!important;font-weight:700;color:#141c2e!important;
+  letter-spacing:-.4px;white-space:nowrap}
+/* 밑줄 — 지금 페이지는 늘 보이고, 다른 메뉴는 커서를 올리면 가운데서 퍼진다 */
+div[class*="st-key-gi_"] > div:first-child [data-testid="stPageLink"] a::after,.gnb-on::after{content:"";position:absolute;left:50%;bottom:14px;
+  width:0;height:4px;border-radius:2px;background:${BLUE};transform:translateX(-50%);transition:width .2s ease}
+.gnb-on::after,div[class*="st-key-gi_"]:hover > div:first-child [data-testid="stPageLink"] a::after{width:64px}
+.gnb-on{color:${BLUE}!important}
+div[class*="st-key-gi_"]:hover > div:first-child [data-testid="stPageLink"] a p{color:${BLUE}!important}
+/* 메뉴 글씨 — 커서 전 · 커서를 올렸을 때 · 지금 페이지 모두 같은 크기(19px) · 같은 자리(칸 위쪽 여백 12px — 가운데 정렬이라 글씨는 그 절반인 6px 만큼 아래).
+   커서를 올리거나 지금 페이지일 때는 파란 글씨로만 바뀌고, 밑줄은 쓰지 않는다 */
+div[class*="st-key-gi_"] > div:first-child [data-testid="stPageLink"] a,.gnb-on{box-sizing:border-box;padding-top:12px!important}
+div[class*="st-key-gi_"] > div:first-child [data-testid="stPageLink"] a p,.gnb-on{font-size:19px!important;transition:color .15s}
+div[class*="st-key-gi_"] > div:first-child [data-testid="stPageLink"] a::after,.gnb-on::after{display:none!important}
+/* 펼침 메뉴 — 상단 메뉴 어디에 커서를 올려도 모든 메뉴의 블록 목록이 한꺼번에 짙은 파랑 띠에 펼쳐진다 */
+div[class*="st-key-gs_"]{display:none!important;position:absolute;top:66px;left:0;right:0;padding:14px 6px 0 12px;gap:0!important;z-index:3}
+.st-key-gnb:has(div[class*="st-key-gi_"]:hover) div[class*="st-key-gs_"],.st-key-gnb.open div[class*="st-key-gs_"]{display:flex!important}
+/* 띠는 「부품 현황」 왼쪽 세로선 ~ 「배경과 자료」 오른쪽 세로선 사이만(가운데 모은 메뉴 칸 폭) — 양옆과 전체 메뉴(≡) 아래는 비운다 */
+.st-key-gnb::after{content:"";position:absolute;left:calc(50% - ${GNB_HALF}px);width:${GNB_TOTAL}px;top:66px;height:${DROP_H}px;background:${BLUE_D};border-radius:0 0 14px 14px;
+  box-shadow:0 12px 24px rgba(0,30,90,.25);opacity:0;visibility:hidden;transition:opacity .15s;z-index:1}
+.st-key-gnb:has(div[class*="st-key-gi_"]:hover)::after,.st-key-gnb.open::after{opacity:1;visibility:visible}
+.st-key-gnb:has(div[class*="st-key-gi_"]:hover),.st-key-gnb.open{height:${DROP_TOP}px!important;padding-bottom:${DROP_H}px;margin-bottom:-${DROP_H}px;box-sizing:border-box}   /* 펼친 띠까지 커서가 머무는 자리로 */
+/* 펼쳤을 때 늘어난 아랫부분은 투명하게 — 흰 바탕은 메뉴 줄(66px)까지만, 밑줄도 그 자리(65px)에 그린다(원래 border-bottom 은 늘어난 맨 아래로 내려가므로 숨김).
+   파란 띠 양옆(≡ 아래 포함)은 모두 비운다 */
+.st-key-gnb:has(div[class*="st-key-gi_"]:hover),.st-key-gnb.open{border-bottom-color:transparent!important;
+  background:linear-gradient(#e3e8f0,#e3e8f0) 0 65px/100% 1px no-repeat,linear-gradient(#fff,#fff) 0 0/100% 66px no-repeat!important}
+div[class*="st-key-gs_"] [data-testid="stPageLink"] a{padding:10px 8px;margin:0;border-radius:4px;background:transparent}   /* 줄 간격 넓게 */
+div[class*="st-key-gs_"] > div{flex-shrink:0!important;margin:0!important}   /* 칸 높이에 눌려 줄끼리 겹치지 않게 */
+div[class*="st-key-gs_"] [data-testid="stPageLink"] a p{font-size:16px!important;font-weight:500;color:#c9d8f5!important;
+  white-space:normal;line-height:1.35!important;word-break:keep-all}   /* 칸보다 긴 이름은 잘리지 않고 두 줄로 */
+div[class*="st-key-gs_"] [data-testid="stPageLink"] a:hover{background:rgba(255,255,255,.1)}
+div[class*="st-key-gs_"] [data-testid="stPageLink"] a:hover p{color:#fff!important}
+div[class*="st-key-gi_"]:hover div[class*="st-key-gs_"]{background:rgba(255,255,255,.06);height:${DROP_H}px}
+/* 펼침 메뉴 칸 나눔 — 메뉴(부품 현황 · 군급 분류와 조달 …)마다 띠 높이만큼 옅은 세로선으로 가른다. 맨 끝 배경과 자료는 오른쪽에도 선을 그어 양 끝을 닫는다 */
+div[class*="st-key-gs_"]{height:${DROP_H}px;box-sizing:border-box;border-left:1px solid rgba(255,255,255,.2)}
+.st-key-gs_background{border-right:1px solid rgba(255,255,255,.2)}
+/* 띠 아래 모서리를 둥글게 한 만큼 양 끝 칸(커서를 올리면 옅게 밝아짐)도 같은 반지름으로 깎는다 */
+.st-key-gs_parts{border-bottom-left-radius:14px}
+.st-key-gs_background{border-bottom-right-radius:14px}
+/* 전체 메뉴(≡) */
+.st-key-gnb_all{width:66px!important;flex:0 0 66px!important}
+/* 전체 메뉴(≡)는 흐름에서 빼 파란 펼침 띠 바로 오른쪽에 — 띠 오른쪽 끝(50% + 메뉴 칸 폭 합의 절반)에 붙인다. 세로 자리는 메뉴 줄 그대로 */
+[data-testid="stLayoutWrapper"]:has(> .st-key-gnb_all){position:absolute!important;left:calc(50% + ${GNB_HALF}px);right:auto;top:0;height:66px}
+.gnb-all{width:66px;height:66px;display:grid;place-items:center;border:none;border-radius:0;background:${BLUE_D};padding:0;cursor:pointer;
+  transition:background .15s}
+.gnb-all:hover,.st-key-gnb.open .gnb-all{background:${BLUE}}
+.gnb-all .ms{font-family:'Material Symbols Rounded'!important;font-size:30px;line-height:1;color:#fff;font-weight:400;font-style:normal;
+  font-feature-settings:'liga'}
+.st-key-gnbjs,[data-testid="stLayoutWrapper"]:has(> .st-key-gnbjs){display:none!important}
+
+/* ── 서브 배너 — 짙은 파랑 바탕 + 항공모함 · K9 자주포 사진, 왼쪽 아래에 페이지 제목 칸 ─────────────── */
+.sv{position:relative;overflow:hidden;height:168px;padding:0 ${PAD};
+  background:linear-gradient(100deg,#00236b 0%,${BLUE_D} 38%,${BLUE_D} 100%)}   /* 제목 칸부터 오른쪽 끝까지 제목 부분과 같은 짙은 파랑 */
+/* 배너 격자무늬 — 없앴다 */
+/* 배너 그림 — 예전 그림(HERO_IMG, 배 + 전투기 한 장 · 가로 811px)이 놓이던 자리를 그대로 쓴다.
+   왼쪽 배 자리(53.6%)에는 항공모함 사진(Unsplash, 파란 바탕 색을 입힘)을, 오른쪽 자리에는 K9 자주포를 둔다 */
+.sv-ph{position:absolute;top:0;bottom:0;right:max(0px, calc((100% - ${WRAP}px) / 2));width:811px;pointer-events:none}
+.sv-ph i{position:absolute;top:0;bottom:0;background-repeat:no-repeat}
+.sv-ph .ship{left:110px;width:53.6%;background-size:cover;background-position:center 62%;mix-blend-mode:luminosity;opacity:.5;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 25%,#000 50%,transparent 100%);
+  mask-image:linear-gradient(90deg,transparent 0,#000 25%,#000 50%,transparent 100%)}
+/* K9 자주포 — 배 사진과 같은 효과(파란 바탕 색 · luminosity · 40%, 양 끝을 넓게 녹임).
+   사진 폭을 칸의 90% 로 두고, 자주포가 칸 가운데 · 살짝 아래에 오게 30% 68% 자리.
+   사진이 칸보다 좁아 양옆에 사진 끝(칸의 3% · 93% 자리)이 생기므로, 마스크가 그 안쪽(4% · 92%)에서 이미 투명해지게 해 경계선이 보이지 않게 */
+.sv-ph .k9{right:0;width:46.4%;background-size:90% auto;background-position:30% calc(68% - 3px);mix-blend-mode:luminosity;opacity:.4;
+  transform:translateX(-40px);   /* 왼쪽 40px (위로 3px 은 background-position 에서) */
+  -webkit-mask-image:linear-gradient(90deg,transparent 4%,#000 24%,#000 62%,transparent 92%);
+  mask-image:linear-gradient(90deg,transparent 4%,#000 24%,#000 62%,transparent 92%)}
+.sv-in{position:relative;height:100%;display:flex;align-items:flex-end}
+.sv-box{width:${LNB_W}px;height:112px;flex:0 0 ${LNB_W}px;display:flex;flex-direction:column;justify-content:center;align-items:center;
+  background:#fff;color:${BLUE_D};border-top:4px solid ${BLUE};box-shadow:0 -6px 18px rgba(0,20,70,.18)}
+.sv-box small{font-size:11px;font-weight:700;letter-spacing:2px;color:#7b8fb5;margin-bottom:6px}
+.sv-box b{font-size:22px;font-weight:800;letter-spacing:-.6px;text-align:center;line-height:1.25;padding:0 10px}
+.sv-title{align-self:center;padding:0 0 0 44px;color:#fff}   /* 배너 세로 가운데 */
+.sv-title h1{margin:0;font-size:31px;font-weight:800;letter-spacing:-.8px;color:#fff;line-height:1.2}
+.sv-title p{margin:8px 0 0;font-size:13px;color:#c7d7f6;letter-spacing:-.1px}
+
+/* ── 본문 줄: 왼쪽 메뉴(LNB) + 오른쪽 본문 ───────────────────────────── */
+/* 본문 줄을 제목 칸 높이(112px)만큼 배너 위로 끌어올린다 — 왼쪽 메뉴 맨 위의 제목 칸이 배너 아래쪽에 걸치고,
+   오른쪽 본문은 같은 높이만큼 위 여백을 두어 배너 아래에서 시작한다(끌어올린 자리는 투명해 배너가 그대로 보인다) */
+.st-key-body{padding:0 ${PAD} 70px;gap:44px!important;flex-wrap:nowrap!important;align-items:flex-start!important;background:transparent;
+  margin-top:-112px!important;position:relative;z-index:3}
+.st-key-lnb{gap:6px!important;padding-top:0;position:relative;left:-41px}   /* 제목 칸 + 메뉴 묶음을 41px 왼쪽 */
+.sv-sp{width:${LNB_W}px;flex:0 0 ${LNB_W}px}
+.lnb-box{margin-bottom:10px;border-radius:12px 12px 0 0}   /* 제목 칸은 아래 메뉴와 같은 세로줄 · 위쪽 모서리는 퀵메뉴처럼 둥글게 */
+/* 소분류 칸 — 글자 길이와 상관없이 왼쪽 메뉴 폭(LNB_W)을 꽉 채우는 같은 크기의 직사각형.
+   page_link 는 기본이 글자 폭만큼이라 감싸는 칸까지 모두 100% 로 늘린다. 테두리도 같은 두께(투명)로 두어 선택 칸과 크기가 같다 */
+.st-key-lnb [data-testid="stElementContainer"],.st-key-lnb [data-testid="stPageLink"],
+.st-key-lnb [data-testid="stPageLink"] > div{width:100%!important;max-width:none!important}
+.st-key-lnb [data-testid="stPageLink"] a,.lnb-on{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:50px;
+  box-sizing:border-box;padding:0 18px;margin:0;border:1.5px solid transparent;border-radius:0;background:#f3f6fb;position:relative;transition:background .15s}
+.st-key-lnb [data-testid="stPageLink"] a p,.lnb-on{font-size:15px!important;font-weight:700;color:#1b2540!important;letter-spacing:-.4px}
+/* 기호 — 선택 안 된 칸 「·」 · 선택된 칸 「✓」 */
+.st-key-lnb [data-testid="stPageLink"] a::after,.lnb-on::after{flex:0 0 auto;margin-left:8px;line-height:1}
+.st-key-lnb [data-testid="stPageLink"] a::after{content:"·";font-size:24px;font-weight:700;color:#9aa6bd}
+.st-key-lnb [data-testid="stPageLink"] a:hover{background:#e8effb}
+.st-key-lnb [data-testid="stPageLink"] a:hover p,.st-key-lnb [data-testid="stPageLink"] a:hover::after{color:${BLUE}!important}
+/* 소분류 링크(스크롤형) — 예전 page_link 칸과 같은 모양 · 크기. 지금 보이는 소분류(.on)는 선택 칸(✓) 모양 */
+.lnb-nav{display:flex;flex-direction:column;gap:6px}
+.lnb-a{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:50px;box-sizing:border-box;padding:0 18px;
+  margin:0;border:1.5px solid transparent;border-radius:0;background:#f3f6fb;transition:background .15s;text-decoration:none!important;
+  font-size:15px;font-weight:700;color:#1b2540!important;letter-spacing:-.4px}
+.lnb-a::after{content:"·";flex:0 0 auto;margin-left:8px;line-height:1;font-size:24px;font-weight:700;color:#9aa6bd}
+.lnb-a:hover{background:#e8effb;color:${BLUE}!important}
+.lnb-a:hover::after{color:${BLUE}}
+.lnb-a.on{background:#fff;border-color:${BLUE_D};color:${BLUE_D}!important}
+.lnb-a.on::after{content:"✓";font-size:16px;font-weight:800;color:${BLUE_D}}
+/* 배경과 자료에서는 현재 읽는 절의 목차 항목만 크게 표시한다. */
+.st-key-body:has(.st-key-sub_policy) .lnb-a.on{min-height:66px;padding:0 20px;background:#e8f0ff;
+  border-left:4px solid ${BLUE_D};font-size:18px;font-weight:800}
+.st-key-body:has(.st-key-sub_policy) .lnb-a.on::after{font-size:17px}
+div[class*="st-key-sub_"]{scroll-margin-top:22px}   /* 소분류로 스크롤해 갈 때 위 여백 — zone 과 같게 */
+.st-key-lnbjs,[data-testid="stLayoutWrapper"]:has(> .st-key-lnbjs){display:none!important}
+/* 왼쪽 메뉴는 스크롤해도 화면 위쪽에 붙어 따라온다 */
+[data-testid="stLayoutWrapper"]:has(> .st-key-lnb){position:sticky;top:98px;align-self:flex-start;z-index:5;flex:0 0 ${LNB_W}px!important;width:${LNB_W}px!important;min-width:${LNB_W}px!important;max-width:${LNB_W}px!important}
+.st-key-lnb{width:${LNB_W}px!important;min-width:${LNB_W}px!important;max-width:${LNB_W}px!important;flex:0 0 ${LNB_W}px!important}   /* 메뉴 폭 고정 — 글자 길이로 늘거나 줄지 않게 */
+.lnb-help{margin-top:18px;padding:16px 16px 16px;background:linear-gradient(135deg,${BLUE_D},${BLUE});color:#fff;border-radius:2px 2px 12px 12px}   /* 아래쪽 모서리 둥글게 */
+.lnb-help b{display:block;font-size:14px;font-weight:800;margin-bottom:5px}
+.lnb-help span{font-size:11.5px;color:#cfdcf7;line-height:1.6}
+.lnb-help ul{margin:4px 0 0!important;padding:0!important;list-style:none}
+.lnb-help li{position:relative;margin:0 0 10px!important;padding:0 0 0 11px!important;font-size:12px;line-height:1.6;color:#e3ecfb;word-break:keep-all}
+.lnb-help li em{display:block;font-style:normal;font-size:12.5px;font-weight:800;color:#fff;margin-bottom:1px}   /* 머리말 한 줄 + 내용 한 줄 */
+.lnb-help li::before{content:"";position:absolute;left:0;top:9px;width:4px;height:4px;border-radius:50%;background:#7cc4ff}
+.lnb-help li:last-child{margin-bottom:0!important}   /* 마지막 줄 아래 여백은 칸 안쪽 여백(16px)만 — 위아래 여백을 같게 */
+.st-key-main{min-width:0;gap:0!important;padding-top:112px}
+.crumb{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:18px 0 14px;font-size:15px;color:#6b7a99}
+.crumb .ms{font-family:'Material Symbols Rounded'!important;font-size:17px;line-height:1;color:#6b7a99;font-variation-settings:'FILL' 1}
+.crumb i{font-style:normal;color:#b3bdcf;font-size:13px}
+.crumb b{color:#1b2540;font-weight:700}
+/* 홈 아이콘 링크 + 「› 메뉴 이름」 — 한 줄 오른쪽 끝. 링크 글씨(「홈」)는 숨기고 아이콘만 보인다 */
+.st-key-crumb{gap:8px!important;padding:18px 0 14px;flex-wrap:nowrap!important}
+.st-key-crumb > div{width:auto!important;flex:0 0 auto!important}
+.st-key-crumb .crumb{padding:0}
+.st-key-crumb [data-testid="stPageLink"] a{padding:0;margin:0;background:transparent!important;gap:0!important;min-height:0}
+.st-key-crumb [data-testid="stPageLink"] a p{display:none}
+.st-key-crumb [data-testid="stPageLink"] a [data-testid="stIconMaterial"]{font-size:20px!important;color:#6b7a99;margin:0!important;
+  font-variation-settings:'FILL' 1;transition:color .15s}
+.st-key-crumb [data-testid="stPageLink"] a:hover [data-testid="stIconMaterial"]{color:${BLUE}}
+/* 블록 — 한 페이지에 차례로 이어진다. 테두리 · 이름표 대신 블록마다 제목 줄(.sec-h) */
+div[class*="st-key-zone_"]{border:none;border-radius:0;background:transparent;padding:0;margin:4px 0 64px;scroll-margin-top:22px}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin:0 0 14px;padding-bottom:0;border-bottom:none}   /* 09-30 — 제목 아래 검은 줄 없앰 */
+.sec-h h2{margin:0;padding:0;font-size:25px;font-weight:800;letter-spacing:-.7px;color:#101a33}
+div[class*="st-key-zone_"]::before{display:none}
+/* 첫 블록 KPI — 페이지마다 카드 수(4 · 5 · 6개)가 달라도 카드 한 장의 크기 · 비율은 모든 페이지에서 같게 한다.
+   한 줄 3칸 폭(6칸 격자에서 2칸씩)으로 고정하고, 덜 찬 줄은 가운데로 모은다 — 5개는 3 + 2, 4개는 2 + 2, 6개는 3 + 3.
+   줄 높이도 1fr 로 같게(설명이 두 줄인 카드가 있어도 모든 카드 높이가 같다) */
+.kpis:not(.q),.kpis.k4:not(.q),.kpis.k6:not(.q){grid-template-columns:repeat(6,minmax(0,110px));grid-auto-rows:1fr;justify-content:center}   /* 카드 폭 = 110 × 2 + 칸 사이 26 = 246px */
+.kpis:not(.q) .kpi{grid-column:span 2;min-height:170px}
+.kpis:not(.q):not(.k4):not(.k6) .kpi:nth-child(4){grid-column:2 / span 2}
+.kpis.k4:not(.q) .kpi:nth-child(odd){grid-column:2 / span 2}
+/* 한 줄 4장(.row1) — ③ 국산화 완료 부품. 카드 폭을 246 → 210px 로 줄여 4장을 한 줄에 놓고,
+   폭이 준 만큼 높이도 170 → 150px 로 줄여 비율을 맞춘다(줄 높이 1fr 라 4장 높이는 같다) */
+/* ① 부품 현황 KPI(.parts-kpi-row — 종합 현황표 · 수출입 현황 핵심 지표)만 — 넓은 화면은 1줄 4칸, 860px 이하는 2 × 2.
+   배치(격자 칸 · grid-column)만 바꾸고 카드 모양 · 글씨는 위 규칙 그대로. 다른 페이지 4장(.kpis.k4)은 2 + 2 가운데 그대로 */
+@media (max-width:860px){
+}
+/* 글씨 크기도 페이지 상관없이 같게 */
+.kpis:not(.q) .kpi .l,.kpis:not(.q) .kpi .l.long,.kpis.k6:not(.q) .kpi .l{font-size:17px;letter-spacing:-.3px}
+.kpis:not(.q) .kpi .v,.kpis.k6:not(.q) .kpi .v{font-size:35px}
+.kpis:not(.q) .kpi .v.long{font-size:30px}
+
+.st-key-kdjs,[data-testid="stLayoutWrapper"]:has(> .st-key-kdjs){display:none!important}
+
+/* ── 바닥글 ─────────────────────────────────────────────────────── */
+.st-key-ft{background:#1f2633;padding:30px ${PAD} 34px;gap:44px!important;align-items:flex-start!important;flex-wrap:nowrap!important;color:#9aa4b8}
+.st-key-ft .brand .ms{color:#fff;font-size:34px}   /* 바닥글 방패 — 흰색 */
+.st-key-ft .brand .mark .tg{width:13.5px;height:13.5px}   /* 바닥글 방패(34px)에 맞춰 머리글(38px · 15px)과 같은 비율 */
+.st-key-ft .brand b{color:#dfe5ef;font-size:20px}
+.st-key-ft .brand small{color:#8591a6}
+/* 로고 — 위에 투명 링크를 덮어 누르면 Main 으로 */
+.st-key-ft_brand{position:relative;gap:0!important}
+.st-key-ft_brand [data-testid="stElementContainer"]:has([data-testid="stPageLink"]){position:absolute!important;inset:0;width:100%!important;height:100%;z-index:2;margin:0}
+.st-key-ft_brand [data-testid="stPageLink"],.st-key-ft_brand [data-testid="stPageLink"] > div{width:100%!important;height:100%}
+.st-key-ft_brand [data-testid="stPageLink"] a{display:block;width:100%;height:100%;padding:0;margin:0;opacity:0;cursor:pointer}
+.st-key-ft_mid{flex:1 1 0!important;min-width:0;gap:6px!important}
+.ft-mid{font-size:12.5px;line-height:1.95;color:#9aa4b8}
+/* 링크 줄 — 데이터 이용 안내 | 데이터 출처 | 용어 설명 | 주의사항 */
+.st-key-ft_links{gap:0!important;flex-wrap:wrap!important}
+.st-key-ft_links > div{width:auto!important;flex:0 0 auto!important;display:flex!important;align-items:center;flex-direction:row!important}
+.st-key-ft_links [data-testid="stVerticalBlock"]{gap:0!important;width:auto!important}   /* 용어 설명(fragment) 칸 — 한 줄에 맞춤 */
+.st-key-ft_links button [data-testid="stMarkdownContainer"]{display:block!important}
+.st-key-ft_links > div + div::before{content:"";display:inline-block;width:1px;height:10px;background:#566074;margin:0 12px;vertical-align:middle}
+.ftl{font-size:12.5px;color:#c9d1de;font-weight:600;line-height:1.95;transition:color .15s}
+/* 링크 줄 글씨는 모두 같은 흰색 계열 — 커서를 올린 항목만 파랑(#7fb0ff) */
+.st-key-ft_links [data-testid="stPageLink"] a{position:relative;top:1px}   /* 페이지 링크(데이터 출처)만 글자가 1px 위에 떠서 옆 글씨와 높이를 맞춤 */
+.st-key-ft_links [data-testid="stPageLink"] a,.st-key-ft_links button{padding:0!important;margin:0;min-height:0!important;height:auto!important;
+  background:transparent!important;border:none!important;box-shadow:none!important}
+.st-key-ft_links [data-testid="stPageLink"] a p,.st-key-ft_links button p{font-size:12.5px!important;color:#c9d1de!important;font-weight:600;line-height:1.95!important}
+.st-key-ft_links [data-testid="stPageLink"] a:hover p,.st-key-ft_links button:hover p,.ftl:hover{color:#7fb0ff!important}
+.ft-team{color:#c9d1de;font-weight:600;text-decoration:none}
+.ft-team:hover{color:#fff;text-decoration:underline}
+.ft-rel{width:230px;background:#151a24;border:1px solid #2f3848;font-size:12.5px}
+.ft-rel summary{padding:11px 14px;cursor:pointer;color:#c9d1de;list-style:none;display:flex;justify-content:space-between}
+.ft-rel summary::after{content:"▲";font-size:9px;color:#8591a6}
+.ft-rel[open] summary::after{content:"▼"}
+.ft-rel a{display:block;padding:7px 14px;color:#9aa4b8;text-decoration:none;border-top:1px solid #262e3c}
+.ft-rel a:hover{color:#fff;background:#262e3c}

@@ -1,0 +1,39 @@
+
+[data-testid="stSidebarUserContent"]{padding-bottom:14px!important}   /* 단추는 사이드바 맨 끝에만 둔다(따라다니지 않음) — 기본 96px 여백을 줄여 끝까지 내리면 바닥에 닿게 */
+
+/* 대화상자 안 카드 */
+[data-testid="stDialog"] [role="dialog"]{border-radius:18px;background:#f2f4f7}
+[data-testid="stDialog"] h2{font-size:24px!important;font-weight:800!important;letter-spacing:-.6px;color:#12234a}
+.di-lead{font-size:13px;color:#44567a;line-height:1.65;margin:-4px 0 12px}
+.di-card{display:flex;gap:14px;padding:14px 15px;margin-bottom:10px;border:1px solid #dde5f2;border-radius:14px;background:#fff;
+  box-shadow:0 1px 2px rgba(19,42,84,.05);animation:rise .38s cubic-bezier(.18,.89,.32,1.15) both}
+.di-card:nth-child(3){animation-delay:.05s} .di-card:nth-child(4){animation-delay:.1s}
+.di-card:nth-child(5){animation-delay:.15s} .di-card:nth-child(6){animation-delay:.2s}
+/* 카드 아이콘 — KPI 카드 아이콘(.kpi .ico)과 같은 모양: 옅은 색 둥근 네모 칸 + 같은 계열 진한 색 Material Symbols */
+.di-ic{width:34px;height:34px;flex:0 0 34px;border-radius:9px;display:grid;place-items:center;background:#e8f0ff;color:#2b6ef6}
+.di-ic .ms,.di-flow .ms{font-family:'Material Symbols Rounded'!important;font-weight:400;font-style:normal;line-height:1;letter-spacing:0;
+  font-feature-settings:'liga';-webkit-font-smoothing:antialiased}
+.di-ic .ms{font-size:19px}
+.di-card:nth-child(3) .di-ic{background:#e4fbf6;color:#0f9f85}
+.di-card:nth-child(4) .di-ic{background:#f0ecff;color:#7a5af8}
+.di-card:nth-child(5) .di-ic{background:#fff2e3;color:#e0851a}
+.di-card:nth-child(6) .di-ic{background:#ffe9f1;color:#e0457b}
+.di-card > div:last-child{flex:1;min-width:0}
+.di-t{font-size:14px;font-weight:800;color:#12234a;letter-spacing:-.3px;margin-bottom:5px}
+.di-big{font-size:15px;font-weight:800;color:#16233f;line-height:1.45;letter-spacing:-.3px}
+.di-s{font-size:12px;color:#6b7a99;line-height:1.55;margin-top:2px}
+.di-chip{display:inline-block;margin-top:7px;padding:4px 11px;border-radius:8px;background:#eaf2ff;font-size:12px;color:#1c4ea3;font-weight:600}
+.di-chip b{font-weight:800;margin-left:6px}
+.di-kv{display:grid;grid-template-columns:62px 1fr;gap:4px 10px;font-size:12.5px;color:#44567a;line-height:1.5}
+.di-kv b{color:#16233f;font-weight:700}
+.di-card.warn{background:#fff6f6;border-color:#fbd0d2}
+.di-card.warn .di-ic{background:#ffe4e5;color:#e5484d}
+.di-card.warn .di-t{color:#b42318}
+.di-warn{margin:0!important;padding:0!important;list-style:none;counter-reset:w}
+.di-warn li{counter-increment:w;position:relative;padding-left:24px;font-size:12.5px;color:#3b2a2a;line-height:1.55;margin-bottom:5px}
+.di-warn li::before{content:counter(w);position:absolute;left:0;top:2px;width:17px;height:17px;border-radius:50%;background:#e5484d;
+  color:#fff;font-size:10.5px;font-weight:800;display:grid;place-items:center}
+.di-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.di-tbl td{padding:5px 6px;border-bottom:1px solid #eef2f9;color:#44567a;vertical-align:top}
+.di-tbl td:first-child{font-weight:700;color:#16233f;white-space:nowrap}
+.di-tbl.gl td:first-child{width:96px}   /* 용어 설명 — 카드마다 용어 칸 폭을 같게 */

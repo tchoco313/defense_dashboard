@@ -1,0 +1,16 @@
+
+/* 인트로 바깥 감싸개도 흐름에서 뺀다 — 남겨 두면 높이 0 칸 + 칸 사이 간격(18px)만큼 첫 화면의 배너가 아래로 밀렸다
+   (다른 페이지에 다녀오면 인트로를 다시 그리지 않아 제자리로 돌아오던 문제). 미니 사이드바와 같은 방식 */
+[data-testid="stLayoutWrapper"]:has(> .st-key-intro){position:fixed; left:0; top:0; width:0; height:0; margin:0; z-index:999999}
+.st-key-intro{
+  position:fixed; inset:0; z-index:999999; margin:0; padding:0;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(160deg,#eef6ff 0%,#dfeafb 52%,#cfe0f7 100%);
+  animation:introOut .4s ease ${FADE_AT}s forwards;
+}
+.st-key-intro > div{width:100%; max-width:680px}
+.st-key-intro iframe{width:100%!important; border:0}
+@keyframes introOut{
+  from{opacity:1}
+  to{opacity:0; visibility:hidden; pointer-events:none}
+}

@@ -1,0 +1,13 @@
+
+.see.q b{font-size:15px;font-weight:800;color:#1d4ed8;letter-spacing:0}
+.see.q span:not(.src){font-size:15px;color:#5a6b85}
+/* 차트 출처 — 오른쪽 아래 「?」 원, 누르면 아래로 펼친다(dashboard/kdesign.py 와 같은 규칙. KDD_v2 는 kdesign CSS 를 불러오지 않아
+   없으면 브라우저 기본 「▶ ?」로 보인다. --sky-weak 는 KDD_v2 에 없어 SKY_WEAK 값을 직접 적음) */
+details.src{margin-top:8px}
+details.src > summary{list-style:none;display:grid;place-items:center;margin-left:auto;width:24px;height:24px;border-radius:50%;
+  border:1px solid #c9d6e8;background:#fff;color:var(--muted);font-size:13.5px;font-weight:700;cursor:pointer;user-select:none}
+details.src > summary::-webkit-details-marker{display:none}
+details.src > summary:hover{border-color:var(--accent);color:var(--accent)}
+details.src[open] > summary{border-color:var(--accent);background:#eaf1ff;color:var(--accent)}
+details.src .src-body{margin-top:6px;padding:9px 12px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);
+  font-size:13px;color:#4b5b73;line-height:1.65}
