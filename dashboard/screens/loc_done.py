@@ -31,17 +31,19 @@ P.kpis([P.kpi("국산화 완료 부품", f"{sc['parts']:,}", "개", f"전자 군
 a, b = st.columns([1.2, 1], gap="medium")
 with a, P.card("donut"):
     none = [g for g, v in by_g.items() if not v]
-    P.title(f'완료 부품이 가장 많은 군은 <span class="key">군 {top_g} {by_g[top_g] / g_sum * 100:.0f}%</span>',
+    P.title("군(FSG)별 국산화 완료 비중",
             "개 · 군(FSG)별 군급 합" + (f" · 군 {'·'.join(none)}은 이 자료에 없음" if none else ""))
     rows = [(f"군 {g} {fsg_name[g]}", v, R.FSG_COLOR[g]) for g, v in by_g.items() if v]
     P.chart(P.donut(rows, f"{g_sum:,}개<br>완료 부품", 340), "p31_donut")
+    P.caption(f'완료 부품이 가장 많은 군은 <span class="key">군 {top_g} {by_g[top_g] / g_sum * 100:.0f}%</span>')
 with b:
     top5 = lc.sort_values("parts", ascending=False).head(5)
     t0 = top5.iloc[0]
-    st.html(rank_card(f'가장 많은 군급은 <span class="key">{t0["fsc4"]} {escape(fsc_name.get(t0["fsc4"], ""))}</span>',
+    st.html(rank_card("상위 군급 국산화 현황",
                       "국산화개발품목 · 상위 5 군급 · 적용장비 이름은 싣지 않습니다",
                       [(f"{r.fsc4} {escape(fsc_name.get(r.fsc4, ''))}", int(r.parts), R.FSG_COLOR.get(r.fsg, "#94a7c8"))
-                       for r in top5.itertuples()], "개"))
+                       for r in top5.itertuples()], "개",
+                      note=f'가장 많은 군급은 <span class="key">{t0["fsc4"]} {escape(fsc_name.get(t0["fsc4"], ""))}</span>'))
 P.read1("완료 부품 수는 국산화율이 아닙니다 — 전체 필요 부품 수(분모)가 공개되지 않았습니다 · "
         "군별 합은 군급마다 센 뒤 더해 고유 부품 수와 조금 다를 수 있습니다")
 P.see(SEE, SOURCE)

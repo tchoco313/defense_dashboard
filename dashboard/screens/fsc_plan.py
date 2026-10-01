@@ -70,14 +70,15 @@ else:
 
     a, b = st.columns(2, gap="medium")
     with a, P.card("fsg"):
-        P.title(f'가장 많은 군은 <span class="key">군 {top_g}</span>', f"건 · 군(FSG)별 · 요구연도 {yr_txt}")
+        P.title("군(FSG)별 조달 비중", f"건 · 군(FSG)별 · 요구연도 {yr_txt}")
         P.chart(P.hbar([(f"군 {g} {fsg_name[g]}", v, R.FSG_COLOR[g]) for g, v in by_g.items()], "건", 300), "p22_fsg_bar")
+        P.caption(f'가장 많은 군은 <span class="key">군 {top_g}</span>')
     with b, P.card("fsc8"):
         top8 = by_fsc.head(8)
         c0 = top8.index[0]
-        P.title(f'가장 많은 군급은 <span class="key">{c0} {escape(fsc_name.get(c0, ""))}({int(top8.iloc[0]):,}건)</span>',
-                "건 · 군급(FSC) 상위 8")
+        P.title("군급별 국외 조달 계획", "건 · 군급(FSC) 상위 8")
         P.chart(P.hbar([(f"{c} {fsc_name.get(c, '')}"[:26], int(v), R.FSG_COLOR[c[:2]]) for c, v in top8.items()], "건", 300), "p22_fsc")
+        P.caption(f'가장 많은 군급은 <span class="key">{c0} {escape(fsc_name.get(c0, ""))}({int(top8.iloc[0]):,}건)</span>')
     P.see(SEE, SOURCE)
 
     # 45행 전부 그리되 10행 높이 칸 안에서 세로 스크롤(칸 높이 · 행 수 = static/components.css 의 .st-key-p22_fsc_all --rows)
