@@ -43,8 +43,11 @@ CSS = """<style>
 .basis{margin:12px 0 0;padding:0;list-style:none} .basis li{font-size:14px;color:#1b2540;line-height:1.65;padding:6px 0 6px 18px;
   position:relative;border-top:1px dashed #dde5f2} .basis li::before{content:"";position:absolute;left:3px;top:15px;width:6px;height:6px;
   border-radius:50%;background:#1d4ed8}
-.basis-src{font-size:12.5px;color:#7a879e;margin-top:6px}
-.basis-h{display:flex;align-items:center;gap:7px;margin:16px 0 0;font-size:15px;font-weight:800;color:#12234a}
+/* 출처 줄은 카드 맨 아래에 — 이 HTML 칸이 카드의 남는 높이를 채우게 하고(flex), 출처를 바닥으로 민다(오른쪽 카드의 맨 아래 글씨와 같은 높이) */
+[data-testid="stElementContainer"]:has(> .stHtml > .basis-src){flex:1 1 auto;display:flex;flex-direction:column}
+.stHtml:has(> .basis-src){flex:1 1 auto;display:flex;flex-direction:column}
+.basis-src{font-size:12.5px;color:#7a879e;margin-top:auto;padding-top:18px}
+.basis-h{display:flex;align-items:center;gap:7px;margin:34px 0 0;font-size:15px;font-weight:800;color:#12234a}
 .basis-h .ms{font-family:'Material Symbols Rounded'!important;font-weight:400;font-style:normal;font-size:21px;line-height:1;color:#1d4ed8}
 .basis-h + .basis{margin-top:8px}
 </style>"""
@@ -62,9 +65,9 @@ a, b = st.columns([1, 1.15], gap="medium")
 with a, st.container(border=True, key="card_hsd", height="stretch"):
     P.title("HS 코드 10자리 안의 품목군", f"예시 = {EX[:4]}.{EX[4:]}(류 {EX[:2]} · 호 {EX[:4]}, {escape(ex_name)}) · 뒤 4자리는 가림")
     st.html('<div class="nsn"><div class="nsn-row">'
-            f'<div class="nb g"><b>{EX[:2]}</b><small>류 · Chapter</small></div>'
-            f'<div class="nb c"><b>{EX[2:4]}</b><small>호 · Heading</small></div>'
-            f'<div class="nb n"><b>{EX[4:]}</b><small>소호 · Subheading</small></div>'
+            f'<div class="nb g"><b>{EX[:2]}</b><small>류<br>Chapter</small></div>'
+            f'<div class="nb c"><b>{EX[2:4]}</b><small>호<br>Heading</small></div>'
+            f'<div class="nb n"><b>{EX[4:]}</b><small>소호<br>Subheading</small></div>'
             '<div class="nb s"><b>xxxx</b><small>국내 세분류 4자리(HSK)</small></div></div>'
             '<div class="nsn-br"><span style="flex:3.1">HS 6자리 — 국제 공통(= 품목군 하나)</span><span style="flex:2.2">우리나라만</span></div>'
             '</div><div class="basis-h"><span class="ms">account_tree</span>무역 통계 분류 기준</div>'

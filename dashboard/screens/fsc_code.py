@@ -35,8 +35,11 @@ CSS = """<style>
 .basis{margin:12px 0 0;padding:0;list-style:none} .basis li{font-size:14px;color:#1b2540;line-height:1.65;padding:6px 0 6px 18px;
   position:relative;border-top:1px dashed #dde5f2} .basis li::before{content:"";position:absolute;left:3px;top:15px;width:6px;height:6px;
   border-radius:50%;background:#1d4ed8}
-.basis-src{font-size:12.5px;color:#7a879e;margin-top:6px}
-.basis-h{display:flex;align-items:center;gap:7px;margin:16px 0 0;font-size:15px;font-weight:800;color:#12234a}
+/* 출처 줄은 카드 맨 아래에 — 이 HTML 칸이 카드의 남는 높이를 채우게 하고(flex), 출처를 바닥으로 민다(오른쪽 카드의 맨 아래 글씨와 같은 높이) */
+[data-testid="stElementContainer"]:has(> .stHtml > .basis-src){flex:1 1 auto;display:flex;flex-direction:column}
+.stHtml:has(> .basis-src){flex:1 1 auto;display:flex;flex-direction:column}
+.basis-src{font-size:12.5px;color:#7a879e;margin-top:auto;padding-top:18px}
+.basis-h{display:flex;align-items:center;gap:7px;margin:34px 0 0;font-size:15px;font-weight:800;color:#12234a}
 .basis-h .ms{font-family:'Material Symbols Rounded'!important;font-weight:400;font-style:normal;font-size:21px;line-height:1;color:#1d4ed8}
 .basis-h + .basis{margin-top:8px}
 </style>"""
@@ -52,9 +55,9 @@ a, b = st.columns([1, 1.15], gap="medium")
 with a, st.container(border=True, key="card_nsn", height="stretch"):
     P.title("재고번호(NSN) 13자리 안의 군급", f"예시 = 5962(군 59 · 급 62, {R.fsc_names().get('5962', '')}) · 일련번호는 가림")
     st.html('<div class="nsn"><div class="nsn-row">'
-            '<div class="nb g"><b>59</b><small>군 · Group(FSG)</small></div>'
-            '<div class="nb c"><b>62</b><small>급 · Class</small></div>'
-            '<div class="nb n"><b>37</b><small>국가부호(대한민국)</small></div>'
+            '<div class="nb g"><b>59</b><small>군<br>Group(FSG)</small></div>'
+            '<div class="nb c"><b>62</b><small>급<br>Class</small></div>'
+            '<div class="nb n"><b>37</b><small>국가부호<br>(대한민국)</small></div>'
             '<div class="nb s"><b>xxx-xxxx</b><small>일련번호 7자리</small></div></div>'
             '<div class="nsn-br"><span style="flex:2">군급(FSC) 4자리</span><span style="flex:3.2">품목식별번호(NIIN) 9자리</span></div>'
             '</div><div class="basis-h"><span class="ms">account_tree</span>FSG · FSC 분류 기준</div>'

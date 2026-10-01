@@ -48,10 +48,4 @@ with P.card("pair"):
     P.chart(fig, "p32_pair")
 P.see(SEE, SOURCE)
 
-with P.more(f"군급 표 전체({len(both)}개)"):
-    rows = "".join(f"<tr><td>{c}</td><td class='l'>{escape(fsc_name.get(c, '—'))}</td><td>{plan.get(c, 0):,}</td>"
-                   f"<td>{f'{loc[c]:,}' if c in loc else '이 자료에 없음'}</td></tr>" for c in both)
-    st.html('<table class="pt"><thead><tr><th>군급</th><th>이름</th><th>국외 조달계획(건)</th><th>국산화 완료 부품(개)</th></tr></thead>'
-            f"<tbody>{rows}</tbody></table>")
-
 P.next_link("loc-pair")
