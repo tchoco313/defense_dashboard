@@ -103,13 +103,6 @@ with b, st.container(border=True, key="card_sun", height="stretch"):       # 왼
     P.ring_hint("card_sun")      # 바깥 칸도 눌리게 + 안내 딱지
 P.see(SEE, SOURCE)
 
-with P.more("HS와 군급은 무엇이 다른가 — 같은 전자부품을 보는 두 공식 분류"):
-    st.html('<table class="pt"><thead><tr><th></th><th>HS(관세 · 무역 통계)</th><th>군급(군수품 분류)</th></tr></thead><tbody>'
-            '<tr><td>누가 쓰나</td><td class="l">관세청 수출입 통계</td><td class="l">국방 군수품 목록 · 조달</td></tr>'
-            '<tr><td>무엇으로 나누나</td><td class="l">품목의 성질 · 재질 · 용도</td><td class="l">보급 관리를 위한 기능 분류</td></tr>'
-            '<tr><td>자릿수</td><td class="l">국제 6자리 + 국내 10자리</td><td class="l">군 2 · 군급 4 · 재고번호 13</td></tr>'
-            '<tr><td>이 대시보드에서</td><td class="l">① 부품 현황(13개 품목군)</td><td class="l">② 군급 분류와 조달 · ③ 국산화 현황</td></tr>'
-            '</tbody></table><div class="caption">두 분류 사이에 공식 대응표가 없어 품목끼리 짝짓지 않습니다.</div>')
 with P.more("전자 군급은 이렇게 셌다"):
     st.html(" → ".join(f"<b>{n:,}</b> {name}" for name, n in R.plan_funnel())
             + '<div class="caption">전자 군급 = 군 58 · 59 · 60에 속한 군급 · 조달계획은 건수만(금액 통화 미확인)</div>')

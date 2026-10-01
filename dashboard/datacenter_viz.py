@@ -1321,13 +1321,13 @@ def csv_info(nm: str, subject: str = "국가", shape: str | None = None) -> str:
 
 # ── 조회 — 결과 표: 연도별 통계표(KOSIS 통계표 모양 · 행 = 국가, 열 = 시점(연도) 아래 항목(지표)) ──────────
 STAT_CSS = """<style>
-/* 슬레이트 머리 · 베이지 줄무늬 · 국가 열 고정 · 가로/세로 스크롤 */
+/* 남색 머리(흰 글씨) · 옅은 줄무늬 · 국가 열 고정 · 가로/세로 스크롤 */
 .st-tbl{border-collapse:collapse;font-size:14px;min-width:100%}
 .st-scroll{max-height:405px;overflow:auto;border:1px solid #e1e9f3;border-radius:8px;background:#fff}
-.st-tbl th{position:sticky;top:0;z-index:2;background:#eaf3fd;color:#0f2a5c;font-weight:600;padding:6px 10px;text-align:center;
-  border-right:1px solid #d6e5f5;border-bottom:1px solid #d6e5f5;white-space:nowrap}
+.st-tbl th{position:sticky;top:0;z-index:2;background:#1b2f66;color:#fff;font-weight:600;padding:6px 10px;text-align:center;
+  border-right:1px solid #33488a;border-bottom:1px solid #33488a;white-space:nowrap}
 .st-tbl th small{font-weight:500;opacity:.85}
-.st-tbl thead tr:nth-child(2) th{top:31px;background:#f4f9fe;font-weight:500;font-size:13px}
+.st-tbl thead tr:nth-child(2) th{top:31px;background:#2a4285;font-weight:500;font-size:13px}
 .st-tbl td{padding:6px 10px;border-bottom:1px solid #edf2f8;border-right:1px solid #f2f6fb;text-align:right;color:#0f1f3a;white-space:nowrap;font-variant-numeric:tabular-nums}
 .st-tbl td:first-child,.st-tbl th:first-child{position:sticky;left:0;z-index:1;text-align:left}
 .st-tbl th:first-child{z-index:3}
