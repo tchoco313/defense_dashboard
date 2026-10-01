@@ -147,10 +147,6 @@ div[class*="st-key-gs_"]{height:${DROP_H}px;box-sizing:border-box;border-left:1p
 .lnb-a:hover::after{color:${BLUE}}
 .lnb-a.on{background:#fff;border-color:${BLUE_D};color:${BLUE_D}!important}
 .lnb-a.on::after{content:"✓";font-size:16px;font-weight:800;color:${BLUE_D}}
-/* 배경과 자료에서는 현재 읽는 절의 목차 항목만 크게 표시한다. */
-.st-key-body:has(.st-key-sub_policy) .lnb-a.on{min-height:66px;padding:0 20px;background:#e8f0ff;
-  border-left:4px solid ${BLUE_D};font-size:18px;font-weight:800}
-.st-key-body:has(.st-key-sub_policy) .lnb-a.on::after{font-size:17px}
 div[class*="st-key-sub_"]{scroll-margin-top:22px}   /* 소분류로 스크롤해 갈 때 위 여백 — zone 과 같게 */
 .st-key-lnbjs,[data-testid="stLayoutWrapper"]:has(> .st-key-lnbjs){display:none!important}
 /* 왼쪽 메뉴는 스크롤해도 화면 위쪽에 붙어 따라온다 */

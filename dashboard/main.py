@@ -491,7 +491,8 @@ def _why_items() -> None:
     html = ""
     for g, sub, hss in groups:
         warn = " warn" if g == "소재장비" else ""
-        html += (f'<div class="mk-grp">{g} {len(hss)}개<span>{sub}</span></div><div class="mk-cards">'
+        html += (f'<div class="mk-grp" style="margin:10px 0 12px;font-size:19px">{g} {len(hss)}개'      # 묶음 제목 — 크게(색은 기본)
+                 f'<span style="font-size:14.5px;margin-left:10px">{sub}</span></div><div class="mk-cards">'
                  + "".join(f'<div class="mk-card{warn}"><small>HS {hs} · {SYSTEM_FAMILY[hs]}</small><h4>{name[hs]}</h4>'
                            f'<p>{escape(DEFENSE_USE_KO[hs])}</p></div>' for hs in hss) + '</div>')
     story_screen(

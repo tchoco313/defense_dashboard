@@ -19,6 +19,16 @@ from kdesign import ETC, SERIES
 LEAD = '국방 전자부품 · 반도체 국산화는 <span class="key">2024년 발전전략 이후 법과 예산</span>으로 이어지고 있다'
 SEE = "국방반도체 정책 흐름과 국외조달 계획 예산 추이"
 SOURCE = "방위사업청 · 국방반도체 발전전략(2024-11) · 국외조달 계획 / 열린재정 · 세부사업 예산"
+
+
+def won(eok: float) -> str:
+    """억 원 값 → 「4조 9,413억 원」(1만 억 이상은 조 단위로 끊어 읽는다). 1조 미만은 「9,413억 원」."""
+    n = int(round(eok))
+    jo, rest = divmod(abs(n), 10000)
+    txt = (f"{jo:,}조" + (f" {rest:,}억" if rest else "")) if jo else f"{rest:,}억"
+    return ("-" if n < 0 else "") + txt + " 원"
+
+
 TOP_TYPES = 5            # 집행유형은 전체 계획 예산 큰 순 5개 + 그 밖(「기타」 유형 포함)
 
 st.html("""<style>
@@ -57,14 +67,19 @@ order = rank + (["그 밖"] if "그 밖" in wide.columns else [])
 color = {t: SERIES[i] for i, t in enumerate(rank)} | {"그 밖": ETC}
 last_y = int(wide.index.max())
 with P.card("bud"):
-    P.title(f'{last_y}년 국외조달 계획 예산은 <span class="key">{wide.loc[last_y].sum():,.0f}억 원</span>',
-            f"억 원 · 계획(집행 예정액, 원화) · 계획연도 {int(wide.index.min())}~{last_y} · 집행유형별 쌓은 막대 · 상위 {TOP_TYPES}개 + 그 밖")
+    P.title(f'{last_y}년 국외조달 계획 예산은 <span class="key">{won(wide.loc[last_y].sum())}</span>',
+            f"조 · 억 원 · 계획(집행 예정액, 원화) · 계획연도 {int(wide.index.min())}~{last_y} · 집행유형별 쌓은 막대 · 상위 {TOP_TYPES}개 + 그 밖")
     fig = go.Figure()
     for t in order:
         fig.add_trace(go.Bar(x=list(wide.index), y=wide[t].round(0).tolist(), name=t, marker_color=color[t],
-                             hovertemplate=f"{t} · %{{x}}년 %{{y:,}}억 원<extra></extra>"))
+                             customdata=[won(v) for v in wide[t]],
+                             hovertemplate=f"{t} · %{{x}}년 %{{customdata}}<extra></extra>"))
     fig.update_layout(barmode="stack", height=320)
     fig.update_xaxes(dtick=1)
+    top = float(wide[order].sum(axis=1).max())                    # 세로축 눈금도 조 단위로(10,000억 = 1조)
+    step = 10000 if top <= 80000 else 20000
+    ticks = list(range(0, int(top) + step, step))
+    fig.update_yaxes(tickvals=ticks, ticktext=["0"] + [f"{v // 10000}조" for v in ticks[1:]])
     P.chart(fig, "p41_bud")
 P.see(SEE, SOURCE)
 
@@ -75,7 +90,8 @@ with P.more("국방 R&D 세부사업 예산 — 부품국산화 · 국방반도�
     fig = go.Figure()
     for col_, name, c in (("loc", "부품국산화", "#2b6ef6"), ("semi", "국방반도체", "#ff9f43")):
         fig.add_trace(go.Bar(x=rd["year"], y=rd[col_].round(0), name=name, marker=dict(color=c, opacity=op),
-                             hovertemplate=f"{name} · %{{x}}년 %{{y:,}}억 원<extra></extra>"))
+                             customdata=[won(v) for v in rd[col_]],
+                             hovertemplate=f"{name} · %{{x}}년 %{{customdata}}<extra></extra>"))
     fig.update_layout(barmode="group", height=280)
     fig.update_xaxes(dtick=1)
     P.chart(fig, "p41_rd")

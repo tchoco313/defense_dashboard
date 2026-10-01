@@ -645,7 +645,7 @@ def query_panel() -> dict:
     _q_apply(Q_TYPE_DEFAULT[dtype])
     with st.container(border=True, key="card_form"):
         h1, h2 = st.columns([1.25, 1], vertical_alignment="center")
-        h1.markdown("### :material/settings: 분석 조건 설정")
+        h1.html('<div class="h" style="font-size:17px">분석 조건 설정</div>')   # 「조회 결과」 제목과 같은 모양(파란 막대) — 글씨는 조금 크게
         if dtype == "수출입 HS":                                   # 빠른 설정은 HS 조건 묶음이라 HS 에서만
             h2.selectbox("빠른 설정", list(Q_QUICK), key="qs_quick", on_change=_q_quick, label_visibility="collapsed")
         # filter_mode=None — 클릭하면 목록만 열리고 글자 입력(검색)은 받지 않는다
@@ -1606,7 +1606,7 @@ def query_result_fsg(q: dict) -> None:
         basis = f'FSC {q["fsc"][0]} 기준' if len(q["fsc"]) == 1 else f'FSC {q["fsc"][0]} 등 {len(q["fsc"])}개 기준'
     else:
         basis = f'FSG {len(q["fsg"])}개 기준 · FSC 전체 {len(q["fsc"])}개'
-    st.html(f'<div class="h">조회 결과 <span class="sub">군수품 · {basis} · '
+    st.html(f'<div class="h" style="font-size:17px">조회 결과 <span class="sub">군수품 · {basis} · '
             f'{"·".join(q["branch"]) or "군종 없음"} · 요구연도 {y0}~{y1} · {q["chart"]}</span></div>')
     if not q["fsg"]:
         return st.info("FSG 를 하나 이상 고르거나 「전체 FSG 선택」을 켜 주세요.")
@@ -1663,7 +1663,7 @@ def query_result_fsg(q: dict) -> None:
 def query_result_localized(q: dict) -> None:
     """국산화개발 조회 결과 — 지표 카드 · [차트] [사업·업체] [품목 상세]. 비율 · 추세 지표는 두지 않는다(스냅샷)."""
     ms = q["metrics"]
-    st.html(f'<div class="h">조회 결과 <span class="sub">국산화개발 · 사업 {len(q["proj"])}개 · FSG {len(q["fsg"])}개 · '
+    st.html(f'<div class="h" style="font-size:17px">조회 결과 <span class="sub">국산화개발 · 사업 {len(q["proj"])}개 · FSG {len(q["fsg"])}개 · '
             f'FSC {len(q["fsc"])}개 · 관련 업체 {len(q["comp"])}개 · {q["chart"]}</span></div>')
     for ok, msg in ((q["proj"], "사업명을 하나 이상 고르거나 「전체 사업 선택」을 켜 주세요."),
                     (q["fsg"], "FSG 를 하나 이상 고르거나 「전체 FSG 선택」을 켜 주세요."),
@@ -1721,7 +1721,7 @@ def render() -> None:
             query_result_localized(q)
         else:
             y0, y1 = q["years"]
-            st.html(f'<div class="h">조회 결과 <span class="sub">{q["area"]} · {escape(str(q["hs"]))} · {len(q["names"])}개국 · '
+            st.html(f'<div class="h" style="font-size:17px">조회 결과 <span class="sub">{q["area"]} · {escape(str(q["hs"]))} · {len(q["names"])}개국 · '
                     f'{y0}~{y1} · {q["chart"]}</span></div>')
             if not q["names"]:
                 st.info("국가를 하나 이상 고르거나 「전체 국가 선택」을 켜 주세요.")
