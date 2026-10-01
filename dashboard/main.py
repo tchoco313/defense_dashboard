@@ -348,7 +348,7 @@ def main_landing() -> None:
         stats = "".join(f'<div class="mst-i"><div class="v">{v}<small>{u}</small></div><div class="l">{l}</div></div>'
                         for v, u, l in main_stats)
         st.html(f'<div class="mst" style="background-image:url(\'{_ph("1562408590-e32931084e23", 1800)}\')"><div class="mst-in">'
-                f'<div class="mst-h"><b>숫자로 보는<br>K-Defense</b><span>{stats_note}</span></div>'
+                f'<div class="mst-h"><b>숫자로 보는<br>국방 전자부품</b><span>{stats_note}</span></div>'
                 f'{stats}</div></div>')
 
     # 5) 데이터 출처 목록 · 이용 안내
@@ -750,6 +750,29 @@ SECTIONS = {
     "background": [("policy", "정책과 예산"), ("industry", "국내 생산 현황"),
                    ("source", "데이터 출처와 검증")],
 }
+# 서브 배너(파란 띠) 제목 아래 한 줄 — 소분류마다 그 화면을 소개하는 문장. 스크롤로 소분류가 바뀌면 같이 바뀐다(lnb_scroll.js)
+BANNER = {
+    ("intro", "elec"): "무기체계에서 전자부품이 하는 일을 알아봅니다",
+    ("intro", "select"): "1,003개 품목 중 13개를 골랐습니다",
+    ("intro", "items"): "13개 품목군을 하나씩 소개합니다",
+    ("intro", "use"): "13개 품목군이 무기체계에서 하는 일을 봅니다",
+    ("parts", "code"): "세계가 함께 쓰는 무역의 언어, HS 코드로 전자부품을 읽습니다",
+    ("parts", "summary"): "13개 품목군의 수입 규모와 쏠림을 한 장에 담았습니다",
+    ("parts", "trade"): "어디서 들여오고 어디로 내보내는지, 교역의 흐름을 따라갑니다",
+    ("parts", "conc"): "한 나라에 쏠린 정도가 해마다 어떻게 달라졌는지 짚어 봅니다",
+    ("parts", "detail"): "조건을 직접 골라, 수출입 데이터를 원하는 모양으로 그려 봅니다",
+    ("fsc", "code"): "군수품에 붙는 네 자리 이름표, 군급(FSC)으로 전자 장비를 읽습니다",
+    ("fsc", "plan"): "군이 해외에서 들여오려는 전자 군급, 그 계획을 건수로 살핍니다",
+    ("fsc", "army"): "어느 군이, 어느 해에 해외 조달을 요구했는지 한눈에 봅니다",
+    ("fsc", "domestic"): "국내에서는 어떻게 계약하고 입찰하는지, 조달의 방식을 살핍니다",
+    ("fsc", "detail"): "조건을 직접 골라, 군급별 조달계획을 원하는 모양으로 그려 봅니다",
+    ("local", "done"): "해외에서 들여오던 부품, 어디까지 우리 손으로 만들었는지 확인합니다",
+    ("local", "pair"): "해외 조달계획과 국산화 실적을 군급별로 나란히 놓고 읽습니다",
+    ("local", "detail"): "조건을 직접 골라, 국산화개발 품목을 원하는 모양으로 그려 봅니다",
+    ("background", "policy"): "국방반도체를 향한 정책의 흐름과, 그 뒤를 받치는 예산을 봅니다",
+    ("background", "industry"): "가동률과 생산지수로 국내 방산 생산의 체력을 가늠합니다",
+    ("background", "source"): "모든 숫자의 출처와 한계 — 어디서 왔고, 무엇을 말하지 않는지 밝힙니다",
+}
 # 왼쪽 메뉴 아래 파란 칸의 팁 — (머리말, 내용)
 LNB_TIPS = {
     "intro": [("흐름", "기능 → 선정 규칙 → 13개 → 쓰임"), ("주의", "쓰임은 일반적 용도 · 특정 체계 부품 목록(BOM) 아님")],
@@ -856,7 +879,7 @@ if not LANDING:
     st.html(f'<div class="sv"><div class="sv-ph"><i class="ship" style="background-image:url({SV_SHIP})"></i>'
             f'<i class="k9" style="background-image:url({SV_K9})"></i></div>'
             f'<div class="sv-in"><div class="sv-sp"></div>'
-            f'<div class="sv-title"><h1>{cur_title}</h1><p>{cur_sub}</p></div></div></div>')
+            f'<div class="sv-title"><h1>{cur_title}</h1><p>{BANNER.get((url, _SEC["sel"]), cur_sub)}</p></div></div></div>')
 
     # ── 본문 줄: 왼쪽 메뉴 + 본문 ────────────────────────────────────────────
     with st.container(key="body", horizontal=True):
@@ -870,7 +893,8 @@ if not LANDING:
                 for k, t in nav_secs) + '</nav>')
             with st.container(key="lnbjs"):
                 _LNB(key="lnb_scroll", data={"go": st.session_state.get("_lnb_go"),
-                                              "labels": dict(nav_secs)})
+                                              "labels": dict(nav_secs),
+                                              "banner": {k: BANNER.get((url, k), t) for k, t in nav_secs}})
             st.html('<div class="lnb-help"><b>이렇게 보세요</b><ul>' + "".join(f"<li><em>{h}</em>{t}</li>" for h, t in LNB_TIPS[url])
                     + '</ul></div>')
         with st.container(key="main"):
@@ -889,7 +913,7 @@ if not _SEC["shown"]:
 TEAM_URL = "https://github.com/dashboard"
 with st.container(key="ft", horizontal=True):
     with st.container(key="ft_brand", width="content"):
-        st.html('<div class="brand"><span class="mark"><span class="ms">shield</span>' + TAEGEUK + '</span><div><b>K-Defense</b>'
+        st.html('<div class="brand"><span class="mark"><span class="ms">shield</span>' + TAEGEUK + '</span><div><b>K-Defense Electronics</b>'
                 '<small>데이터로 만드는 더 강한 대한민국</small></div></div>')
         st.page_link(page_of["home"][0], label="K-Defense 홈", query_params={"sec": "main"})   # 로고 위를 덮는 투명 링크
     with st.container(key="ft_mid"):
@@ -900,7 +924,10 @@ with st.container(key="ft", horizontal=True):
             st.html('<span class="ftl">주의사항</span>', width="content")
         st.html('<div class="ft-mid">자료: 관세청 수출입무역통계 · 방위사업청 국내 · 국외 조달 · KOSIS 방산 가동률 · 열린재정 세부사업 예산<br>'
                 f'<a class="ft-team" href="{TEAM_URL}" target="_blank" rel="noopener">훈수안이조</a>'
-                ' — 숫자는 공개 데이터를 적재한 운영 DB 에서 읽습니다 · © 2026 K-Defense 팀 프로젝트</div>')
+                # 팀원 이름 — 팀 이름을 이루는 글자(훈 · 수 · 안 · 이 · 조)만 하늘색
+                ' — ' + " ".join(n.replace(k, f'<b style="color:#7cc4ff;font-weight:inherit">{k}</b>', 1) for n, k in (
+                    ("김훈희", "훈"), ("강지수", "수"), ("안태호", "안"), ("이동현", "이"), ("조수아", "조")))
+                + ' · 2026 한화 머신러닝 엔지니어 팀 프로젝트</div>')
     st.html('<details class="ft-rel"><summary>관련 사이트 바로가기</summary>'
             '<a href="https://unipass.customs.go.kr/ets/" target="_blank">관세청 수출입무역통계</a>'
             '<a href="https://www.dapa.go.kr" target="_blank">방위사업청</a>'

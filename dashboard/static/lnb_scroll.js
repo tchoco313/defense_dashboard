@@ -2,6 +2,7 @@
 export default function (component) {
   const { data } = component
   window.__kdLnbLabels = data.labels || {}
+  window.__kdLnbBanner = data.banner || {}
   const subOf = k => document.querySelector(".st-key-sub_" + k)
   if (!window.__kdLnb) {
     window.__kdLnb = true
@@ -9,6 +10,8 @@ export default function (component) {
       document.querySelectorAll("a.lnb-a").forEach(a => a.classList.toggle("on", a.dataset.sub === k))
       const b = document.querySelector(".crumb b"), t = window.__kdLnbLabels[k]
       if (b && t) b.textContent = t
+      const p = document.querySelector(".sv-title p"), s = window.__kdLnbBanner[k]   // 파란 띠 제목 아래 소개 문장도 같이
+      if (p && s) p.textContent = s
     }
     window.__kdLnbSetOn = setOn
     document.addEventListener("click", e => {

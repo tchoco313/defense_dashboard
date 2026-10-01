@@ -15,7 +15,7 @@
 .mk-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 16px}
 .mk-card{border:1px solid #a9b4c6;border-radius:12px;background:#fff;padding:14px 16px}
 .mk-card .ms{font-size:28px;color:#1d4ed8}
-.mk-card h4{margin:6px 0 4px;font-size:15px;color:#0f1f3d}
+.mk-card h4{margin:6px 0 4px;font-size:18.5px;color:#0f1f3d}
 .mk-card p{margin:0;font-size:13px;color:#5a6b85;line-height:1.55}
 .mk-card small{display:block;font-size:11px;font-weight:800;color:#4978c4;margin-bottom:2px}
 .mk-card a{font-size:12px;color:#1d4ed8}
