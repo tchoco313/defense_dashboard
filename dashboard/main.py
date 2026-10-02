@@ -648,8 +648,10 @@ def _see_v2(what: str, source: str) -> None:
     (_SEE["slot"] or st).html(body)
 
 
+@st.fragment
 def _detail_v2(kind: str, sub: str) -> None:
-    """상세 조회 — 「조건을 골라 … 내려받습니다」 설명 줄 없이 도구만."""
+    """상세 조회 — 「조건을 골라 … 내려받습니다」 설명 줄 없이 도구만.
+    fragment 라 조건 칸을 눌러도 이 도구만 다시 그린다(같은 페이지의 다른 소분류 차트는 그대로)."""
     import parts as screen_parts
     runpy.run_path(str(screen_parts.VIZ), init_globals={"FIXED_TYPE": kind}, run_name="datacenter_viz")
 
