@@ -38,6 +38,18 @@ CASES = (
     ("전자부품", "마이크로인피니티", "항재밍 수신기 부품", "수출 계약", "2024-10", "영국 기업과 부품 수출 계약 발표", "https://www.daejeon.go.kr/drh/board/boardNormalView.do?boardId=normal_0189&menuSeq=1632&ntatcSeq=1467432347&pageIndex=1"),
 )
 
+# 사례 이름 → 별표 3 대분류 이름. 발표문에 적힌 분류가 아니라 별표 3 소분류에 맞춰 넣은 것이다
+# (KF-21 레이다 = 항공전투지원장비 · 천궁-II 레이다 = 방공레이더 · 천마 = 대공유도무기 · K9 = 야포 · 천무 = 다련장).
+# 납품 대상 체계를 알 수 없는 부품 사례(고출력 증폭기 · 항재밍 수신기)는 넣지 않는다.
+CASE_CLASS = {
+    "KF-21 AESA 레이다": "항공",
+    "천궁-II 다기능레이다": "방호",
+    "레드백 보병전투장갑차": "기동",
+    "K9 국산 엔진": "화력",
+    "천무": "화력",
+    "천마 패키지 부품": "방호",
+}
+
 _CSS = """<style>
 .ws-lead{font-size:15px;line-height:1.7;color:#3e5677;margin:3px 0 19px}
 .ws-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:14px 0 20px}

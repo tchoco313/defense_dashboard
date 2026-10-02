@@ -199,6 +199,8 @@ Q_METRICS = [("수출액", "백만 USD", "", {"수출입", "수출"}), ("수입�
 # 거래건수는 DB 에 없는 지표라 두지 않는다 — fact_customs_monthly 는 HS10 × 국가 × 월 합계 행이다
 Q_UNIT = {m: u for m, u, _, _ in Q_METRICS}
 Q_MONEY = ("수출액", "수입액", "무역수지")
+Q_MIX_HELP = ("금액(수출액 · 수입액 · 무역수지)과 중량은 단위가 달라 함께 선택할 수 없습니다.  \n"   # 공백 두 칸 + 줄바꿈 = 말풍선 안 줄바꿈
+              "켜져 있는 쪽을 모두 끄면 고를 수 있습니다.")
 # 차트 유형 — KOSIS 「데이터 시각화 체험하기」 차트 목록 15종. 고른 차트로 결과를 그리고, 같은 모양으로 CSV 를 내려준다
 Q_CHART_ICON = {"꺾은선 그래프": ":material/show_chart:", "막대 그래프": ":material/bar_chart:",
                 "누적 막대 그래프": ":material/stacked_bar_chart:", "피라미드 그래프": ":material/align_horizontal_center:",
@@ -410,8 +412,10 @@ div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"]:hover *
 .st-key-qf_branch_b button[data-variant="segmented_control"]{{border-top-left-radius:0 !important;border-top-right-radius:0 !important}}
 .st-key-qf_branch_box{{gap:0 !important}}
 .st-key-qf_branch_box [data-testid="stElementContainer"]:has(.st-key-qf_branch_b),.st-key-qf_branch_b{{margin-top:-1px}}
-/* 체크박스 드롭다운(품목코드 · 국가 · FSC) — 펼친 목록이 아래 줄을 덮도록 위로 올린다 */
-.st-key-qs_item_box,.st-key-qs_ctry_box,.st-key-qf_fsc_box,.st-key-ql_fsc_box{{position:relative;z-index:40;overflow:visible}}
+/* 체크박스 드롭다운(품목코드 · 국가 · FSC) — 펼친 목록이 아래 줄을 덮도록 위로 올린다.
+   품목코드 · 군수품 FSG 는 바로 아래 드롭다운 칸(국가 · FSC)보다 한 단계 위(41) — 같은 40 이면 뒤에 오는 칸이 펼친 목록 위에 비쳐 보였다 */
+.st-key-qs_item_box,.st-key-qs_ctry_box,.st-key-qf_fsg_box,.st-key-qf_fsc_box,.st-key-ql_fsc_box{{position:relative;z-index:40;overflow:visible}}
+.st-key-qs_item_box,.st-key-qf_fsg_box{{z-index:41}}
 /* 상세검색 접이 칸 — 카드 안에서 얇게 */
 .st-key-card_form [data-testid="stExpander"] summary p{{font-size:15px;font-weight:700;color:#16233f}}
 /* 도움말 말풍선 글씨 — 기본보다 2pt 작게 */
@@ -715,11 +719,22 @@ def query_panel_hs() -> dict:
         y0 = c0.selectbox("시작 연도", [y for y in Q_YEARS if y <= ss["qs_y1"]], key="qs_y0", label_visibility="collapsed")
         mid.html('<div style="text-align:center;font-size:18px;font-weight:700;color:#6b7a99">~</div>')
         y1 = c1.selectbox("끝 연도", [y for y in Q_YEARS if y >= y0], key="qs_y1", label_visibility="collapsed")
-    with _q_row(":material/leaderboard:", "지표 선택", "metric"):
+    with _q_row(":material/leaderboard:", "지표 선택", "metric"), st.container(key="qs_metrics"):
         # 분석영역에 맞는 지표만 그린다(맞지 않는 지표는 잠그지 않고 아예 뺀다)
         shown = [m for m, _, _, areas in Q_METRICS if area in areas]
+        # 금액(백만 USD)과 중량(톤)은 단위가 달라 함께 고르지 못한다 — 한쪽이 켜져 있으면 다른 쪽은 잠그고(회색)
+        # 잠근 칸에 커서를 올리면 이유를 말풍선으로(칸 전체가 말풍선을 여는 자리 — static/components.css .st-key-qs_metrics).
+        # 둘 다 켜진 채로 들어오면(이전 세션) 금액을 남기고 중량을 끈다
+        money_on = any(ss.get(f"qs_m_{m}") for m in shown if m in Q_MONEY)
+        if money_on:
+            ss.update({f"qs_m_{m}": False for m in shown if m not in Q_MONEY})
+        wgt_on = any(ss.get(f"qs_m_{m}") for m in shown if m not in Q_MONEY)
         cols = st.columns(3)
-        metrics = [m for i, m in enumerate(shown) if cols[i % 3].checkbox(m, key=f"qs_m_{m}")]
+        metrics = []
+        for i, m in enumerate(shown):
+            off = money_on if m not in Q_MONEY else wgt_on
+            if cols[i % 3].checkbox(m, key=f"qs_m_{m}", disabled=off, help=Q_MIX_HELP if off else None):
+                metrics.append(m)
     _q_label(":material/donut_large:", "차트 유형")
     chart = _q_chart_grid(Q_CHARTS, "qs_chart")
     names = [n for n in Q_COUNTRIES if n in names]
@@ -729,13 +744,19 @@ def query_panel_hs() -> dict:
 
 
 def _q_fsg_fsc(pre: str, fsc_ph: str, groups: dict[str, str],
-               fsc_of: dict[str, list[str]]) -> tuple[list[str], list[str], list[str]]:
+               fsc_of: dict[str, list[str]], check: bool = False) -> tuple[list[str], list[str], list[str]]:
     """FSG(칩 다중선택 + 전체) → FSC(고른 FSG 안의 것만, 체크박스 드롭다운). FSC 를 비우면 고른 FSG 의 FSC 전부.
     군수품 · 국산화개발 두 화면이 같이 쓴다(pre = qf_ / ql_). groups · fsc_of = 그 자료에 실제로 있는 분류만.
+    check=True 면 FSG 도 체크박스 드롭다운(목록 앞 체크박스로 고름 — 군수품 화면).
     (FSG, 사용자가 고른 FSC(비었으면 []), 조회에 쓸 FSC) — 군수품은 둘째 값이 비었는지로 집계 단위(FSG · FSC)를 정한다."""
+    fmt = lambda g: f"{g} - {groups[g]}"
     with _q_row(":material/category:", "FSG", "fsg"):
-        fsg = _q_chip_select(f"{pre}fsg", list(groups), lambda g: f"{g} - {groups[g]}", "FSG 를 검색하세요.",
-                             f"{pre}fsg_all", f"전체 FSG 선택 ({len(groups)}개)")
+        if check:
+            fsg = _q_check_select(f"{pre}fsg", list(groups), fmt, "FSG", "FSG 를 고르세요.", "FSG 코드 · 이름 검색",
+                                  f"{pre}fsg_all", f"전체 FSG 선택 ({len(groups)}개)", "전체 FSG 선택 중")
+        else:
+            fsg = _q_chip_select(f"{pre}fsg", list(groups), fmt, "FSG 를 검색하세요.",
+                                 f"{pre}fsg_all", f"전체 FSG 선택 ({len(groups)}개)")
     opts = [c for g in fsg for c in fsc_of[g]]
     with _q_row(":material/account_tree:", "FSC", "fsc"):
         fsc = _q_check_select(f"{pre}fsc", opts, lambda c: f"{c} - {FSC_NAME.get(c, '')}", "FSC", fsc_ph)
@@ -760,10 +781,10 @@ QL_SHAPES = {"막대 그래프": "행 = FSC · 열 = 지표", "도넛 그래프"
 def query_panel_fsg() -> dict:
     """군수품 FSG/FSC 조건 — 분류 단위 · FSG · FSC · 군종 · 요구연도 · 품목명 · 상세검색 · 지표 · 차트."""
     ss = st.session_state
-    st.html(_q_form_css({"qf_fsg": _q_hint("qf_fsg", "qf_fsg_all", "FSG", "전체 FSG 선택 중")}))
+    st.html(_q_form_css({}))     # FSG 는 체크박스 드롭다운(안내 문구는 드롭다운이 직접 쓴다)
     # 집계 단위는 따로 고르지 않는다 — FSC 를 비우면(= 고른 FSG 아래 전체) FSG 단위, 하나라도 고르면 FSC 단위.
     # FSG 가 FSC 의 상위 분류라 「분류 단위 FSG/FSC」 토글은 두 분류체계 중 하나를 고르는 것처럼 보여 두지 않는다
-    fsg, picked_fsc, fsc = _q_fsg_fsc("qf_", "FSC 를 고르세요 · 비우면 FSG 단위로 집계", QF_FSG, QF_FSC)
+    fsg, picked_fsc, fsc = _q_fsg_fsc("qf_", "FSC 를 고르세요 · 비우면 FSG 단위로 집계", QF_FSG, QF_FSC, check=True)
     unit = "FSC" if picked_fsc else "FSG"
     with _q_row(":material/military_tech:", "군종", "branch"), st.container(key="qf_branch_box", gap=None):
         # 한 줄에 다 두면 카드 폭이 좁아 가려져 두 줄(3 + 나머지)로 나눈다. 고른 값은 두 줄을 합친다
@@ -830,10 +851,11 @@ def _chart_frame(df: pd.DataFrame, names: list[str], primary: str) -> tuple[pd.D
 
 def query_chart(df: pd.DataFrame, q: dict) -> tuple[go.Figure, str]:
     """차트 유형에 맞춰 그린다. 금액 지표(수출액·수입액·무역수지)끼리만 한 축에 두고,
-    중량·건수는 금액이 하나도 없을 때만 그린다(단위가 달라 한 축에 섞지 않는다).
+    중량은 금액이 하나도 없을 때만 그린다(단위가 달라 한 축에 섞지 않는다) — 그때는 고른 중량을 모두 그린다.
     돌려주는 값: (PNG 로 내려받을 그림, 그래프 기준 문구 — 출처 줄에 붙인다)."""
     names, chart = q["names"], q["chart"]
-    plot_ms = [m for m in q["metrics"] if m in Q_MONEY] or q["metrics"][:1]
+    # 금액이 없으면 고른 중량을 모두(수출중량 · 수입중량은 같은 톤 단위라 한 축에 같이 둔다)
+    plot_ms = [m for m in q["metrics"] if m in Q_MONEY] or q["metrics"]
     primary = plot_ms[0]
     unit = Q_UNIT[primary]
     n_all = len(names)

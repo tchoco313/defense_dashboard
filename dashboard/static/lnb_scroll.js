@@ -14,6 +14,18 @@ export default function (component) {
       if (p && s) p.textContent = s
     }
     window.__kdLnbSetOn = setOn
+    // 맨 위로 단추(.kd-top) — 본문 스크롤 칸(stMain)을 맨 위로 올린다. 300px 넘게 내려갔을 때만 보인다
+    const mainEl = () => document.querySelector('[data-testid="stMain"]')
+    const showTop = () => {
+      const b = document.querySelector(".kd-top"), m = mainEl()
+      if (b && m) b.classList.toggle("show", m.scrollTop > 300)
+    }
+    document.addEventListener("scroll", showTop, true)
+    document.addEventListener("click", e => {
+      if (!(e.target.closest && e.target.closest(".kd-top"))) return
+      const m = mainEl()
+      if (m) m.scrollTo({ top: 0, behavior: "smooth" })
+    }, true)
     document.addEventListener("click", e => {
       const a = e.target.closest && e.target.closest("a.lnb-a")
       const el = a && subOf(a.dataset.sub)

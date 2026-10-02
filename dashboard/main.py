@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import base64
+import re
 import contextlib
 import json
 import math
@@ -37,7 +38,7 @@ SCREENS_DIR = APP_DIR / "screens"
 for _p in (str(APP_DIR), str(SCREENS_DIR)):
     if _p not in sys.path:
         sys.path.insert(0, _p)
-from weapon_context import CASES, SYSTEMS  # noqa: E402  소개 「어디에 쓰이나」 — 무기체계 분류 · 공개 사례
+from weapon_context import CASE_CLASS, CASES, SYSTEMS  # noqa: E402  소개 「어디에 쓰이나」 — 무기체계 분류 · 공개 사례
 
 # CSS · JS · 인트로 HTML 은 static/ 파일에 둔다. CSS 안의 ${이름} 자리는 불러올 때 파이썬 값(색 · 폭 등)으로 채운다
 STATIC_DIR = APP_DIR / "static"
@@ -369,6 +370,17 @@ def main_landing() -> None:
                 st.page_link(page_of["background"][0], label="데이터 출처", icon=":material/folder_open:",
                              query_params={"sec": "source"})
 
+    # 6) 기관 로고 5개(최종 포트폴리오 첫 장과 같은 것 · assets/logos — 흰 바탕만 걷어낸 투명 PNG, 색 · 모양은 원본 그대로).
+    #    로고별 크기 = 「글씨 높이를 같게」 한 크기와 「잉크량(눈에 보이는 무게)을 같게」 한 크기의 기하평균. 한화 35px 를 1 로 두면
+    #    에이콘 0.61 · 국방기술학회 0.59 · 고용노동부 0.98 · 모빌린트 0.83 — 포트폴리오 첫 장의 비율과 3% 안팎으로 맞는다.
+    #    dy 는 잉크의 무게중심(세로)을 한 줄에 맞추는 값
+    st.html('<div class="mlg">' + "".join(
+        f'<img alt="{alt}" style="height:{h}px;transform:translateY({dy}px)" src="data:image/png;base64,'
+        f'{base64.b64encode((APP_DIR / "assets" / "logos" / f"{name}.png").read_bytes()).decode()}">'
+        for name, alt, h, dy in (("moel", "고용노동부", 34.3, -1.2), ("hanwha_aerospace", "한화에어로스페이스", 35.0, 0.2),
+                                 ("mobilint", "모빌린트", 29.1, -4.4), ("kidet", "한국국방기술학회", 20.7, 0.7),
+                                 ("acorn_academy", "에이콘아카데미 홍대학원", 21.4, 0.4))) + '</div>')
+
 
 # 왼쪽 메뉴(스크롤형) — 소분류 링크(a.lnb-a)를 누르면 페이지를 다시 열지 않고 그 소분류 칸(.st-key-sub_*)으로 부드럽게
 # 스크롤한다. 스크롤하면 지금 보이는 소분류를 ✓(.on) 로 · 위쪽 경로(.crumb b)도 그 이름으로 바꾼다.
@@ -404,6 +416,12 @@ def _mk_css() -> None:
         st.html(STORY_CSS + '<i class="mk-mark"></i>')
 
 
+def _punct(text: str, mark: str = ".") -> str:
+    """문장 끝에 문장부호가 없으면 붙인다(태그는 빼고 본다) — 「Q.」 상자의 질문은 물음표, 답 · 설명 문장은 마침표."""
+    plain = re.sub(r"<[^>]+>", "", text).rstrip()
+    return text if not plain or plain[-1] in ".?!…" else text.rstrip() + mark
+
+
 def story_screen(key: str, title: str, question: str, message: str, notes: tuple = (), extra: str = "", head=None,
                  tail=None) -> None:
     """소분류 한 화면 — 질문 · 답 한 상자 · (설명 재료 extra) · 읽을 때 주의. head = 제목 줄 바로 다음에 부를 함수(제목 옆 링크 단추 등),
@@ -411,7 +429,7 @@ def story_screen(key: str, title: str, question: str, message: str, notes: tuple
     for _ in zone(key, title):
         if head:
             head()
-        st.html(f'<div class="mk-msg"><div class="q"><i>Q.</i>{question}</div><div class="a">{message}</div></div>')
+        st.html(f'<div class="mk-msg"><div class="q"><i>Q.</i>{_punct(question, "?")}</div><div class="a">{_punct(message)}</div></div>')
         if extra:
             st.html(extra)
         if notes:
@@ -428,12 +446,13 @@ _FUNCS = [("radar", "탐지", "레이더 · 전자광학으로 표적을 찾고 
 
 
 def _why_elec() -> None:
-    cards = "".join(f'<div class="mk-card"><span class="ms">{ic}</span><h4>{n}</h4><p>{d}</p>'
-                    f'<p style="margin-top:6px"><small>맡는 부품</small>{p}</p></div>' for ic, n, d, p in _FUNCS)
+    # 카드 구조는 「부품이 하는 일」(_use_role)과 같게 — 위쪽(아이콘 · 이름 · 하는 일)은 4px 올리고 아래 「맡는 부품」과 14px 띄운다
+    cards = "".join(f'<div class="mk-card"><span class="ms" style="display:block;margin-top:-4px">{ic}</span><h4>{n}</h4><p>{d}</p>'
+                    f'<p style="margin-top:14px"><small>맡는 부품</small>{p}</p></div>' for ic, n, d, p in _FUNCS)
     story_screen(
         "elec", "왜 전자부품인가",
         "무기체계에서 전자부품은 무슨 일을 하나",
-        "무기체계의 눈 · 귀 · 두뇌(탐지 · 통신 · 항법 · 제어)는 전자부품이 맡는다. 그런데 무기체계에 들어가는 반도체의 대부분을 해외에서 들여온다.",
+        "무기체계의 핵심은 전자부품이 맡는다. 그러나 무기체계에 들어가는 반도체의 대부분을 해외에서 들여온다.",
         extra=f'<div class="mk-cards">{cards}</div>',
         notes=("「반도체 98.9% 해외 도입」은 국방반도체 발전전략(2024-11)이 인용한 2023-12 조사 값 — 팀 계산값 아님 · 분모 기준 미확인",))
 
@@ -463,10 +482,10 @@ def _why_select() -> None:
         for i, ((name, n), w, sub) in enumerate(zip(steps, widths, (
             "방위사업청 국외 조달계획(품목)", "재고번호(NSN) 앞 4자리가 군급 — 없으면 분류할 수 없다",
             "「9999」는 기타 품목 — 군급으로 나눌 수 없어 뺀다", "분석 대상 — 군 58 · 59 · 60에 속한 군급"))))
-    fsc_block = (f'<div class="mk-grp" style="margin:64px 0 12px;font-size:19px;color:{GREEN_D}">군수품 분류 — 군급(FSC)'
+    fsc_block = (f'<div class="mk-grp" style="margin:64px 0 12px;font-size:19px;color:#111">군수품 분류 — 군급(FSC)'
                  '<span style="font-size:14.5px;margin-left:10px">국외 조달계획 · 국산화 현황은 이 분류로 본다</span></div>'
                  + (f'<div class="mk-funnel">{fsc_funnel}</div>' if steps else ""))
-    funnel = ('<div class="mk-grp" style="margin:6px 0 12px;font-size:19px">무역 통계 분류 — HS'
+    funnel = ('<div class="mk-grp" style="margin:6px 0 12px;font-size:19px;color:#111">무역 통계 분류 — HS'
               '<span style="font-size:14.5px;margin-left:10px">전자부품 현황은 이 분류로 본다</span></div>') + funnel + fsc_block
 
     def code_links() -> None:
@@ -490,7 +509,7 @@ def _why_select() -> None:
     story_screen(
         "select", "어떻게 골랐나",
         "1,003개 품목 중 왜 이 13개인가",
-        "무역 통계의 공식 분류(HS)에서 군용 · 항공 · 항행 전용으로 나뉜 품목만 골랐다 — 팀이 임의로 고른 것이 아니다. "
+        "무역 통계의 공식 분류(HS)에서 군용 · 항공 · 항행 전용으로 나뉜 품목만 골랐다. "
         "군수품 쪽은 군급분류(FSC)에서 전자 관련 군 58 · 59 · 60만 골랐다.",
         extra=funnel, head=code_links, tail=hs_vs_fsc,
         notes=("HS 품목과 군급(FSC)을 잇는 공식 연계표가 없어 R4(국산화개발품목 FSC 대응)는 규칙에서 뺐다",
@@ -504,9 +523,10 @@ def _why_items() -> None:
                ["852610", "852910", "852990", "852691", "901410", "901420", "901480", "901490"]),
               ("소재장비", "전자부품은 아님 — 항공기 · 엔진 부품", ["841191", "880730"])]
     html = ""
-    for g, sub, hss in groups:
+    for i, (g, sub, hss) in enumerate(groups):
         warn = " warn" if g == "소재장비" else ""
-        html += (f'<div class="mk-grp" style="margin:10px 0 12px;font-size:19px">{g} {len(hss)}개'      # 묶음 제목 — 크게(색은 기본)
+        top = 10 if i == 0 else 40      # 묶음 사이는 넉넉히 띄운다(앞 묶음 카드 아래 여백 16px + 40px)
+        html += (f'<div class="mk-grp" style="margin:{top}px 0 12px;font-size:19px;color:#111">{g} {len(hss)}개'      # 묶음 제목 — 크게 · 검정
                  f'<span style="font-size:14.5px;margin-left:10px">{sub}</span></div><div class="mk-cards">'
                  + "".join(f'<div class="mk-card{warn}"><small>HS {hs} · {SYSTEM_FAMILY[hs]}</small><h4>{name[hs]}</h4>'
                            f'<p>{escape(DEFENSE_USE_KO[hs])}</p></div>' for hs in hss) + '</div>')
@@ -524,19 +544,21 @@ _ROLE = [("memory", "반도체 3개", "신호 처리 · 사격통제 · 항전 �
 
 
 def _use_role() -> None:
-    cards = "".join(f'<div class="mk-card"><span class="ms">{ic}</span><h4>{n}</h4><p>{d}</p>'
-                    f'<p style="margin-top:6px"><small>주로 쓰이는 무기체계 분야</small>{s}</p></div>' for ic, n, d, s in _ROLE)
+    # 위쪽(아이콘 · 이름 · 하는 일)은 4px 위로 올리고, 아래 「주로 쓰이는 무기체계 분야」와는 6 → 14px 로 띄운다
+    cards = "".join(f'<div class="mk-card"><span class="ms" style="display:block;margin-top:-4px">{ic}</span><h4>{n}</h4><p>{d}</p>'
+                    f'<p style="margin-top:14px"><small>주로 쓰이는 무기체계 분야</small>{s}</p></div>' for ic, n, d, s in _ROLE)
     story_screen(
         "role", "부품이 하는 일",
         "13개 품목군은 무기체계의 어떤 기능을 맡나",
-        "반도체는 두뇌, 레이더 · 통신 부분품은 눈과 귀, 항법 기기는 길잡이 — 모두 무기체계의 핵심 기능이다.",
+        "반도체는 신호 처리와 제어를, 레이더 · 통신 부분품은 탐지와 통신을, 항법 기기는 위치와 자세 측정을 맡는다 — 모두 무기체계의 핵심 기능이다.",
         extra=f'<div class="mk-cards" style="grid-template-columns:repeat(3,minmax(0,1fr))">{cards}</div>',
         notes=("부품 종류의 일반적인 쓰임이다 — 특정 무기체계의 부품 목록(BOM)이나 수입 품목의 실제 사용처가 아니다",))
 
 
 def _use_sys() -> None:
     cards = "".join(f'<div class="mk-card"><small>{c}</small><h4>{n}</h4><p>{d}</p>'
-                    f'<p style="margin-top:6px;font-size:12px">{ex}</p></div>' for c, n, d, ex in SYSTEMS)
+                    f'<p style="margin-top:6px;font-size:11px;color:#4978c4;font-weight:700">{ex}</p></div>'      # 예시 줄 — 위 코드(W01)와 같은 색, 한 단계 얇게
+                    for c, n, d, ex in SYSTEMS)
     story_screen(
         "sys", "무기체계 분류",
         "우리나라는 무기체계를 어떻게 나누나",
@@ -546,14 +568,18 @@ def _use_sys() -> None:
 
 
 def _use_cases() -> None:
-    cards = "".join(f'<div class="mk-card"><small>{f} · {co}</small><h4>{sysn}</h4><p>{stt} · {when}<br>{desc}</p>'
-                    f'<a href="{link}" target="_blank" rel="noopener">공식 발표 보기 ↗</a></div>'
+    # 상자 전체가 공식 발표 링크(새 탭) — 오른쪽 위 아이콘은 홈 「주요 발표」 목록과 같은 open_in_new.
+    # 오른쪽 아래 파란 작은 글씨 = 그 사례가 속한 무기체계 대분류(CASE_CLASS — 분류를 정할 수 없는 부품 사례에는 없다)
+    cards = "".join(f'<a class="mk-card mk-link" href="{link}" target="_blank" rel="noopener" title="공식 발표 새 탭으로 열기">'
+                    f'<i class="ms mk-ext">open_in_new</i><small>{f} · {co}</small><h4>{sysn}</h4>'
+                    f'<p>{stt} · {when}<br>{desc}</p>'
+                    + (f'<em class="mk-cls">{CASE_CLASS[sysn]}</em>' if sysn in CASE_CLASS else "") + '</a>'
                     for f, co, sysn, stt, when, desc, link in CASES)
     story_screen(
         "cases", "공개 사례",
         "국산 전자부품 · 무기체계는 실제로 어디까지 왔나",
         "KF-21 레이다, 항재밍 수신기처럼 국산 전자부품이 양산 · 수출까지 이어진 사례가 나오고 있다.",
-        extra=f'<div class="mk-cards">{cards}</div>',
+        extra=f'<div class="mk-cards mk-cases">{cards}</div>',
         notes=("각 사례는 기업 · 기관의 공개 발표다 — 분석 대상 13개 품목의 수입 · 조달 자료와 연결하지 않는다",))
 
 
@@ -606,23 +632,27 @@ _SEE = {"slot": None, "q": None, "used": False}
 
 def _lead_v2(text: str, sub: str = "") -> None:
     """결론 상자(P.lead) — 소분류의 첫 결론 상자 윗줄에 질문을 넣는다(질문 · 답 한 상자). 둘째부터는 결론만."""
-    q = "" if _SEE["used"] or not _SEE["q"] else f'<div class="q"><i>Q.</i>{escape(_SEE["q"])}</div>'
+    q = "" if _SEE["used"] or not _SEE["q"] else f'<div class="q"><i>Q.</i>{_punct(escape(_SEE["q"]), "?")}</div>'
     _SEE["used"] = _SEE["used"] or bool(q)
-    st.html(f'<div class="pg-lead">{q}<p>{text}</p>' + (f"<span>{sub}</span>" if sub else "") + "</div>")
+    if sub and re.sub(r"<[^>]+>", "", sub).rstrip().endswith(("다", "요")):     # 아랫줄은 문장일 때만 마침표(「건 · 계약 방법별」 같은 표기 줄은 그대로)
+        sub = _punct(sub)
+    st.html(f'<div class="pg-lead">{q}<p>{_punct(text)}</p>' + (f"<span>{sub}</span>" if sub else "") + "</div>")
 
 
 def _see_v2(what: str, source: str) -> None:
     # 출처 줄은 보이지 않는다 — 소개 페이지처럼 제목 줄 바로 아래에서 본문이 시작한다
     q = _SEE["q"]
-    if q and not _SEE["used"]:            # 결론 상자가 없는 화면 — 맨 위 「Q. 질문」 줄만
-        body = f'<div class="see q"><b>Q.</b><span>{escape(q)}</span></div>'
+    if q and not _SEE["used"]:            # 결론 상자가 없는 화면 — 같은 모양의 상자에 「Q. 질문」 줄만
+        body = f'<div class="pg-lead"><div class="q"><i>Q.</i>{_punct(escape(q), "?")}</div></div>'
     else:                                 # 질문은 결론 상자 안에 들어갔다 — 자리를 접는다(.see.none, 빈 칸 · 간격도 없앰)
         body = '<div class="see none"></div>'
     (_SEE["slot"] or st).html(body)
 
 
+@st.fragment
 def _detail_v2(kind: str, sub: str) -> None:
-    """상세 조회 — 「조건을 골라 … 내려받습니다」 설명 줄 없이 도구만."""
+    """상세 조회 — 「조건을 골라 … 내려받습니다」 설명 줄 없이 도구만.
+    fragment 라 조건 칸을 눌러도 이 도구만 다시 그린다(같은 페이지의 다른 소분류 차트는 그대로)."""
     import parts as screen_parts
     runpy.run_path(str(screen_parts.VIZ), init_globals={"FIXED_TYPE": kind}, run_name="datacenter_viz")
 
@@ -911,7 +941,9 @@ if not LANDING:
                                               "labels": dict(nav_secs),
                                               "banner": {k: BANNER.get((url, k), t) for k, t in nav_secs}})
             st.html('<div class="lnb-help"><b>이렇게 보세요</b><ul>' + "".join(f"<li><em>{h}</em>{t}</li>" for h, t in LNB_TIPS[url])
-                    + '</ul></div>')
+                    + '</ul></div>'
+                    # 맨 위로 — 화면 오른쪽 가운데보다 조금 아래에 떠 있는 네모 단추(조금 내려가면 나타난다 · 동작은 lnb_scroll.js)
+                    '<button class="kd-top" type="button" aria-label="맨 위로" title="맨 위로"><span class="ms">arrow_upward</span><em>TOP</em></button>')
         with st.container(key="main"):
             # 홈 아이콘은 링크 — 누르면 Main(첫 화면)으로 간다(로고 링크와 같은 곳)
             with st.container(key="crumb", horizontal=True, horizontal_alignment="right", vertical_alignment="center"):
@@ -943,12 +975,13 @@ with st.container(key="ft", horizontal=True):
                 ' — ' + " ".join(n.replace(k, f'<b style="color:#7cc4ff;font-weight:inherit">{k}</b>', 1) for n, k in (
                     ("김훈희", "훈"), ("강지수", "수"), ("안태호", "안"), ("이동현", "이"), ("조수아", "조")))
                 + ' · 2026 한화 머신러닝 엔지니어 팀 프로젝트</div>')
-    st.html('<details class="ft-rel"><summary>관련 사이트 바로가기</summary>'
+    # 목록(.ft-rel-list)은 단추 위쪽으로 펼쳐진다 — 바닥글이 화면 맨 아래라 아래로 펼치면 잘리거나 스크롤이 생긴다
+    st.html('<details class="ft-rel"><summary>관련 사이트 바로가기</summary><div class="ft-rel-list">'
             '<a href="https://unipass.customs.go.kr/ets/" target="_blank">관세청 수출입무역통계</a>'
             '<a href="https://www.dapa.go.kr" target="_blank">방위사업청</a>'
             '<a href="https://kosis.kr" target="_blank">KOSIS 국가통계포털</a>'
             '<a href="https://www.openfiscaldata.go.kr" target="_blank">열린재정</a>'
-            '<a href="https://www.data.go.kr" target="_blank">공공데이터포털</a></details>', width="content")
+            '<a href="https://www.data.go.kr" target="_blank">공공데이터포털</a></div></details>', width="content")
 
 # ── 화면이 바뀌면 맨 위로 ──────────────────────────────────────────────────
 # st.html 은 스크립트를 돌리지 않아, 보이지 않는 components.html 안에서 바깥 화면(window.parent)을 다룬다.

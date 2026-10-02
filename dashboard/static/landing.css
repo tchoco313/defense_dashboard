@@ -150,3 +150,7 @@ div[class*="st-key-mc_"]:hover [data-testid="stPageLink"] a [data-testid="stIcon
 .st-key-mb_go [data-testid="stPageLink"] a:hover{background:#eaf1ff}
 .st-key-landing,.st-key-zone_main{gap:0!important;margin:0!important}
 .st-key-main_css,[data-testid="stLayoutWrapper"]:has(> .st-key-main_css){display:none!important}   /* CSS 담는 칸 — 자리 차지 없음 */
+/* 기관 로고 줄 — 「데이터 출처」와 바닥글 사이. 흰 바탕에 원래 색 그대로, 가운데로 모아 한 줄(좁으면 줄바꿈). 구분선 없음.
+   위 여백은 두지 않고 15px 더 끌어올린다 — 위 구역(.st-key-mb)의 아래 여백 중 GUIDE 상자 밑 27px 에서 12px 만 남는다 */
+.mlg{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:24px 52px;padding:0 __PAD__ 52px;margin-top:-15px;background:transparent;position:relative}
+.mlg img{display:block;width:auto;max-width:none}
