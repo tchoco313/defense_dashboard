@@ -75,7 +75,8 @@ with P.card("bud"):
                              customdata=[won(v) for v in wide[t]],
                              hovertemplate=f"{t} · %{{x}}년 %{{customdata}}<extra></extra>"))
     fig.update_layout(barmode="stack", height=320)
-    fig.update_xaxes(dtick=1)
+    yrs = [int(y) for y in wide.index]             # 연도 눈금은 막대마다 하나씩 직접 적는다 — 간격만 주면(dtick=1) 마지막 해 숫자가 빠져 보였다
+    fig.update_xaxes(tickmode="array", tickvals=yrs, ticktext=[str(y) for y in yrs], range=[yrs[0] - .6, yrs[-1] + .6])
     top = float(wide[order].sum(axis=1).max())                    # 세로축 눈금도 조 단위로(10,000억 = 1조)
     step = 10000 if top <= 80000 else 20000
     ticks = list(range(0, int(top) + step, step))

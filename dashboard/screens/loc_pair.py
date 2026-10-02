@@ -30,7 +30,7 @@ P.lead(f'국외 조달계획 건이 가장 많은 군급코드는 <span class="k
        "두 자료는 같은 군급 축에 나란히 놓았을 뿐 연결하거나 비율로 계산하지 않습니다")
 
 with P.card("pair"):
-    P.title(f"{plan_period}년도 군급별 국외 조달계획 · 국산화 완료",
+    P.title(f"{plan_period}년 군급별 국외 조달계획 · 국산화 완료",
             f"왼쪽 = 국외 조달계획(건, 요구연도 {plan_period}) · 오른쪽 = 국산화 완료 부품(개, 스냅샷) · 두 값의 합이 큰 군급 {len(codes)}개(전체 {len(both)}개)")
     ys = [f"{c} {fsc_name.get(c, '')}"[:24] for c in codes]
     fig = go.Figure()

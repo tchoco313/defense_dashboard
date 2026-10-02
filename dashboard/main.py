@@ -917,6 +917,10 @@ LANDING = _SEC["landing"]
 if LANDING:
     with st.container(key="landing"):
         pg.run()
+    # 맨 위로 단추 — 다른 페이지와 같은 단추 · 같은 동작(lnb_scroll.js). Main 에는 왼쪽 메뉴가 없어 스크립트를 여기서 따로 싣는다
+    with st.container(key="lnbjs"):
+        _LNB(key="lnb_scroll", data={"go": None, "labels": {}, "banner": {}})
+    st.html('<button class="kd-top" type="button" aria-label="맨 위로" title="맨 위로"><span class="ms">arrow_upward</span><em>TOP</em></button>')
 
 # ── 서브 배너 ───────────────────────────────────────────────────────────
 if not LANDING:

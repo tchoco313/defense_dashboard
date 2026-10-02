@@ -38,21 +38,11 @@ div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSelectbox"] 
 div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSelectbox"] div[role="group"]:hover,div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSelectbox"] div[role="group"]:focus-within{border-color:#1d4ed8}
 div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSelectbox"] input{font-weight:700;color:#12234a}
 div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSelectbox"] div[role="group"] button{color:#1d4ed8}
-/* 범위 막대(요구연도) — 이름표는 위 단추 이름표와 같은 모양(파란 세로 막대 + 굵은 글씨), 막대 · 손잡이 · 값 글씨는 남색(테마 기본색) 대신 같은 파랑(#1d4ed8).
-   채운 구간은 Streamlit 이 그라디언트로 칠한다(자리 값이 그 안에 있어 통째로 덮어쓸 수 없고, 고르지 않은 구간은 반투명 회색이라 바탕색을 깔면 비쳐 보인다)
-   — 그 막대는 건드리지 않고, 두 손잡이 사이에만 같은 굵기의 파란 막대를 덧그린다(손잡이 자리에 묶는 anchor 위치 지정. 지원하지 않는 브라우저는 남색 그대로) */
-div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] > [data-testid="stWidgetLabel"]{min-height:0;margin:0 0 8px;padding:0;align-items:center;gap:8px}
-div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] > [data-testid="stWidgetLabel"]::before{content:"";flex:0 0 4px;width:4px;height:16px;border-radius:2px;background:#1d4ed8}
-div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] > [data-testid="stWidgetLabel"] p{font-size:17px;font-weight:800;color:#12234a;letter-spacing:-.3px;white-space:nowrap}
-@supports (anchor-name: --a){
-div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] div:has(> [data-testid="stSliderThumbValue"]){z-index:1}
-div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] div:has(> [data-testid="stSliderThumbValue"]):nth-child(2){anchor-name:--kd-yr-a}
-div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] div:has(> [data-testid="stSliderThumbValue"]):nth-child(3){anchor-name:--kd-yr-b}
-div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] div:has(> div > [data-testid="stSliderThumbValue"])::after{content:"";position:absolute;
-  left:anchor(--kd-yr-a left);right:anchor(--kd-yr-b left);top:50%;height:.25rem;transform:translateY(-50%);background:#1d4ed8;pointer-events:none}
-}
-div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] div:has(> [data-testid="stSliderThumbValue"]){background-color:#1d4ed8!important}
-div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] [data-testid="stSliderThumbValue"],div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] [data-testid="stSliderThumbValue"] *{color:#1d4ed8!important;font-weight:700}
+/* 요구연도(시작 ~ 끝 선택창) — 둘째 선택창은 이름표가 없어 첫째와 아래를 맞춘다. 연도 칸은 기본(44px)보다 낮게 34px, 가운데 물결표는 그 높이 가운데 */
+.st-key-p23_y0 [data-testid="stSelectbox"] div[role="group"],.st-key-p23_y1 [data-testid="stSelectbox"] div[role="group"]{height:34px!important;min-height:34px!important}
+.st-key-p23_y0 [data-testid="stSelectbox"] div[role="group"] *,.st-key-p23_y1 [data-testid="stSelectbox"] div[role="group"] *{min-height:0!important;max-height:32px}
+.st-key-p23_y0 [data-testid="stSelectbox"] div[role="group"] > *,.st-key-p23_y1 [data-testid="stSelectbox"] div[role="group"] > *{padding-top:0!important;padding-bottom:0!important}
+.kd-yr-tilde{text-align:center;font-size:18px;font-weight:700;color:#6b7a99;line-height:34px}
 /* 품목군 옆 수입/수출 단추 — 조금 오른쪽으로. 수출입 현황은 선택창(높이 44px)이 단추(35px)보다 커서, 아래를 맞춘 단추를 4.5px 올려 세로 가운데를 맞춘다 */
 .st-key-zone_trade [data-testid="stColumn"]:has(button[data-variant="segmented_control"]) [data-testid="stButtonGroup"],.st-key-zone_conc [data-testid="stColumn"]:has(button[data-variant="segmented_control"]) [data-testid="stButtonGroup"]{margin-left:18px}
 .st-key-zone_trade [data-testid="stColumn"]:has(button[data-variant="segmented_control"]) [data-testid="stButtonGroup"]{transform:translateY(-4.5px)}
