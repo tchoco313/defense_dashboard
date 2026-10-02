@@ -30,15 +30,23 @@ FSGS = ["58", "59", "60"]                    # 전자 관련 군 — clean.is_el
 FSG_COLOR = {"58": SERIES[0], "59": SERIES[1], "60": SERIES[2]}
 ARMY_COLOR = {"육군": SERIES[0], "해군": SERIES[1], "공군": SERIES[2], "해병대": SERIES[3], "국직": SERIES[4], "미확인": ETC}
 PROD_NAME = {"C261": "반도체", "C262": "전자 부품", "C264": "통신 · 방송장비"}   # 광공업생산지수 산업(KSIC) — 짧은 이름
-# 출처 표에 싣는 자료 — 키 → 쓰인 곳(메뉴). 1만 건 요건 2종은 관세청 · 국산화개발품목
+# 출처 표에 싣는 자료 — 키 → 쓰인 곳(지금 메뉴 이름: 대분류(소분류)). 1만 건 요건 2종은 관세청 · 국산화개발품목.
+# 메뉴를 바꾸면 여기도 맞춘다(10-02: 번호 메뉴 → 지금 이름, 국내 계약 · 입찰은 군급 분류와 조달로, 국내 생산 현황은 메뉴에서 뺌)
 SOURCE_USE = {
-    "customs_all": "① 부품 현황 · 1만 건 요건", "customs_hs_code_master": "① 품목 선정",
-    "dapa_overseas_plan_api": "② 군급 분류와 조달 · ③", "dapa_fsc_catalog": "② · ③ 군급 이름",
-    "dapa_localized_item": "③ 국산화 현황 · 1만 건 요건", "dapa_overseas_plan": "④ 정책 · 예산 배경",
-    "openfiscal_program_budget": "④ 정책 · 예산 배경", "semi_strategy": "④ 정책 흐름 · 인용 수치",
-    "kosis_utilization": "④ 국내 생산 기반", "kosis_production_index": "④ 국내 생산 기반",
-    "dapa_defense_company": "④ 국내 생산 기반", "dapa_contract": "④ 국내 조달(부록)",
-    "dapa_bid_notice": "④ 국내 조달(부록)", "dapa_bid_result": "④ 국내 조달(부록)",
+    "customs_all": "전자부품 현황 · 1만 건 요건",
+    "customs_hs_code_master": "소개(어떻게 골랐나) · 전자부품 현황(HS코드란 · 상세 조회)",
+    "dapa_overseas_plan_api": "군급 분류와 조달 · 국산화 현황(군급 국산화 현황) · 소개(어떻게 골랐나)",
+    "dapa_fsc_catalog": "군급 분류와 조달 · 국산화 현황 — 군급 이름",
+    "dapa_localized_item": "국산화 현황 · 1만 건 요건",
+    "dapa_overseas_plan": "배경과 자료(정책과 예산)",
+    "openfiscal_program_budget": "배경과 자료(정책과 예산)",
+    "semi_strategy": "배경과 자료(정책과 예산 · 인용 수치)",
+    "kosis_utilization": "쓰는 화면 없음(국내 생산 현황 메뉴 제외)",
+    "kosis_production_index": "쓰는 화면 없음(국내 생산 현황 메뉴 제외)",
+    "dapa_defense_company": "쓰는 화면 없음(국내 생산 현황 메뉴 제외)",
+    "dapa_contract": "군급 분류와 조달(국내 계약 · 입찰)",
+    "dapa_bid_notice": "군급 분류와 조달(국내 계약 · 입찰) · 데이터 출처와 검증(공고 ↔ 결과 대조)",
+    "dapa_bid_result": "군급 분류와 조달(국내 계약 · 입찰) · 데이터 출처와 검증(공고 ↔ 결과 대조)",
 }
 # 대분류별 「자료 기준」 줄 — (이름, 데이터셋 키, 표)
 STAMPS = {
@@ -368,7 +376,7 @@ def domestic() -> dict:
 
 @st.cache_data(ttl=TTL, show_spinner=False)
 def sources() -> pd.DataFrame:
-    """출처 표 — 이 화면들이 쓰는 자료만(SOURCE_USE), 기관 · 데이터명 · 데이터 ID · 원본 건수 · 자료 기간 · 쓰인 곳."""
+    """출처 표 — 이 화면들이 쓰는 자료만(SOURCE_USE), 기관 · 데이터명 · 원본 건수 · 자료 기간 · 쓰인 곳(화면에 데이터 ID 열은 두지 않는다)."""
     df = query("""SELECT dataset_key, tier, provider, dataset_id, title, period_start, period_end, is_partial_period, raw_row_count
                   FROM meta_dataset WHERE dataset_key IN :k""", {"k": list(SOURCE_USE)})
     order = {k: i for i, k in enumerate(SOURCE_USE)}

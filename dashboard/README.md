@@ -17,7 +17,7 @@ streamlit run dashboard/main.py
 | 전자부품 현황 | `/parts` | 종합 현황표 `screens/parts_summary.py` · 수출입 현황 `parts_trade` · 공급국 집중도 변화 `parts_conc` · 상세 조회 `parts_detail` |
 | 군급 분류와 조달 | `/fsc` | 군급코드란 `fsc_code` · 군급별 국외 조달계획 `fsc_plan` · 소요군별 `fsc_army` · 국내 계약 · 입찰 `bg_domestic` · 상세 조회 `fsc_detail` |
 | 국산화 현황 | `/local` | 국산화 완료 부품 `loc_done` · 군급 국산화 현황 `loc_pair` · 상세 조회 `loc_detail` |
-| 배경과 자료 | `/background` | 정책과 예산 `bg_policy` · 국내 생산 현황 `bg_industry` · 데이터 출처와 검증 `bg_source` |
+| 배경과 자료 | `/background` | 정책과 예산 `bg_policy` · 데이터 출처와 검증 `bg_source` |
 
 공용 모듈: `main.py`(진입점 — 틀 · 홈 · 소개 · 메뉴) · `screens/parts.py`(소분류 화면 공통 조각 — 카드 · KPI · 차트 · 출처) · `screens/rds.py`(소분류 화면의 조회 한 곳) · `screens/menu.py`(소분류 화면의 「다음」 연결) · `db.py`(조회 · 캐시 1시간) · `metrics.py`(지표 계산) · `kdesign.py`(본문 디자인 · 차트 공통) · `ui.py`(공용 화면 요소) · `live.py`(관세청 원천 최신 월 확인) · `datacenter_viz.py`(상세 조회 도구 — `screens/parts.py` 의 detail 이 자료 유형 하나로 고정해 실행).
 
