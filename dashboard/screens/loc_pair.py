@@ -16,7 +16,10 @@ SOURCE = "방위사업청 · 국외 조달계획(품목) · 국산화개발품�
 TOP = 15
 
 fsc_name = R.fsc_names()
-plan = R.plan().groupby("fsc4").size().to_dict()
+plan_rows = R.plan()
+year_start, year_end = int(plan_rows["year"].min()), int(plan_rows["year"].max())
+plan_period = str(year_start) if year_start == year_end else f"{year_start}~{year_end}"
+plan = plan_rows.groupby("fsc4").size().to_dict()
 loc = R.loc().set_index("fsc4")["parts"].astype(int).to_dict()
 both = sorted(set(plan) | set(loc), key=lambda c: -(plan.get(c, 0) + loc.get(c, 0)))
 codes = both[:TOP]
@@ -27,8 +30,8 @@ P.lead(f'국외 조달계획 건이 가장 많은 군급코드는 <span class="k
        "두 자료는 같은 군급 축에 나란히 놓았을 뿐 연결하거나 비율로 계산하지 않습니다")
 
 with P.card("pair"):
-    P.title("군급별 국외 조달계획 · 국산화 완료",
-            f"왼쪽 = 국외 조달계획(건) · 오른쪽 = 국산화 완료 부품(개) · 두 값의 합이 큰 군급 {len(codes)}개(전체 {len(both)}개)")
+    P.title(f"{plan_period}년도 군급별 국외 조달계획 · 국산화 완료",
+            f"왼쪽 = 국외 조달계획(건, 요구연도 {plan_period}) · 오른쪽 = 국산화 완료 부품(개, 스냅샷) · 두 값의 합이 큰 군급 {len(codes)}개(전체 {len(both)}개)")
     ys = [f"{c} {fsc_name.get(c, '')}"[:24] for c in codes]
     fig = go.Figure()
     fig.add_trace(go.Bar(y=ys, x=[-plan.get(c, 0) for c in codes], orientation="h", name="국외 조달계획(건)",
