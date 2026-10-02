@@ -194,6 +194,32 @@ def ranks(hs: str, flow: str, codes: tuple[str, ...]) -> pd.DataFrame:
     return df
 
 
+def _set_years(hs: list[str], flow: str) -> tuple[pd.DataFrame, str]:
+    """여러 품목군(전체 · 상위 5)의 완결 연도 행 — 국가별 금액을 품목군끼리 합치기 전 원재료."""
+    t = trade()
+    return t[t["hs6"].isin(hs) & t["year"].isin(full_years())], ("imp_dlr" if flow == "imp" else "exp_dlr")
+
+
+def hhi_years_set(hs: list[str], flow: str) -> pd.DataFrame:
+    """여러 품목군 합계의 연도별 HHI · 1위국 — hhi_years 와 같은 열. 해마다 국가별 금액을 품목군끼리 합친 뒤 점유율
+    (metrics.concentration 규칙 — 1-1 기간 합계 HHI와 같은 계산을 한 해씩). 품목군 하나면 hhi_years(DB 뷰)를 쓴다."""
+    d, col = _set_years(hs, flow)
+    c = concentration(d.assign(hs6=d["year"].astype(str)), col)   # 연도를 「묶음」 키로 — 연도마다 한 줄
+    out = pd.DataFrame({"year": c["hs6"].astype(int), "hhi": c["hhi"], "top1_stat_cd": c["top1_stat_cd"],
+                        "top1_share": c["top1_share"]})
+    return out.sort_values("year").reset_index(drop=True)
+
+
+def ranks_set(hs: list[str], flow: str, codes: tuple[str, ...]) -> pd.DataFrame:
+    """여러 품목군 합계에서 고른 국가들의 연도별 순위(1 = 가장 큼) — ranks 와 같은 열(year · stat_cd · rnk · share).
+    실적 > 0 인 국가끼리 순위, 같은 금액은 같은 순위."""
+    d, col = _set_years(hs, flow)
+    g = d[d[col] > 0].groupby(["year", "stat_cd"], as_index=False)[col].sum()
+    g["rnk"] = g.groupby("year")[col].rank(method="min", ascending=False).astype(int)
+    g["share"] = g[col] / g.groupby("year")[col].transform("sum") * 100
+    return g[g["stat_cd"].isin(codes)][["year", "stat_cd", "rnk", "share"]].sort_values("year").reset_index(drop=True)
+
+
 @st.cache_data(ttl=TTL, show_spinner=False)
 def hs_funnel() -> list[tuple[str, str, int]]:
     """품목 선정 깔때기 — (이름, 설명, 개수). 관세청 HS6(84 · 85 · 88 · 90류) → 규칙 충족 → 분석 대상."""

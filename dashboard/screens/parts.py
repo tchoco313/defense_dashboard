@@ -48,8 +48,8 @@ CSS = """<style>
 /* 표 */
 .pt{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
 .pt th{font-size:12.5px;font-weight:700;color:#5a6b8c;background:#f3f6fc;padding:9px 8px;text-align:center;border-bottom:1px solid #dde5f2;white-space:nowrap}
-/* 접이식 칸(자세히 보기) 안의 표 · 데이터 출처 표 — 머리 줄은 남색 바탕 · 흰 글씨(상세 조회 표와 같은 색) */
-[data-testid="stExpander"] .pt th,.st-key-card_src .pt th{background:#1b2f66;color:#fff;border-bottom-color:#33488a}
+/* 접이식 칸(자세히 보기) 안의 표 · 데이터 출처 표 · 전자부품 품목군 현황표 — 머리 줄은 남색 바탕 · 흰 글씨(상세 조회 표와 같은 색) */
+[data-testid="stExpander"] .pt th,.st-key-card_src .pt th,.st-key-card_tbl .pt th{background:#1b2f66;color:#fff;border-bottom-color:#33488a}
 .pt td{padding:9px 8px;border-bottom:1px solid #eef2f9;color:#16233f;text-align:center;white-space:nowrap}
 .pt td.l{text-align:left;white-space:normal}
 .pt td.nm b{display:block;font-weight:800} .pt td.nm em{font-style:normal;font-size:12px;color:#7a879e}

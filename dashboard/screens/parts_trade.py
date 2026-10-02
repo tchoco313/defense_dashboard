@@ -57,6 +57,28 @@ P.kpis([P.kpi("수입액", f"{yr['imp'].iloc[-1]:,.1f}", "억 달러", f"{by}년
         P.kpi("1위 수입국", ti[0], "", ti[1]),
         P.kpi("1위 수출국", te[0], "", te[1])])
 
+def _flow_from_map() -> None:
+    """지구본 카드의 수입/수출 단추를 누르면 위(품목군 옆) 단추도 같은 값으로."""
+    st.session_state["p12_flow"] = st.session_state.get("p12_flow_map") or "수입"
+
+
+with P.card("map"):
+    st.session_state["p12_flow_map"] = flow_lb       # 위 단추를 눌렀을 때도 이 단추가 따라온다
+    with st.container(key="map_flow"):               # 카드 오른쪽 위 ⓘ 왼쪽(자리 = see.css .st-key-map_flow)
+        st.segmented_control("수입 / 수출", list(FLOW), key="p12_flow_map", label_visibility="collapsed", on_change=_flow_from_map)
+    way = "대한민국으로 들어오는" if flow == "imp" else "대한민국에서 나가는"
+    P.title(f"국가별 {flow_lb} 금액 규모",
+            f"억 달러 · {by}년 · 국기 원 크기 = {flow_lb}액 · 화살표 = {way} 방향 · 상위 {GLOBE_N}개국 · 지구본 ↔ 지도 전환")
+    pts = [{"name": r.country, "lat": float(r.lat), "lon": float(r.lon), "value": round(float(r.value), 2),
+            "color": col.get(r.stat_cd, "#8fb0ea"), "note": f"{flow_lb} 비중 {r.share:.1f}%", "code": r.stat_cd}
+           for r in sh.head(GLOBE_N).itertuples() if r.lat == r.lat and r.lat is not None]
+    if pts:
+        supply_globe(pts, height=560, unit="억 달러", outbound=flow == "exp")
+    else:
+        st.info(f"{by}년 {flow_lb} 실적이 없습니다(실제 0).")
+    st.html('<div class="caption">국가 좌표는 나라 대표 위치 · 수입 = 선적국, 수출 = 도착국(원산지 아님) · 원 위에 커서를 올리면 금액과 비중</div>')
+
+
 a, b = st.columns([1.5, 1], gap="medium")
 with a, P.card("line"):
     P.title(f'연도별 {flow_lb}액 — {ys[-1]}년 <span class="key">{v1:,.1f}억 달러</span>', "억 달러 · 연도별 합계 · 완결 연도")
@@ -78,24 +100,3 @@ with b, P.card("donut"):
             rows.append((f"기타 {len(rest)}개국", round(float(rest["value"].sum()), 2), "#c3cede"))
         hover_donut(rows, f"{sum(v for _, v, _ in rows):,.1f}", "억 달러", value_unit="억 달러", height=330)
 P.see(SEE, source)
-
-def _flow_from_map() -> None:
-    """지구본 카드의 수입/수출 단추를 누르면 위(품목군 옆) 단추도 같은 값으로."""
-    st.session_state["p12_flow"] = st.session_state.get("p12_flow_map") or "수입"
-
-
-with P.card("map"):
-    st.session_state["p12_flow_map"] = flow_lb       # 위 단추를 눌렀을 때도 이 단추가 따라온다
-    with st.container(key="map_flow"):               # 카드 오른쪽 위 ⓘ 왼쪽(자리 = see.css .st-key-map_flow)
-        st.segmented_control("수입 / 수출", list(FLOW), key="p12_flow_map", label_visibility="collapsed", on_change=_flow_from_map)
-    way = "대한민국으로 들어오는" if flow == "imp" else "대한민국에서 나가는"
-    P.title(f"국가별 {flow_lb} 규모",
-            f"억 달러 · {by}년 · 국기 원 크기 = {flow_lb}액 · 화살표 = {way} 방향 · 상위 {GLOBE_N}개국 · 지구본 ↔ 지도 전환")
-    pts = [{"name": r.country, "lat": float(r.lat), "lon": float(r.lon), "value": round(float(r.value), 2),
-            "color": col.get(r.stat_cd, "#8fb0ea"), "note": f"{flow_lb} 비중 {r.share:.1f}%", "code": r.stat_cd}
-           for r in sh.head(GLOBE_N).itertuples() if r.lat == r.lat and r.lat is not None]
-    if pts:
-        supply_globe(pts, height=560, unit="억 달러", outbound=flow == "exp")
-    else:
-        st.info(f"{by}년 {flow_lb} 실적이 없습니다(실제 0).")
-    st.html('<div class="caption">국가 좌표는 나라 대표 위치 · 수입 = 선적국, 수출 = 도착국(원산지 아님) · 원 위에 커서를 올리면 금액과 비중</div>')
