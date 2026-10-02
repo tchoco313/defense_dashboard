@@ -24,8 +24,19 @@ export default function (component) {
     document.addEventListener("click", e => {
       if (!(e.target.closest && e.target.closest(".kd-top"))) return
       const m = mainEl()
-      if (m) m.scrollTo({ top: 0, behavior: "smooth" })
+      if (!m) return
+      // 브라우저 기본 부드러운 스크롤은 긴 페이지에서 느리다 — 길이와 상관없이 0.25초에 올라오게 직접 움직인다(끝으로 갈수록 느려짐)
+      const from = m.scrollTop, dur = 250, t0 = performance.now(), id = (window.__kdTopAnim || 0) + 1
+      window.__kdTopAnim = id
+      const step = now => {
+        if (window.__kdTopAnim !== id) return
+        const p = Math.min(1, (now - t0) / dur)
+        m.scrollTop = from * Math.pow(1 - p, 3)
+        if (p < 1) requestAnimationFrame(step)
+      }
+      requestAnimationFrame(step)
     }, true)
+    document.addEventListener("wheel", () => { window.__kdTopAnim = 0 }, { capture: true, passive: true })   // 올라오는 중에 휠을 돌리면 멈춘다
     document.addEventListener("click", e => {
       const a = e.target.closest && e.target.closest("a.lnb-a")
       const el = a && subOf(a.dataset.sub)
