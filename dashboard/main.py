@@ -294,7 +294,8 @@ def main_landing() -> None:
     with st.container(key="mvjs"):
         components.html(MV_JS, height=0)
     with st.container(key="mv_cta", horizontal=True, vertical_alignment="center"):
-        st.page_link(page_of["intro"][0], label="이야기 시작하기", icon=":material/play_arrow:", query_params={"sec": "elec"})
+        # 소분류(?sec=)로 가지 않고 소개 페이지 맨 위(파란 띠)부터 — sec 를 주면 첫 소분류 머리로 스크롤해 띠가 가려진다
+        st.page_link(page_of["intro"][0], label="이야기 시작하기", icon=":material/play_arrow:")
 
     # 2) 왜 전자부품인가 — 이유(본문) + 그 이유를 확인하는 화면 네 곳(아이콘). 아이콘은 이야기 순서 ① → ① → ③ → ④
     #    98.9% 는 인용(국방반도체 발전전략 본문 · 2023-12 조사) — 본문에는 각주 표시(*)만, 출처 · 한계는 아래 각주 줄에.
