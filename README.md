@@ -100,6 +100,7 @@ python scripts/gen_data_spec_xlsx.py       # 데이터 수집 목록 및 명세�
 python scripts/build_docs_pdf.py           # 설계서 Markdown → docs/제출/ PDF
 python scripts/dump_db.py                  # DB 전체 덤프 → build/db/
 python scripts/build_package.py            # 로컬 실행 패키지 zip → build/
+python scripts/record_demo.py              # 시연 영상 녹화 → build/demo/ (Playwright · ffmpeg 필요)
 ```
 
 ## 폴더 구조
