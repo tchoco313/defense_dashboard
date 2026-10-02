@@ -45,7 +45,7 @@ div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSelectbox"] 
 .kd-yr-tilde{text-align:center;font-size:18px;font-weight:700;color:#6b7a99;line-height:34px}
 /* 품목군 옆 수입/수출 단추 — 조금 오른쪽으로. 수출입 현황은 선택창(높이 44px)이 단추(35px)보다 커서, 아래를 맞춘 단추를 4.5px 올려 세로 가운데를 맞춘다 */
 .st-key-zone_trade [data-testid="stColumn"]:has(button[data-variant="segmented_control"]) [data-testid="stButtonGroup"],.st-key-zone_conc [data-testid="stColumn"]:has(button[data-variant="segmented_control"]) [data-testid="stButtonGroup"]{margin-left:18px}
-.st-key-zone_trade [data-testid="stColumn"]:has(button[data-variant="segmented_control"]) [data-testid="stButtonGroup"]{transform:translateY(-4.5px)}
+.st-key-zone_trade [data-testid="stColumn"]:has(button[data-variant="segmented_control"]) [data-testid="stButtonGroup"],.st-key-zone_conc [data-testid="stColumn"]:has(button[data-variant="segmented_control"]) [data-testid="stButtonGroup"]{transform:translateY(-4.5px)}   /* 공급국 집중도 변화도 같은 선택창 · 단추 짝이라 같이 올린다 */
 /* 여러 개 고르는 단추(군 · 소요군)는 고른 표시가 aria-pressed 다 — 위 「고른 칸」 규칙에 함께 넣었다. 단추가 칸보다 길면 잘리지 않고 다음 줄로 */
 div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stButtonGroup"] > div{flex-wrap:wrap;row-gap:6px}
 /* 국가별 수입 규모 카드 — 오른쪽 위 ⓘ 왼쪽에 놓는 수입/수출 단추(품목군 옆 단추와 같은 값). 카드 흐름에서 빼 제목 줄에 겹친다 */

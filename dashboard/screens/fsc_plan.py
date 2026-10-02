@@ -69,7 +69,9 @@ if not total:   # st.stop() 은 바닥글까지 멈추므로 쓰지 않는다
 else:
     top_g = max(by_g, key=by_g.get)
     who = "" if len(a_pick) == len(armies) else " · ".join(a_pick) + " "
-    P.lead(f'{who}전자 군급 국외 조달계획 {base:,}건 중 <span class="key">군 {top_g}({escape(fsg_name[top_g])})가 '
+    by = allp.loc[allp["army"].isin(a_pick), "year"]          # 분모(고른 소요군의 전자 군급 전체)에 실제로 들어 있는 요구연도 범위
+    when = f"{int(by.min())}년 " if by.min() == by.max() else f"{int(by.min())}~{int(by.max())}년 "
+    P.lead(f'{when}{who}전자 군급 국외 조달계획 {base:,}건 중 <span class="key">군 {top_g}({escape(fsg_name[top_g])})가 '
            f'{by_g[top_g] / base * 100:.1f}%</span>다', "건 · 품목 단위(조달요구번호 × 품목순번) · 금액은 쓰지 않음(통화 미확인)")
     P.kpis([P.kpi("국외 조달계획", f"{total:,}", "건", f"전자 군급 · 요구연도 {yr_txt}"),
             P.kpi("해당 군급", f"{p['fsc4'].nunique()}", "개", "조달계획이 있는 군급(FSC)", icon="account_tree"),

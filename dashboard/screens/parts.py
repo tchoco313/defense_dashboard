@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 import streamlit as st
 import streamlit.components.v1 as components
 
-from kdesign import TEXT, kpi, style_fig  # noqa: F401  (kpi 는 화면 파일이 여기서 가져다 쓴다)
+from kdesign import TEXT, hbar_key, kpi, style_fig  # noqa: F401  (kpi 는 화면 파일이 여기서 가져다 쓴다)
 from menu import NEXT, split
 
 VIZ = Path(__file__).resolve().parents[1] / "datacenter_viz.py"   # 상세 조회 도구(dashboard/datacenter_viz.py)
@@ -99,7 +99,12 @@ def caption(text: str) -> None:
 
 
 def chart(fig: go.Figure, key: str, height: int | None = None) -> None:
-    st.plotly_chart(style_fig(fig, height), width="stretch", theme=None, key=key, config=PLOT_CFG)
+    hb = hbar_key(fig, key)                       # 가로 막대는 표식 칸으로 감싼다 — 등장 연출이 왼쪽에서 오른쪽으로
+    if hb:
+        with st.container(key=hb):
+            st.plotly_chart(style_fig(fig, height), width="stretch", theme=None, key=key, config=PLOT_CFG)
+    else:
+        st.plotly_chart(style_fig(fig, height), width="stretch", theme=None, key=key, config=PLOT_CFG)
 
 
 def read1(text: str) -> None:

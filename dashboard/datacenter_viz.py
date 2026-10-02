@@ -29,7 +29,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from db import data_stamp, query, safe_query
-from kdesign import _FONT_LINK, ACCENT, ETC, SERIES, TEXT, _svg_img
+from kdesign import _FONT_LINK, ACCENT, ETC, SERIES, TEXT, _svg_img, hbar_key
 from ui import (EXP, EXP_DIM, IMP, IMP_DIM, SHORT, source_pop, chart_source, chart_title, country_colors, country_map, csv_header, globe_loading, hover_donut, kpi, png_button,
                 style_fig)
 
@@ -876,7 +876,12 @@ def query_chart(df: pd.DataFrame, q: dict) -> tuple[go.Figure, str]:
         out, note = csv_shape(chart, df, q)
         fig = csv_preview(chart, out)
         fig.update_layout(height=400)
-        st.plotly_chart(fig, width="stretch", theme=None, config=PLOT_CFG)
+        hb = hbar_key(fig, "qd_preview")           # 피라미드 그래프(가로 막대)는 표식 칸으로 감싼다 — 등장 연출이 가로 방향으로
+        if hb:
+            with st.container(key=hb):
+                st.plotly_chart(fig, width="stretch", theme=None, config=PLOT_CFG)
+        else:
+            st.plotly_chart(fig, width="stretch", theme=None, config=PLOT_CFG)
         if trim:
             st.html(f'<div class="caption">{escape(trim)}</div>')
         return fig, f"그래프 기준: {note} · {escape(q['hs'])} 기준" + (f". {trim}" if trim else "")

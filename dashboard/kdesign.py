@@ -281,6 +281,10 @@ CHART_ANIM = f"""<style>
 @keyframes barY{{from{{transform:scaleY(0)}}to{{transform:none}}}}
 @keyframes barX{{from{{transform:scaleX(0)}}to{{transform:none}}}}
 @keyframes barTxt{{from{{opacity:0}}to{{opacity:1}}}}
+/* 가로 막대(칸 키 hb_ · hbd_ — kdesign.hbar_key) — 바닥에서 자라지 않고 왼쪽에서 오른쪽으로 뻗는다.
+   hbd_ = 가운데 0 에서 양쪽으로 갈리는 차트: 첫 계열(왼쪽으로 가는 막대)은 오른쪽 끝(0 자리)에서 왼쪽으로 뻗는다 */
+[class*="st-key-hb_"] .js-plotly-plot .barlayer .point path,[class*="st-key-hbd_"] .js-plotly-plot .barlayer .point path{{transform-origin:0 50%;animation-name:barX}}
+[class*="st-key-hbd_"] .js-plotly-plot .barlayer .trace:first-child .point path{{transform-origin:100% 50%}}
 .js-plotly-plot .scatterlayer .trace:has(.js-line){{animation:lineIn 1.5s cubic-bezier(.65,0,.35,1) both}}
 .js-plotly-plot .scatterlayer .trace:nth-child(2):has(.js-line){{animation-delay:.18s}}
 .js-plotly-plot .scatterlayer .trace:nth-child(3):has(.js-line){{animation-delay:.36s}}
@@ -454,6 +458,17 @@ def real_bar(src: str) -> None:
     st.html(f'<div class="demo-bar real"><b>실측 집계</b><span>{src}</span></div>')
 
 
+def hbar_key(fig, key: str) -> str | None:
+    """가로 막대 차트면 그 차트를 감쌀 칸의 키(hb_… · 0 에서 양쪽으로 갈리면 hbd_…), 아니면 None.
+    등장 연출(CHART_ANIM · static/chart_anim.css)이 이 키로 가로 막대를 알아보고 왼쪽에서 오른쪽으로 뻗게 한다."""
+    bars = [t for t in fig.data if t.type == "bar" and t.orientation == "h"]
+    if not bars:
+        return None
+    xs = [v for v in (bars[0].x if bars[0].x is not None else []) if v is not None]
+    split = len(bars) > 1 and bool(xs) and max(xs) <= 0 and min(xs) < 0
+    return f"{'hbd' if split else 'hb'}_{key}"
+
+
 def style_fig(fig, height: int | None = None):
     """차트 공통 모양 — 배경 투명 · 옅은 가로 · 세로 격자 · 범례는 위 가로. 글씨는 하한 13px(_floor_fonts)."""
     grid = "#e7eefa"
@@ -468,6 +483,10 @@ def style_fig(fig, height: int | None = None):
                      automargin=True)
     fig.update_yaxes(gridcolor=grid, zerolinecolor=grid, linecolor=LINE, tickfont=dict(color=MUTED), title_font=dict(color=MUTED),
                      automargin=True)
+    # 눈금 글자를 「차트 밖으로 넘친다」고 숨기지 않게 한다 — Plotly 기본값(hide past div)은 글자 자리를 화면 좌표로 재는데,
+    # 화면 배율(html zoom)이 걸려 있으면 그 값이 어긋나 맨 끝 눈금(예: 연도 축의 마지막 해)을 넘친 것으로 보고 지웠다
+    fig.update_xaxes(ticklabeloverflow="allow")
+    fig.update_yaxes(ticklabeloverflow="allow")
     # 눈금 숫자는 화면 다른 곳처럼 쉼표로(6000 → 6,000, 5k → 5,000). 연도 축(2016 …)은 쉼표를 넣지 않는다
     for axis, update in (("x", fig.update_xaxes), ("y", fig.update_yaxes)):
         years = any(_yearish(t[axis]) for t in fig.data if axis in t and t[axis] is not None)

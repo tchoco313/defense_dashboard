@@ -33,18 +33,18 @@ else:
     P.lead(f'{span}년 국외 조달계획 중 전자 군급 비중은 <span class="key">{top["army"]} {top["pct"]:.1f}%</span>로 가장 크다',
            f"요구연도 {y0}~{y1}")
     with P.card("army"):
-        P.title("소요군별 전자 군급 비중", "% · 가로 100% = 그 소요군의 국외 조달계획 · 색 막대 = 전자 군급(군 58 · 59 · 60, 색 = 소요군) · 괄호 = 분모 건수")
+        P.title("소요군별 전자 군급 비중", "% · 그 소요군의 국외 조달계획 중 전자 군급(군 58 · 59 · 60) 비중 · 색 = 소요군 · 괄호 = 분모 건수")
         ylab = [f"{r.army} ({int(r.n_valid):,}건)" for r in sh.itertuples()]
         fig = go.Figure()
         fig.add_trace(go.Bar(y=ylab, x=sh["pct"].round(1), orientation="h", name="전자 군급", showlegend=False,
                              marker_color=[R.ARMY_COLOR.get(a, "#2b6ef6") for a in sh["army"]],     # 소요군마다 다른 색(아래 연도 차트와 같은 색)
-                             text=[f"{v:.1f}%" for v in sh["pct"]], textposition="inside",
+                             text=[f"{v:.1f}%" for v in sh["pct"]], textposition="auto",
                              customdata=sh["n_elec"].astype(int), hovertemplate="%{y}<br>전자 군급 %{x:.1f}% (%{customdata:,}건)<extra></extra>"))
-        fig.add_trace(go.Bar(y=ylab, x=(100 - sh["pct"]).round(1), orientation="h", name="그 밖의 군급", marker_color="#dae0e9",
-                             hovertemplate="%{y}<br>그 밖의 군급 %{x:.1f}%<extra></extra>"))
-        fig.update_layout(barmode="stack", height=60 + 44 * len(sh))
+        fig.update_layout(height=60 + 44 * len(sh))
         fig.update_yaxes(autorange="reversed")
-        fig.update_xaxes(range=[0, 100], ticksuffix="%")
+        # 가로축은 50% 까지만 — 100% 까지 두면 오른쪽 절반이 빈 자리다. 연도를 좁혀 비중이 45% 를 넘는 소요군이 있으면 그 값이 들어가게 10% 단위로 넓힌다
+        top_x = 50 if sh["pct"].max() <= 45 else min(100, int(sh["pct"].max() // 10 + 2) * 10)
+        fig.update_xaxes(range=[0, top_x], ticksuffix="%")
         P.chart(fig, "p23_army")
 P.see(SEE, SOURCE)
 
