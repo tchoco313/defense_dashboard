@@ -26,7 +26,7 @@ st.html("""<style>
 tk = R.strategy_tasks()
 ct = R.chip_types()
 n_dir = tk["direction_no"].nunique()
-P.lead(f'발전전략은 <span class="key">{n_dir}개 방향 {len(tk)}개 과제</span>로 짜였고, 국방반도체 수요를 {len(ct)}개 유형으로 나눈다',
+P.lead(f'발전전략은 {n_dir}개 방향 <span class="key">{len(tk)}개 과제</span>로 짜였고, 국방반도체 수요를 <span class="key">{len(ct)}개 유형</span>으로 나눈다',
        "발전전략 본문을 옮긴 참조표입니다 — 과제 · 유형의 수는 예산이나 우선순위를 뜻하지 않습니다")
 
 a, b = st.columns(2, gap="medium")
