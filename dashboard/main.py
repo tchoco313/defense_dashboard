@@ -957,7 +957,7 @@ if not _SEC["shown"]:
 
 # ── 바닥글 ──────────────────────────────────────────────────────────────
 # 바닥글 — K-Defense(로고) → Main · 데이터 출처 → 배경과 자료의 데이터 출처와 검증 · 용어 설명 → 대화상자 · 훈수안이조 → 팀 GitHub
-TEAM_URL = "https://github.com/dashboard"
+TEAM_URL = "https://github.com/tchoco313/defense_dashboard"
 with st.container(key="ft", horizontal=True):
     with st.container(key="ft_brand", width="content"):
         st.html('<div class="brand"><span class="mark"><span class="ms">shield</span>' + TAEGEUK + '</span><div><b>K-Defense Electronics</b>'
