@@ -153,6 +153,19 @@ div[class*="st-key-sub_"]{scroll-margin-top:22px}   /* 소분류로 스크롤해
 [data-testid="stLayoutWrapper"]:has(> .st-key-lnb){position:sticky;top:98px;align-self:flex-start;z-index:5;flex:0 0 ${LNB_W}px!important;width:${LNB_W}px!important;min-width:${LNB_W}px!important;max-width:${LNB_W}px!important}
 .st-key-lnb{width:${LNB_W}px!important;min-width:${LNB_W}px!important;max-width:${LNB_W}px!important;flex:0 0 ${LNB_W}px!important}   /* 메뉴 폭 고정 — 글자 길이로 늘거나 줄지 않게 */
 .lnb-help{margin-top:10px;padding:16px 16px 16px;background:linear-gradient(135deg,${BLUE_D},${BLUE});color:#fff;border-radius:2px 2px 12px 12px}   /* 아래쪽 모서리 둥글게 · 위 간격 = 제목 칸 ~ 첫 메뉴 간격(18px — 칸 사이 간격 8px + 이 여백 10px) */
+/* 맨 위로 단추 — 화면 오른쪽 아래, 본문 오른쪽 끝 바로 바깥에 고정(화면이 좁으면 오른쪽 끝에서 24px). 조금 내려가면(.show) 나타난다 */
+/* 모양 — 흰 바탕 · 옅은 테두리의 둥근 네모에 파란 화살표와 작은 TOP 글씨. 올리면 파랗게 채워지고 화살표가 살짝 올라간다 */
+.kd-top{position:fixed;right:max(24px, calc((100vw - ${WRAP}px) / 2 - 206px));bottom:92px;width:54px;height:54px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1px;padding:0;border:1px solid ${BLUE};border-radius:14px;background:#fff;
+  box-shadow:0 6px 18px rgba(15,31,61,.12);cursor:pointer;opacity:0;visibility:hidden;transform:translateY(8px);
+  transition:opacity .2s,visibility .2s,transform .2s,background .15s,border-color .15s,box-shadow .15s}
+.kd-top.show{opacity:1;visibility:visible;transform:none}
+.kd-top:hover{background:${BLUE};border-color:${BLUE};box-shadow:0 8px 20px rgba(29,78,216,.32)}
+.kd-top:focus-visible{outline:2px solid #7cc4ff;outline-offset:2px}
+.kd-top .ms{font-family:'Material Symbols Rounded'!important;font-size:22px;line-height:1;color:${BLUE};font-weight:400;font-style:normal;transition:transform .15s,color .15s}
+.kd-top em{font-style:normal;font-size:10px;font-weight:800;line-height:1;letter-spacing:.8px;color:#5a6b85;transition:color .15s}
+.kd-top:hover .ms{color:#fff;transform:translateY(-2px)}
+.kd-top:hover em{color:#fff}
 .lnb-help b{display:block;font-size:14px;font-weight:800;margin-bottom:5px}
 .lnb-help span{font-size:11.5px;color:#cfdcf7;line-height:1.6}
 .lnb-help ul{margin:4px 0 0!important;padding:0!important;list-style:none}
@@ -227,7 +240,11 @@ div[class*="st-key-zone_"]::before{display:none}
 .st-key-ft_links [data-testid="stPageLink"] a:hover p,.st-key-ft_links button:hover p,.ftl:hover{color:#7fb0ff!important}
 .ft-team{color:#c9d1de;font-weight:600;text-decoration:none}
 .ft-team:hover{color:#fff;text-decoration:underline}
-.ft-rel{width:230px;background:#151a24;border:1px solid #2f3848;font-size:12.5px}
+.ft-rel{position:relative;width:230px;background:#151a24;border:1px solid #2f3848;font-size:12.5px}
+/* 펼친 목록 — 단추 바로 위에 붙여 위쪽으로 */
+.ft-rel-list{position:absolute;left:-1px;right:-1px;bottom:100%;z-index:60;background:#151a24;border:1px solid #2f3848;border-bottom:none;
+  box-shadow:0 -6px 18px rgba(0,0,0,.28)}
+.ft-rel-list a:first-child{border-top:none}
 .ft-rel summary{padding:11px 14px;cursor:pointer;color:#c9d1de;list-style:none;display:flex;justify-content:space-between}
 .ft-rel summary::after{content:"▲";font-size:9px;color:#8591a6}
 .ft-rel[open] summary::after{content:"▼"}
