@@ -1099,7 +1099,9 @@ def _hover_js(rows: list[tuple[str, float, str]], cx: float, cy: float, on: str,
 
 # ── 도넛 — 바로 펼쳐지고, 조각(또는 범례)에 커서를 올리면 3-3 의 반응을 한다 ──
 def hover_donut(rows: list[tuple[str, float, str]], center: str, sub: str = "", value_unit: str = "",
-                height: int = 430) -> None:
+                height: int = 430, fit: bool = False) -> None:
+    """fit=True — 칸 높이는 그대로 두고 도넛을 키운다: 그림 판 둘레 여백을 커서를 올린 조각의 바깥(HOVER_OUT)까지만 남기고
+    범례 줄 간격을 좁힌다(낮은 칸에서 도넛이 작아 보일 때 · 전자부품 현황 수입국 비중)."""
     rows = [r for r in rows if float(r[1]) > 0]
     if not rows:
         components.html("<div style='font:12px system-ui;color:#6b7a99'>표시할 값이 없습니다.</div>", height=40)
@@ -1121,6 +1123,8 @@ def hover_donut(rows: list[tuple[str, float, str]], center: str, sub: str = "", 
             .replace("__SUB__", escape(sub))
             .replace("__C__", str(C))
             .replace("__H__", str(height - 10)).replace("__FONTLINK__", _FONT_LINK)
+            .replace("__VB__", f"{170 - HOVER_OUT - 2} {170 - HOVER_OUT - 2} {2 * (HOVER_OUT + 2)} {2 * (HOVER_OUT + 2)}" if fit else "0 0 340 340")
+            .replace("__LGAP__", "2px 12px" if fit else "7px 12px")
             .replace("__HOVER__", _hover_js(rows, 170, 170, "shown", value_unit)))
     components.html(html, height=height, scrolling=False)
 
@@ -1139,14 +1143,14 @@ _DONUT_TPL = r"""
                transform .25s cubic-bezier(.2,.8,.25,1)}
   .c-lab{font-size:24.5px;font-weight:800;fill:#12234a;text-anchor:middle;letter-spacing:-.6px}
   .c-sub{font-size:14px;fill:#6b7a99;text-anchor:middle}
-  .legend{display:flex;gap:7px 12px;flex-wrap:wrap;justify-content:center;max-width:460px;margin-top:6px;
+  .legend{display:flex;gap:__LGAP__;flex-wrap:wrap;justify-content:center;max-width:460px;margin-top:6px;
     font-size:13px;color:#5d6d8c}
   .lg span{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:middle}
   .lg b{color:#16233f;font-weight:700}
   __CSS__
 </style></head><body>
 <div id="stage">
-  <svg width="340" height="340" viewBox="0 0 340 340">
+  <svg width="340" height="340" viewBox="__VB__">
     <g class="ring-g">
       __SEGS__
     </g>
