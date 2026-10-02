@@ -63,7 +63,10 @@ div[class*="st-key-gs_"]{display:none!important;position:absolute;top:66px;left:
    파란 띠 양옆(≡ 아래 포함)은 모두 비운다 */
 .st-key-gnb:has(div[class*="st-key-gi_"]:hover),.st-key-gnb.open{border-bottom-color:transparent!important;
   background:linear-gradient(#e3e8f0,#e3e8f0) 0 65px/100% 1px no-repeat,linear-gradient(#fff,#fff) 0 0/100% 66px no-repeat!important}
-div[class*="st-key-gs_"] [data-testid="stPageLink"] a{padding:10px 8px 10px 20px;margin:0;border-radius:4px;background:transparent}   /* 줄 간격 넓게 · 글씨를 오른쪽으로(왼쪽 여백 8 → 20px) */
+div[class*="st-key-gs_"] [data-testid="stPageLink"] a{padding:10px 8px 10px 14px;margin:0;border-radius:4px;background:transparent}   /* 줄 간격 넓게 · 글씨를 오른쪽으로(왼쪽 여백 8 → 14px) */
+/* 커서를 올리면 밝아지는 칸 — 글자 길이와 상관없이 모든 항목이 칸 폭 그대로 같은 가로 길이 */
+div[class*="st-key-gs_"] > div,div[class*="st-key-gs_"] [data-testid="stPageLink"],div[class*="st-key-gs_"] [data-testid="stPageLink"] > div{width:100%!important;max-width:none!important}
+div[class*="st-key-gs_"] [data-testid="stPageLink"] a{display:flex;width:100%;box-sizing:border-box}
 /* 항목 앞 가운뎃점 — 왼쪽 메뉴의 「·」 와 같은 표시 */
 div[class*="st-key-gs_"] [data-testid="stPageLink"] a p::before{content:"·";display:inline-block;width:12px;font-weight:800;color:#9cc2ff}
 div[class*="st-key-gs_"] [data-testid="stPageLink"] a:hover p::before{color:#fff}

@@ -1,7 +1,7 @@
 """④ 4-1 정책 · 예산 배경 — 정책은 어떻게 흘러왔고 예산은 어떻게 바뀌었나.
 
 첫 화면은 흐름(타임라인)이 먼저, 숫자 카드는 두지 않는다.
-값: 정책 연표 · 인용 수치 · 과제 · 7대 유형 = 발전전략 참조표(rds.policy · quotes · strategy_tasks · chip_types),
+값: 정책 연표 · 인용 수치 = 발전전략 참조표(rds.policy · quotes) — 과제 · 수요 유형은 4-2 bg_strategy 로 옮겼다,
 국외조달 계획 예산 = 방위사업청 국외조달 계획(원화 계획액, rds.overseas_budget), R&D 예산 = 열린재정 세부사업(rds.rnd_budget).
 원화 예산은 관세청 수입액(달러)과 합산 · 비교하지 않는다.
 """
@@ -104,18 +104,9 @@ with P.more("국외조달 절차 — 계획 → 입찰 → 계약"):
             f'<b>입찰 결과</b> {int(pr["bid_n"]):,}건({pr["bid_y0"]}~{pr["bid_y1"]}) → '
             f'<b>계약</b> {int(pr["ctr_n"]):,}건({pr["ctr_y0"]}~{pr["ctr_y1"]})'
             '<div class="caption">단계마다 자료 · 기간 · 단위가 달라 건수를 이어 붙이거나 전환율로 읽지 않습니다.</div>')
-with P.more("발전전략 4방향 12과제 · 국방반도체 수요 7대 유형"):
-    tk = R.strategy_tasks()
-    rows = "".join(f"<tr><td>{r.task_no}</td><td class='l'>{escape(r.direction_name)}</td><td class='l'>{escape(r.task_name)}</td></tr>"
-                   for r in tk.itertuples())
-    st.html(f'<table class="pt"><thead><tr><th>과제</th><th>방향</th><th>과제명</th></tr></thead><tbody>{rows}</tbody></table>')
-    ct = R.chip_types()
-    rows = "".join(f"<tr><td>{r.type_no}</td><td class='l'><b>{escape(r.name_ko)}</b></td><td class='l'>{escape(r.summary)}</td></tr>"
-                   for r in ct.itertuples())
-    st.html(f'<table class="pt" style="margin-top:14px"><thead><tr><th>유형</th><th>이름</th><th>설명</th></tr></thead><tbody>{rows}</tbody></table>'
-            '<div class="caption">방위사업청 「국방반도체 발전전략」(2024-11) 본문을 옮긴 참조표 · 정책 연표 전체는 아래</div>')
+with P.more("정책 연표 전체"):
     allp = R.policy()
     rows = "".join(f"<tr><td>{escape(r.date)}</td><td>{escape(r.category)}</td><td class='l'>{escape(r.event)}</td>"
                    f"<td class='l'>{escape(r.source_title)}</td></tr>" for r in allp.itertuples())
-    st.html(f'<table class="pt" style="margin-top:14px"><thead><tr><th>날짜</th><th>분류</th><th>내용</th><th>출처</th></tr></thead>'
+    st.html(f'<table class="pt"><thead><tr><th>날짜</th><th>분류</th><th>내용</th><th>출처</th></tr></thead>'
             f'<tbody>{rows}</tbody></table>')

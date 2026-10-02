@@ -249,7 +249,7 @@ MAIN_CARDS = [  # (url, 소분류, 사진, 분류, 제목, 설명) — 이야기
     ("local", "done", _ph("1587293852726-70cdb56c2866", 900), "LOCALIZATION", "국산화 현황",
      "군(FSG) 58 · 59 · 60에 속한 전자 군급 부품 중 국산화개발을 마친 부품을 군급별로 봅니다."),
     ("background", "policy", _ph("1676090438227-141cac59c405", 900), "BACKGROUND", "배경과 자료",
-     "정책 흐름과 예산, 국내 생산 기반, 그리고 이 숫자들이 어디서 왔는지 봅니다."),
+     "정책 흐름과 예산, 발전전략 과제, 그리고 이 숫자들이 어디서 왔는지 봅니다."),
 ]
 
 # 첫 화면 「데이터 출처」 목록 — (기관, 데이터, 수록 기간 · 기준, 원본 페이지). 누르면 새 탭에서 원본 페이지로
@@ -600,7 +600,7 @@ SCREENS = {
     "parts": {"code": "parts_code", "summary": "parts_summary", "trade": "parts_trade", "conc": "parts_conc", "detail": "parts_detail"},
     "fsc": {"code": "fsc_code", "plan": "fsc_plan", "army": "fsc_army", "domestic": "bg_domestic", "detail": "fsc_detail"},
     "local": {"done": "loc_done", "pair": "loc_pair", "detail": "loc_detail"},
-    "background": {"policy": "bg_policy", "industry": "bg_industry", "source": "bg_source"},
+    "background": {"policy": "bg_policy", "strategy": "bg_strategy", "source": "bg_source"},
 }
 def _next_link_v2(cur: str) -> None:
     """화면 끝 「다음: … / 처음으로: 홈」 링크는 두지 않는다 — 이동은 상단 메뉴 · 왼쪽 메뉴로 한다. 화면 파일의 P.next_link 호출은 그대로 둔다."""
@@ -621,7 +621,7 @@ V2_Q = {
     ("local", "done"): "그중 무엇을 국산화했나",
     ("local", "pair"): "해외 조달계획이 많은 군급과 국산화한 군급은 어떻게 다른가",
     ("background", "policy"): "정부는 어떤 정책과 예산으로 전자부품 국산화를 밀고 있나",
-    ("background", "industry"): "국내 방산 생산 기반은 어떤가",
+    ("background", "strategy"): "정부는 무엇을 국산화하려 하나",
     ("background", "source"): "숫자는 어디서 왔고, 무엇을 뜻하지 않나",
 }
 # 파란 상자 글씨 — 소개 화면 .mk-q 와 같은 15px(Q. = 굵은 파랑 · 질문 = 회청색). 상자 · 출처 모양은 screens/parts.py 의 .see 그대로
@@ -715,7 +715,7 @@ PAGES = [
     (st.Page(pg_local, title="국산화 현황", url_path="local"), "국산화 현황", "build",
      "국산화 현황", "군(FSG) 58 · 59 · 60에 속한 전자 군급 부품 중 무엇을 국산화했나"),
     (st.Page(pg_background, title="배경과 자료", url_path="background"), "배경과 자료", "account_balance",
-     "배경과 자료", "정책·예산, 국내 생산 현황과 데이터 출처를 확인합니다"),
+     "배경과 자료", "정책·예산, 발전전략 과제와 데이터 출처를 확인합니다"),
 ]
 
 pg = st.navigation([p[0] for p in PAGES], position="hidden")
@@ -790,7 +790,7 @@ SECTIONS = {
     "fsc": [("code", "군급코드란"), ("plan", "군급별 국외 조달계획"), ("army", "소요군별"),
             ("domestic", "국내 계약 · 입찰"), ("detail", "상세 조회")],
     "local": [("done", "국산화 완료 부품"), ("pair", "군급 국산화 현황"), ("detail", "상세 조회")],
-    "background": [("policy", "정책과 예산"), ("industry", "국내 생산 현황"),
+    "background": [("policy", "정책과 예산"), ("strategy", "발전전략과 수요 유형"),
                    ("source", "데이터 출처와 검증")],
 }
 # 서브 배너(파란 띠) 제목 아래 한 줄 — 소분류마다 그 화면을 소개하는 문장. 스크롤로 소분류가 바뀌면 같이 바뀐다(lnb_scroll.js)
@@ -813,7 +813,7 @@ BANNER = {
     ("local", "pair"): "해외 조달계획과 국산화 실적을 군급별로 나란히 놓고 읽습니다",
     ("local", "detail"): "조건을 직접 골라, 국산화개발 품목을 원하는 모양으로 그려 봅니다",
     ("background", "policy"): "국방반도체를 향한 정책의 흐름과, 그 뒤를 받치는 예산을 봅니다",
-    ("background", "industry"): "가동률과 생산지수로 국내 방산 생산의 체력을 가늠합니다",
+    ("background", "strategy"): "발전전략의 방향과 과제, 정부가 밝힌 국방반도체 수요 유형을 봅니다",
     ("background", "source"): "모든 숫자의 출처와 한계 — 어디서 왔고, 무엇을 말하지 않는지 밝힙니다",
 }
 # 왼쪽 메뉴 아래 파란 칸의 팁 — (머리말, 내용)
@@ -825,7 +825,7 @@ LNB_TIPS = {
             ("비교", "전자부품 현황의 HS 품목군과 코드로 잇지 않음")],
     "local": [("주의", "완료 부품 수 ≠ 국산화율(분모 없음)"),
               ("비교", "조달계획과 막대만 나란히 — 비율로 계산하지 않음")],
-    "background": [("단위", "예산 · 가동률 · 생산지수는 기준이 서로 다름"),
+    "background": [("참조표", "과제 · 수요 유형은 발전전략 본문을 옮긴 것 — 팀 계산값 아님"),
                    ("비교", "관세청 수입액과 합산 · 직접 비교하지 않음")],
 }
 URLS = ["home", "intro", "parts", "fsc", "local", "background"]   # PAGES 와 같은 순서

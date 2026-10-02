@@ -5,8 +5,6 @@
 """
 from __future__ import annotations
 
-from html import escape
-
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -24,8 +22,8 @@ both = sorted(set(plan) | set(loc), key=lambda c: -(plan.get(c, 0) + loc.get(c, 
 codes = both[:TOP]
 p_top = max(plan, key=plan.get)
 l_top = max(loc, key=loc.get)
-P.lead(f"조달계획이 가장 많은 군급은 {p_top} {escape(fsc_name.get(p_top, ''))}, "
-       f'국산화 완료 부품이 가장 많은 군급은 <span class="key">{l_top} {escape(fsc_name.get(l_top, ""))}</span>이다',
+P.lead(f'국외 조달계획 건이 가장 많은 군급코드는 <span class="key">{p_top}</span>, '
+       f'국산화 완료 부품 개수가 가장 많은 군급코드는 <span class="key">{l_top}</span>이다',
        "두 자료는 같은 군급 축에 나란히 놓았을 뿐 연결하거나 비율로 계산하지 않습니다")
 
 with P.card("pair"):
