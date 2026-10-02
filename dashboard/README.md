@@ -11,7 +11,7 @@ streamlit run dashboard/main.py          # 저장소 루트에서 — .streamlit
   - 로컬 검사 · 시연: 로컬 실행 패키지의 DB 덤프를 MySQL 에 복원하고 `.env.example` 을 `.env` 로 복사한다(방법은 [`../db/README.md`](../db/README.md)).
   - 배포: Secrets 틀은 `.streamlit/secrets.toml.example`, RDS TLS 는 `certs/rds-global-bundle.pem`(공개 CA).
 - **조회 방식**: 모든 조회는 SQLAlchemy `text()` + 바인딩 파라미터(SQL 문자열을 조립하지 않는다), 결과는 1시간 캐시. DB 에 붙지 못하면 안내와 「다시 연결」 단추를 보여 준다.
-- **인터넷**: 데이터는 DB 에서 읽지만 글꼴(Pretendard) · 지구본 지도 · 국기 이미지는 CDN 에서 받는다.
+- **인터넷**: 데이터는 DB 에서 읽지만 글꼴(Pretendard) · 지구본 지도 · 국기 이미지는 CDN 에서 받는다. 인터넷이 막히면 글꼴은 맑은 고딕(Windows) · Apple SD Gothic Neo(macOS)로 대신 보이고 지도 · 국기만 빠진다.
 - 메뉴 · 소분류 · 주소는 `main.py` 안의 `PAGES` · `SECTIONS` · `SCREENS` 에서 정한다. 소분류 주소는 `/{메뉴}?sec={소분류}`.
 
 ## 메뉴와 화면 파일

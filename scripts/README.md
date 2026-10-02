@@ -25,4 +25,4 @@
 
 - 「DB 읽기」 스크립트는 SELECT 만 한다. 「쓰기」는 `load_db.py` 하나이며, 비어 있는 표에만 적재한다.
 - 적재 순서와 덤프 · 복원은 [`../db/README.md`](../db/README.md).
-- `build_docs_pdf.py` 와 `md_to_pdf.py` 는 각각 macOS(Chrome 경로) · Windows(글꼴 경로) 기준으로 만들었다 — [`../docs/작업환경_폰트_안내.md`](../docs/작업환경_폰트_안내.md).
+- `build_docs_pdf.py` 는 macOS 의 Chrome 경로를 쓴다 — Windows 에서 쓰려면 파일 맨 위 `CHROME` 값을 Chrome 실행 파일 경로로 바꾼다. `md_to_pdf.py` 는 반대로 Windows 글꼴 경로(`C:/Windows/Fonts/NanumGothic*.ttf`)를 쓴다.
