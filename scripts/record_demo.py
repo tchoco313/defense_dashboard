@@ -185,30 +185,30 @@ def run(d: Demo) -> None:
         d.hover_menu(m)
 
     # ② 소개
-    d.go("intro", "items", 1.5)
     d.caption("② 소개 — 1,003개 HS 품목 가운데 전자 계열 13개 품목군을 고른 기준", "관세청 HS 6단위 · 공식 자료 규칙(R1 · R2)으로 선정")
+    d.go("intro", "items", 1.5)
     d.wait(2); d.scroll(700, 3); d.wait(1.5)
 
     # ③ 전자부품 현황
-    d.go("parts", "summary", 1.5)
     d.caption("③ 전자부품 현황 › 종합 현황표 — 13개 품목군의 수입액 · 공급국 집중도를 한 표로", "관세청 품목별 국가별 수출입실적 2016.01~2026.08")
+    d.go("parts", "summary", 1.5)
     d.wait(2); d.scroll(500, 2.5); d.wait(1.5)
 
-    d.lnb("parts?sec=trade", 1.5)
     d.caption("수출입 현황 — 품목군과 수입 / 수출을 바꿔 가며 국가별 흐름을 본다")
+    d.lnb("parts?sec=trade", 1.5)
     d.wait(1)
     d.click('button[role="radio"]:has-text("수출")', 2.0); d.wait(1)
     d.click('button[role="radio"]:has-text("수입")', 2.0)
     d.scroll(450, 2); d.hover_chart(0, 0.45, 0.45); d.wait(1.5)
 
-    d.lnb("parts?sec=conc", 1.5)
     d.caption("공급국 집중도 변화 — HHI 로 한 나라에 쏠린 정도를 연도별로", "HHI 2,500 이상 · 1위 공급국 점유율 50% 이상이면 「집중」")
+    d.lnb("parts?sec=conc", 1.5)
     d.wait(1)
     d.click('button[role="radio"]:has-text("통신·레이더 부분품")', 2.0); d.wait(1)
     d.scroll(500, 2.5); d.hover_chart(0, 0.7, 0.5); d.wait(1.5)
 
-    d.lnb("parts?sec=detail", 2.0)
     d.caption("상세 조회 — 조건을 골라 나만의 차트 · 지도 · 표를 만들고 내려받는다", "분석 영역 · 품목 · 국가 · 기간 · 지표 · 차트 유형")
+    d.lnb("parts?sec=detail", 2.0)
     d.wait(1)
     d.click('button[role="radio"]:has-text("수입")', 2.0)
     d.click('button:has-text("꺾은선")', 2.0); d.wait(1)
@@ -219,30 +219,30 @@ def run(d: Demo) -> None:
     d.click('button:has-text("결과 표 CSV 내려받기")', 1.0); d.wait(1.5)
 
     # ④ 군급 분류와 조달
-    d.go("fsc", "plan", 1.5)
     d.caption("④ 군급 분류와 조달 — 군수품 분류(군 FSG · 군급 FSC)로 본 국외 조달계획", "방위사업청 국외 조달계획 · 전자 군(58 · 59 · 60)")
+    d.go("fsc", "plan", 1.5)
     d.wait(1)
     d.click('button:has-text("58 통신·탐지 및 코히런트 방사 장비")', 2.0)
     d.click('button:has-text("공군")', 2.0); d.wait(1)
     d.scroll(450, 2); d.wait(1)
-    d.lnb("fsc?sec=army", 1.5)
     d.caption("소요군별 — 육군 · 해군 · 공군 · 해병대가 무엇을 요구했나")
+    d.lnb("fsc?sec=army", 1.5)
     d.wait(2); d.scroll(400, 2); d.wait(1)
 
     # ⑤ 국산화 현황
-    d.go("local", "done", 1.5)
     d.caption("⑤ 국산화 현황 — 전자 군급에서 국산화 개발을 마친 부품", "방위사업청 국방전자조달시스템 국산화개발품목")
+    d.go("local", "done", 1.5)
     d.wait(2); d.hover_chart(1, 0.5, 0.3); d.wait(1)
-    d.lnb("local?sec=pair", 1.5)
     d.caption("군급 국산화 현황 — 국산화 완료 부품과 국외 조달계획을 군급별로 나란히", "서로 다른 자료라 비율로 계산하지 않는다")
+    d.lnb("local?sec=pair", 1.5)
     d.wait(2); d.scroll(400, 2); d.wait(1)
 
     # ⑥ 배경과 자료
-    d.go("background", "policy", 1.5)
     d.caption("⑥ 배경과 자료 — 정책과 예산, 국방반도체 발전전략", "열린재정 세부사업 예산 · 정책 연표")
+    d.go("background", "policy", 1.5)
     d.wait(2); d.scroll(500, 2.5); d.wait(1)
-    d.lnb("background?sec=source", 1.5)
     d.caption("데이터 출처와 검증 — 출처 · 자료 기간 · 적재 기록을 화면에서 확인", "데이터는 AWS RDS(MySQL) 에서 읽는다")
+    d.lnb("background?sec=source", 1.5)
     d.wait(2); d.scroll(500, 2.5); d.wait(2)
 
     d.caption("")
