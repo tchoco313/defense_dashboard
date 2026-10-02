@@ -600,7 +600,7 @@ SCREENS = {
     "parts": {"code": "parts_code", "summary": "parts_summary", "trade": "parts_trade", "conc": "parts_conc", "detail": "parts_detail"},
     "fsc": {"code": "fsc_code", "plan": "fsc_plan", "army": "fsc_army", "domestic": "bg_domestic", "detail": "fsc_detail"},
     "local": {"done": "loc_done", "pair": "loc_pair", "detail": "loc_detail"},
-    "background": {"policy": "bg_policy", "strategy": "bg_strategy", "source": "bg_source"},
+    "background": {"policy": "bg_policy", "strategy": "bg_strategy", "source": "bg_source"},   # 국내 생산 현황(bg_industry)은 10-02 메뉴에서 뺐다 — 화면 파일은 남겨 둔다
 }
 def _next_link_v2(cur: str) -> None:
     """화면 끝 「다음: … / 처음으로: 홈」 링크는 두지 않는다 — 이동은 상단 메뉴 · 왼쪽 메뉴로 한다. 화면 파일의 P.next_link 호출은 그대로 둔다."""
@@ -649,8 +649,10 @@ def _see_v2(what: str, source: str) -> None:
     (_SEE["slot"] or st).html(body)
 
 
+@st.fragment
 def _detail_v2(kind: str, sub: str) -> None:
-    """상세 조회 — 「조건을 골라 … 내려받습니다」 설명 줄 없이 도구만."""
+    """상세 조회 — 「조건을 골라 … 내려받습니다」 설명 줄 없이 도구만.
+    fragment 라 조건 칸을 눌러도 이 도구만 다시 그린다(같은 페이지의 다른 소분류 차트는 그대로)."""
     import parts as screen_parts
     runpy.run_path(str(screen_parts.VIZ), init_globals={"FIXED_TYPE": kind}, run_name="datacenter_viz")
 

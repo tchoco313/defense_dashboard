@@ -38,11 +38,11 @@ P.lead(f'대시보드의 숫자는 <span class="key">공개 데이터 {len(src)}
        f"원본 건수 = 실제 내려받아 센 행 수 · 관세청 {int(n_of.get('customs_all', 0)):,} + "
        f"국산화개발품목 {int(n_of.get('dapa_localized_item', 0)):,}")
 with P.card("src"):
-    P.title("데이터 출처", "기관 · 데이터명 · 데이터 ID · 원본 건수 · 자료 기간 · 쓰인 곳")
-    head = "".join(f"<th>{h}</th>" for h in ("기관", "데이터명", "데이터 ID", "원본 건수", "자료 기간", "쓰인 곳"))
+    P.title("데이터 출처", "기관 · 데이터명 · 원본 건수 · 자료 기간 · 쓰인 곳")
+    head = "".join(f"<th>{h}</th>" for h in ("기관", "데이터명", "원본 건수", "자료 기간", "쓰인 곳"))
     body = "".join(
         f"<tr><td class='l'>{escape(str(r.provider))}</td><td class='l'>{escape(str(r.title).split(' (')[0])}</td>"
-        f"<td>{escape(str(r.dataset_id)) if pd.notna(r.dataset_id) else '—'}</td><td>{int(r.raw_row_count):,}행</td>"
+        f"<td>{int(r.raw_row_count):,}행</td>"
         f"<td>{period(r)}</td><td class='l'>{escape(str(r.use))}</td></tr>" for r in src.itertuples())
     st.html(f'<div style="overflow-x:auto"><table class="pt"><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>')
 with P.card("notsay"):
