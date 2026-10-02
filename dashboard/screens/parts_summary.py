@@ -11,7 +11,7 @@ import streamlit as st
 
 import parts as P
 import rds as R
-from kdesign import LV_BG, LV_FG, hhi_level, sparkline
+from kdesign import LV_BG, LV_FG, UP, hhi_level, sparkline
 
 LEAD = '{n}개 품목군 중 <span class="key">{k}개는 1위 공급국 점유율이 50% 이상</span>이다'
 LEAD_SUB = "{period} 합계 · 국가 전체 수입(민수 포함) · 우선순위를 정한 목록은 아닙니다"
@@ -19,6 +19,7 @@ SEE = "13개 품목군의 수입이 몇 나라에 몰렸는지(1위 공급국 �
 
 # 품목군 현황표 — 6줄 높이만 보이고 그 아래는 표 안에서 스크롤(머리줄은 위에 고정). 표 모양은 다른 표(.pt)와 같다
 ROW_H, HEAD_H, SHOW = 62, 38, 6
+LV_BG_TBL = {**LV_BG, "높음": UP}   # 이 표의 공급 집중 「높음」 배지는 빨강(머리 줄이 남색이라 남색 배지와 겹쳐 보이지 않게) — 공용 LV_BG 는 그대로
 TBL_CSS = f"""<style>
 .pt-scroll{{max-height:{HEAD_H + ROW_H * SHOW}px;overflow:auto}}
 .pt-scroll .pt th{{position:sticky;top:0;z-index:2;height:{HEAD_H}px;box-sizing:border-box}}
@@ -117,21 +118,21 @@ for i, r in enumerate(c.to_dict("records"), 1):
              f'<td><span class="cdot" style="background:{color}"></span>{escape(names.get(r["top1_stat_cd"], r["top1_stat_cd"]))}</td>'
              f'<td>{P.share_bar(r["top1_share"] * 100, color)}</td>'
              f'<td>{sparkline(spark, color)}</td><td>{r["hhi"]:,.0f}</td>'
-             f'<td><span class="lvb" style="background:{LV_BG[lvl]};color:{LV_FG[lvl]}">{lvl}</span></td>'
+             f'<td><span class="lvb" style="background:{LV_BG_TBL[lvl]};color:{LV_FG[lvl]}">{lvl}</span></td>'
              f'<td>{int(r["country_count"])}</td><td class="l">{badges}</td></tr>')
 t = c.iloc[0]
 with P.card("tbl"):
-    P.title("품목군 현황표",
+    P.title("전자부품 품목군 현황표",
             f"{period} 합계 · HHI 내림차순 · {SHOW}줄씩 보임(표 안에서 스크롤) · 추이 = 최근 12개월({m0[:4]}.{m0[4:]}~{m1[:4]}.{m1[4:]}) 월별 수입액 · HHI 2,500 이상 = 높음")
     st.html(TBL_CSS + f'<div class="pt-scroll"><table class="pt"><thead>{head}</thead><tbody>{body}</tbody></table></div>')
 P.see(SEE, source)
 
-c1, c2 = st.columns([1.4, 1], gap="medium")
-with c1, P.card("tree"):
+c1, c2 = st.columns([1, 1.4], gap="medium")   # 왼쪽 = 수입국 수 · 오른쪽(넓은 칸) = 수입 집중도 — 집중도 그림은 칸 비율(ASPECT)에 맞춰 놓아 넓은 칸을 그대로 쓴다
+with c2, P.card("tree"):
     lo = c.iloc[-1]
     cap = (f'{period} 합계 HHI는 <span class="key">{escape(t["short"])} {t["hhi"]:,.0f}</span>로 가장 높고 '
            f'{escape(lo["short"])} {lo["hhi"]:,.0f}로 가장 낮다')
-    P.title("품목군별 수입 집중도",
+    P.title("전자부품 품목군별 수입 집중도(HHI)",
             "칸 크기 = HHI(0~10,000, 클수록 수입이 소수 국가에 몰림) · 칸 색 · 오른쪽 아래 국기 = 1위 공급국")
     tiles = ""
     ASPECT = 1.75                    # 그림 가로 ÷ 세로(약 630 × 360px) — 이 비율로 배치해야 칸이 정사각형에 가깝다. 좌표는 % 로 바꿔 쓴다
@@ -145,14 +146,16 @@ with c1, P.card("tree"):
                   f'<b>{escape(r["short"])}</b><span>HHI {r["hhi"]:,.0f}</span><em>{escape(nat)}</em></div>')
     st.html(TREE_CSS + f'<div class="ftree">{tiles}</div>')
     P.caption(cap)
-with c2, P.card("nctry"):
-    top_n = c.loc[c["country_count"].idxmax()]
-    P.title("품목군별 수입국 수",
+with c1, P.card("nctry"):
+    low = c.loc[c["country_count"].idxmin()]          # 수입국이 가장 적은 품목군 — 몇 나라에만 기대는지
+    ch = str(low["short"])[-1:]
+    iga = "이" if "가" <= ch <= "힣" and (ord(ch) - 0xAC00) % 28 else "가"   # 받침 있으면 「이」(한글이 아니면 「가」 — 상세 조회 _bat 과 같은 규칙)
+    P.title("전자부품 품목군별 수입국 수",
             f"개국 · {period} · 수입 실적 > 0인 선적국 · 색 = 1위 공급국")
     rows = [(r["short"], int(r["country_count"]), col.get(r["top1_stat_cd"], "#94a7c8"))
-            for r in c.sort_values("country_count", ascending=False).to_dict("records")]
+            for r in c.sort_values("country_count", ascending=True).to_dict("records")]   # 위에서부터 적은 수 → 많은 수
     P.chart(P.hbar(rows, "개국", 360), "p11_nctry")
-    P.caption(f'수입국 수는 <span class="key">{escape(top_n["short"])} {int(top_n["country_count"])}개국</span>이 가장 많다')
+    P.caption(f'수입국 수는 <span class="key">{escape(low["short"])}{iga} {int(low["country_count"])}개국</span>으로 가장 적다.')
 P.read1("HHI 2,500 이상 = 「높음」(미 법무부 · 연방거래위원회 2010 합병 지침의 고집중 기준) · 집중 수준 구간일 뿐 위험 예측이 아닙니다")
 
 with P.more("자세히 보기 — 산식 · 선정 규칙"):

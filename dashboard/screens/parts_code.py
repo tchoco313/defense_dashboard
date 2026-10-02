@@ -90,14 +90,14 @@ with b, st.container(border=True, key="card_hsun", height="stretch"):      # 왼
         cmax = by_ch.idxmax()
         cap = f'분석 대상 {len(it)}개 품목군은 류 {len(by_ch)}개에 걸쳐 있다 — <span class="key">{cmax}류가 {int(by_ch[cmax])}개</span>로 가장 많다'
         with ttl.container():
-            P.title("품목군의 HS 분류 체계", "안쪽 = 류(HS 2자리) · 바깥 = 품목군(HS 6자리) · 칸 크기 같음 · 안쪽 · 바깥 어느 칸이든 누르면 그 류만 펼치기")
+            P.title("전자부품 품목군의 HS 분류 체계", "안쪽 = 류(HS 2자리) · 바깥 = 품목군(HS 6자리) · 칸 크기 같음 · 안쪽 · 바깥 어느 칸이든 누르면 그 류만 펼치기")
     else:
         tot = imp.reindex(it["hs6"]).fillna(0)
         top = tot.idxmax()
         cap = (f'{by}년 수입액 {tot.sum():,.1f}억 달러 중 <span class="key">{escape(dict(zip(it["hs6"], it["short"]))[top])}가 '
                f'{tot.max():,.1f}억 달러</span>로 가장 많다')
         with ttl.container():
-            P.title("품목군의 HS 분류 체계", f"안쪽 = 류 · 바깥 = 품목군 · 칸 크기 = {by}년 수입액(억 달러 · 국가 전체 수입 · 민수 포함)")
+            P.title("전자부품 품목군의 HS 분류 체계", f"안쪽 = 류 · 바깥 = 품목군 · 칸 크기 = {by}년 수입액(억 달러 · 국가 전체 수입 · 민수 포함)")
     fig = go.Figure(go.Sunburst(ids=ids, labels=labels, parents=parents, values=values, branchvalues="total",
                                 marker=dict(colors=colors, line=dict(color="#fff", width=1)),
                                 customdata=hover, insidetextorientation="horizontal", textfont=dict(color="#111827"),   # 칸 안 글씨는 검정(10-01 사용자)
