@@ -21,6 +21,7 @@
 | 문서 | `md_to_pdf.py` | Markdown → PDF 간이 변환(reportlab) | — | 나눔고딕 글꼴 파일(Windows 경로) |
 | 제출 | `dump_db.py` | DB 전체(표 44 · 뷰 31)를 덤프 한 파일 + 표별 행 수로 → `build/db/` | 읽기 | MySQL 클라이언트(`mysqldump`) |
 | 제출 | `build_package.py` | 커밋된 프로젝트 파일 + 덤프 → 로컬 실행 패키지 zip(`build/`) | — | git |
+| 제출 | `record_demo.py` | 대시보드 시연 영상 자동 녹화(메뉴 · 조건을 실제로 눌러 가며, 한글 자막) → MP4(`build/demo/`) | — | Playwright · ffmpeg |
 
 - 「DB 읽기」 스크립트는 SELECT 만 한다. 「쓰기」는 `load_db.py` 하나이며, 비어 있는 표에만 적재한다.
 - 적재 순서와 덤프 · 복원은 [`../db/README.md`](../db/README.md).
