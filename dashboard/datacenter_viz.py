@@ -164,9 +164,14 @@ def period_txt(s: dict) -> str:
 
 
 # 군수품 FSG/FSC · 국산화개발 — 전자 계열 행을 한 번 읽어 두고 조건은 pandas 로 거른다(각 2~3천 행)
-FSG_NAME, FSC_NAME = load_fsg_ref()
-QF_ITEMS = load_fsg_items()
-QL_ITEMS = load_localized()
+# 고정된 상세 조회에서는 해당 자료만 읽는다. 다른 자료의 스키마 오류가
+# 수출입 화면까지 중단시키지 않도록 사용하지 않는 선택지는 빈 표로 둔다.
+_fixed_type = globals().get("FIXED_TYPE")
+FSG_NAME, FSC_NAME = load_fsg_ref() if _fixed_type != "수출입 HS" else ({}, {})
+QF_ITEMS = (load_fsg_items() if _fixed_type in (None, "군수품 FSG/FSC") else
+            pd.DataFrame(columns=["FSG", "FSC", "군종", "요구연도", "품목종류"]))
+QL_ITEMS = (load_localized() if _fixed_type in (None, "국산화개발") else
+            pd.DataFrame(columns=["FSG", "FSC", "사업명", "관련 업체"]))
 SRC_PLAN = f"방위사업청 · 군수품조달정보 국외 조달계획 OpenAPI(15158418) · 요구연도 {period_txt(S_PLAN)}"
 SRC_B2 = f"방위사업청 · 국방전자조달시스템 국산화개발품목(15119899) · 스냅샷({period_txt(S_B2)})"
 
@@ -231,7 +236,7 @@ QF_CHARTS = ["막대 그래프", "누적 막대 그래프", "도넛 그래프", 
 QF_DEFAULT = {"qf_fsg": list(QF_FSG), "qf_fsg_all": True, "qf_fsc": [],
               **{k: list(v) for k, v in QF_BRANCH_ROWS.items()}, "qf_y0": QF_YEARS[0], "qf_y1": QF_YEARS[-1],
               "qf_name": "", "qf_func": "", "qf_kind": "전체", "qf_nsn": "", "qf_chart": "막대 그래프",
-              **{f"qf_m_{m}": m in ("품목 건수", "FSC 수") for m, *_ in QF_METRICS}}
+              **{f"qf_m_{m}": m in ("품목 건수", "FSC 수") for m, *_ in QF_METRICS}} if _fixed_type in (None, "군수품 FSG/FSC") else {}
 # 국산화개발 — 스냅샷 자료라 건수 · 개수만 센다(국산화율 · 성공률 · BOM 대비 비율 · 연도별 추이는 만들지 않는다)
 QL_METRICS = [("국산화개발 기록 수", "건", "library_books"), ("고유 부품 수", "개", "extension"),
               ("사업 수", "개", "inventory"), ("관련 업체 수", "개", "factory")]
