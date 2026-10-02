@@ -362,16 +362,35 @@ def companies() -> pd.DataFrame:
 
 
 @st.cache_data(ttl=TTL, show_spinner=False)
-def domestic() -> dict:
-    """국내 조달(부록) — 계약 방법 · 수의계약 사유 · 입찰 결과 · 공고 수(건수만)."""
-    method = query("SELECT contract_method_name AS m, COUNT(*) AS n FROM clean_dapa_contract "
-                   "WHERE is_latest_seq = 1 GROUP BY contract_method_name ORDER BY n DESC")
-    reason = query("SELECT reason_group AS g, SUM(contract_count) AS n FROM v_contract_private_reason "
-                   "GROUP BY reason_group ORDER BY n DESC")
-    bid = query("SELECT opening_result AS r, SUM(is_key_representative) AS keys_n, COUNT(*) AS n "
-                "FROM clean_dapa_bid_result GROUP BY opening_result ORDER BY n DESC")
-    notice = int(query("SELECT COUNT(*) AS n FROM clean_dapa_bid_notice").iloc[0]["n"])
+def _domestic_raw() -> dict:
+    """국내 조달(부록) 연도별 원표 — 계약 · 사유 = 계약연도(계약번호의 첫 계약일), 개찰 결과 = 개찰연도, 공고 = 공고연도."""
+    method = query("SELECT YEAR(f.d) AS y, c.contract_method_name AS m, COUNT(*) AS n FROM clean_dapa_contract c "
+                   "JOIN (SELECT contract_no, MIN(contract_date) AS d FROM clean_dapa_contract GROUP BY contract_no) f "
+                   "ON f.contract_no = c.contract_no WHERE c.is_latest_seq = 1 GROUP BY YEAR(f.d), c.contract_method_name")
+    reason = query("SELECT contract_year AS y, reason_group AS g, SUM(contract_count) AS n FROM v_contract_private_reason "
+                   "GROUP BY contract_year, reason_group")
+    bid = query("SELECT YEAR(opening_date) AS y, opening_result AS r, SUM(is_key_representative) AS keys_n, COUNT(*) AS n "
+                "FROM clean_dapa_bid_result GROUP BY YEAR(opening_date), opening_result")
+    notice = query("SELECT YEAR(bid_notice_date) AS y, COUNT(*) AS n FROM clean_dapa_bid_notice GROUP BY YEAR(bid_notice_date)")
     return dict(method=method, reason=reason, bid=bid, notice=notice)
+
+
+def domestic_years() -> list[int]:
+    """국내 계약의 계약연도 목록(오름차순) — 연도 선택창에 쓴다."""
+    return sorted(int(y) for y in _domestic_raw()["method"]["y"].dropna().unique())
+
+
+def domestic(year: int | None = None) -> dict:
+    """국내 조달(부록) — 계약 방법 · 수의계약 사유 · 입찰 결과 · 공고 수(건수만). year = 그 해만(None = 전체 기간)."""
+    raw = _domestic_raw()
+
+    def pick(df: pd.DataFrame, by: str | None) -> pd.DataFrame:
+        d = df if year is None else df[df["y"] == year]
+        if by is None:
+            return d
+        return d.drop(columns="y").groupby(by, as_index=False, observed=True).sum().sort_values("n", ascending=False).reset_index(drop=True)
+    return dict(method=pick(raw["method"], "m"), reason=pick(raw["reason"], "g"), bid=pick(raw["bid"], "r"),
+                notice=int(pick(raw["notice"], None)["n"].sum()))
 
 
 @st.cache_data(ttl=TTL, show_spinner=False)

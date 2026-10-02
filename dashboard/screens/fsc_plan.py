@@ -59,16 +59,18 @@ p = allp[allp["fsg"].isin(g_pick) & allp["army"].isin(a_pick)]
 by_fsc = p.groupby("fsc4").size().sort_values(ascending=False)
 by_g = {g: int((p["fsg"] == g).sum()) for g in g_pick}
 total = len(p)
+base = int(allp["army"].isin(a_pick).sum())   # 결론 문장의 분모 — 고른 소요군의 전자 군급 전체(군 58 · 59 · 60). 고른 군만 분모로 쓰면 군 하나를 골랐을 때 늘 100% 가 된다
 years = sorted(p["year"].unique())
-yr_txt = f"{years[0]}–{years[-1]}" if years else "—"
+yr_txt = f"{years[0]}~{years[-1]}" if years else "—"   # 줄표(–)는 KPI 큰 숫자 글꼴에서 가늘고 흐리게 보인다 — 다른 화면처럼 물결표
 gap = [y for y in (2018, 2019, 2020) if (allp["year"] == y).sum() < 20]
 
 if not total:   # st.stop() 은 바닥글까지 멈추므로 쓰지 않는다
     P.lead("고른 군 · 소요군 조합에는 국외 조달계획 행이 없습니다", "조건을 바꿔 보세요")
 else:
     top_g = max(by_g, key=by_g.get)
-    P.lead(f'전자 군급 국외 조달계획 {total:,}건 중 <span class="key">군 {top_g}({escape(fsg_name[top_g])})가 '
-           f'{by_g[top_g] / total * 100:.0f}%</span>다', "건 · 품목 단위(조달요구번호 × 품목순번) · 금액은 쓰지 않음(통화 미확인)")
+    who = "" if len(a_pick) == len(armies) else " · ".join(a_pick) + " "
+    P.lead(f'{who}전자 군급 국외 조달계획 {base:,}건 중 <span class="key">군 {top_g}({escape(fsg_name[top_g])})가 '
+           f'{by_g[top_g] / base * 100:.1f}%</span>다', "건 · 품목 단위(조달요구번호 × 품목순번) · 금액은 쓰지 않음(통화 미확인)")
     P.kpis([P.kpi("국외 조달계획", f"{total:,}", "건", f"전자 군급 · 요구연도 {yr_txt}"),
             P.kpi("해당 군급", f"{p['fsc4'].nunique()}", "개", "조달계획이 있는 군급(FSC)", icon="account_tree"),
             P.kpi("적용장비", f"{p['equipment'].nunique():,}", "종", "종류 수만(결측 제외) · 이름은 싣지 않음"),
