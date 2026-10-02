@@ -98,5 +98,5 @@ with b, P.card("donut"):
         rows = [(r.country, round(float(r.value), 2), col.get(r.stat_cd, "#c3cede")) for r in head.itertuples()]
         if not rest.empty:
             rows.append((f"기타 {len(rest)}개국", round(float(rest["value"].sum()), 2), "#c3cede"))
-        hover_donut(rows, f"{sum(v for _, v, _ in rows):,.1f}", "억 달러", value_unit="억 달러", height=330)
+        hover_donut(rows, f"{sum(v for _, v, _ in rows):,.1f}", "억 달러", value_unit="억 달러", height=330, fit=True)   # 칸 높이 그대로 · 도넛만 크게
 P.see(SEE, source)
