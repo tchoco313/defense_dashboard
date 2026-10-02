@@ -1,0 +1,26 @@
+flowchart TB
+  subgraph TOP[" "]
+    direction LR
+    PC["<b>팀 개발 PC</b><br/>코드 · 정제 노트북 · 적재 스크립트<br/>.env — 적재 계정"]
+    USER(("사용자<br/>브라우저"))
+  end
+  PC -->|git push| GH["<b>GitHub 저장소</b><br/>main 브랜치"]
+  subgraph CLOUD["<span style='white-space:nowrap;padding:0 12px'>Streamlit Community Cloud</span>"]
+    direction LR
+    SEC["<b>Secrets</b><br/>조회 전용 계정"] -->|접속 정보| APP["<b>공개 앱</b><br/>defense-trade.streamlit.app"]
+  end
+  GH -->|push 하면 자동 재배포| APP
+  USER -->|HTTPS| APP
+  APP -.->|글꼴 · 지도| CDN["외부 CDN"]
+  subgraph AWS["AWS 서울 리전"]
+    direction LR
+    FW{"<b>보안 그룹</b><br/>허용한 접속 출처만"} --> RDS[("<b>RDS MySQL 8.4</b><br/>표 44 · 뷰 31")]
+  end
+  APP -->|TLS · 조회 전용 계정| FW
+  PC -->|TLS · 적재 계정| FW
+  classDef db fill:#0b1d4a,stroke:#0b1d4a,color:#fff
+  classDef ext fill:#f4f6fa,stroke:#9aa7bd,color:#47546b,stroke-dasharray:4 3
+  classDef bare fill:none,stroke:none
+  class RDS db
+  class CDN ext
+  class TOP bare

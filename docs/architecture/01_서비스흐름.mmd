@@ -1,0 +1,19 @@
+flowchart TB
+  U(("사용자<br/>브라우저")) -->|HTTPS| M["<b>main.py</b><br/>화면 틀 · 홈 · 소개<br/>주소에 맞는 메뉴 페이지 선택"]
+  M -.->|글꼴 · 지도 · 국기 · 사진| CDN["외부 CDN<br/>jsDelivr · flagcdn · Unsplash"]
+  M -->|상단 메뉴 · 왼쪽 메뉴| P["<b>메뉴 페이지</b><br/>소분류 화면을 위에서 아래로 이어 그림"]
+  P --> C{"<b>db_ready()</b><br/>DB 접속 확인"}
+  C -->|실패| E["오류 종류만 안내<br/>+ 「다시 연결」 단추"]
+  C -->|성공| S["<b>screens/〈소분류〉.py</b><br/>그 자리에서 실행(runpy)"]
+  C -->|성공 · 상세 조회| V["<b>datacenter_viz.py</b><br/>자료 유형 하나로 고정"]
+  S --> R["<b>screens/rds.py</b><br/>화면용 조회 함수"]
+  R --> Q["<b>db.py query()</b><br/>text() + 바인딩 파라미터<br/>결과 1시간 캐시"]
+  V -->|조건을 바꾸면 다시 조회| Q
+  V --> D["결과 표 · 차트 · 지도<br/>CSV · PNG 내려받기"]
+  Q -->|TLS · 조회 전용 계정| DB[("<b>AWS RDS</b><br/>MySQL 8.4")]
+  classDef db fill:#0b1d4a,stroke:#0b1d4a,color:#fff
+  classDef warn fill:#fff4ef,stroke:#e0703a,color:#7a2e0e
+  classDef ext fill:#f4f6fa,stroke:#9aa7bd,color:#47546b,stroke-dasharray:4 3
+  class DB db
+  class E warn
+  class CDN ext

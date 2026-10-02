@@ -35,7 +35,7 @@ OUT_DIR = ROOT / "docs" / "제출"
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 TEAM = "훈수안이조"
 PROJECT = "주요 방산 전자부품 수출입 및 국산화 현황 대시보드"
-DOC_DATE = "2026-10-01"
+DOC_DATE = "2026-10-02"
 PRETENDARD = "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
 MERMAID_JS = "https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.12.2/mermaid.min.js"
 
@@ -44,7 +44,7 @@ DOCS = {
     "01": (OUT_DIR / "01_화면설계서.md", "01_화면설계서.pdf", "화면설계서", "2-3",
            "h3[id^=\"p-\"]{break-before:page} h2 + p + h3[id^=\"p-\"]{break-before:auto}"),
     "02": (OUT_DIR / "02_시스템아키텍처.md", "02_시스템아키텍처.pdf", "시스템 아키텍처", "2-2",
-           "h2{break-before:auto;margin-top:26px} h2:has(+ p > img){break-before:page}"),
+           "h2{break-before:auto;margin-top:26px} h2:has(+ p > img){break-before:page} figure{break-inside:avoid;margin:10px 0 14px}"),
     "03": (ROOT / "docs" / "db" / "erd.md", "03_DB설계서_ERD.pdf", "DB 설계서 — ERD(테이블 관계도)", "2-2",
            ".mermaid{font-size:12px}"),
     "04": (ROOT / "docs" / "db" / "table-catalog.md", "04_DB설계서_테이블정의서.pdf", "DB 설계서 — 테이블 정의서", "",

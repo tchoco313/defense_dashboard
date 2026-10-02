@@ -65,7 +65,12 @@ QUICKSTART = """# 먼저 읽어 주세요 — 로컬에서 대시보드 실행�
 5. **실행** — `streamlit run dashboard/main.py` → 브라우저에서 http://localhost:8501
 
 접속 확인이 안 되면 `python scripts/check_db_access.py` 가 네트워크 · 포트 · 로그인 중 어디서 막혔는지 알려 준다.
-프로젝트 전체 안내는 `README.md`, DB 적재 과정은 `db/README.md`, 글꼴 · 작업 환경은 `docs/작업환경_폰트_안내.md`.
+프로젝트 전체 안내는 `README.md`, DB 적재 과정은 `db/README.md`.
+
+## 참고
+- 명령은 macOS/Linux 기준이다. Windows 는 `cp` 대신 `copy`, 경로의 `/` 대신 `\\`.
+- 이 압축 파일은 파일 이름을 UTF-8 로 표시해 만들었다 — Windows 기본 압축 풀기 · 반디집 · 7-Zip 에서 한글 이름이 그대로 보인다.
+- 대시보드는 macOS · Chrome 에서 만들었다. 글꼴(Pretendard)은 인터넷에서 받고, 막히면 맑은 고딕 · Apple SD Gothic Neo 로 대신 보인다.
 """
 
 

@@ -1,0 +1,29 @@
+flowchart TB
+  subgraph APP["dashboard/ — Streamlit 앱"]
+    direction TB
+    MAIN["<b>main.py</b><br/>진입점 · 화면 틀 · 홈 · 소개 · 메뉴"]
+    ST["<b>static/ · assets/</b><br/>CSS · JS · 소개 HTML · 이미지"]
+    SCR["<b>screens/〈소분류〉.py</b> × 16<br/>메뉴별 소분류 화면"]
+    PARTS["<b>screens/parts.py</b><br/>카드 · KPI · 차트 · 출처 조각"]
+    COMMON["<b>kdesign.py · ui.py · metrics.py</b><br/>디자인 · 공용 요소 · 지표 계산"]
+    RDS["<b>screens/rds.py</b><br/>화면용 조회 함수"]
+    VIZ["<b>datacenter_viz.py</b><br/>상세 조회 도구"]
+    DBPY["<b>db.py</b><br/>연결 · query() · 캐시 · 접속 실패 안내"]
+    MAIN -->|읽어 넣기| ST
+    MAIN -->|runpy| SCR
+    MAIN --> COMMON
+    SCR --> PARTS
+    PARTS --> COMMON
+    SCR --> RDS
+    SCR -->|상세 조회| VIZ
+    RDS --> DBPY
+    VIZ --> DBPY
+  end
+  NB["<b>notebooks/ · scripts/</b><br/>정제 · EDA · 적재 · 점검"]
+  CONF["<b>scripts/dbconf.py</b><br/>접속 설정 한 곳<br/>.env → Streamlit Secrets"]
+  DB[("<b>AWS RDS</b><br/>MySQL 8.4 · 표 44 · 뷰 31")]
+  DBPY --> CONF
+  NB --> CONF
+  CONF -->|TLS| DB
+  classDef db fill:#0b1d4a,stroke:#0b1d4a,color:#fff
+  class DB db

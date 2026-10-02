@@ -120,12 +120,11 @@ python scripts/record_demo.py              # 시연 영상 녹화 → build/demo
 ├── data/reference/       팀이 만든 참조표(품목군 기준표 · 국가 · 군 목록 · 국방반도체 참조 · 시도 경계)
 ├── docs/
 │   ├── 제출/             제출 설계서(화면 · 아키텍처 · ERD · 테이블 정의서) · 데이터 명세서 · EDA 안내
-│   ├── architecture/     아키텍처 그림(서비스 흐름 · 모듈 구조 · 클라우드 구성)
+│   ├── architecture/     아키텍처 그림(서비스 흐름 · 모듈 구조 · 클라우드 구성) · mermaid 원본(.mmd)
 │   ├── db/               DB 설계 원문(schema-design · erd · table-catalog)
 │   ├── reference/        정제 규칙 · 품목군 정의 · 계약 분류 규칙
 │   ├── runbook/          DB 접속 방법
-│   ├── data-sources.md   데이터 출처 · 채택 기록
-│   └── 작업환경_폰트_안내.md   글꼴 · 운영체제 · 압축 파일 안내
+│   └── data-sources.md   데이터 출처 · 채택 기록
 ├── tests/                단위 테스트(DB 없이 실행)
 ├── certs/                AWS RDS 공개 CA 인증서(TLS 검증용, 비밀 아님)
 ├── .streamlit/           Streamlit 설정 · Secrets 틀
@@ -155,4 +154,8 @@ python scripts/record_demo.py              # 시연 영상 녹화 → build/demo
 | 수집 · 파싱 | requests(공공데이터 OpenAPI), pdfplumber · olefile(공고 PDF·HWP 표), openpyxl |
 | 협업 · 도구 | GitHub, Google Drive, MySQL Workbench, AI 코딩 도우미(Claude Code — 코드 작성 · 문서 정리 보조, 커밋 기록에 함께 표시) |
 
-작업은 macOS 에서 했다. 글꼴 · 운영체제 차이 · 압축 파일 안내는 [`docs/작업환경_폰트_안내.md`](docs/작업환경_폰트_안내.md).
+## 작업 환경
+
+- macOS 에서 만들고 Chrome 으로 확인했다(Python 3.14). 실행에는 **Python 3.12 이상**이 필요하다(numpy · scipy 고정 버전이 요구).
+- 대시보드 글꼴(Pretendard) · 지구본 지도 · 국기는 인터넷(CDN)에서 받는다. 인터넷이 막히면 글꼴만 맑은 고딕(Windows) · Apple SD Gothic Neo(macOS)로 바뀌고, 데이터 · 차트는 DB 에서 읽어 그대로 나온다.
+- 명령은 macOS/Linux 기준이다 — Windows 는 `cp` → `copy`, `source .venv/bin/activate` → `.venv\Scripts\activate`. 문서 · 코드 · 참조표는 UTF-8 이다(방위사업청 · KOSIS 원본 CSV 만 cp949).
