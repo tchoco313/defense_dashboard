@@ -2905,9 +2905,7 @@ for _k, _hs in enumerate(FOCUS_HS):
                   "shares": _country_shares(_top, _s1, _hhi, _n)})
 
 # ── 실측값(샘플 아님) — defense_dashboard(AWS RDS) clean 테이블을 팀 문서에 기록한 값 ──────────────
-# 출처: docs/report/null-profile-2026-09-19.md, evidence-reliability-review-2026-09-17.md,
-#       reference/contract-class5-rules-alt-2026-09-17.md, csv-capability-map-2026-09-14.md,
-#       reference/data-cleaning-rules.md, db/table-guide.md, data-usage-decision-2026-09-18.md
+# 출처: 데이터 점검 단계의 작업 문서(결측 · 신뢰도 · 계약 분류 규칙 초안)와 docs/reference/data-cleaning-rules.md
 # 국내 계약 방법(clean_dapa_contract, 테스트 업체 6행 제외 전 43,111행 기준)
 DOM_METHOD = [("수의계약", 30255, SERIES[2]), ("일반경쟁", 6542, SERIES[0]), ("제한경쟁", 5184, SERIES[1]),
               ("협상", 666, SERIES[3]), ("2단계", 435, SERIES[4]), ("지명경쟁", 29, SERIES[5])]

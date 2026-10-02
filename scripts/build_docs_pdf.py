@@ -9,7 +9,7 @@
 처리:
   - 표지(팀 · 과제명 · 문서명 · 문서 일자)와 목차(## 제목)를 붙이고, md 의 첫 # 제목은 표지가 대신한다.
   - ```mermaid 블록은 mermaid.js(cdnjs)가 인쇄 전에 SVG 로 그린다. 그림 경로는 md 파일 위치 기준이다.
-  - 중간 HTML 은 --build-dir(기본: 시스템 임시 폴더 아래 kdd_docs_build)에 쓰고 저장소에는 남기지 않는다.
+  - 중간 HTML 은 --build-dir(기본: 시스템 임시 폴더 아래 docs_build)에 쓰고 저장소에는 남기지 않는다.
 
 필요한 것: Python 패키지 `markdown`(pip install markdown), Google Chrome, 인터넷(글꼴 · mermaid.js).
 
@@ -148,7 +148,7 @@ def print_pdf(html_path: Path, pdf_path: Path) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--only", nargs="*", choices=sorted(DOCS), help="만들 문서 키(기본: 전부)")
-    ap.add_argument("--build-dir", type=Path, default=Path(tempfile.gettempdir()) / "kdd_docs_build",
+    ap.add_argument("--build-dir", type=Path, default=Path(tempfile.gettempdir()) / "docs_build",
                     help="중간 HTML 을 쓸 폴더(저장소 밖)")
     ap.add_argument("--html-only", action="store_true", help="HTML 만 만든다")
     a = ap.parse_args()

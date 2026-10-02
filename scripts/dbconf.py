@@ -20,7 +20,8 @@ ENV_PATH = ROOT / ".env"
 # Amazon RDS 글로벌 CA 번들(공개 파일, https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem).
 # MARIADB_SSL=1 이면 이 CA 로 서버 인증서·호스트명을 검증한다 — pymysql 은 ca 없이 ssl={} 만 주면 검증을 끄므로(CERT_NONE) 반드시 지정.
 RDS_CA_PATH = ROOT / "certs" / "rds-global-bundle.pem"
-REQUIRED = ("MARIADB_HOST", "MARIADB_USER", "MARIADB_PASSWORD")
+# 비밀번호는 빈 값도 받는다 — 덤프를 복원한 로컬 MySQL 의 root 처럼 비밀번호 없는 계정이 있다(RDS 는 서버가 거절한다).
+REQUIRED = ("MARIADB_HOST", "MARIADB_USER")
 
 
 class DBConfigError(RuntimeError):
@@ -31,7 +32,7 @@ def _from_env_file() -> dict[str, str]:
     if not ENV_PATH.exists():
         return {}
     from dotenv import dotenv_values
-    return {k: v.strip() for k, v in dotenv_values(ENV_PATH).items() if v and k.startswith("MARIADB_")}
+    return {k: (v or "").strip() for k, v in dotenv_values(ENV_PATH).items() if k.startswith("MARIADB_")}
 
 
 def _from_streamlit_secrets() -> dict[str, str]:
@@ -50,7 +51,7 @@ def settings(role: str = "etl") -> dict[str, str]:
     if role == "etl":
         need = REQUIRED
     elif role == "admin":
-        need = ("MARIADB_HOST", "MARIADB_ADMIN_USER", "MARIADB_ADMIN_PASSWORD")
+        need = ("MARIADB_HOST", "MARIADB_ADMIN_USER")
     else:
         raise ValueError(f"role 은 'etl' 또는 'admin': {role!r}")
     missing = [k for k in need if not env.get(k)]
@@ -58,7 +59,7 @@ def settings(role: str = "etl") -> dict[str, str]:
         raise DBConfigError(f"{', '.join(missing)} 가 없습니다 — 로컬은 프로젝트 루트 .env, Streamlit Cloud 는 앱 설정 Secrets 에 넣으세요"
                             + (" (admin 역할은 로컬 .env 전용)" if role == "admin" else ""))
     user = env["MARIADB_ADMIN_USER" if role == "admin" else "MARIADB_USER"]
-    password = env["MARIADB_ADMIN_PASSWORD" if role == "admin" else "MARIADB_PASSWORD"]
+    password = env.get("MARIADB_ADMIN_PASSWORD" if role == "admin" else "MARIADB_PASSWORD") or ""
     return {
         "host": env["MARIADB_HOST"],
         "port": int(env.get("MARIADB_PORT") or 3306),

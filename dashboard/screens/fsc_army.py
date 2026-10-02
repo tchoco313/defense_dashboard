@@ -22,7 +22,7 @@ if sh.empty:
 else:
     top = sh.iloc[0]
     P.lead(f'국외 조달계획 중 전자 군급 비중은 <span class="key">{top["army"]} {top["pct"]:.1f}%</span>로 가장 크다',
-           f"% · 요구연도 {y0}~{y1} · 분모 = 소요군별 국외 조달계획 중 군급을 판별할 수 있는 행({int(sh['n_valid'].sum()):,}건, 「9999」 제외)")
+           f'<span style="color:#0f1f3d">요구연도</span> <b style="font-size:1.1em;font-weight:800;color:#1d4ed8">{y0}~{y1}</b>')
     with P.card("army"):
         P.title("소요군별 전자 군급 비중", "% · 가로 100% = 그 소요군의 국외 조달계획 · 색 막대 = 전자 군급(군 58 · 59 · 60, 색 = 소요군) · 괄호 = 분모 건수")
         ylab = [f"{r.army} ({int(r.n_valid):,}건)" for r in sh.itertuples()]

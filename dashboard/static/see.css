@@ -21,7 +21,7 @@ details.src[open] > summary{border-color:var(--accent);background:#eaf1ff;color:
 details.src .src-body{margin-top:6px;padding:9px 12px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);
   font-size:13px;color:#4b5b73;line-height:1.65}
 
-/* 소분류 위쪽 선택 단추(기간 기준 · 품목군 · 수입/수출 · 보기) — 흰 바탕에 묻혀 잘 안 보여서(10-01 사용자) 파란 계열로.
+/* 소분류 위쪽 선택 단추(기간 기준 · 품목군 · 수입/수출 · 보기) — 흰 바탕에 묻혀 잘 안 보여서 파란 계열로.
    고르지 않은 칸 = 옅은 파랑 바탕 · 남색 글씨, 고른 칸 = 「Q.」 표시와 같은 진한 파랑(#1d4ed8) · 흰 글씨. 상세 조회(zone_detail)는 제 모양 그대로 */
 div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stWidgetLabel"] p{font-size:13.5px;font-weight:800;color:#12234a;letter-spacing:-.2px}
 /* 이름표(기간 기준 · 품목군 …) — 파란 세로 막대 + 굵은 글씨(소주제 머리말 모양), 단추 · 선택창은 그 아래 줄 */
@@ -38,6 +38,21 @@ div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSelectbox"] 
 div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSelectbox"] div[role="group"]:hover,div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSelectbox"] div[role="group"]:focus-within{border-color:#1d4ed8}
 div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSelectbox"] input{font-weight:700;color:#12234a}
 div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSelectbox"] div[role="group"] button{color:#1d4ed8}
+/* 범위 막대(요구연도) — 이름표는 위 단추 이름표와 같은 모양(파란 세로 막대 + 굵은 글씨), 막대 · 손잡이 · 값 글씨는 남색(테마 기본색) 대신 같은 파랑(#1d4ed8).
+   채운 구간은 Streamlit 이 그라디언트로 칠한다(자리 값이 그 안에 있어 통째로 덮어쓸 수 없고, 고르지 않은 구간은 반투명 회색이라 바탕색을 깔면 비쳐 보인다)
+   — 그 막대는 건드리지 않고, 두 손잡이 사이에만 같은 굵기의 파란 막대를 덧그린다(손잡이 자리에 묶는 anchor 위치 지정. 지원하지 않는 브라우저는 남색 그대로) */
+div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] > [data-testid="stWidgetLabel"]{min-height:0;margin:0 0 8px;padding:0;align-items:center;gap:8px}
+div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] > [data-testid="stWidgetLabel"]::before{content:"";flex:0 0 4px;width:4px;height:16px;border-radius:2px;background:#1d4ed8}
+div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] > [data-testid="stWidgetLabel"] p{font-size:17px;font-weight:800;color:#12234a;letter-spacing:-.3px;white-space:nowrap}
+@supports (anchor-name: --a){
+div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] div:has(> [data-testid="stSliderThumbValue"]){z-index:1}
+div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] div:has(> [data-testid="stSliderThumbValue"]):nth-child(2){anchor-name:--kd-yr-a}
+div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] div:has(> [data-testid="stSliderThumbValue"]):nth-child(3){anchor-name:--kd-yr-b}
+div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] div:has(> div > [data-testid="stSliderThumbValue"])::after{content:"";position:absolute;
+  left:anchor(--kd-yr-a left);right:anchor(--kd-yr-b left);top:50%;height:.25rem;transform:translateY(-50%);background:#1d4ed8;pointer-events:none}
+}
+div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] div:has(> [data-testid="stSliderThumbValue"]){background-color:#1d4ed8!important}
+div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] [data-testid="stSliderThumbValue"],div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stSlider"] [data-testid="stSliderThumbValue"] *{color:#1d4ed8!important;font-weight:700}
 /* 품목군 옆 수입/수출 단추 — 조금 오른쪽으로. 수출입 현황은 선택창(높이 44px)이 단추(35px)보다 커서, 아래를 맞춘 단추를 4.5px 올려 세로 가운데를 맞춘다 */
 .st-key-zone_trade [data-testid="stColumn"]:has(button[data-variant="segmented_control"]) [data-testid="stButtonGroup"],.st-key-zone_conc [data-testid="stColumn"]:has(button[data-variant="segmented_control"]) [data-testid="stButtonGroup"]{margin-left:18px}
 .st-key-zone_trade [data-testid="stColumn"]:has(button[data-variant="segmented_control"]) [data-testid="stButtonGroup"]{transform:translateY(-4.5px)}

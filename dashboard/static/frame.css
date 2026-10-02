@@ -71,7 +71,7 @@ div[class*="st-key-gs_"] [data-testid="stPageLink"] a{display:flex;width:100%;bo
 div[class*="st-key-gs_"] [data-testid="stPageLink"] a p::before{content:"·";display:inline-block;width:12px;font-weight:800;color:#9cc2ff}
 div[class*="st-key-gs_"] [data-testid="stPageLink"] a:hover p::before{color:#fff}
 div[class*="st-key-gs_"] > div{flex-shrink:0!important;margin:0!important}   /* 칸 높이에 눌려 줄끼리 겹치지 않게 */
-div[class*="st-key-gs_"] [data-testid="stPageLink"] a p{font-size:16px!important;font-weight:600;color:#fff!important;   /* 10-01 — 옅은 하늘색 · 보통 굵기 → 흰색 · 조금 굵게(더 또렷하게) */
+div[class*="st-key-gs_"] [data-testid="stPageLink"] a p{font-size:16px!important;font-weight:600;color:#fff!important;   /* 흰색 · 조금 굵게(남색 바탕에서 또렷하게) */
   
   white-space:normal;line-height:1.35!important;word-break:keep-all}   /* 칸보다 긴 이름은 잘리지 않고 두 줄로 */
 div[class*="st-key-gs_"] [data-testid="stPageLink"] a:hover{background:rgba(255,255,255,.1)}

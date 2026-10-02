@@ -2,8 +2,10 @@
 # 깃허브는 파일 하나 100MB 를 넘으면 거부하고, 한 번 올리면 지워도 이력에 남아 계속 막힌다.
 data/*
 !data/.gitkeep
+!data/README.md
 *.csv
 *.xlsx
+!docs/제출/*.xlsx
 *.json
 *.parquet
 *.db
@@ -45,7 +47,7 @@ outputs/*.html
 *.bak
 config.py.*
 
-# ── 기타 ─────────────────────────────────────────────────────
-agent.md
+# ── 제출 패키지 만들 때 생기는 파일(scripts/dump_db.py · build_package.py) ──
+build/
 # 개발 계정 비밀번호 파일
 .credentials/
