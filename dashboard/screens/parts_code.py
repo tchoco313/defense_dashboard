@@ -1,4 +1,4 @@
-"""① 1-0 HS코드란 — HS(류 · 호 · 소호)는 무엇이고 13개 품목군은 그 안의 어디인가(② 군급코드란과 짝이 되는 화면, 2026-10-01 신규).
+"""① 1-0 HS코드란 — HS(류 · 호 · 소호)는 무엇이고 13개 품목군은 그 안의 어디인가(② 군급코드란과 짝이 되는 화면).
 
 용어: HS = 세계관세기구(WCO) 국제통일상품분류. 앞 6자리(류 2 · 호 4 · 소호 6)가 국제 공통이고, 우리나라는 여기에 4자리를 붙인
 10자리(HSK)를 쓴다. 이 대시보드의 「품목군」 = HS 6자리 한 개. 군급(FSC)과는 코드로 잇지 않는다.
@@ -100,7 +100,7 @@ with b, st.container(border=True, key="card_hsun", height="stretch"):      # 왼
             P.title("품목군의 HS 분류 체계", f"안쪽 = 류 · 바깥 = 품목군 · 칸 크기 = {by}년 수입액(억 달러 · 국가 전체 수입 · 민수 포함)")
     fig = go.Figure(go.Sunburst(ids=ids, labels=labels, parents=parents, values=values, branchvalues="total",
                                 marker=dict(colors=colors, line=dict(color="#fff", width=1)),
-                                customdata=hover, insidetextorientation="horizontal", textfont=dict(color="#111827"),   # 칸 안 글씨는 검정(10-01 사용자)
+                                customdata=hover, insidetextorientation="horizontal", textfont=dict(color="#111827"),   # 칸 안 글씨는 검정
                                 hovertemplate="%{label} %{customdata}<br>%{value:,}<extra></extra>"))
     fig.update_layout(height=444, margin=dict(l=0, r=0, t=4, b=20))   # 고리 아래에 여백 — 카드 바닥에 붙어 보이지 않게
     P.chart(fig, "p10_sun")

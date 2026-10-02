@@ -600,7 +600,7 @@ SCREENS = {
     "parts": {"code": "parts_code", "summary": "parts_summary", "trade": "parts_trade", "conc": "parts_conc", "detail": "parts_detail"},
     "fsc": {"code": "fsc_code", "plan": "fsc_plan", "army": "fsc_army", "domestic": "bg_domestic", "detail": "fsc_detail"},
     "local": {"done": "loc_done", "pair": "loc_pair", "detail": "loc_detail"},
-    "background": {"policy": "bg_policy", "strategy": "bg_strategy", "source": "bg_source"},   # 국내 생산 현황(bg_industry)은 10-02 메뉴에서 뺐다 — 화면 파일은 남겨 둔다
+    "background": {"policy": "bg_policy", "strategy": "bg_strategy", "source": "bg_source"},   # 국내 생산 현황(bg_industry)은 메뉴에서 뺐다 — 화면 파일은 남겨 둔다
 }
 def _next_link_v2(cur: str) -> None:
     """화면 끝 「다음: … / 처음으로: 홈」 링크는 두지 않는다 — 이동은 상단 메뉴 · 왼쪽 메뉴로 한다. 화면 파일의 P.next_link 호출은 그대로 둔다."""
@@ -957,7 +957,7 @@ if not _SEC["shown"]:
 
 # ── 바닥글 ──────────────────────────────────────────────────────────────
 # 바닥글 — K-Defense(로고) → Main · 데이터 출처 → 배경과 자료의 데이터 출처와 검증 · 용어 설명 → 대화상자 · 훈수안이조 → 팀 GitHub
-TEAM_URL = "https://github.com/dashboard"
+TEAM_URL = "https://github.com/tchoco313/defense_dashboard"
 with st.container(key="ft", horizontal=True):
     with st.container(key="ft_brand", width="content"):
         st.html('<div class="brand"><span class="mark"><span class="ms">shield</span>' + TAEGEUK + '</span><div><b>K-Defense Electronics</b>'

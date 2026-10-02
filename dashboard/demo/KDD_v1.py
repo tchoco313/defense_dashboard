@@ -1,4 +1,8 @@
-"""K-Defense 대시보드 — 새 디자인(brandnew). dashboard/demo/design_demo.py 를 바탕으로 화면 틀만 바꾼 판.
+"""K-Defense 대시보드 KDD_v1 — K-Defense_brandnew.py 를 이어 메뉴 · 소분류를 지금 배포 앱 구조로 맞춘 시안(숫자는 샘플).
+실행:  streamlit run "dashboard/demo/KDD_v1.py" --theme.base light
+
+── 아래는 K-Defense_brandnew 의 원래 설명 ──
+K-Defense 대시보드 — 새 디자인(brandnew). dashboard/demo/design_demo.py 를 바탕으로 화면 틀만 바꾼 판.
 
 화면 틀: 국방과학연구소 누리집(add.re.kr/kps) 방식 · 흰색 + 파랑.
   - 사이드바 대신 흰 머리글 + 상단 메뉴. 메뉴에 커서를 올리면 모든 페이지의 블록 목록이 파란 띠로 펼쳐진다
@@ -3051,9 +3055,7 @@ for _k, _hs in enumerate(FOCUS_HS):
                   "shares": _country_shares(_top, _s1, _hhi, _n)})
 
 # ── 실측값(샘플 아님) — defense_dashboard(AWS RDS) clean 테이블을 팀 문서에 기록한 값 ──────────────
-# 출처: docs/report/null-profile-2026-09-19.md, evidence-reliability-review-2026-09-17.md,
-#       reference/contract-class5-rules-alt-2026-09-17.md, csv-capability-map-2026-09-14.md,
-#       reference/data-cleaning-rules.md, db/table-guide.md, data-usage-decision-2026-09-18.md
+# 출처: 데이터 점검 단계의 작업 문서(결측 · 신뢰도 · 계약 분류 규칙 초안)와 docs/reference/data-cleaning-rules.md
 # 국내 계약 방법(clean_dapa_contract, 테스트 업체 6행 제외 전 43,111행 기준)
 DOM_METHOD = [("수의계약", 30255, SERIES[2]), ("일반경쟁", 6542, SERIES[0]), ("제한경쟁", 5184, SERIES[1]),
               ("협상", 666, SERIES[3]), ("2단계", 435, SERIES[4]), ("지명경쟁", 29, SERIES[5])]

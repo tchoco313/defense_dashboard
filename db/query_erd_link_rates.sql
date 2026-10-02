@@ -1,4 +1,4 @@
--- 용도: docs/db/erd.md 점선(논리 키) 라벨의 연결률 재실측. app_ro로 실행, 결과 n_match/n_all을 라벨에 옮긴다. (2026-09-22 작성)
+-- 용도: docs/db/erd.md 점선(논리 키) 라벨의 연결률 재실측. 읽기 전용 계정으로 실행, 결과 n_match/n_all을 라벨에 옮긴다.
 SELECT 'notice↔result (bid_notice_no+seq)' k, (SELECT COUNT(*) FROM clean_dapa_bid_result) n_all,
        (SELECT COUNT(*) FROM clean_dapa_bid_result r JOIN clean_dapa_bid_notice n ON n.bid_notice_no=r.bid_notice_no AND n.bid_notice_seq_norm=r.bid_notice_seq_norm) n_match
 UNION ALL SELECT 'contract.vendor_biz_reg_no→company', (SELECT COUNT(*) FROM clean_dapa_contract WHERE vendor_biz_reg_no IS NOT NULL), (SELECT COUNT(*) FROM clean_dapa_contract c JOIN clean_company p ON p.biz_reg_no=c.vendor_biz_reg_no)

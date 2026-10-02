@@ -547,7 +547,7 @@ ref_sido_map,2,sido_code,(수작업),CHAR(2),행정표준코드 앞 2자리(11 �
 ref_sido_map,3,sido_name,(수작업),VARCHAR(20),표준 시도명
 clean_dapa_localized_item,1,project_name,사업명,VARCHAR(100),무기체계 사업명(raw 그대로)
 clean_dapa_localized_item,2,part_mgmt_no,부품관리번호,VARCHAR(20),"PK. 부품 식별자(완전 중복 8,940행 축약 후 1행)"
-clean_dapa_localized_item,3,nsn,재고번호,VARCHAR(20),"NSN 13자리. KDSIS 연결 키. NULL = 원본 결측 10행(raw 공란) → 화면 「미기재」, 집계 KDSIS 연결 대상에서 제외(대상아님)"
+clean_dapa_localized_item,3,nsn,재고번호,VARCHAR(20),"NSN 13자리 = fsc4 + 원본 재고번호(NIIN)를 9자리로 앞 0 복원(원본이 숫자로 저장해 0이 빠짐). 영숫자 NIIN(37A…)은 9자리일 때 fsc4 + 대문자. KDSIS 연결 키(숫자 13자리만). NULL = FSC 없음 16행 · 재고번호 결측 4행 → 화면 「미기재」, KDSIS 연결 대상에서 제외(대상아님)"
 clean_dapa_localized_item,4,fsc4,군급분류,CHAR(4),"FSC 4자리 — ref_fsc·국외 API LEFT(invntryNo,4) 조인 키. NULL = 원본 결측 16행(raw 0 15·공란 1, 규칙 §2-3) → 화면 「미기재」, 집계 FSG 집계 시 미대응 그룹 별도(v_b2_fsg_summary NULL 그룹)"
 clean_dapa_localized_item,5,fsc2,(파생),CHAR(2),"LEFT(fsc4,2) — 58·59가 전자 계열. NULL = 구조적 16행(fsc4 NULL 파생, 1:1) → 화면 「미기재」, 집계 fsc4와 같음"
 clean_dapa_localized_item,6,item_name,품명,VARCHAR(200),"품명(raw 그대로. 부품명이며 HS 매핑에 쓰지 않음). NULL = 원본 결측 30행(raw 공란) → 화면 「미기재」, 집계 무시"
