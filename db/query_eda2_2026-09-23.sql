@@ -1,6 +1,6 @@
--- 용도: EDA 2차(docs/report/plan/eda-plan-2026-09-23.md) · 화면 반영(docs/report/feedback/handoff-2026-09-23.md §6)용 집계 쿼리. SELECT만, app_ro/dev_taeho로 실행. (2026-09-23 작성)
+-- 용도: EDA 2차(노트북 11 §11 · 14) 집계 쿼리 — 대시보드 화면과 같은 SQL. SELECT 만 쓰므로 읽기 전용 계정으로 실행한다.
 -- 원칙: 세고 · 나누고 · 순위만(검정·상관 없음). 관세청 = USD·국가 전체 교역(민수 포함). 분석 대상 = ref_hs_whitelist.priority IN (1,2) 13개.
--- 블록 번호 = eda-plan 번호. 블록마다 세미콜론 하나.
+-- 블록 번호([A1] · [B1] …)로 노트북이 블록을 골라 읽는다. 블록마다 세미콜론 하나.
 
 -- [A1] 「군용」 신고 비중 — 13개 품목의 세분류 용도 태그별 수입 비중(2021~2025). 화면 ⑤ DATA INFO
 SELECT u.hs6, w.name_ko, u.use_tag, u.hs10_count, u.imp_dlr, u.imp_dlr_hs6, u.share_pct, u.period_start, u.period_end

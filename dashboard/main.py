@@ -600,7 +600,7 @@ SCREENS = {
     "parts": {"code": "parts_code", "summary": "parts_summary", "trade": "parts_trade", "conc": "parts_conc", "detail": "parts_detail"},
     "fsc": {"code": "fsc_code", "plan": "fsc_plan", "army": "fsc_army", "domestic": "bg_domestic", "detail": "fsc_detail"},
     "local": {"done": "loc_done", "pair": "loc_pair", "detail": "loc_detail"},
-    "background": {"policy": "bg_policy", "strategy": "bg_strategy", "source": "bg_source"},   # 국내 생산 현황(bg_industry)은 10-02 메뉴에서 뺐다 — 화면 파일은 남겨 둔다
+    "background": {"policy": "bg_policy", "strategy": "bg_strategy", "source": "bg_source"},   # 국내 생산 현황(bg_industry)은 메뉴에서 뺐다 — 화면 파일은 남겨 둔다
 }
 def _next_link_v2(cur: str) -> None:
     """화면 끝 「다음: … / 처음으로: 홈」 링크는 두지 않는다 — 이동은 상단 메뉴 · 왼쪽 메뉴로 한다. 화면 파일의 P.next_link 호출은 그대로 둔다."""

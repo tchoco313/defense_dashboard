@@ -21,7 +21,7 @@ details.src[open] > summary{border-color:var(--accent);background:#eaf1ff;color:
 details.src .src-body{margin-top:6px;padding:9px 12px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);
   font-size:13px;color:#4b5b73;line-height:1.65}
 
-/* 소분류 위쪽 선택 단추(기간 기준 · 품목군 · 수입/수출 · 보기) — 흰 바탕에 묻혀 잘 안 보여서(10-01 사용자) 파란 계열로.
+/* 소분류 위쪽 선택 단추(기간 기준 · 품목군 · 수입/수출 · 보기) — 흰 바탕에 묻혀 잘 안 보여서 파란 계열로.
    고르지 않은 칸 = 옅은 파랑 바탕 · 남색 글씨, 고른 칸 = 「Q.」 표시와 같은 진한 파랑(#1d4ed8) · 흰 글씨. 상세 조회(zone_detail)는 제 모양 그대로 */
 div[class*="st-key-zone_"]:not(.st-key-zone_detail) [data-testid="stWidgetLabel"] p{font-size:13.5px;font-weight:800;color:#12234a;letter-spacing:-.2px}
 /* 이름표(기간 기준 · 품목군 …) — 파란 세로 막대 + 굵은 글씨(소주제 머리말 모양), 단추 · 선택창은 그 아래 줄 */

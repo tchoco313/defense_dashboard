@@ -14,7 +14,7 @@
 --   원본 파일: DB 에 넣지 않는다. data/raw/ 파일이 원본이며 scripts/load_db.py read_raw(<데이터셋 키>) 가
 --            파일을 DataFrame 으로 읽는다(열명·헤더 대조는 db/column_dict.csv 의 raw_* 행 = 원본 파일 열 사전).
 --            read_raw 의 row_id(파일명 정렬 × 행 순 파서 순번) 가 clean_*.raw_row_id 의 정의다. 원본 위치·크기·SHA-256·파서 건수는 meta_dataset.
---   clean_*: 정제 결과(형 변환·정규화·분류 속성). 값은 사용자 정제 노트북이 채운다.
+--   clean_*: 정제 결과(형 변환·정규화·분류 속성). 값은 정제 노트북(notebooks/01~06)이 채운다.
 --   fact_/dim_: 관세청 원본에서 규칙이 확정된 형 변환만 수행(총계행 제외·연월 파싱·HS6 파생).
 --   v_*    : 집계 뷰. 시나리오(제한률) 값은 DB에 저장하지 않고 화면에서 계산한다.
 --   meta_* : 출처 기록·단계별 건수·열 사전. 보고서 표를 SELECT로 뽑기 위한 것.
@@ -163,7 +163,7 @@ CREATE TABLE ref_equipment_alias (
 --   axis='civil_mix'          : 민수 혼합 — mil_hs10_share(군용 전용 HS10 수입 비중, 하한선) · aero_hs10_share(항공기용, 민항 포함) ·
 --                               auto_hs10_share(자동차용) · hsk_control_hs10_ratio / hsk_control_imp_share(전략물자 HSK 연계표)
 --   axis='defense_relevance'  : (카테고리 맵을 두지 않아 현재 쓰지 않음 — ENUM 값만 남음) ·
---                               a7_plan_count / a7_plan_budget(국외조달 조달계획, 사용자 키워드 검수 후) · krit_task_count(clean_krit_task 적재 후)
+--                               a7_plan_count / a7_plan_budget(국외조달 조달계획, 키워드 검수 후) · krit_task_count(clean_krit_task 적재 후)
 --   값은 v_hs10_use_share에서 INSERT…SELECT로 채우고, 산식은 method에 남긴다.
 --   라벨 도출 규칙은 v_civil_mix_rule. 문턱값은 팀 규칙이며 docs/reference/hs-whitelist-definition.md §7.
 CREATE TABLE ref_hs_indicator (
@@ -385,7 +385,7 @@ CREATE TABLE meta_dataset (
   PRIMARY KEY (dataset_key)
 ) ENGINE=InnoDB COMMENT='원본 확보 기록(출처·확보일·해시·건수)';
 
--- 단계별 건수: 원본 전체 → 선택 연도 → 중복 처리 후 → 관련 후보 → 검증된 분석 대상 (CLAUDE.md 보고 규칙)
+-- 단계별 건수: 원본 전체 → 선택 연도 → 중복 처리 후 → 관련 후보 → 검증된 분석 대상
 CREATE TABLE meta_load_log (
   log_id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
   dataset_key       VARCHAR(40)  NOT NULL,
@@ -465,7 +465,7 @@ CREATE TABLE fact_customs_monthly (
 --       SELECT year, COUNT(*) FROM fact_customs_monthly GROUP BY year;  -- 2025 = 26,211 기대
 
 -- =============================================================================
--- 5. clean_  정제 결과 (값은 사용자 정제 노트북이 채운다)
+-- 5. clean_  정제 결과 (값은 정제 노트북 notebooks/01~06 이 채운다)
 
 -- =============================================================================
 
@@ -687,7 +687,7 @@ CREATE TABLE clean_company_name_link (
 ) ENGINE=InnoDB COMMENT='업체명 연결 결과(연결률 보고용). match_type=none이면 biz_reg_no NULL';
 
 -- A7 국외조달 조달계획 정제 — 판단번호 단위(원본 3,029 → 고유 3,024, 같은 판단번호 5쌍은 dup_count·충돌로 기록).
--- 전자 관련 후보(is_electronics_candidate)·검수 상태는 사용자 노트북이 채운다. 검수 전 값은 화면에서 "잠정" 라벨.
+-- 전자 관련 후보(is_electronics_candidate)·검수 상태는 정제 노트북이 채운다. 검수 전 값은 화면에서 "잠정" 라벨.
 CREATE TABLE clean_dapa_overseas_plan (
   decision_no               VARCHAR(20)  NOT NULL,
   plan_year                 CHAR(4)      NOT NULL COMMENT '집행예정월 앞 4자리',

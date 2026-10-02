@@ -95,7 +95,7 @@ with b, st.container(border=True, key="card_sun", height="stretch"):       # 왼
                     "안쪽 = 군 · 바깥 = 군급 · 칸 크기 = 국외 조달계획 건수(0건 군급은 빠짐)")
     fig = go.Figure(go.Sunburst(ids=ids, labels=labels, parents=parents, values=values, branchvalues="total",
                                 marker=dict(colors=colors, line=dict(color="#fff", width=1)),
-                                customdata=hover, insidetextorientation="auto", textfont=dict(color="#111827"),   # 칸 안 글씨는 검정(10-01 사용자)
+                                customdata=hover, insidetextorientation="auto", textfont=dict(color="#111827"),   # 칸 안 글씨는 검정
                                 hovertemplate="%{label} %{customdata}<br>%{value:,}<extra></extra>"))
     fig.update_layout(height=444, margin=dict(l=0, r=0, t=4, b=20))   # 고리 아래에 여백 — 카드 바닥에 붙어 보이지 않게
     P.chart(fig, "p21_sun")

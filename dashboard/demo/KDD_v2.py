@@ -1,13 +1,12 @@
-"""K-Defense 대시보드 KDD_v2 — 스토리 목업(2026-09-30). KDD_v1 을 복사해 화면에서 숫자 · 차트를 뺀 「설계도」.
+"""K-Defense 대시보드 KDD_v2 — 스토리 목업. KDD_v1 을 복사해 화면에서 숫자 · 차트를 뺀 「설계도」.
 
-메뉴 · 소분류 · 주소는 KDD_v1 과 1:1 로 같다(09-30 오후 정렬): 소개 → 전자부품 현황 → 군급 분류와 조달 → 국산화 현황 → 배경과 자료.
-목차(소분류)마다 제목 하나 — 그 안에 「질문 · 답 상자 → 소주제(차트 · 표, KDD_v1 과 같은 샘플 값) → 읽을 때 주의」가 들어간다(2026-10-01).
+메뉴 · 소분류 · 주소는 KDD_v1 과 1:1 로 같다: 소개 → 전자부품 현황 → 군급 분류와 조달 → 국산화 현황 → 배경과 자료.
+목차(소분류)마다 제목 하나 — 그 안에 「질문 · 답 상자 → 소주제(차트 · 표, KDD_v1 과 같은 샘플 값) → 읽을 때 주의」가 들어간다.
 여기서 다듬은 문장 · 차트 구성을 KDD_v1 의 같은 소분류로 옮긴다. 결론 문장의 ○ 은 데이터를 붙일 때 채울 자리.
 틀(머리글 · 상단 펼침 메뉴 · 배너 · 왼쪽 메뉴 · 바닥글)과 홈 첫 화면은 KDD_v1 그대로다.
 소개 「어디에 쓰이나」는 dashboard/weapon_context.py 의 무기체계 분류(SYSTEMS) · 공개 사례(CASES)를 쓴다.
 전자부품 현황 · 군급 분류와 조달 · 국산화 현황 맨 아래 「상세 조회」만 KDD_v1 의 search_block(샘플 값)을 그대로 쓴다.
 KDD_v1 의 나머지 옛 화면 함수(page_parts · _parts_* · _fsc_* · _local_* · _bg_*)는 파일에 남아 있지만 부르지 않는다.
-회의 기록 · 결정: docs/report/app/kdd-v2-mockup-2026-09-30.md
 
 실행:  streamlit run "dashboard/demo/KDD_v2.py" --theme.base light
 
@@ -3071,9 +3070,7 @@ for _k, _hs in enumerate(FOCUS_HS):
                   "shares": _country_shares(_top, _s1, _hhi, _n)})
 
 # ── 실측값(샘플 아님) — defense_dashboard(AWS RDS) clean 테이블을 팀 문서에 기록한 값 ──────────────
-# 출처: docs/report/null-profile-2026-09-19.md, evidence-reliability-review-2026-09-17.md,
-#       reference/contract-class5-rules-alt-2026-09-17.md, csv-capability-map-2026-09-14.md,
-#       reference/data-cleaning-rules.md, db/table-guide.md, data-usage-decision-2026-09-18.md
+# 출처: 데이터 점검 단계의 작업 문서(결측 · 신뢰도 · 계약 분류 규칙 초안)와 docs/reference/data-cleaning-rules.md
 # 국내 계약 방법(clean_dapa_contract, 테스트 업체 6행 제외 전 43,111행 기준)
 DOM_METHOD = [("수의계약", 30255, SERIES[2]), ("일반경쟁", 6542, SERIES[0]), ("제한경쟁", 5184, SERIES[1]),
               ("협상", 666, SERIES[3]), ("2단계", 435, SERIES[4]), ("지명경쟁", 29, SERIES[5])]

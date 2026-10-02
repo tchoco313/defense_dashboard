@@ -113,7 +113,7 @@
 - **하지 않는 것**: 한 계약 = 한 부품으로 세지 않는다. 차수를 무시하고 금액을 합산하지 않는다. "전자부품 1만 건"이라 쓰지 않는다(전자 관련 키워드 1,479행·반도체 35행뿐). 조달 금액 ≠ 방산 매출.
 - **기대 건수**: 원본 43,112 → 2025 원본 30,808 → `clean_dapa_contract` **43,105**(검산 `원본 43,112 = clean 43,105 + 제외 7` — 충돌 1 + 테스트 업체 6) → 계약 단위(`is_latest_seq=1`) **37,602** → 5분류 후보(현재 `class5` 전부 `판단 보류`, 규칙 미확정) → 검증된 분석 대상(`review_status` 확정분). 기간 이상치 1, 총계약금액 NULL 1, `sido_code` NULL 2. `v_contract_monthly` 28행·계약 37,602·15.83조 원. 적재 `notebooks/04_clean_domestic.ipynb`.
 - **미확정**: `계약금액` vs `총계약금액` 합산 전 표본 재확인. `class5` 키워드 규칙은 노트북이 정하고 규칙표를 `evidence`로 남긴다(`contract-class5-rules.md`).
-- **조인·형 변환 실측**(`db/query_p4_join_check.sql` E): 최대 차수 행이 1개인 계약번호 37,607 + 충돌 1(`2024UMM1504`-`01`). `contract_date` DATE 변환 실패 0, `contract_amount` 비숫자 0, `contract_period`는 `YYYY-MM-DD~YYYY-MM-DD` 단일 패턴 100% → `period_start`/`period_end` 분해 안전.
+- **조인·형 변환 실측**(`db/query_join_key_check.sql` E): 최대 차수 행이 1개인 계약번호 37,607 + 충돌 1(`2024UMM1504`-`01`). `contract_date` DATE 변환 실패 0, `contract_amount` 비숫자 0, `contract_period`는 `YYYY-MM-DD~YYYY-MM-DD` 단일 패턴 100% → `period_start`/`period_end` 분해 안전.
 
 ### 2-3. B2 방위사업청 국산화개발품목 — 핵심 ② 보강(국산화 완료 근거)
 
@@ -292,7 +292,7 @@
 | 관세청 ↔ 국가 참조 | `statCd` ↔ `stat_cd` | 238개 전부 대응(`ZZ` 좌표 없음) |
 | B2 ↔ 국외 API ↔ `ref_fsc` | `군급분류` ↔ `LEFT(invntryNo,4)` ↔ `fsc4` | FSC4 수준. NSN 13자리 전체 대조는 KDSIS 경유(2-14) |
 | FSC / 계약 품목군 / KRIT 과제 ↔ HS6 | (없음) | **카테고리 맵(FSC↔HS 대응표)을 두지 않는다** — 대응 근거가 없고, 수출입 현황 대시보드이므로. FSC 축 데이터는 FSC 단위로만 보여 준다 |
-| 계약정보·입찰결과·B2·방산업체 ↔ 업체 | `biz_reg_no`(있으면) / `name_norm`(없으면, `clean_company_name_link`) | 연결률·미연결·다중 일치 수를 보고한 뒤에만 화면 사용. 사업자번호는 양쪽 100% `NNN-NN-NNNNN` 12자라 정규화 없이 조인 가능(낙찰업체 3,094/3,209; 사업자번호당 업체명 변이 0, `db/query_p4_join_check.sql`). 이름 매칭은 정규화 필수 — 방산업체 84: exact 49 / multi 2 / none 33(exact 58.3%), B2 계약업체 고유 128/403(31.8%)·행 21,635/33,842(63.9%). `clean_company` **14,836**(계약정보 + 낙찰업체에만 있는 115; 열 밀림 1건·테스트 업체 2 제외), `clean_company_name_link` 491행 = defense_company 84(exact 49/multi 2/none 33) + localized_item 원문 407(exact 118/multi 12/none 277). `name_norm` 잠정 규칙 = `(주)`·`㈜`·`주식회사`·`(유)`·`유한회사` 제거 후 공백 제거 |
+| 계약정보·입찰결과·B2·방산업체 ↔ 업체 | `biz_reg_no`(있으면) / `name_norm`(없으면, `clean_company_name_link`) | 연결률·미연결·다중 일치 수를 보고한 뒤에만 화면 사용. 사업자번호는 양쪽 100% `NNN-NN-NNNNN` 12자라 정규화 없이 조인 가능(낙찰업체 3,094/3,209; 사업자번호당 업체명 변이 0, `db/query_join_key_check.sql`). 이름 매칭은 정규화 필수 — 방산업체 84: exact 49 / multi 2 / none 33(exact 58.3%), B2 계약업체 고유 128/403(31.8%)·행 21,635/33,842(63.9%). `clean_company` **14,836**(계약정보 + 낙찰업체에만 있는 115; 열 밀림 1건·테스트 업체 2 제외), `clean_company_name_link` 491행 = defense_company 84(exact 49/multi 2/none 33) + localized_item 원문 407(exact 118/multi 12/none 277). `name_norm` 잠정 규칙 = `(주)`·`㈜`·`주식회사`·`(유)`·`유한회사` 제거 후 공백 제거 |
 | 국내 입찰공고 ↔ 입찰결과 | `bid_notice_no`+`bid_notice_seq` | **키 단위 요약만**(1:1 6,567 / 다중 303 / 미연결 329). 행 단위 조인은 다중 303키에서 7,405행이 7,545행으로 늘어 낙찰금액이 중복 합산되므로 금지. 차수는 세 열 모두 한 자리(0/00 혼재 없음)라 LPAD 전후 매칭 수 동일. 참조공고번호는 `SUBSTRING(ref_notice_no,5,7)=bid_notice_no`가 100%지만 결과 표에 열이 없어 추가 연결 0 |
 | 국외 조달계획 파일판 ↔ 국외 입찰결과 | `판단번호` | 교집합 83, 중복 5쌍은 clean 대표 행. 국외 계약정보에는 판단번호가 없어 3자 연결 불가 |
 | 국외 API ↔ 파일판 | — | **조인 금지**(판단번호 체계 다름) |
