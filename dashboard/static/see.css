@@ -1,6 +1,11 @@
 
 .see.q b{font-size:15px;font-weight:800;color:#1d4ed8;letter-spacing:0}
 /* 질문을 결론 상자(.pg-lead) 안 윗줄에 — 소개의 .mk-msg .q 와 같은 모양. 그때 맨 위 줄(.see.none)은 칸째 접어 간격도 남기지 않는다 */
+/* 「Q.」 상자는 모든 페이지에서 같은 모양 — 소개의 .mk-msg(story.css)와 바탕 · 왼쪽 선 · 안쪽 여백 · 글씨 크기를 맞춘다
+   (screens/parts.py 의 .pg-lead 기본값: 바탕 #f5f8fe · 선 5px · 여백 18px 22px · 답 22px 를 덮어쓴다) */
+div.pg-lead{padding:16px 20px;background:#eef4ff;border-left:4px solid #1d4ed8;border-radius:0 10px 10px 0}
+div.pg-lead p{font-size:19px;font-weight:800;color:#0f1f3d;line-height:1.5;letter-spacing:-.4px;word-break:keep-all}
+div.pg-lead .q:last-child{margin-bottom:0}   /* 답 없이 질문만 있는 상자 */
 .pg-lead .q{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:14px;font-weight:700;color:#1d4ed8;letter-spacing:-.2px}
 .pg-lead .q i{flex:0 0 auto;font-style:normal;font-size:11.5px;font-weight:800;color:#fff;background:#1d4ed8;border-radius:5px;padding:2px 7px}
 [data-testid="stElementContainer"]:has(.see.none){display:none!important}
