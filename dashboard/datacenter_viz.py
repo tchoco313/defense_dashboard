@@ -184,7 +184,7 @@ def _groups(df: pd.DataFrame) -> tuple[dict[str, str], dict[str, list[str]]]:
 
 QF_FSG, QF_FSC = _groups(QF_ITEMS)
 QL_FSG, QL_FSC = _groups(QL_ITEMS)
-QF_BRANCHES = [b for b in ("육군", "해군", "공군", "해병대", "국직", "미확인") if b in set(QF_ITEMS["군종"])]
+QF_BRANCHES = [b for b in ("육군", "해군", "해병대", "공군", "국직", "미확인") if b in set(QF_ITEMS["군종"])]   # 버튼 순서
 QF_YEARS = sorted(QF_ITEMS["요구연도"].unique().tolist())
 QF_YEAR_GAP = {2018, 2019, 2020}            # 원자료 공백 구간(2018 1건 · 2020 11건 — 전자 계열은 2018 1건뿐) — 연도 흐름 차트에서 뺀다
 QF_KINDS = ["전체"] + sorted(QF_ITEMS["품목종류"].unique().tolist(), key=lambda k: (k == "미기재", k))
@@ -231,7 +231,7 @@ Q_DEFAULT = {"qs_area": "수출입", "qs_hs": "HS6", "qs_ctry": ["중국", "대�
              **{f"qs_m_{m}": m in Q_MONEY for m, *_ in Q_METRICS}}
 
 # 군수품 FSG/FSC — 지표(이름, 단위, 아이콘) · 차트. HS 지표는 이 유형에서 그리지 않는다
-QF_BRANCH_ROWS = {"qf_branch_a": QF_BRANCHES[:3], "qf_branch_b": QF_BRANCHES[3:]}   # 군종 버튼 두 줄(3 + 나머지)
+QF_BRANCH_ROWS = {"qf_branch_a": QF_BRANCHES[:4], "qf_branch_b": QF_BRANCHES[4:]}   # 군종 버튼 — 육군 · 해군 · 해병대 · 공군을 한 줄에(4), 나머지가 있으면 아랫줄
 QF_METRICS = [("품목 건수", "건", "inventory_2"), ("FSC 수", "개", "category"),
               ("적용장비 수", "종", "precision_manufacturing"), ("KDSIS 연결 건수", "건", "link")]
 QF_CHARTS = ["막대 그래프", "누적 막대 그래프", "도넛 그래프", "트리맵 차트", "꺾은선 그래프"]
@@ -390,10 +390,12 @@ def _q_form_css(hints: dict[str, str]) -> str:
   white-space:nowrap}}
 {sel(chips, 'button [data-testid="stMarkdownContainer"]')}{{min-width:0;flex:1 1 auto;overflow:hidden;text-align:left}}   /* wrap=True 라도 한 줄 · … */
 {sel(chips, 'button [data-testid="stIconMaterial"]')}{{color:#fff !important;font-size:17px}}
-/* 군종 두 줄 — 칸마다 폭을 한 줄 3칸 기준(1/3)으로 고정해 윗줄 · 아랫줄 칸 넓이를 맞춘다.
+/* 군종 — 칸마다 폭을 한 줄 4칸 기준(1/4)으로 고정해 네 군종이 한 줄에 들어가게 한다(아랫줄이 있으면 칸 넓이가 같다).
+   칸이 좁아진 만큼 안쪽 여백 · 글씨를 줄인다.
    다중선택 segmented_control 은 고른 칸에 aria-checked 없이 data-selected 만 붙어 전역 파랑 규칙이 안 걸렸다 → 여기서 같은 색 */
-div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"]{{flex:0 0 calc(100% / 3) !important;
-  max-width:calc(100% / 3);min-width:0}}
+div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"]{{flex:0 0 calc(100% / 4) !important;
+  max-width:calc(100% / 4);min-width:0;padding-left:4px !important;padding-right:4px !important}}
+div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"] p{{font-size:13px !important;white-space:nowrap}}
 div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"][data-selected]{{
   background:rgba(43,110,246,.1);border-color:var(--accent);color:var(--accent)}}
 div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"][data-selected] p{{font-weight:700}}   /* 고른 군종은 굵게 */
@@ -406,9 +408,10 @@ div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"]:focus-v
 div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"][data-selected]:hover{{
   background:rgba(43,110,246,.16) !important}}
 div[class*="st-key-qf_branch_"] button[data-variant="segmented_control"]:hover *{{color:var(--accent) !important}}
-/* 두 줄이 맞닿는 모서리는 직각 — 윗줄 아래 모서리 · 아랫줄 위 모서리(윗줄 끝 칸 아래 오른쪽은 밑에 칸이 없어 둥근 채로) */
-.st-key-qf_branch_a button[data-variant="segmented_control"]{{border-bottom-left-radius:0 !important}}
-.st-key-qf_branch_a button[data-variant="segmented_control"]:not(:last-of-type){{border-bottom-right-radius:0 !important}}
+/* 두 줄이 맞닿는 모서리는 직각 — 윗줄 아래 모서리 · 아랫줄 위 모서리(윗줄 끝 칸 아래 오른쪽은 밑에 칸이 없어 둥근 채로).
+   아랫줄이 있을 때만 건다 — 한 줄뿐이면 양 끝 칸의 아래 모서리도 둥글게 둔다 */
+.st-key-qf_branch_box:has(.st-key-qf_branch_b) .st-key-qf_branch_a button[data-variant="segmented_control"]{{border-bottom-left-radius:0 !important}}
+.st-key-qf_branch_box:has(.st-key-qf_branch_b) .st-key-qf_branch_a button[data-variant="segmented_control"]:not(:last-of-type){{border-bottom-right-radius:0 !important}}
 .st-key-qf_branch_b button[data-variant="segmented_control"]{{border-top-left-radius:0 !important;border-top-right-radius:0 !important}}
 .st-key-qf_branch_box{{gap:0 !important}}
 .st-key-qf_branch_box [data-testid="stElementContainer"]:has(.st-key-qf_branch_b),.st-key-qf_branch_b{{margin-top:-1px}}
