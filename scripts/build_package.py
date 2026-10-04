@@ -97,7 +97,7 @@ def main() -> None:
 
     commit = git("rev-parse", "--short", "HEAD").decode().strip()
     dump_date = date.fromtimestamp(dump.stat().st_mtime).isoformat()
-    out = a.out or ROOT / "build" / f"defense_dashboard_local_{date.today().isoformat()}.zip"
+    out = (a.out or ROOT / "build" / f"defense_dashboard_local_{date.today().isoformat()}.zip").resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
 
     tar = tarfile.open(fileobj=io.BytesIO(git("archive", "--format=tar", "HEAD")))
