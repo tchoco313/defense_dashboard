@@ -4,7 +4,7 @@
 db/meta_dataset.csv(수집 데이터셋 26종) + db/table_dict.csv(역할·한 행·주의)
 + db/column_dict.csv(열 설명) + 원본 파일 실측(scripts/load_db.py read_raw — 행 수·열·예시값)
 + RDS 실측(정제·기준·뷰 행 수·열) + db/clean_transform_map.csv(원본→정제층 이름이 바뀐 대응 48건)
-  → docs/제출/3_데이터수집목록및명세서-<날짜>.xlsx
+  → docs/제출/05_데이터수집목록및명세서.xlsx
     (시트 = 목록 1 + 수집 데이터셋 26 + (참고) DB 테이블·뷰 1 + 정제변경 요약·상세 2)
 
 서식은 과정 제공 샘플(3_데이터수집목록및명세서_샘플.xlsx)을 그대로 따른다
@@ -38,7 +38,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 ap = argparse.ArgumentParser()
-ap.add_argument("--out", help="출력 xlsx 경로(기본 docs/제출/3_데이터수집목록및명세서-<asof>.xlsx)")
+ap.add_argument("--out", help="출력 xlsx 경로(기본 docs/제출/05_데이터수집목록및명세서.xlsx)")
 ap.add_argument("--asof", default=datetime.date.today().isoformat(), help="작성일자(YYYY-MM-DD)")
 ARGS = ap.parse_args()
 TODAY = ARGS.asof
@@ -850,7 +850,7 @@ sd.freeze_panes = "A5"
 kind_tally = collections.Counter(d[3] for d in detail_rows)
 print("정제변경: 요약 {}행 · 상세 {}행 {}".format(len(summary_rows), len(detail_rows), dict(kind_tally)))
 
-OUT = pathlib.Path(ARGS.out) if ARGS.out else ROOT / f"docs/제출/3_데이터수집목록및명세서-{TODAY}.xlsx"
+OUT = pathlib.Path(ARGS.out) if ARGS.out else ROOT / "docs/제출/05_데이터수집목록및명세서.xlsx"
 wb.save(OUT)
 if DTYPE_DRIFT:
     print(f"[경고] 열 사전 dtype 이 RDS 와 다른 열 {len(DTYPE_DRIFT)}개 — 명세서는 RDS 값을 실었다. db/column_dict.csv 를 고칠 것:")

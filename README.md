@@ -32,9 +32,9 @@ K-디지털트레이닝 국방·첨단산업 AI 솔루션 ML 엔지니어 양성
 | ① 프로젝트 기획서 | — | `1_기획서_회의록/` |
 | ② 회의록 · 수행일지 · WBS | — | `1_기획서_회의록/` |
 | ③ 데이터 · 데이터 명세서 | `docs/제출/05_데이터수집목록및명세서.xlsx` · `docs/data-sources.md` · 팀 작성 참조표 `data/reference/` | `2_데이터수집_저장/` (원본 파일 · 명세서) |
-| ④ 전처리 및 EDA 보고서 | `notebooks/` (01~06 정제 · 11~14 EDA, 실행 결과 포함) · 안내 `docs/제출/06_전처리_EDA_보고서_안내.pdf` | `3_데이터전처리/` · `4_데이터분석(EDA)/` |
+| ④ 전처리 및 EDA 보고서 | 보고서 `docs/제출/07_전처리_보고서.pdf` · `08_EDA_보고서.pdf` · `notebooks/` (01~06 정제 · 11~14 EDA, 실행 결과 포함) | `3_데이터전처리/` · `4_데이터분석(EDA)/` |
 | ⑤ 대시보드 코드 · 설계서 | `dashboard/` · `requirements.txt` · 설계서 `docs/제출/01~04` | `5_대시보드/` (설계서 · 프로젝트 코드 · 설계 과정) |
-| ⑤ 대시보드 시연 동영상 | — | `6_포트폴리오/02_훈수안이조_시연영상.mp4` |
+| ⑤ 대시보드 시연 동영상 | — | `6_포트폴리오/K-Defense 대시보드 — 훈수안이조 구동영상.mp4` |
 | ⑥ 포트폴리오(발표 PPT) | — | `6_포트폴리오/` (PPTX · PDF) |
 
 ## 팀 — 훈수안이조
@@ -55,7 +55,7 @@ https://defense-trade.streamlit.app — 설치 없이 브라우저로 연다.
 ### B. 로컬에서 실행 — DB 덤프 복원 (검사 · 시연용)
 팀 DB(AWS RDS)는 허용된 IP 에서만 접속된다. 그래서 DB 전체를 덤프 한 파일(표 44개 · 뷰 31개)로 함께 제공한다.
 
-1. 로컬 실행 패키지(`defense_dashboard_local_<날짜>.zip`)를 [Releases](https://github.com/tchoco313/defense_dashboard/releases/latest) 또는 Drive 에서 받아 푼다.
+1. 로컬 실행 패키지(`defense_dashboard_local_<날짜>_<판>.zip`, 가장 최근 것)를 [Releases](https://github.com/tchoco313/defense_dashboard/releases/latest) 또는 Drive 에서 받아 푼다.
 2. MySQL 8.0 이상에 `db/dump/defense_dashboard_dump.sql` 을 복원한다 — MySQL Workbench `Server → Data Import → Import from Self-Contained File`, 또는 `mysql -u root -p < db/dump/defense_dashboard_dump.sql`.
 3. 설치 · 실행:
    ```bash
@@ -111,15 +111,15 @@ python scripts/record_demo.py              # 시연 영상 녹화 → build/demo
 .
 ├── dashboard/            Streamlit 대시보드 (진입점 main.py)
 │   ├── screens/          메뉴별 소분류 화면
-│   ├── static/           CSS · JS · 소개 HTML
+│   ├── static/           CSS · JS · 소개 HTML(kdesign/ · detail/ = 공용 디자인 · 상세 조회 조각)
 │   ├── assets/           이미지 · 기관 로고
 │   └── demo/             디자인 시안(혼자 도는 파일, 숫자는 샘플)
 ├── notebooks/            정제(0x_clean_*) · EDA(1x_eda_*) 노트북
 ├── scripts/              수집 · 적재 · 점검 · 문서 생성 · 덤프 스크립트, DB 접속 설정(dbconf.py)
 ├── db/                   스키마 · 시드 · 표/열 사전 · 데이터셋 대장 · 조회 SQL · 적재 과정 설명
-├── data/reference/       팀이 만든 참조표(품목군 기준표 · 국가 · 군 목록 · 국방반도체 참조 · 시도 경계)
+├── data/reference/       팀이 만든 참조표(품목군 기준표 · 국가 · 군 목록 · 국방반도체 참조 · 계약 분류 규칙 · 시도 경계)
 ├── docs/
-│   ├── 제출/             제출 설계서(화면 · 아키텍처 · ERD · 테이블 정의서) · 데이터 명세서 · EDA 안내
+│   ├── 제출/             제출 설계서(화면 · 아키텍처 · ERD · 테이블 정의서) · 데이터 명세서 · 전처리 · EDA 보고서
 │   ├── architecture/     아키텍처 그림(서비스 흐름 · 모듈 구조 · 클라우드 구성) · mermaid 원본(.mmd)
 │   ├── db/               DB 설계 원문(schema-design · erd · table-catalog)
 │   ├── reference/        정제 규칙 · 품목군 정의 · 계약 분류 규칙

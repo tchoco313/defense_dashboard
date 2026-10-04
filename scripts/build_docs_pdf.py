@@ -5,6 +5,8 @@
   02  docs/제출/02_시스템아키텍처.md    → docs/제출/02_시스템아키텍처.pdf
   03  docs/db/erd.md                    → docs/제출/03_DB설계서_ERD.pdf
   04  docs/db/table-catalog.md          → docs/제출/04_DB설계서_테이블정의서.pdf
+  07  docs/제출/07_전처리_보고서.md      → docs/제출/07_전처리_보고서.pdf
+  08  docs/제출/08_EDA_보고서.md         → docs/제출/08_EDA_보고서.pdf
 
 처리:
   - 표지(팀 · 과제명 · 문서명 · 문서 일자)와 목차(## 제목)를 붙이고, md 의 첫 # 제목은 표지가 대신한다.
@@ -14,7 +16,7 @@
 필요한 것: Python 패키지 `markdown`(pip install markdown), Google Chrome, 인터넷(글꼴 · mermaid.js).
 
 사용(저장소 루트에서):
-  python scripts/build_docs_pdf.py                 # 네 문서 모두
+  python scripts/build_docs_pdf.py                 # 모든 문서
   python scripts/build_docs_pdf.py --only 01 03    # 고른 문서만
   python scripts/build_docs_pdf.py --html-only     # HTML 만 만들고 PDF 는 건너뛴다(미리 보기)
 """
@@ -36,8 +38,14 @@ CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 TEAM = "훈수안이조"
 PROJECT = "주요 방산 전자부품 수출입 및 국산화 현황 대시보드"
 DOC_DATE = "2026-10-02"
+DOC_DATES = {"02": "2026-10-04", "07": "2026-10-04", "08": "2026-10-04"}   # 문서별 일자(없으면 DOC_DATE)
 PRETENDARD = "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
 MERMAID_JS = "https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.12.2/mermaid.min.js"
+
+# 보고서(07 · 08) 공통 — 장 나눔 없이 이어 쓰고, 그림 폭은 img 의 width 속성(%)을 따르며, 표 안 숫자는 끊지 않는다
+REPORT_CSS = ("h2{break-before:auto;margin-top:24px;break-after:avoid} figure{break-inside:avoid;margin:10px 0 14px} "
+              "body{font-size:9.8pt} table{font-size:8.3pt} th,td{overflow-wrap:break-word;padding:4px 6px} "
+              + " ".join(f'img[width="{w}%"]{{width:{w}%}}' for w in range(50, 100)))
 
 # 키 → (원본 md, PDF 이름, 표지 문서명, 목차 깊이(""면 목차 없음 — md 에 목차가 있는 문서), 문서별 추가 CSS)
 DOCS = {
@@ -49,6 +57,8 @@ DOCS = {
            ".mermaid{font-size:12px}"),
     "04": (ROOT / "docs" / "db" / "table-catalog.md", "04_DB설계서_테이블정의서.pdf", "DB 설계서 — 테이블 정의서", "",
            "body{font-size:9.4pt} table{font-size:8.2pt} h3{font-size:11pt;margin-top:16px}"),
+    "07": (OUT_DIR / "07_전처리_보고서.md", "07_전처리_보고서.pdf", "전처리 보고서", "2-2", REPORT_CSS),
+    "08": (OUT_DIR / "08_EDA_보고서.md", "08_EDA_보고서.pdf", "EDA 보고서", "2-2", REPORT_CSS),
 }
 
 CSS = """
@@ -110,7 +120,7 @@ MERMAID_INIT = """<script src="%s"></script>
   themeVariables: {fontFamily: "Pretendard, Apple SD Gothic Neo, sans-serif"}});</script>"""
 
 
-def to_html(md_path: Path, doc_name: str, toc_depth: str, extra_css: str) -> str:
+def to_html(md_path: Path, doc_name: str, toc_depth: str, extra_css: str, doc_date: str = DOC_DATE) -> str:
     """md 한 편 → 표지 · 목차가 붙은 인쇄용 HTML 문자열."""
     text = md_path.read_text(encoding="utf-8")
     text = re.sub(r"\A# .*\n+", "", text, count=1)          # 첫 # 제목은 표지가 대신한다
@@ -127,7 +137,7 @@ def to_html(md_path: Path, doc_name: str, toc_depth: str, extra_css: str) -> str
     lede, body = (body[:cut], body[cut:]) if cut > 0 else ("", body)
     cover = (f'<section class="cover"><div class="team">{TEAM}</div><div class="proj">{PROJECT}</div>'
              f'<div class="doc">{html.escape(doc_name)}</div>'
-             f'<div class="meta">문서 일자 {DOC_DATE}</div>'
+             f'<div class="meta">문서 일자 {doc_date}</div>'
              f'<div class="lede">{lede}</div></section>')
     toc_html = f'<section class="toc-page"><h2>목차</h2>{toc}</section>' if toc_depth and "<li>" in toc else ""
     css = CSS % {"font": PRETENDARD, "team": TEAM, "doc": doc_name.replace('"', ""), "extra": extra_css}
@@ -156,7 +166,7 @@ def main() -> None:
     for key in a.only or sorted(DOCS):
         src, pdf_name, doc_name, depth, extra = DOCS[key]
         html_path = a.build_dir / f"{key}.html"
-        html_path.write_text(to_html(src, doc_name, depth, extra), encoding="utf-8")
+        html_path.write_text(to_html(src, doc_name, depth, extra, DOC_DATES.get(key, DOC_DATE)), encoding="utf-8")
         if a.html_only:
             print(f"[HTML] {html_path}")
             continue
