@@ -87,7 +87,11 @@ def main():
         print("\n   → 다 통과했습니다. 그대로 작업하면 됩니다.")
     except Exception as exc:
         print("   [X] 로그인 실패 —", type(exc).__name__, str(exc)[:120])
-        print("      서버까지는 닿았으니 .env 의 계정·비밀번호 문제입니다.")
+        if getattr(exc, "args", (None,))[0] == 1049:   # Unknown database — 서버 · 계정은 맞고 DB 만 없다
+            print("      서버 · 계정은 맞지만 defense_dashboard DB 가 아직 없습니다.")
+            print("      로컬 실행이면 db/dump/defense_dashboard_dump.sql 을 먼저 복원하세요(방법: db/README.md).")
+        else:
+            print("      서버까지는 닿았으니 .env 의 계정·비밀번호 문제입니다.")
 
 
 if __name__ == "__main__":
