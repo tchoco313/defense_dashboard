@@ -1,0 +1,31 @@
+<style>
+/* ⓘ 단추(info_btn) · 대화상자 */
+.st-key-info_btn{width:auto!important;padding:0!important}
+.st-key-info_btn [data-testid="stTooltipHoverTarget"]{justify-content:flex-start!important}
+.st-key-info_btn button{width:25px;height:25px;min-width:25px;flex-shrink:0;min-height:0;padding:0;border-radius:50%;border:none;
+  display:flex;align-items:center;justify-content:center;background:linear-gradient(140deg,#2b6ef6,#3fa9f5);
+  box-shadow:0 2px 7px rgba(43,110,246,.45);transition:transform .16s,box-shadow .16s}
+.st-key-info_btn button:hover{transform:scale(1.1);box-shadow:0 3px 10px rgba(43,110,246,.6)}
+.st-key-info_btn button > *{margin:0!important;gap:0!important;justify-content:center}
+.st-key-info_btn button [data-testid="stMarkdownContainer"]{display:none}
+.st-key-info_btn button [data-testid="stIconMaterial"]{color:#fff;font-size:16px;margin:0!important;line-height:1}
+[data-testid="stDialog"] [role="dialog"]{border-radius:12px;background:#f6f9fd}
+[data-testid="stDialog"] h2{font-size:23.5px!important;font-weight:700!important;letter-spacing:-.5px;color:var(--text)}
+.di-lead{font-size:14.5px;color:#44567a;line-height:1.65;margin:-4px 0 12px}
+.di-card{display:flex;gap:14px;padding:13px 15px;margin-bottom:10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.di-ic{display:none}
+.di-card > div:last-child{flex:1;min-width:0}
+.di-t{font-size:14px;font-weight:600;color:var(--muted);margin-bottom:5px}
+.di-big{font-size:17px;font-weight:600;color:var(--text);line-height:1.45;letter-spacing:-.3px}
+.di-s{font-size:13.5px;color:var(--muted);line-height:1.55;margin-top:2px}
+.di-chip{display:inline-block;margin-top:7px;padding:3px 10px;border-radius:6px;background:var(--sky-weak);font-size:13.5px;color:#0f2a5c;font-weight:500}
+.di-chip b{font-weight:700;margin-left:6px}
+.di-kv{display:grid;grid-template-columns:62px 1fr;gap:4px 10px;font-size:14px;color:#44567a;line-height:1.5}
+.di-kv b{color:var(--text);font-weight:600}
+.di-card.warn{border-left:3px solid var(--accent)}
+.di-card.warn .di-t{color:var(--accent)}
+.di-warn{margin:0!important;padding:0!important;list-style:none;counter-reset:w}
+.di-warn li{counter-increment:w;position:relative;padding-left:24px;font-size:14px;color:var(--text);line-height:1.55;margin-bottom:5px}
+.di-warn li::before{content:counter(w);position:absolute;left:0;top:2px;width:17px;height:17px;border-radius:50%;background:var(--sky-weak);
+  color:var(--accent);font-size:12px;font-weight:700;display:grid;place-items:center}
+</style>

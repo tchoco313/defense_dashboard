@@ -43,6 +43,7 @@ streamlit run dashboard/main.py          # 저장소 루트에서 — .streamlit
 | `datacenter_viz.py` | 상세 조회 도구 — 조건 선택 · 표 · 차트 · CSV 내려받기 |
 | `weapon_context.py` | 무기체계 분류 · 공개 사례(소개 화면) |
 
-- `static/` — `main.py` 가 쓰는 CSS · JS · 소개 HTML. CSS 안 `${이름}` 자리는 `css(파일, 이름=값)` 이 파이썬 값(색 · 폭)으로 채운다.
+- `static/` — 화면용 CSS · JS · HTML 은 파이썬 코드에 넣지 않고 이 폴더에 둔다. 바로 아래는 `main.py`(틀 · 홈 · 소개), `static/kdesign/` 은 `kdesign.py`(공통 디자인 · 지구본 · 도넛 · 지도), `static/detail/` 은 `datacenter_viz.py`(상세 조회)가 읽는다. CSS 안 `${이름}` 자리(이름이 `.tpl` 로 끝나는 파일 포함)는 불러올 때 파이썬 값(색 · 폭)으로 채운다.
+- **배포 뒤 옛 모듈 방지**: 배포 서버는 새 코드를 받아도 프로세스를 다시 띄우지 않아, 화면이 import 하는 공용 모듈(`rds` · `parts` · `db` · `kdesign` 등)이 옛 판으로 남을 수 있다. `main.py` 의 `_reload_changed_modules()` 가 실행할 때마다 이 파일들이 바뀌었는지 보고, 바뀌었으면 의존 순서대로 다시 읽는다.
 - `assets/` — K9 배너 사진(`k9_banner.jpg`), 바닥글 기관 로고(`logos/`).
 - `demo/` — 개발 중에 만든 디자인 시안(혼자 도는 파일, 숫자는 샘플). [`demo/README.md`](demo/README.md).

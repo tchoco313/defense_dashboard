@@ -44,6 +44,14 @@ PLOT_CFG = {"displaylogo": False, "modeBarButtonsToRemove": ["zoom2d", "pan2d", 
 TARGET = "SELECT hs6 FROM ref_hs_whitelist WHERE priority IN (1, 2)"   # 분석 대상 13개
 
 
+# 화면용 CSS · JS 는 static/detail/ 파일에 두고 읽는다(runpy 로 실행돼도 __file__ 기준).
+_STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+
+def _static(name: str) -> str:
+    return (_STATIC_DIR / name).read_text(encoding="utf-8")
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_ref() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     wl = query("SELECT hs6, name_ko FROM ref_hs_whitelist WHERE priority IN (1, 2) ORDER BY priority, hs6")
@@ -457,23 +465,7 @@ def _q_chip_select(key: str, options: list, fmt, placeholder: str, all_key: str 
 # 칩 말풍선 — 글씨가 칩 안에서 … 로 잘린 칩에만 보인다. 잘렸는지는 화면 폭에 따라 달라 서버에서 알 수 없으므로
 # 모든 칩에 help 를 달고, 브라우저에서 커서를 올린 순간 글씨 폭(scrollWidth > clientWidth)을 재서
 # 안 잘린 칩이면 <html data-chipfit> 를 켜 말풍선 층을 숨긴다
-_CHIP_FIT_JS = """
-export default function () {
-  if (window.__kdChipFit) return
-  window.__kdChipFit = true
-  const root = document.documentElement
-  document.addEventListener("pointerover", e => {
-    // 말풍선을 여는 곳(도움말 대상)에 들어갈 때만 판단을 바꾼다. 빈 곳 · 말풍선 위로 옮길 때는 그대로 둔다 —
-    // 말풍선은 커서가 떠난 뒤에도 잠깐 열려 있어, 칩을 벗어나자마자 표시를 끄면 숨겼던 말풍선이 그 사이에 드러났다
-    const tgt = e.target.closest && e.target.closest('[data-testid="stTooltipHoverTarget"]')
-    if (!tgt) return
-    const btn = tgt.closest('[class*="st-key-"][class*="chips"]') && tgt.querySelector("button")
-    const p = btn && btn.querySelector("p")
-    if (p && p.scrollWidth <= p.clientWidth + 1) root.setAttribute("data-chipfit", "")
-    else root.removeAttribute("data-chipfit")
-  }, true)
-}
-"""
+_CHIP_FIT_JS = _static("detail/chip_fit.js")
 _CHIP_FIT = st.components.v2.component("kd_chip_fit", html="<span></span>", js=_CHIP_FIT_JS)
 
 
@@ -514,81 +506,8 @@ _CHECK_DD_HTML = """
   </div>
 </div>
 """
-_CHECK_DD_CSS = """
-.dd{position:relative;font:15.5px Pretendard,'Malgun Gothic',system-ui,sans-serif}
-.field{width:100%;height:40px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 12px;
-  border-radius:8px;border:1px solid #2b6ef6;background:rgba(43,110,246,.1);color:#5a7fc9;font:inherit;cursor:pointer;text-align:left}
-.dd.off .field{opacity:.55;cursor:not-allowed}
-.field .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.field .arr{color:#2b6ef6;font-size:12px;transition:transform .15s}
-.dd.open .field .arr{transform:rotate(180deg)}
-.panel{position:absolute;left:0;right:0;top:44px;z-index:1000;background:#fff;border:1px solid #c9d3e6;border-radius:10px;
-  box-shadow:0 12px 30px rgba(20,40,80,.18);padding:8px;outline:none}
-.q{width:100%;box-sizing:border-box;height:34px;border:1px solid #d6dbe6;border-radius:6px;padding:0 10px;font:inherit;color:#111}
-.q:focus{outline:none;border-color:#2b6ef6}
-.tools{display:flex;align-items:center;gap:6px;margin:6px 2px}
-.tools button{border:0;background:none;color:#2b6ef6;font:600 13.5px inherit;cursor:pointer;padding:2px 4px}
-.tools .cnt{margin-left:auto;color:#6b7a99;font-size:13px}
-.list{max-height:240px;overflow-y:auto}
-.list label{display:flex;align-items:center;gap:8px;padding:6px 6px;border-radius:6px;cursor:pointer;color:#16233f;font-size:14.5px}
-.list label:hover{background:rgba(43,110,246,.07)}
-.list input{width:16px;height:16px;margin:0;accent-color:#2b6ef6;cursor:pointer;flex:0 0 auto}
-.empty{padding:10px 6px;color:#6b7a99;font-size:14px}
-"""
-_CHECK_DD_JS = """
-const S = new WeakMap()
-export default function (component) {
-  const { data, parentElement, setTriggerValue } = component
-  const root = parentElement.querySelector(".dd")
-  if (!root) return
-  const field = root.querySelector(".field"), txt = root.querySelector(".txt"), panel = root.querySelector(".panel")
-  const q = root.querySelector(".q"), list = root.querySelector(".list"), cnt = root.querySelector(".cnt")
-  const opts = data.options || [], committed = data.selected || []
-  let s = S.get(parentElement)
-  if (!s) { s = { open: false, draft: new Set() }; S.set(parentElement, s) }
-  if (!s.open) s.draft = new Set(committed)          // 닫혀 있을 때는 Python 값이 기준
-  q.placeholder = data.search || "검색"
-  field.disabled = !!data.disabled
-  root.classList.toggle("off", !!data.disabled)
-  if (data.disabled && s.open) { s.open = false; root.classList.remove("open") }
-
-  const label = () => {
-    const n = s.open ? s.draft.size : committed.length
-    if (data.disabled) { txt.textContent = data.all_text || ""; return }
-    txt.textContent = n ? `${data.noun} ${n}개 선택` + (s.open ? " · 닫으면 반영" : "") : (data.placeholder || "")
-    cnt.textContent = `${s.draft.size} / ${opts.length}`
-  }
-  const draw = () => {
-    const f = q.value.trim().toLowerCase()
-    const shown = opts.filter(o => !f || o.l.toLowerCase().includes(f))
-    list.innerHTML = shown.length ? "" : '<div class="empty">검색 결과가 없습니다.</div>'
-    for (const o of shown) {
-      const lab = document.createElement("label"), cb = document.createElement("input")
-      cb.type = "checkbox"; cb.checked = s.draft.has(o.v)
-      cb.onchange = () => { cb.checked ? s.draft.add(o.v) : s.draft.delete(o.v); label() }
-      lab.append(cb, document.createTextNode(o.l)); list.append(lab)
-    }
-    label()
-  }
-  const open = () => { s.open = true; root.classList.add("open"); panel.hidden = false; q.value = ""; draw(); q.focus() }
-  const close = () => {
-    if (!s.open) return
-    s.open = false; root.classList.remove("open"); panel.hidden = true
-    const next = opts.map(o => o.v).filter(v => s.draft.has(v))
-    label()
-    if (next.length !== committed.length || next.some((v, i) => v !== committed[i])) setTriggerValue("commit", next)
-  }
-  field.onclick = () => (s.open ? close() : open())
-  q.oninput = draw
-  root.querySelector(".all").onclick = () => { opts.forEach(o => s.draft.add(o.v)); draw() }
-  root.querySelector(".none").onclick = () => { s.draft.clear(); draw() }
-  root.onkeydown = e => { if (e.key === "Escape") { close(); field.focus() } }
-  // 드롭다운 밖으로 포커스가 나가면 닫으면서 한 번에 반영(패널 여백 클릭은 panel 이 포커스를 받아 안 닫힌다)
-  root.onfocusout = e => { if (s.open && !root.contains(e.relatedTarget)) close() }
-  panel.hidden = !s.open
-  if (s.open) draw(); else label()
-}
-"""
+_CHECK_DD_CSS = _static("detail/check_dropdown.css")
+_CHECK_DD_JS = _static("detail/check_dropdown.js")
 _CHECK_DD = st.components.v2.component("kd_check_dropdown", html=_CHECK_DD_HTML, css=_CHECK_DD_CSS, js=_CHECK_DD_JS)
 
 
@@ -1151,39 +1070,7 @@ CSV_CHARTS = {
               ["두 시점 차이 강조", "변화 방향 명확", "항목 간 비교 용이"], "행 = 국가 · 시작 연도 값 · 끝 연도 값 · 변화"),
 }
 def _csv_css() -> str:
-    return """<style>
-/* 차트 유형 버튼 15개 — 아이콘 위 · 이름 아래로 쌓아 가운데 정렬(이름 길이가 달라도 줄이 맞는다), 고른 것은 파란 테두리 */
-.st-key-qs_ct_grid{position:relative;gap:6px}
-.st-key-qs_ct_grid [data-testid="stHorizontalBlock"]{gap:6px;margin-bottom:0 !important}
-.st-key-qs_ct_grid [data-testid="stColumn"]{position:static}
-.st-key-qs_ct_grid button{height:66px;padding:6px 4px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--muted)}
-.st-key-qs_ct_grid button > div,.st-key-qs_ct_grid button > div > span{width:100%;justify-content:center}
-.st-key-qs_ct_grid button > div > span{flex-direction:column;align-items:center;gap:5px}
-.st-key-qs_ct_grid button > div > span > span:first-child{margin:0 !important}
-/* 아이콘 · 이름은 평소 회색(잠긴 것처럼 보이지 않게 대비 4.5:1 이상), 커서를 올리거나 고른 버튼만 파란색 */
-.st-key-qs_ct_grid button [data-testid="stIconMaterial"]{font-size:24.5px;width:22px;height:22px;color:inherit !important}
-.st-key-qs_ct_grid button [data-testid="stMarkdownContainer"]{text-align:center}
-.st-key-qs_ct_grid button p{font-size:14px;line-height:1.2;white-space:nowrap;color:inherit}
-.st-key-qs_ct_grid button:hover{border-color:var(--accent);color:var(--accent) !important}
-.st-key-qs_ct_grid button[data-testid="stBaseButton-primary"]{background:rgba(43,110,246,.08);border:1.5px solid var(--accent);color:var(--accent) !important}
-.st-key-qs_ct_grid button[data-testid="stBaseButton-primary"] p{font-weight:700}
-/* 커서를 올린 버튼의 설명 칸 — 버튼 묶음 바로 위로 떠서 조건 칸을 덮는다. 커서를 받지 않아 깜빡이지 않는다 */
-.st-key-qs_ct_grid [data-testid="stLayoutWrapper"]:has(> div[class*="st-key-qs_pop_"]){position:absolute;inset:0;pointer-events:none}
-.st-key-qs_ct_grid div[class*="st-key-qs_pop_"]{position:absolute;left:0;bottom:calc(100% + 10px);width:100% !important;
-  max-width:none !important;z-index:60;pointer-events:none;opacity:0;visibility:hidden;transform:translateY(6px);
-  transition:opacity .16s,transform .16s,visibility .16s}
-.st-key-qs_ct_grid [data-testid="stColumn"]:has(button:hover) div[class*="st-key-qs_pop_"]{opacity:1;visibility:visible;transform:none}
-.csv-pop{background:#fff;border:1px solid #c9d7ea;border-radius:10px;padding:14px 18px 18px;box-shadow:0 4px 14px rgba(15,31,58,.10)}
-.csv-h{font-size:19px;font-weight:700;color:#1d4ed8}
-.csv-crumb{font-size:13.5px;color:#4b515d}.csv-crumb b{color:#1d2a44}
-.csv-top{display:grid;grid-template-columns:150px 1fr;gap:14px}
-.csv-fig{border:1.5px solid #6b7280;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;min-height:150px}
-.csv-desc{background:#f2f2f3;border-radius:12px;padding:16px 20px;font-size:14.5px;color:#30343c;line-height:1.65}
-.csv-desc hr{border:0;border-top:1px solid #c8cbd2;margin:12px 0}
-.csv-desc h5{font-size:17px;font-weight:800;margin:0 0 6px;color:#1d2330}
-.csv-desc .shape{display:inline-block;margin-top:10px;padding:3px 12px;border-radius:14px;background:#fff;border:1px solid #d6dbe6;
-  font-weight:700;color:#3d4a6b;font-size:13.5px}
-</style>"""
+    return _static("detail/csv_panel.css")
 
 
 def csv_shape(chart: str, df: pd.DataFrame, q: dict) -> tuple[pd.DataFrame, str]:
@@ -1355,23 +1242,7 @@ def csv_info(nm: str, subject: str = "국가", shape: str | None = None) -> str:
 
 
 # ── 조회 — 결과 표: 연도별 통계표(KOSIS 통계표 모양 · 행 = 국가, 열 = 시점(연도) 아래 항목(지표)) ──────────
-STAT_CSS = """<style>
-/* 남색 머리(흰 글씨) · 옅은 줄무늬 · 국가 열 고정 · 가로/세로 스크롤 */
-.st-tbl{border-collapse:collapse;font-size:14px;min-width:100%}
-.st-scroll{max-height:405px;overflow:auto;border:1px solid #e1e9f3;border-radius:8px;background:#fff}
-.st-tbl th{position:sticky;top:0;z-index:2;background:#1b2f66;color:#fff;font-weight:600;padding:6px 10px;text-align:center;
-  border-right:1px solid #33488a;border-bottom:1px solid #33488a;white-space:nowrap}
-.st-tbl th small{font-weight:500;opacity:.85}
-.st-tbl thead tr:nth-child(2) th{top:31px;background:#2a4285;font-weight:500;font-size:13px}
-.st-tbl td{padding:6px 10px;border-bottom:1px solid #edf2f8;border-right:1px solid #f2f6fb;text-align:right;color:#0f1f3a;white-space:nowrap;font-variant-numeric:tabular-nums}
-.st-tbl td:first-child,.st-tbl th:first-child{position:sticky;left:0;z-index:1;text-align:left}
-.st-tbl th:first-child{z-index:3}
-.st-tbl td:first-child{background:#fff;font-weight:700}
-.st-tbl tr:nth-child(even) td{background:#fafcff}
-.st-tbl td.neg{color:#0f1f3a}
-.st-tbl .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;vertical-align:-1px}
-.st-note{font-size:13px;color:#6b7a99;margin-top:6px}
-</style>"""
+STAT_CSS = _static("detail/stat_table.css")
 
 
 def _stat_cell(v: float, m: str) -> str:

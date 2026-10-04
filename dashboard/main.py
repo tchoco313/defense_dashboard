@@ -38,6 +38,25 @@ SCREENS_DIR = APP_DIR / "screens"
 for _p in (str(APP_DIR), str(SCREENS_DIR)):
     if _p not in sys.path:
         sys.path.insert(0, _p)
+
+# 배포 서버(Streamlit Community Cloud)는 새 코드를 받아도 프로세스를 다시 띄우지 않는다. 소분류 화면 파일은 runpy 로 매번 새로 읽지만,
+# 화면이 import 하는 공용 모듈은 처음 읽은 판이 남아 새 함수를 부르면 AttributeError 가 난다. 그래서 실행할 때마다 공용 모듈 파일이
+# 바뀌었는지 보고, 하나라도 바뀌었으면 의존 순서대로 모두 다시 읽는다(from-import 로 받은 값까지 새 판으로 맞추려고 전부).
+import importlib  # noqa: E402
+_SHARED_MODULES = ("dbconf", "db", "metrics", "kdesign", "live", "weapon_context", "menu", "ui", "rds", "parts")   # 의존 순서
+
+
+def _reload_changed_modules() -> None:
+    mods = [sys.modules[n] for n in _SHARED_MODULES if getattr(sys.modules.get(n), "__file__", None)]
+    mtime = {m: Path(m.__file__).stat().st_mtime for m in mods}
+    if any(getattr(m, "_loaded_mtime", mtime[m]) != mtime[m] for m in mods):
+        for m in mods:
+            importlib.reload(m)
+    for m in mods:
+        m._loaded_mtime = mtime[m]
+
+
+_reload_changed_modules()
 from weapon_context import CASE_CLASS, CASES, SYSTEMS  # noqa: E402  소개 「어디에 쓰이나」 — 무기체계 분류 · 공개 사례
 
 # CSS · JS · 인트로 HTML 은 static/ 파일에 둔다. CSS 안의 ${이름} 자리는 불러올 때 파이썬 값(색 · 폭 등)으로 채운다

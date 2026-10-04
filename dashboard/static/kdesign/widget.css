@@ -1,0 +1,25 @@
+<style>
+:root{color-scheme:light}
+[data-testid="stMain"],div[role="dialog"]{color:var(--text)}
+div[role="dialog"]{background:#fff}
+button[data-testid="stBaseButton-secondary"]{background:#fff;border-color:var(--line);color:var(--text)}
+button[data-testid="stBaseButton-secondary"]:hover{border-color:var(--accent);color:var(--accent)}
+button[data-testid="stBaseButton-primary"]{background:var(--accent);border-color:var(--accent);color:#fff}
+button[data-testid="stBaseButton-primary"]:hover{background:#1f5fe0;border-color:#1f5fe0;color:#fff}
+button[data-variant="segmented_control"]{background:var(--bg);border-color:var(--line);color:var(--text)}
+button[data-variant="segmented_control"]:hover{color:var(--accent)}
+[data-testid="stButtonGroup"] button[data-variant="segmented_control"][aria-checked="true"][data-selected]{
+  background:rgba(43,110,246,.1);border-color:var(--accent);color:var(--accent)}
+[data-testid="stCheckbox"] label > div:not([data-testid]){background:#fff;border-color:#b7c4da}
+[data-testid="stCheckbox"] label:has(input:checked) > div:not([data-testid]){background:var(--accent);border-color:var(--accent)}
+[data-testid="stCheckbox"] label:has(input:disabled){opacity:.45}
+[data-testid="stSelectbox"] div[role="group"],[data-testid="stMultiSelect"] div[role="group"]{background:#fff;border-color:var(--line);color:var(--text)}
+[data-testid="stSelectbox"] div[role="group"]:focus-within,[data-testid="stMultiSelect"] div[role="group"]:focus-within{border-color:var(--accent)}
+[data-testid="stSelectbox"] input,[data-testid="stMultiSelect"] input{color:var(--text)}
+[data-testid="stSelectbox"] input::placeholder,[data-testid="stMultiSelect"] input::placeholder{color:var(--muted)}
+[data-testid="stSelectbox"] div[role="group"] button,[data-testid="stMultiSelect"] div[role="group"] button{color:var(--muted)}
+[data-rac][data-trigger="ComboBox"]{background:#fff;border-color:var(--line);color:var(--text)}
+[data-rac][data-trigger="ComboBox"] [role="option"] *{color:var(--text)}
+[data-testid="stTooltipContent"]{background:#fff;color:var(--text)}
+[data-testid="stAlertContainer"]{background:#eaf1ff;color:#1c4ea3}
+</style>

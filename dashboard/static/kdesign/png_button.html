@@ -1,0 +1,33 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">__FONTLINK__
+<style>body{margin:0;background:transparent;font-family:Pretendard,'Malgun Gothic',system-ui,sans-serif;display:flex;justify-content:__ALIGN__}
+button{font:600 14px Pretendard,'Malgun Gothic',system-ui,sans-serif;color:#1d4ed8;background:#fff;border:1px solid #c7d7f2;
+  border-radius:8px;padding:7px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+button:hover{border-color:#1d4ed8} button:disabled{opacity:.5;cursor:wait}
+#hid{position:absolute;left:-10000px;top:0;width:__W__px;height:__HGT__px}</style></head><body>
+<button id="b" title="지금 화면에 보이는 그래프를 PNG 로 저장">__LABEL__</button><div id="hid"></div>
+<script>
+const FIG = __FIG__;
+// plotly.js(약 3.5MB)는 단추를 처음 누를 때만 받는다 — 페이지를 열 때 단추마다 받으면 화면이 한동안 멈춘다
+function loadPlotly() {
+  if (window.Plotly) return Promise.resolve();
+  return new Promise((ok, fail) => {
+    const sc = document.createElement('script');
+    sc.src = 'https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js';
+    sc.integrity = 'sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7'; sc.crossOrigin = 'anonymous';
+    sc.onload = ok; sc.onerror = fail; document.head.appendChild(sc);
+  });
+}
+const go = async () => {
+  const b = document.getElementById('b'); b.disabled = true;
+  try {
+    try { await loadPlotly(); } catch (e) { b.textContent = '그래프 도구를 불러오지 못했습니다(인터넷 연결 확인)'; return; }
+    const lay = Object.assign({}, FIG.layout || {}, {paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff', width: __W__, height: __HGT__});
+    await Plotly.newPlot('hid', FIG.data, lay, {staticPlot: true});
+    await Plotly.downloadImage('hid', {format: 'png', filename: "__FILE__", width: __W__, height: __HGT__, scale: 2});
+  } finally { b.disabled = false; }
+};
+document.getElementById('b').onclick = go;
+// trigger — 이 칸의 단추는 숨기고, 바깥 화면의 Streamlit 단추(키 __TRIGGER__)가 window.parent.__kdPng[키]() 로 부른다
+const TRIGGER = "__TRIGGER__";
+if (TRIGGER) { (window.parent.__kdPng = window.parent.__kdPng || {})[TRIGGER] = go; document.getElementById('b').style.display = 'none'; }
+</script></body></html>

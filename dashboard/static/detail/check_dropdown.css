@@ -1,0 +1,20 @@
+
+.dd{position:relative;font:15.5px Pretendard,'Malgun Gothic',system-ui,sans-serif}
+.field{width:100%;height:40px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 12px;
+  border-radius:8px;border:1px solid #2b6ef6;background:rgba(43,110,246,.1);color:#5a7fc9;font:inherit;cursor:pointer;text-align:left}
+.dd.off .field{opacity:.55;cursor:not-allowed}
+.field .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.field .arr{color:#2b6ef6;font-size:12px;transition:transform .15s}
+.dd.open .field .arr{transform:rotate(180deg)}
+.panel{position:absolute;left:0;right:0;top:44px;z-index:1000;background:#fff;border:1px solid #c9d3e6;border-radius:10px;
+  box-shadow:0 12px 30px rgba(20,40,80,.18);padding:8px;outline:none}
+.q{width:100%;box-sizing:border-box;height:34px;border:1px solid #d6dbe6;border-radius:6px;padding:0 10px;font:inherit;color:#111}
+.q:focus{outline:none;border-color:#2b6ef6}
+.tools{display:flex;align-items:center;gap:6px;margin:6px 2px}
+.tools button{border:0;background:none;color:#2b6ef6;font:600 13.5px inherit;cursor:pointer;padding:2px 4px}
+.tools .cnt{margin-left:auto;color:#6b7a99;font-size:13px}
+.list{max-height:240px;overflow-y:auto}
+.list label{display:flex;align-items:center;gap:8px;padding:6px 6px;border-radius:6px;cursor:pointer;color:#16233f;font-size:14.5px}
+.list label:hover{background:rgba(43,110,246,.07)}
+.list input{width:16px;height:16px;margin:0;accent-color:#2b6ef6;cursor:pointer;flex:0 0 auto}
+.empty{padding:10px 6px;color:#6b7a99;font-size:14px}

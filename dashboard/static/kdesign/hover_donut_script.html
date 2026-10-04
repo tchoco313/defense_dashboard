@@ -1,0 +1,66 @@
+
+<script>
+(function () {
+  const D = __DATA__, CX = __CX__, CY = __CY__, IN = __IN__, OUT = __OUT__, OUT_H = __OUTH__,
+        ON = '__ON__', UNIT = __UNIT__;
+  const stage = document.getElementById('stage');
+  const svg = stage.querySelector('svg');
+  const lab = stage.querySelector('.c-lab'), sub = stage.querySelector('.c-sub'), val = stage.querySelector('.c-val');
+  const orig = [lab.textContent, sub.textContent];
+  // 가운데 설명이 도넛 구멍보다 길면 두 줄로 나눈다(띄어쓰기 기준) — 링 위로 넘치지 않게
+  const MAXW = 2 * IN - 16, VAL_Y = +val.getAttribute('y');
+  function putSub(text) {
+    sub.textContent = text;
+    let lines = 1;
+    if (sub.getComputedTextLength() > MAXW) {
+      const w = text.split(' ');
+      if (w.length > 1) {
+        let k = 1, best = 1e9;
+        for (let j = 1; j < w.length; j++) {
+          const d = Math.abs(w.slice(0, j).join(' ').length - w.slice(j).join(' ').length);
+          if (d < best) { best = d; k = j; }
+        }
+        sub.textContent = '';
+        [w.slice(0, k).join(' '), w.slice(k).join(' ')].forEach((s, i) => {
+          const t = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+          t.setAttribute('x', CX); t.setAttribute('dy', i ? '1.3em' : '0'); t.textContent = s; sub.appendChild(t);
+        });
+        lines = 2;
+      }
+    }
+    val.setAttribute('y', VAL_Y + (lines - 1) * 17);
+  }
+  putSub(orig[1]);
+  const segs = D.map((_, i) => document.getElementById('seg' + i));
+  const lgs = [...stage.querySelectorAll('.lg')];
+  let cur = -1;
+  function focus(i) {
+    if (i === cur) return; cur = i;
+    stage.classList.toggle('focusing', i >= 0);
+    segs.forEach((s, k) => s.classList.toggle('on', k === i));
+    lgs.forEach((g, k) => g.classList.toggle('on', k === i));
+    if (i < 0) { lab.textContent = orig[0]; putSub(orig[1]); val.textContent = ''; return; }
+    const d = D[i];
+    lab.textContent = (d.p * 100).toFixed(1) + '%';
+    putSub(d.l);
+    val.textContent = d.v.toLocaleString('ko-KR') + (UNIT ? ' ' + UNIT : '');
+  }
+  // 조각 판정은 각도로 한다 — 12시 = 0, 시계 방향(도넛을 -90° 돌려 그린 것과 같다)
+  svg.addEventListener('mousemove', e => {
+    if (!stage.classList.contains(ON)) return focus(-1);
+    const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+    const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+    const dx = p.x - CX, dy = p.y - CY, r = Math.hypot(dx, dy);
+    if (r < IN || r > (cur >= 0 ? OUT_H : OUT)) return focus(-1);   // 커진 조각 위에서는 바깥 범위도 넓힌다
+    let a = Math.atan2(dx, -dy) / (2 * Math.PI); if (a < 0) a += 1;
+    let acc = 0, hit = D.length - 1;
+    for (let k = 0; k < D.length; k++) { acc += D[k].p; if (a < acc) { hit = k; break; } }
+    focus(hit);
+  });
+  svg.addEventListener('mouseleave', () => focus(-1));
+  lgs.forEach((g, k) => {
+    g.addEventListener('mouseenter', () => { if (stage.classList.contains(ON)) focus(k); });
+    g.addEventListener('mouseleave', () => focus(-1));
+  });
+})();
+</script>

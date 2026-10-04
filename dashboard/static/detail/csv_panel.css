@@ -1,0 +1,33 @@
+<style>
+/* 차트 유형 버튼 15개 — 아이콘 위 · 이름 아래로 쌓아 가운데 정렬(이름 길이가 달라도 줄이 맞는다), 고른 것은 파란 테두리 */
+.st-key-qs_ct_grid{position:relative;gap:6px}
+.st-key-qs_ct_grid [data-testid="stHorizontalBlock"]{gap:6px;margin-bottom:0 !important}
+.st-key-qs_ct_grid [data-testid="stColumn"]{position:static}
+.st-key-qs_ct_grid button{height:66px;padding:6px 4px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--muted)}
+.st-key-qs_ct_grid button > div,.st-key-qs_ct_grid button > div > span{width:100%;justify-content:center}
+.st-key-qs_ct_grid button > div > span{flex-direction:column;align-items:center;gap:5px}
+.st-key-qs_ct_grid button > div > span > span:first-child{margin:0 !important}
+/* 아이콘 · 이름은 평소 회색(잠긴 것처럼 보이지 않게 대비 4.5:1 이상), 커서를 올리거나 고른 버튼만 파란색 */
+.st-key-qs_ct_grid button [data-testid="stIconMaterial"]{font-size:24.5px;width:22px;height:22px;color:inherit !important}
+.st-key-qs_ct_grid button [data-testid="stMarkdownContainer"]{text-align:center}
+.st-key-qs_ct_grid button p{font-size:14px;line-height:1.2;white-space:nowrap;color:inherit}
+.st-key-qs_ct_grid button:hover{border-color:var(--accent);color:var(--accent) !important}
+.st-key-qs_ct_grid button[data-testid="stBaseButton-primary"]{background:rgba(43,110,246,.08);border:1.5px solid var(--accent);color:var(--accent) !important}
+.st-key-qs_ct_grid button[data-testid="stBaseButton-primary"] p{font-weight:700}
+/* 커서를 올린 버튼의 설명 칸 — 버튼 묶음 바로 위로 떠서 조건 칸을 덮는다. 커서를 받지 않아 깜빡이지 않는다 */
+.st-key-qs_ct_grid [data-testid="stLayoutWrapper"]:has(> div[class*="st-key-qs_pop_"]){position:absolute;inset:0;pointer-events:none}
+.st-key-qs_ct_grid div[class*="st-key-qs_pop_"]{position:absolute;left:0;bottom:calc(100% + 10px);width:100% !important;
+  max-width:none !important;z-index:60;pointer-events:none;opacity:0;visibility:hidden;transform:translateY(6px);
+  transition:opacity .16s,transform .16s,visibility .16s}
+.st-key-qs_ct_grid [data-testid="stColumn"]:has(button:hover) div[class*="st-key-qs_pop_"]{opacity:1;visibility:visible;transform:none}
+.csv-pop{background:#fff;border:1px solid #c9d7ea;border-radius:10px;padding:14px 18px 18px;box-shadow:0 4px 14px rgba(15,31,58,.10)}
+.csv-h{font-size:19px;font-weight:700;color:#1d4ed8}
+.csv-crumb{font-size:13.5px;color:#4b515d}.csv-crumb b{color:#1d2a44}
+.csv-top{display:grid;grid-template-columns:150px 1fr;gap:14px}
+.csv-fig{border:1.5px solid #6b7280;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;min-height:150px}
+.csv-desc{background:#f2f2f3;border-radius:12px;padding:16px 20px;font-size:14.5px;color:#30343c;line-height:1.65}
+.csv-desc hr{border:0;border-top:1px solid #c8cbd2;margin:12px 0}
+.csv-desc h5{font-size:17px;font-weight:800;margin:0 0 6px;color:#1d2330}
+.csv-desc .shape{display:inline-block;margin-top:10px;padding:3px 12px;border-radius:14px;background:#fff;border:1px solid #d6dbe6;
+  font-weight:700;color:#3d4a6b;font-size:13.5px}
+</style>
