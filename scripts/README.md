@@ -17,12 +17,8 @@
 | 문서 | `gen_table_catalog.py` | 표 · 열 사전 + DB 실측 → `docs/db/table-catalog.md` | 읽기 | — |
 | 문서 | `gen_erd_html.py` | `docs/db/erd.md` 의 관계도 → 혼자 열리는 `erd.html` | — | — |
 | 문서 | `gen_data_spec_xlsx.py` | 데이터 수집 목록 및 명세서 xlsx(과정 제공 서식) 생성 | 읽기 | 원본 파일 |
-| 문서 | `build_docs_pdf.py` | 설계서 Markdown → A4 PDF(`docs/제출/01~04`) — 헤드리스 Chrome 으로 인쇄 | — | Google Chrome(macOS 경로) · 인터넷 |
-| 문서 | `md_to_pdf.py` | Markdown → PDF 간이 변환(reportlab) | — | 나눔고딕 글꼴 파일(Windows 경로) |
 | 제출 | `dump_db.py` | DB 전체(표 44 · 뷰 31)를 덤프 한 파일 + 표별 행 수로 → `build/db/` | 읽기 | MySQL 클라이언트(`mysqldump`) |
 | 제출 | `build_package.py` | 커밋된 프로젝트 파일 + 덤프 → 로컬 실행 패키지 zip(`build/`) | — | git |
-| 제출 | `record_demo.py` | 대시보드 시연 영상 자동 녹화(메뉴 · 조건을 실제로 눌러 가며, 한글 자막) → MP4(`build/demo/`) | — | Playwright · ffmpeg |
 
 - 「DB 읽기」 스크립트는 SELECT 만 한다. 「쓰기」는 `load_db.py` 하나이며, 비어 있는 표에만 적재한다.
 - 적재 순서와 덤프 · 복원은 [`../db/README.md`](../db/README.md).
-- `build_docs_pdf.py` 는 macOS 의 Chrome 경로를 쓴다 — Windows 에서 쓰려면 파일 맨 위 `CHROME` 값을 Chrome 실행 파일 경로로 바꾼다. `md_to_pdf.py` 는 반대로 Windows 글꼴 경로(`C:/Windows/Fonts/NanumGothic*.ttf`)를 쓴다.

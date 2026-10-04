@@ -9,4 +9,4 @@
 | `runbook/db-connection.md` | 팀 DB 접속 방법 · 계정 권한(실제 주소 · 비밀번호는 적지 않음) |
 | `data-sources.md` | 데이터 출처 기록 — 데이터셋별 출처 · URL · 기간 · 규모 · 채택 여부와 이유 |
 
-`docs/db/*.md` · `docs/제출/0[12]_*.md` 는 PDF 의 원문이다 — `scripts/build_docs_pdf.py` 로 PDF 를 다시 만든다.
+`docs/db/erd.md` · `docs/db/table-catalog.md` · `docs/제출/01 · 02 · 07 · 08_*.md` 는 PDF 의 원문이다(Markdown 을 A4 로 인쇄해 PDF 를 만들었다).

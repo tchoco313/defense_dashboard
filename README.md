@@ -97,10 +97,8 @@ python -m unittest discover -s tests -q    # DB 없이 돈다
 python scripts/gen_table_catalog.py        # docs/db/table-catalog.md 재생성 (DB 조회)
 python scripts/gen_erd_html.py             # docs/db/erd.md → erd.html
 python scripts/gen_data_spec_xlsx.py       # 데이터 수집 목록 및 명세서 xlsx
-python scripts/build_docs_pdf.py           # 설계서 Markdown → docs/제출/ PDF
 python scripts/dump_db.py                  # DB 전체 덤프 → build/db/
 python scripts/build_package.py            # 로컬 실행 패키지 zip → build/
-python scripts/record_demo.py              # 시연 영상 녹화 → build/demo/ (Playwright · ffmpeg 필요)
 ```
 
 ## 폴더 구조
