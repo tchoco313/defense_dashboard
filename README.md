@@ -4,7 +4,7 @@ K-디지털트레이닝 국방·첨단산업 AI 솔루션 ML 엔지니어 양성
 
 | 바로 가기 | 주소 |
 |---|---|
-| 대시보드(배포) | **https://defense-trade.streamlit.app** (Streamlit Community Cloud) |
+| 대시보드(배포) | **https://defense-trade.streamlit.app** (Streamlit Community Cloud — 발표 뒤 정리 예정, 종료 뒤에는 아래 「로컬에서 실행」) |
 | GitHub 저장소 | https://github.com/tchoco313/defense_dashboard |
 | 로컬 실행 패키지(코드 + DB 덤프) | [GitHub Releases](https://github.com/tchoco313/defense_dashboard/releases/latest) · Google Drive `1조/5_대시보드/02_프로젝트코드/` |
 | 산출물 팀 폴더(Google Drive) | https://drive.google.com/drive/folders/15mfNS0jcs5HZYPgO6hPP4-Gq0m_4JbPu (`1조`) |
@@ -51,6 +51,8 @@ K-디지털트레이닝 국방·첨단산업 AI 솔루션 ML 엔지니어 양성
 
 ### A. 바로 보기
 https://defense-trade.streamlit.app — 설치 없이 브라우저로 연다.
+
+> **프로젝트 종료 안내(2026-10-06 발표 뒤):** 배포 사이트와 팀 DB(AWS RDS)는 발표 뒤 정리할 예정이다. 사이트가 열리지 않으면 아래 B 의 DB 덤프로 로컬에서 실행하면 된다 — 덤프는 Releases 의 zip 안(`db/dump/`)과 Drive `2_데이터수집_저장/02_DB/` 에 있고, 2026-10-02 이후 DB 는 바뀌지 않았다.
 
 ### B. 로컬에서 실행 — DB 덤프 복원 (검사 · 시연용)
 팀 DB(AWS RDS)는 허용된 IP 에서만 접속된다. 그래서 DB 전체를 덤프 한 파일(표 44개 · 뷰 31개)로 함께 제공한다.
